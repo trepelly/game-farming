@@ -1182,20 +1182,33 @@ function renderWalletCard(w) {
       ${w.loading ? `
         <div style="display:flex;gap:8px;align-items:center;color:var(--muted2);font-size:12px;padding:8px 0">
           <span style="display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></span>
-          Đang tải dữ liệu từ Henesys...
+          Đang tải dữ liệu...
         </div>
       ` : w.error ? `
         <div style="color:var(--red);font-size:12px;padding:8px 0">⚠ ${w.error}</div>
       ` : `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+          ${(activeChains.includes('henesys') && activeTokens.includes('nxpc')) ? `
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
-            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">NXPC <span style="font-size:8px">(gas token)</span></div>
-            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--amber)">${fd2(w.nxpc)}</div>
-          </div>
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">⛽ NXPC</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:#f59e0b">${fd2(w.nxpc)}</div>
+          </div>` : ''}
+          ${(activeChains.includes('henesys') && activeTokens.includes('neso')) ? `
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
-            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">NESO</div>
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">🪙 NESO</div>
             <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--green)">${fd4(w.neso)}</div>
-          </div>
+          </div>` : ''}
+          ${(activeChains.includes('polygon') && activeTokens.includes('pol')) ? `
+          <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">💜 POL</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:#8247e5">${w.pol!=null?fd2(w.pol):'—'}</div>
+          </div>` : ''}
+          ${(activeChains.includes('polygon') && activeTokens.includes('sand')) ? `
+          <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">🏖️ SAND</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:#00adef">${w.sand!=null?fd2(w.sand):'—'}</div>
+          </div>` : ''}
+          ${(activeChains.includes('henesys') && activeTokens.includes('neso')) ? `
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ USDT</div>
             <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--blue)">${fd2(nesoUsdt)}</div>
@@ -1205,7 +1218,7 @@ function renderWalletCard(w) {
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ VND</div>
             <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--amber)">${nesoUsdt!=null?f(nesoUsdt*usdvnd):'—'}</div>
             <div style="font-size:9px;color:var(--muted2);margin-top:3px">×${f(usdvnd)}</div>
-          </div>
+          </div>` : ''}
         </div>
       `}
     </div>`;
