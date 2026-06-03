@@ -407,6 +407,7 @@ Ví sếp, 0x5678...efgh
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div class="section-label" style="margin-bottom:0">Danh sách ví</div>
         <div style="display:flex;gap:8px">
+          <button onclick="openChainSettings()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⚙️ Chain & Token</button>
           <button onclick="refreshAll()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
           <button onclick="clearAll()" style="background:var(--red-bg);border:1px solid var(--red)30;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">✕ Xóa tất cả</button>
         </div>
@@ -462,6 +463,7 @@ Ví sếp, 0x5678...efgh
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="openChainSettings()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⚙️ Chain & Token</button>
           <button onclick="refreshTeam()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
           <button onclick="lockTeam()" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🔒 Khoá</button>
         </div>
@@ -545,6 +547,78 @@ Ví sếp, 0x5678...efgh
           <tbody id="team-tbody"></tbody>
           <tfoot id="team-tfoot" style="border-top:2px solid var(--border2)"></tfoot>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAIN & TOKEN SETTINGS (shared) -->
+  <div id="chain-token-settings" style="display:none;position:fixed;inset:0;z-index:999;background:#00000080;backdrop-filter:blur(4px)" onclick="if(event.target===this)closeChainSettings()">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(640px,95vw);max-height:85vh;overflow-y:auto;background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:24px;box-shadow:var(--shadow-lg)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-family:'Cabinet Grotesk',sans-serif;font-size:18px;font-weight:800;color:var(--text)">⚙️ Chain & Token</div>
+        <button onclick="closeChainSettings()" style="background:var(--subtle);border:none;border-radius:8px;padding:6px 12px;color:var(--muted2);font-family:inherit;cursor:pointer;font-size:13px">✕ Đóng</button>
+      </div>
+
+      <!-- Chains -->
+      <div class="section-label" style="margin-bottom:12px">Danh sách chain</div>
+      <div id="chain-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:20px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">Thêm chain mới</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Tên chain</div>
+            <input id="new-chain-name" placeholder="VD: BSC" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">RPC URL</div>
+            <input id="new-chain-rpc" placeholder="https://bsc-dataseed.binance.org" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Chain ID</div>
+            <input id="new-chain-id" placeholder="56" type="number" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Symbol gas token</div>
+            <input id="new-chain-symbol" placeholder="BNB" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button onclick="addChain()" style="background:var(--accent);border:none;border-radius:7px;padding:8px 16px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ Thêm chain</button>
+        </div>
+        <div id="chain-add-err" style="font-size:11px;color:var(--red);margin-top:6px;min-height:14px"></div>
+      </div>
+
+      <!-- Tokens -->
+      <div class="section-label" style="margin-bottom:12px">Danh sách token ERC20</div>
+      <div id="token-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">Thêm token mới</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Tên token</div>
+            <input id="new-token-name" placeholder="VD: SAND" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Chain</div>
+            <select id="new-token-chain" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"></select>
+          </div>
+          <div style="grid-column:1/-1">
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Contract Address</div>
+            <input id="new-token-contract" placeholder="0x..." style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Decimals</div>
+            <input id="new-token-decimals" placeholder="18" type="number" value="18" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Màu hiển thị</div>
+            <input id="new-token-color" type="color" value="#a78bfa" style="width:100%;height:36px;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:2px 4px;cursor:pointer;box-sizing:border-box"/>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button onclick="addToken()" style="background:var(--accent);border:none;border-radius:7px;padding:8px 16px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ Thêm token</button>
+        </div>
+        <div id="token-add-err" style="font-size:11px;color:var(--red);margin-top:6px;min-height:14px"></div>
       </div>
     </div>
   </div>
@@ -1485,6 +1559,205 @@ async function refreshTeam() { loadTeamWallets(); }
 // Patch switchTab
 const _origSwitchTeam = window.switchTab;
 window.switchTab = function(t) { _origSwitchTeam(t); };
+</script>
+
+
+<script>
+// ══ CHAIN & TOKEN MODULE ══
+
+const DEFAULT_CHAINS = [
+  { id: 'henesys', name: 'Henesys L1', chainId: 68414, rpc: 'https://henesys-rpc.msu.io',   symbol: 'NXPC', color: '#f59e0b' },
+  { id: 'bsc',     name: 'BSC',        chainId: 56,    rpc: 'https://bsc-dataseed.binance.org', symbol: 'BNB',  color: '#f0b90b' },
+  { id: 'eth',     name: 'Ethereum',   chainId: 1,     rpc: 'https://eth.llamarpc.com',       symbol: 'ETH',  color: '#627eea' },
+  { id: 'polygon', name: 'Polygon',    chainId: 137,   rpc: 'https://polygon-rpc.com',        symbol: 'MATIC',color: '#8247e5' },
+];
+
+const DEFAULT_TOKENS = [
+  { id: 'neso', name: 'NESO', chainId: 'henesys', contract: '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08', decimals: 18, color: '#10b981' },
+];
+
+function loadChains()  { try { return JSON.parse(localStorage.getItem('ct_chains')  || 'null') || DEFAULT_CHAINS;  } catch{ return DEFAULT_CHAINS;  } }
+function loadTokens()  { try { return JSON.parse(localStorage.getItem('ct_tokens')  || 'null') || DEFAULT_TOKENS;  } catch{ return DEFAULT_TOKENS;  } }
+function saveChains(c) { localStorage.setItem('ct_chains',  JSON.stringify(c)); }
+function saveTokens(t) { localStorage.setItem('ct_tokens',  JSON.stringify(t)); }
+
+let appChains = loadChains();
+let appTokens = loadTokens();
+
+// ── RPC call for any chain ──
+async function rpcCallChain(rpc, method, params=[]) {
+  const r = await fetch(rpc, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
+  });
+  const d = await r.json();
+  if(d.error) throw new Error(d.error.message);
+  return d.result;
+}
+
+function hexToDecimal(hex, decimals=18) {
+  if(!hex || hex==='0x' || hex==='0x0') return 0;
+  try {
+    const raw = BigInt(hex);
+    const div = BigInt(10**18); // use fixed 18 then adjust
+    const adjDiv = BigInt('1'+'0'.repeat(decimals));
+    return Number(raw * BigInt(10**6) / adjDiv) / 1e6;
+  } catch { return 0; }
+}
+
+// Fetch all token balances for a wallet across all chains
+async function fetchAllBalances(address) {
+  const result = {};
+  await Promise.all(appChains.map(async chain => {
+    try {
+      const natHex = await rpcCallChain(chain.rpc, 'eth_getBalance', [address, 'latest']);
+      result[chain.id + '_native'] = { symbol: chain.symbol, balance: hexToDecimal(natHex, 18), color: chain.color, chain: chain.name };
+    } catch(e) { result[chain.id + '_native'] = { symbol: chain.symbol, balance: null, color: chain.color, chain: chain.name, error: e.message }; }
+
+    // ERC20 tokens on this chain
+    const chainTokens = appTokens.filter(t => t.chainId === chain.id);
+    await Promise.all(chainTokens.map(async tok => {
+      try {
+        const data = '0x70a08231'+'000000000000000000000000'+address.slice(2).toLowerCase();
+        const hex  = await rpcCallChain(chain.rpc, 'eth_call', [{to: tok.contract, data}, 'latest']);
+        result[tok.id] = { symbol: tok.name, balance: hexToDecimal(hex, tok.decimals), color: tok.color, chain: chain.name };
+      } catch(e) { result[tok.id] = { symbol: tok.name, balance: null, color: tok.color, chain: chain.name, error: e.message }; }
+    }));
+  }));
+  return result;
+}
+
+// ── Settings modal ──
+function openChainSettings() {
+  document.getElementById('chain-token-settings').style.display = 'block';
+  renderChainList();
+  renderTokenList();
+  populateChainSelect();
+}
+function closeChainSettings() {
+  document.getElementById('chain-token-settings').style.display = 'none';
+}
+
+function renderChainList() {
+  document.getElementById('chain-list').innerHTML = appChains.map((c,i) => `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${c.name} <span style="font-size:10px;color:var(--muted2)">(${c.symbol})</span></div>
+        <div style="font-size:10px;color:var(--muted2);font-family:monospace">${c.rpc.slice(0,48)}${c.rpc.length>48?'...':''}</div>
+      </div>
+      ${i >= DEFAULT_CHAINS.length ? `<button onclick="removeChain(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 8px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : '<span style="font-size:10px;color:var(--muted2)">built-in</span>'}
+    </div>`).join('');
+}
+
+function renderTokenList() {
+  document.getElementById('token-list').innerHTML = appTokens.map((t,i) => {
+    const chain = appChains.find(c => c.id === t.chainId);
+    return `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
+      <div style="width:10px;height:10px;border-radius:50%;background:${t.color};flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${t.name} <span style="font-size:10px;color:var(--muted2)">on ${chain?.name||t.chainId}</span></div>
+        <div style="font-size:10px;color:var(--muted2);font-family:monospace">${t.contract.slice(0,20)}...${t.contract.slice(-6)} · ${t.decimals} decimals</div>
+      </div>
+      ${i >= DEFAULT_TOKENS.length ? `<button onclick="removeToken(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 8px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : '<span style="font-size:10px;color:var(--muted2)">built-in</span>'}
+    </div>`;
+  }).join('');
+}
+
+function populateChainSelect() {
+  const sel = document.getElementById('new-token-chain');
+  if (!sel) return;
+  sel.innerHTML = appChains.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+function addChain() {
+  const name   = document.getElementById('new-chain-name').value.trim();
+  const rpc    = document.getElementById('new-chain-rpc').value.trim();
+  const chainId= +document.getElementById('new-chain-id').value;
+  const symbol = document.getElementById('new-chain-symbol').value.trim();
+  const err    = document.getElementById('chain-add-err');
+  if (!name||!rpc||!chainId||!symbol) { err.textContent='Vui lòng điền đầy đủ'; return; }
+  if (!rpc.startsWith('http')) { err.textContent='RPC phải bắt đầu bằng http'; return; }
+  const id = name.toLowerCase().replace(/\s+/g,'-');
+  appChains.push({ id, name, chainId, rpc, symbol, color: '#6b6b8a' });
+  saveChains(appChains);
+  err.textContent = '';
+  ['new-chain-name','new-chain-rpc','new-chain-id','new-chain-symbol'].forEach(i=>document.getElementById(i).value='');
+  renderChainList(); populateChainSelect();
+}
+
+function removeChain(i) {
+  if (i < DEFAULT_CHAINS.length) return;
+  appChains.splice(i,1); saveChains(appChains); renderChainList(); populateChainSelect();
+}
+
+function addToken() {
+  const name     = document.getElementById('new-token-name').value.trim();
+  const chainId  = document.getElementById('new-token-chain').value;
+  const contract = document.getElementById('new-token-contract').value.trim();
+  const decimals = +document.getElementById('new-token-decimals').value || 18;
+  const color    = document.getElementById('new-token-color').value;
+  const err      = document.getElementById('token-add-err');
+  if (!name||!contract) { err.textContent='Cần có tên và contract address'; return; }
+  if (!/^0x[0-9a-fA-F]{40}$/i.test(contract)) { err.textContent='Contract address không hợp lệ'; return; }
+  const id = name.toLowerCase()+'-'+chainId;
+  appTokens.push({ id, name, chainId, contract, decimals, color });
+  saveTokens(appTokens);
+  err.textContent = '';
+  ['new-token-name','new-token-contract'].forEach(i=>document.getElementById(i).value='');
+  renderTokenList();
+}
+
+function removeToken(i) {
+  if (i < DEFAULT_TOKENS.length) return;
+  appTokens.splice(i,1); saveTokens(appTokens); renderTokenList();
+}
+
+// ── Override fetchBalances used by wallet + team tabs ──
+// Keep original for backward compat (NXPC + NESO on Henesys)
+const _origFetchBalances = typeof fetchBalances !== 'undefined' ? fetchBalances : null;
+
+window.fetchBalances = async function(address) {
+  const all = await fetchAllBalances(address);
+  // Backward compat: still return nxpc and neso at top level
+  const henesysNative = all['henesys_native'];
+  const nesoToken     = all['neso'];
+  return {
+    nxpc: henesysNative?.balance ?? 0,
+    neso: nesoToken?.balance ?? 0,
+    extra: all  // full breakdown
+  };
+};
+
+// ── Render extra tokens in wallet card ──
+const _origRenderWalletCard = typeof renderWalletCard !== 'undefined' ? renderWalletCard : null;
+
+// Patch renderWalletCard to show extra tokens
+const _patchWalletCard = () => {
+  const orig = window.renderWalletCard;
+  if (!orig) return;
+  window.renderWalletCard = function(w) {
+    orig(w);
+    if (!w.extra) return;
+    const el = document.getElementById(`wcard-${w.address}`);
+    if (!el) return;
+    const extraTokens = Object.entries(w.extra).filter(([k]) => k !== 'henesys_native' && k !== 'neso');
+    if (extraTokens.length === 0) return;
+    const extraHTML = extraTokens.map(([k,v]) => `
+      <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">${v.symbol} <span style="font-size:8px">(${v.chain})</span></div>
+        <div style="font-size:18px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:${v.color}">${v.balance!=null?v.balance.toLocaleString('vi-VN',{maximumFractionDigits:4}):'—'}</div>
+      </div>`).join('');
+    // Find the last token grid and append
+    const grids = el.querySelectorAll('[style*="grid-template-columns"]');
+    const lastGrid = grids[grids.length-1];
+    if (lastGrid) lastGrid.insertAdjacentHTML('beforeend', extraHTML);
+  };
+};
+
+// Run patch after DOM ready
+setTimeout(_patchWalletCard, 500);
 </script>
 
 </body>
