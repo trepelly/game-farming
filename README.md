@@ -1,4 +1,4 @@
-# NESO Farm Dashboard
+# Farm Dashboard
 
 Công cụ tính toán farming NESO — vòng quay tích lũy ACC và mục tiêu ngược.
 
