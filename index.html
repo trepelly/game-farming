@@ -1304,6 +1304,7 @@ function renderTeam() {
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px">${a.slice(0,6)}...${a.slice(-4)}</span>`;
     return `<tr>
+      <td style="text-align:center;color:var(--muted2);font-size:12px;font-weight:600">${i+1}</td>
       <td style="text-align:left;font-weight:600">${w.label||'—'}</td>
       <td style="text-align:left">${short(w.address)}
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
@@ -1320,7 +1321,7 @@ function renderTeam() {
   const totUsdt = totNeso/100000*nxpcRate;
   const totVnd  = totUsdt*usdvnd;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface)">
-    <td colspan="2" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${teamWallets.length} ví)</td>
+    <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${teamWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdt,2)}</td>
