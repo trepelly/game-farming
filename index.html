@@ -348,10 +348,10 @@ td:first-child{text-align:left;color:var(--muted2)}
   <!-- PANEL 3: WALLET (Game Workspaces) -->
   <div id="panel-wallet" class="panel">
 
-    <!-- Top bar: game tabs + Add Game -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap">
-      <div id="game-tabs" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
-      <button onclick="openAddGameModal()" style="display:flex;align-items:center;gap:6px;background:var(--accent-glow);border:1px solid var(--accent)44;border-radius:10px;padding:9px 16px;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+    <!-- Game workspace tabs -->
+    <div id="game-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <div style="margin-bottom:20px">
+      <button onclick="openAddGameModal()" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-glow);border:1px solid var(--accent)44;border-radius:10px;padding:9px 16px;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
         + Thêm game
       </button>
     </div>
@@ -360,7 +360,7 @@ td:first-child{text-align:left;color:var(--muted2)}
     <div id="workspace-content"></div>
 
     <!-- Add Game Modal -->
-    <div id="add-game-modal" style="display:none;position:fixed;inset:0;z-index:999;background:#00000080;backdrop-filter:blur(4px)" onclick="if(event.target===this)closeAddGameModal()">
+    <div id="add-game-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:#00000080;backdrop-filter:blur(4px)" onclick="if(event.target===this)closeAddGameModal()">
       <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(500px,95vw);max-height:85vh;overflow-y:auto;background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:24px;box-shadow:var(--shadow-lg)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div style="font-family:'Cabinet Grotesk',sans-serif;font-size:18px;font-weight:800;color:var(--text)">+ Thêm game workspace</div>
