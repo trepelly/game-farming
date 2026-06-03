@@ -242,6 +242,7 @@ td:first-child{text-align:left;color:var(--muted2)}
   <div class="tabs">
     <button class="tab active" onclick="switchTab('farm')">⚡ Vòng quay tích lũy</button>
     <button class="tab" onclick="switchTab('target')">🎯 Mục tiêu ngược</button>
+    <button class="tab" onclick="switchTab('wallet')">🔗 Ví & Tài sản</button>
   </div>
 
   <!-- PANEL 1 -->
@@ -345,6 +346,62 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
     </div>
   </div>
+  <!-- PANEL 3: WALLET -->
+  <div id="panel-wallet" class="panel">
+
+    <!-- MetaMask connect -->
+    <div class="section-label">Kết nối ví</div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px;align-items:flex-start">
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);flex:1;min-width:260px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">MetaMask</div>
+        <button id="mm-btn" onclick="connectMetaMask()" style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f6851b,#e2761b);border:none;border-radius:10px;padding:12px 20px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;width:100%;justify-content:center">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:22px;height:22px" onerror="this.style.display='none'"/>
+          Kết nối MetaMask
+        </button>
+        <div id="mm-status" style="font-size:11px;color:var(--muted2);margin-top:10px;min-height:16px"></div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);flex:2;min-width:280px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">Thêm ví thủ công</div>
+        <div style="display:flex;gap:8px">
+          <input id="wallet-input" type="text" placeholder="0x... địa chỉ ví" style="flex:1;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/>
+          <button onclick="addWalletManual()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">+ Thêm</button>
+        </div>
+        <div id="wallet-error" style="font-size:11px;color:var(--red);margin-top:8px;min-height:16px"></div>
+      </div>
+    </div>
+
+    <!-- Wallet list -->
+    <div id="wallet-list-section" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div class="section-label" style="margin-bottom:0">Danh sách ví</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="refreshAll()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
+          <button onclick="clearAll()" style="background:var(--red-bg);border:1px solid var(--red)30;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">✕ Xóa tất cả</button>
+        </div>
+      </div>
+      <div id="wallet-cards" style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px"></div>
+    </div>
+
+    <!-- Portfolio summary -->
+    <div id="portfolio-section" style="display:none">
+      <div class="section-label">Tổng hợp tất cả ví</div>
+      <div class="stat-row" id="portfolio-stats"></div>
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:28px">
+        <div class="chart-title" style="margin-bottom:4px">📊 Phân bổ NESO theo ví</div>
+        <div class="chart-sub" style="margin-bottom:16px">Tỷ lệ % mỗi ví trong tổng portfolio</div>
+        <div style="position:relative;height:240px"><canvas id="chart-portfolio"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div style="background:var(--blue-bg);border:1px solid var(--blue)25;border-radius:12px;padding:14px 18px;font-size:11px;color:var(--muted2);line-height:1.7">
+      <b style="color:var(--blue)">ℹ️ Thông tin kỹ thuật</b><br/>
+      Chain: <b style="color:var(--text)">Henesys L1</b> · Chain ID: <b style="color:var(--text)">68414</b> · RPC: <b style="color:var(--text)">henesys-rpc.msu.io</b><br/>
+      NESO contract: <code style="color:var(--green);font-size:10px">0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08</code><br/>
+      Dữ liệu đọc trực tiếp từ blockchain · Không lưu khóa riêng tư · Chỉ đọc (read-only)
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -397,7 +454,7 @@ function makeChart(id,cfg){
 }
 
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet'][i]===t));
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
 }
@@ -604,5 +661,306 @@ document.querySelectorAll('#panel-farm input').forEach(el=>el.addEventListener('
 document.querySelectorAll('#panel-target input').forEach(el=>el.addEventListener('input',calcTarget));
 calcFarm();calcTarget();
 </script>
+
+<script>
+// ── WALLET MODULE ──
+const HENESYS_RPC    = 'https://henesys-rpc.msu.io';
+const HENESYS_CHAIN  = '0x10b3e'; // 68414
+const NESO_CONTRACT  = '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08';
+const NESO_DECIMALS  = 18;
+
+let wallets = JSON.parse(localStorage.getItem('wl_wallets')||'[]');
+let portfolioChart = null;
+
+// ── RPC helper ──
+async function rpcCall(method, params=[]) {
+  const r = await fetch(HENESYS_RPC, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
+  });
+  const d = await r.json();
+  if(d.error) throw new Error(d.error.message);
+  return d.result;
+}
+
+function hexToDec(hex, decimals=18) {
+  if(!hex || hex==='0x0') return 0;
+  const raw = BigInt(hex);
+  const divisor = BigInt(10**decimals);
+  const whole = raw / divisor;
+  const rem   = raw % divisor;
+  return Number(whole) + Number(rem) / (10**decimals);
+}
+
+async function fetchBalances(address) {
+  // NXPC native balance
+  const nxpcHex = await rpcCall('eth_getBalance',[address,'latest']);
+  const nxpcBal = hexToDec(nxpcHex, 18);
+
+  // NESO ERC20 balance via balanceOf(address)
+  const data = '0x70a08231'+'000000000000000000000000'+address.slice(2).toLowerCase();
+  const nesoHex = await rpcCall('eth_call',[{to:NESO_CONTRACT,data},'latest']);
+  const nesoBal = hexToDec(nesoHex, 18);
+
+  return {nxpc: nxpcBal, neso: nesoBal};
+}
+
+// ── MetaMask ──
+async function connectMetaMask() {
+  const btn = document.getElementById('mm-btn');
+  const status = document.getElementById('mm-status');
+  if(!window.ethereum) {
+    status.innerHTML = '<span style="color:var(--red)">MetaMask chưa được cài. <a href="https://metamask.io" target="_blank" style="color:var(--blue)">Tải tại đây</a></span>';
+    return;
+  }
+  try {
+    btn.textContent = 'Đang kết nối...';
+    const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+    const addr = accounts[0];
+
+    // Add Henesys chain if not exists
+    try {
+      await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:HENESYS_CHAIN}]});
+    } catch(e) {
+      if(e.code===4902) {
+        await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
+          chainId: HENESYS_CHAIN,
+          chainName: 'Henesys L1',
+          nativeCurrency:{name:'NXPC',symbol:'NXPC',decimals:18},
+          rpcUrls:[HENESYS_RPC],
+          blockExplorerUrls:['https://msu-explorer.xangle.io']
+        }]});
+      }
+    }
+
+    status.innerHTML = `<span style="color:var(--green)">✓ Đã kết nối: ${addr.slice(0,6)}...${addr.slice(-4)}</span>`;
+    btn.innerHTML = `<span style="color:#fff">✓ ${addr.slice(0,6)}...${addr.slice(-4)}</span>`;
+
+    addWallet(addr, 'MetaMask');
+  } catch(e) {
+    status.innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
+    btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:22px;height:22px"/>Kết nối MetaMask';
+  }
+}
+
+// ── Add wallet ──
+function addWalletManual() {
+  const input = document.getElementById('wallet-input');
+  const err   = document.getElementById('wallet-error');
+  const addr  = input.value.trim();
+  if(!/^0x[0-9a-fA-F]{40}$/.test(addr)){
+    err.textContent = 'Địa chỉ ví không hợp lệ (phải bắt đầu bằng 0x và 40 ký tự hex)';
+    return;
+  }
+  err.textContent = '';
+  input.value = '';
+  addWallet(addr, 'Thủ công');
+}
+
+function addWallet(address, source='Thủ công') {
+  const norm = address.toLowerCase();
+  if(wallets.find(w=>w.address.toLowerCase()===norm)) return;
+  const label = `Ví ${wallets.length+1}`;
+  wallets.push({address, label, source, nxpc:null, neso:null, loading:true, error:null});
+  saveWallets();
+  renderWallets();
+  loadWalletData(address);
+}
+
+function saveWallets() {
+  localStorage.setItem('wl_wallets', JSON.stringify(wallets.map(w=>({address:w.address,label:w.label,source:w.source}))));
+}
+
+function clearAll() {
+  if(!confirm('Xóa tất cả ví?')) return;
+  wallets = [];
+  saveWallets();
+  renderWallets();
+  updatePortfolio();
+}
+
+function removeWallet(addr) {
+  wallets = wallets.filter(w=>w.address!==addr);
+  saveWallets();
+  renderWallets();
+  updatePortfolio();
+}
+
+function updateLabel(addr, val) {
+  const w = wallets.find(w=>w.address===addr);
+  if(w){ w.label=val; saveWallets(); }
+}
+
+async function loadWalletData(address) {
+  const w = wallets.find(w=>w.address===address);
+  if(!w) return;
+  w.loading=true; w.error=null;
+  renderWalletCard(w);
+  try {
+    const {nxpc,neso} = await fetchBalances(address);
+    w.nxpc=nxpc; w.neso=neso; w.loading=false;
+  } catch(e) {
+    w.error=e.message; w.loading=false;
+  }
+  renderWalletCard(w);
+  updatePortfolio();
+}
+
+function refreshAll() {
+  wallets.forEach(w=>{ w.loading=true; w.error=null; loadWalletData(w.address); });
+  renderWallets();
+}
+
+// ── Render ──
+function renderWallets() {
+  const sec = document.getElementById('wallet-list-section');
+  const container = document.getElementById('wallet-cards');
+  if(wallets.length===0){ sec.style.display='none'; updatePortfolio(); return; }
+  sec.style.display='block';
+  container.innerHTML = wallets.map(w=>`<div id="wcard-${w.address}" class="wcard"></div>`).join('');
+  wallets.forEach(w=>renderWalletCard(w));
+}
+
+function renderWalletCard(w) {
+  const el = document.getElementById(`wcard-${w.address}`);
+  if(!el) return;
+  const fd4 = n=>n==null?'—':n.toLocaleString('vi-VN',{minimumFractionDigits:0,maximumFractionDigits:2});
+  const fd2 = n=>n==null?'—':n.toLocaleString('vi-VN',{minimumFractionDigits:0,maximumFractionDigits:4});
+  const short = a=>`${a.slice(0,6)}...${a.slice(-4)}`;
+  const maplenUrl = `https://maplen.gg/assets?address=${w.address}`;
+
+  const nesoUsdt = w.neso!=null ? w.neso/100000*0.4 : null;
+
+  el.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">${w.label.charAt(0)}</div>
+          <div>
+            <input value="${w.label}" onchange="updateLabel('${w.address}',this.value)"
+              style="background:transparent;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-family:inherit;font-size:14px;font-weight:700;outline:none;width:120px;padding:2px 4px"/>
+            <div style="font-size:10px;color:var(--muted2);margin-top:3px;font-family:monospace">${short(w.address)}
+              <span style="margin-left:4px;cursor:pointer;color:var(--blue)" onclick="navigator.clipboard.writeText('${w.address}')" title="Copy">⎘</span>
+            </div>
+          </div>
+          <span style="font-size:9px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--${w.source==='MetaMask'?'amber':'accent'}-bg);color:var(--${w.source==='MetaMask'?'amber':'accent'})">${w.source}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <a href="${maplenUrl}" target="_blank" style="text-decoration:none;background:var(--green-bg);border:1px solid var(--green)30;border-radius:8px;padding:7px 12px;color:var(--green);font-size:11px;font-weight:600">🗂 maplen.gg</a>
+          <button onclick="loadWalletData('${w.address}')" style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:7px 12px;color:var(--muted2);font-family:inherit;font-size:11px;cursor:pointer">⟳</button>
+          <button onclick="removeWallet('${w.address}')" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:8px;padding:7px 12px;color:var(--red);font-family:inherit;font-size:11px;cursor:pointer">✕</button>
+        </div>
+      </div>
+
+      ${w.loading ? `
+        <div style="display:flex;gap:8px;align-items:center;color:var(--muted2);font-size:12px;padding:8px 0">
+          <span style="display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></span>
+          Đang tải dữ liệu từ Henesys...
+        </div>
+      ` : w.error ? `
+        <div style="color:var(--red);font-size:12px;padding:8px 0">⚠ ${w.error}</div>
+      ` : `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+          <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">NXPC <span style="font-size:8px">(gas token)</span></div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--amber)">${fd2(w.nxpc)}</div>
+          </div>
+          <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">NESO</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--green)">${fd4(w.neso)}</div>
+          </div>
+          <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ USDT</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--blue)">${fd2(nesoUsdt)}</div>
+            <div style="font-size:9px;color:var(--muted2);margin-top:3px">NESO÷100k×0.4</div>
+          </div>
+        </div>
+      `}
+    </div>`;
+}
+
+// ── Portfolio ──
+function updatePortfolio() {
+  const sec = document.getElementById('portfolio-section');
+  const loaded = wallets.filter(w=>!w.loading && !w.error && w.neso!=null);
+  if(loaded.length<1){ sec.style.display='none'; return; }
+  sec.style.display='block';
+
+  const totalNxpc = loaded.reduce((s,w)=>s+w.nxpc,0);
+  const totalNeso = loaded.reduce((s,w)=>s+w.neso,0);
+  const totalUsdt = totalNeso/100000*0.4;
+  const fd = n=>Math.round(n).toLocaleString('vi-VN');
+  const fd2 = (n,d)=>n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+  document.getElementById('portfolio-stats').innerHTML=`
+    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
+      <span class="stat-icon">👜</span><div class="stat-label">Tổng ví</div>
+      <div class="stat-val">${loaded.length}</div><div class="stat-sub">đã tải xong</div></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
+      <span class="stat-icon">⛽</span><div class="stat-label">NXPC tổng</div>
+      <div class="stat-val" style="color:var(--amber)">${fd2(totalNxpc,4)}</div><div class="stat-sub">gas token</div></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--green)"></div>
+      <span class="stat-icon">🪙</span><div class="stat-label">NESO tổng</div>
+      <div class="stat-val" style="color:var(--green)">${fd(totalNeso)}</div><div class="stat-sub">across ${loaded.length} ví</div></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--blue)"></div>
+      <span class="stat-icon">💵</span><div class="stat-label">≈ USDT tổng</div>
+      <div class="stat-val" style="color:var(--blue)">${fd2(totalUsdt,2)}</div><div class="stat-sub">NESO÷100k×0.4</div></div>
+  `;
+
+  // Pie chart
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const colors = ['#8b5cf6','#3b82f6','#10b981','#f59e0b','#ef4444','#f97316','#06b6d4','#ec4899'];
+  const el = document.getElementById('chart-portfolio');
+  if(portfolioChart) portfolioChart.destroy();
+  portfolioChart = new Chart(el,{
+    type:'doughnut',
+    data:{
+      labels:loaded.map(w=>w.label),
+      datasets:[{
+        data:loaded.map(w=>w.neso),
+        backgroundColor:colors.map(c=>c+'bb'),
+        borderColor:colors,
+        borderWidth:2,
+        hoverOffset:8
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right',labels:{color:isDark?'#c4c4d4':'#3a3a55',font:{family:'JetBrains Mono',size:10},boxWidth:10,padding:10}},
+        tooltip:{backgroundColor:isDark?'#1c1c32':'#fff',borderColor:isDark?'#ffffff1a':'#0000001a',borderWidth:1,
+          titleColor:isDark?'#eeeef8':'#0f0f1a',bodyColor:isDark?'#6b6b8a':'#9090b0',
+          titleFont:{family:'Cabinet Grotesk',size:12,weight:'700'},bodyFont:{family:'JetBrains Mono',size:11},
+          callbacks:{label:ctx=>' '+Math.round(ctx.raw).toLocaleString('vi-VN')+' NESO ('+fd2(ctx.raw/totalNeso*100,1)+'%)'}}
+      }
+    }
+  });
+}
+
+// ── Init wallet tab ──
+function initWalletTab() {
+  // Load saved wallets on startup (fetch balances fresh)
+  if(wallets.length>0){
+    // re-init loading state
+    wallets = wallets.map(w=>({...w, nxpc:null, neso:null, loading:true, error:null}));
+    renderWallets();
+    wallets.forEach(w=>loadWalletData(w.address));
+  }
+}
+
+// Patch switchTab to init wallet on first open
+const _origSwitch = switchTab;
+let walletInited = false;
+window.switchTab = function(t) {
+  _origSwitch(t);
+  if(t==='wallet' && !walletInited){ walletInited=true; initWalletTab(); }
+};
+
+// Spin animation
+const spinStyle = document.createElement('style');
+spinStyle.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+document.head.appendChild(spinStyle);
+</script>
+
 </body>
 </html>
