@@ -87,10 +87,8 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Courie
 /* Grid bg - dark only */
 [data-theme="dark"] body::before{content:'';position:fixed;inset:0;
   background-image:radial-gradient(circle at 20% 20%,#4c1d9520 0%,transparent 50%),
-    radial-gradient(circle at 80% 80%,#1e3a5f20 0%,transparent 50%),
-    linear-gradient(#ffffff06 1px,transparent 1px),
-    linear-gradient(90deg,#ffffff06 1px,transparent 1px);
-  background-size:100% 100%,100% 100%,52px 52px,52px 52px;
+    radial-gradient(circle at 80% 80%,#1e3a5f20 0%,transparent 50%);
+  background-size:100% 100%,100% 100%;
   pointer-events:none;z-index:0;}
 [data-theme="light"] body::before{content:'';position:fixed;inset:0;
   background-image:radial-gradient(circle at 20% 20%,#7c3aed08 0%,transparent 50%),
