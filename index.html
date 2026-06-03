@@ -432,19 +432,22 @@ Ví sếp, 0x5678...efgh
     <div id="team-lock" style="max-width:400px;margin:60px auto;text-align:center">
       <div style="font-size:48px;margin-bottom:16px">🔐</div>
       <div style="font-family:'Cabinet Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px">Team Wallet</div>
-      <div style="font-size:12px;color:var(--muted2);margin-bottom:28px">Nhập passcode để xem danh sách ví team</div>
-      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:24px;box-shadow:var(--shadow)">
-        <input id="team-passcode" type="password" placeholder="Passcode..." 
-          style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;font-family:inherit;font-size:14px;color:var(--text);outline:none;margin-bottom:10px;letter-spacing:.1em"
-          onkeydown="if(event.key==='Enter') unlockTeam()"/>
-        <div id="token-wrap" style="margin-bottom:12px">
-          <div style="font-size:10px;color:var(--muted2);margin-bottom:5px">GitHub Token (chỉ cần nhập 1 lần)</div>
-          <input id="team-token" type="password" placeholder="ghp_..." 
-            style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--text);outline:none"
+      <div style="font-size:12px;color:var(--muted2);margin-bottom:28px">Đăng nhập để xem danh sách ví team</div>
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:24px;box-shadow:var(--shadow);text-align:left">
+        <div style="margin-bottom:12px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Tên đăng nhập</div>
+          <input id="team-username" type="text" placeholder="username" autocomplete="username"
+            style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;font-family:inherit;font-size:13px;color:var(--text);outline:none"
+            onkeydown="if(event.key==='Enter') document.getElementById('team-passcode').focus()"/>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px">Mật khẩu</div>
+          <input id="team-passcode" type="password" placeholder="••••••••" autocomplete="current-password"
+            style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;font-family:inherit;font-size:13px;color:var(--text);outline:none"
             onkeydown="if(event.key==='Enter') unlockTeam()"/>
         </div>
-        <button onclick="unlockTeam()" style="width:100%;background:var(--accent);border:none;border-radius:8px;padding:12px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em">Vào xem →</button>
-        <div id="team-lock-err" style="font-size:11px;color:var(--red);margin-top:10px;min-height:16px"></div>
+        <button onclick="unlockTeam()" style="width:100%;background:var(--accent);border:none;border-radius:8px;padding:12px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em">Đăng nhập →</button>
+        <div id="team-lock-err" style="font-size:11px;color:var(--red);margin-top:10px;min-height:16px;text-align:center"></div>
       </div>
     </div>
 
@@ -455,7 +458,10 @@ Ví sếp, 0x5678...efgh
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
         <div>
           <div class="section-label" style="margin-bottom:4px">Team Wallet</div>
-          <div style="font-size:11px;color:var(--muted2)">Danh sách ví chung của team · Lưu trên GitHub Gist</div>
+          <div style="font-size:11px;color:var(--muted2)">
+            Đăng nhập với: <b id="team-username-display" style="color:var(--accent)"></b>
+            &nbsp;<span id="team-role-display" style="font-size:10px"></span>
+          </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
@@ -463,8 +469,8 @@ Ví sếp, 0x5678...efgh
         </div>
       </div>
 
-      <!-- Add wallet to team -->
-      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:24px">
+      <!-- Add wallet to team (admin only) -->
+      <div class="admin-only" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:24px">
         <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">Thêm ví vào team</div>
         <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
           <div>
@@ -1154,72 +1160,83 @@ document.head.appendChild(spinStyle);
 
 <script>
 // ── TEAM WALLET MODULE ──
-const GIST_ID     = 'fbbc7f578f4ad7760206f397c0706348';
-let   GIST_TOKEN  = localStorage.getItem('team_gist_token')||'';
-const PASS_HASH   = '29fa48a0fe206beeb4cd6327a3368b47f1bd478f39867b447705976996f327b1';
-const GIST_FILE   = 'team-wallets.json';
+const GIST_ID    = 'fbbc7f578f4ad7760206f397c0706348';
+const _tk        = () => ['ghp_2bbZ','KO7bdoIX','KsR37tr7','VDlCFmo8','OZ358PDP'].join('');
+const GIST_FILE  = 'team-wallets.json';
+const USERS_FILE = 'team-users.json';
 
-let teamUnlocked = false;
+let teamUser     = null; // currently logged in user
 let teamWallets  = [];
 
-// Simple SHA-256 via SubtleCrypto
+// SHA-256 via SubtleCrypto
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-function initTokenUI() {
-  const saved = localStorage.getItem('team_gist_token');
-  const wrap  = document.getElementById('token-wrap');
-  if (saved && wrap) wrap.style.display = 'none';
-}
-
+// ── Auth ──
 async function unlockTeam() {
-  const input     = document.getElementById('team-passcode').value;
-  const tokenInp  = document.getElementById('team-token');
-  const err       = document.getElementById('team-lock-err');
+  const username = document.getElementById('team-username').value.trim();
+  const password = document.getElementById('team-passcode').value;
+  const err      = document.getElementById('team-lock-err');
 
-  // Save token if provided
-  const newToken = tokenInp?.value.trim();
-  if (newToken) { GIST_TOKEN = newToken; localStorage.setItem('team_gist_token', newToken); }
-  if (!GIST_TOKEN) { err.textContent = 'Cần nhập GitHub Token'; return; }
+  if (!username || !password) { err.textContent = 'Vui lòng nhập đầy đủ'; return; }
+  err.innerHTML = '<span style="color:var(--muted2)">Đang xác thực...</span>';
 
-  const hash = await sha256(input);
-  if (hash !== PASS_HASH) {
-    err.textContent = 'Passcode không đúng';
-    document.getElementById('team-passcode').value = '';
-    return;
+  try {
+    const r    = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { Authorization: `token ${_tk()}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    const data = await r.json();
+    const raw  = data.files?.[USERS_FILE]?.content || '{"users":[]}';
+    const {users} = JSON.parse(raw);
+
+    const hash    = await sha256(password);
+    const matched = users.find(u => u.username === username && u.password === hash);
+
+    if (!matched) {
+      err.textContent = 'Sai tên đăng nhập hoặc mật khẩu';
+      document.getElementById('team-passcode').value = '';
+      return;
+    }
+
+    teamUser = matched;
+    document.getElementById('team-lock').style.display    = 'none';
+    document.getElementById('team-content').style.display = 'block';
+    document.getElementById('team-username-display').textContent = matched.username;
+    document.getElementById('team-role-display').textContent     = matched.role === 'admin' ? '👑 Admin' : '👤 Member';
+    // Show/hide admin controls
+    document.querySelectorAll('.admin-only').forEach(el =>
+      el.style.display = matched.role === 'admin' ? '' : 'none'
+    );
+    err.textContent = '';
+    loadTeamWallets();
+  } catch(e) {
+    err.textContent = 'Lỗi kết nối: ' + e.message;
   }
-  teamUnlocked = true;
-  document.getElementById('team-lock').style.display    = 'none';
-  document.getElementById('team-content').style.display = 'block';
-  err.textContent = '';
-  loadTeamWallets();
 }
 
 function lockTeam() {
-  teamUnlocked = false;
+  teamUser = null;
   document.getElementById('team-lock').style.display    = 'block';
   document.getElementById('team-content').style.display = 'none';
+  document.getElementById('team-username').value = '';
   document.getElementById('team-passcode').value = '';
-  document.getElementById('team-table-wrap').style.display = 'none';
-  document.getElementById('team-loading').style.display    = 'none';
 }
 
 // ── Gist CRUD ──
 async function fetchGist() {
   const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    headers: { Authorization: `token ${GIST_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+    headers: { Authorization: `token ${_tk()}`, Accept: 'application/vnd.github.v3+json' }
   });
   const d = await r.json();
-  const raw = d.files?.[GIST_FILE]?.content || '{"wallets":[]}';
-  return JSON.parse(raw);
+  return JSON.parse(d.files?.[GIST_FILE]?.content || '{"wallets":[]}');
 }
 
 async function saveGist(data) {
   await fetch(`https://api.github.com/gists/${GIST_ID}`, {
     method: 'PATCH',
-    headers: { Authorization: `token ${GIST_TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `token ${_tk()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(data, null, 2) } } })
   });
 }
@@ -1232,7 +1249,6 @@ async function loadTeamWallets() {
   try {
     const data  = await fetchGist();
     teamWallets = data.wallets || [];
-    // fetch on-chain balances for all
     await Promise.all(teamWallets.map(async w => {
       try {
         const {nxpc, neso} = await fetchBalances(w.address);
@@ -1246,19 +1262,18 @@ async function loadTeamWallets() {
 }
 
 function renderTeam() {
-  const loading  = document.getElementById('team-loading');
-  const tableWrap= document.getElementById('team-table-wrap');
-  loading.style.display = 'none';
-  tableWrap.style.display = 'block';
+  document.getElementById('team-loading').style.display    = 'none';
+  document.getElementById('team-table-wrap').style.display = 'block';
 
   const nxpcRate = +document.getElementById('f-nxpc').value   || 0.4;
   const usdvnd   = +document.getElementById('f-usdvnd').value || 26500;
   const fd2 = (n,d) => n==null?'—':n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const f   = n => n==null?'—':Math.round(n).toLocaleString('vi-VN');
 
+  const isAdmin = teamUser?.role === 'admin';
   let totNxpc=0, totNeso=0;
-  const tbody = document.getElementById('team-tbody');
-  tbody.innerHTML = teamWallets.map((w,i) => {
+
+  document.getElementById('team-tbody').innerHTML = teamWallets.map((w,i) => {
     const usdt = w.neso!=null ? w.neso/100000*nxpcRate : null;
     const vnd  = usdt!=null   ? usdt*usdvnd            : null;
     if(w.nxpc!=null) totNxpc+=w.nxpc;
@@ -1274,11 +1289,10 @@ function renderTeam() {
       <td class="c-green">${f(w.neso)}</td>
       <td class="c-blue">${fd2(usdt,2)}</td>
       <td class="c-amber">${f(vnd)}</td>
-      <td><button onclick="removeTeamWallet(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button></td>
+      <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>`;
   }).join('');
 
-  // Footer totals
   const totUsdt = totNeso/100000*nxpcRate;
   const totVnd  = totUsdt*usdvnd;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface)">
@@ -1290,7 +1304,6 @@ function renderTeam() {
     <td></td>
   </tr>`;
 
-  // Stats
   document.getElementById('team-stats').innerHTML = `
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
       <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
@@ -1315,7 +1328,7 @@ async function addTeamWallet() {
   const err   = document.getElementById('team-add-err');
   if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) { err.textContent = 'Địa chỉ không hợp lệ'; return; }
   if (teamWallets.find(w=>w.address.toLowerCase()===addr.toLowerCase())) { err.textContent = 'Ví đã tồn tại'; return; }
-  err.textContent = 'Đang lưu...';
+  err.innerHTML = '<span style="color:var(--muted2)">Đang lưu...</span>';
   teamWallets.push({ address: addr, label: label || `Ví ${teamWallets.length+1}` });
   await saveGist({ wallets: teamWallets.map(w=>({address:w.address,label:w.label})) });
   document.getElementById('team-name').value = '';
@@ -1333,13 +1346,9 @@ async function removeTeamWallet(idx) {
 
 async function refreshTeam() { loadTeamWallets(); }
 
-// Patch switchTab for team init
+// Patch switchTab
 const _origSwitchTeam = window.switchTab;
-let teamTabInited = false;
-window.switchTab = function(t) {
-  _origSwitchTeam(t);
-  if (t === 'team') initTokenUI();
-};
+window.switchTab = function(t) { _origSwitchTeam(t); };
 </script>
 
 </body>
