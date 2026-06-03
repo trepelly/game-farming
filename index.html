@@ -5,91 +5,74 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#0a0a12"/>
 <title>NESO Farm Dashboard</title>
-<link rel="manifest" href="data:application/json,{}"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0a0a12;--surface:#12121f;--card:#181827;--border:#ffffff12;--border2:#ffffff22;
-  --accent:#a78bfa;--accent2:#7c3aed;--green:#34d399;--blue:#60a5fa;--amber:#fbbf24;--red:#f87171;
+  --accent:#a78bfa;--accent2:#7c3aed;--green:#34d399;--blue:#60a5fa;--amber:#fbbf24;--red:#f87171;--orange:#fb923c;
   --text:#f1f0ff;--muted:#6b6b8a;--subtle:#2a2a40;
   --font-display:'Syne',sans-serif;--font-mono:'DM Mono',monospace;
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden}
-
-/* Background grid */
-body::before{
-  content:'';position:fixed;inset:0;
+body::before{content:'';position:fixed;inset:0;
   background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
-  background-size:48px 48px;pointer-events:none;z-index:0;
-}
-
-.wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:24px 20px 60px}
-
-/* Header */
+  background-size:48px 48px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:24px 20px 60px}
 header{margin-bottom:36px}
-.logo{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.18em;
-  color:var(--muted);text-transform:uppercase;margin-bottom:12px}
-h1{font-family:var(--font-display);font-size:clamp(22px,4vw,32px);font-weight:800;
-  color:var(--text);line-height:1.1;margin-bottom:6px}
+.logo{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:12px}
+h1{font-family:var(--font-display);font-size:clamp(22px,4vw,32px);font-weight:800;color:var(--text);line-height:1.1;margin-bottom:6px}
 h1 span{color:var(--accent)}
 .subtitle{font-size:12px;color:var(--muted);letter-spacing:.04em}
-
-/* Tabs */
-.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--surface);
-  border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content}
-.tab{font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.06em;
-  padding:8px 20px;border-radius:7px;border:none;background:transparent;
-  color:var(--muted);cursor:pointer;transition:all .2s}
+.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content}
+.tab{font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.06em;padding:8px 20px;border-radius:7px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
 .tab.active{background:var(--accent2);color:#fff}
 .tab:hover:not(.active){color:var(--text)}
-
-/* Panel */
 .panel{display:none}.panel.active{display:block}
-
-/* Section label */
-.section-label{font-family:var(--font-display);font-size:10px;font-weight:700;
-  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
-  border-left:2px solid var(--accent);padding-left:10px;margin-bottom:14px}
-
-/* Input grid */
+.section-label{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-left:2px solid var(--accent);padding-left:10px;margin-bottom:14px}
 .input-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:28px}
 .input-group{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
 .input-group label{display:block;font-size:10px;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
-.input-group input{width:100%;background:var(--subtle);border:1px solid var(--border2);border-radius:6px;
-  padding:9px 12px;font-family:var(--font-mono);font-size:14px;font-weight:500;
-  color:var(--blue);outline:none;transition:border-color .2s}
+.input-group input{width:100%;background:var(--subtle);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-family:var(--font-mono);font-size:14px;font-weight:500;color:var(--blue);outline:none;transition:border-color .2s}
 .input-group input:focus{border-color:var(--accent)}
 .input-note{font-size:10px;color:var(--muted);margin-top:5px;opacity:.7}
-
-/* Formula pill */
-.formula-pill{display:inline-flex;align-items:center;gap:6px;background:var(--subtle);
-  border:1px solid var(--border2);border-radius:20px;padding:6px 14px;
-  font-size:11px;color:var(--muted);margin-bottom:24px}
+.formula-pill{display:inline-flex;align-items:center;gap:6px;background:var(--subtle);border:1px solid var(--border2);border-radius:20px;padding:6px 14px;font-size:11px;color:var(--muted);margin-bottom:24px}
 .formula-pill span{color:var(--accent)}
-
-/* Stat cards */
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:28px}
 .stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
 .stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.stat.s-purple::after{background:var(--accent)}
-.stat.s-green::after{background:var(--green)}
-.stat.s-blue::after{background:var(--blue)}
-.stat.s-amber::after{background:var(--amber)}
-.stat.s-red::after{background:var(--red)}
+.stat.s-purple::after{background:var(--accent)}.stat.s-green::after{background:var(--green)}
+.stat.s-blue::after{background:var(--blue)}.stat.s-amber::after{background:var(--amber)}
+.stat.s-red::after{background:var(--red)}.stat.s-orange::after{background:var(--orange)}
 .stat-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .stat-val{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text)}
 .stat-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.stat-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin-top:4px}
+.stat-badge.up{background:#34d39920;color:var(--green)}.stat-badge.down{background:#f8717120;color:var(--red)}
 
-/* Table */
-.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+/* Chart area */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+@media(max-width:640px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.chart-title{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+.chart-sub{font-size:10px;color:var(--muted);margin-bottom:16px}
+.chart-wrap{position:relative;height:220px}
+
+/* Growth insight cards */
+.growth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:28px}
+.growth-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.growth-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.growth-val{font-family:var(--font-display);font-size:16px;font-weight:700}
+.growth-bar-wrap{height:4px;background:var(--subtle);border-radius:2px;margin-top:8px;overflow:hidden}
+.growth-bar{height:100%;border-radius:2px;transition:width .6s ease}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:28px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead tr{background:var(--surface)}
-th{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--muted);padding:12px 14px;text-align:right;white-space:nowrap;
-  border-bottom:1px solid var(--border)}
+th{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border)}
 th:first-child{text-align:left}
 tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
 tbody tr:last-child{border-bottom:none}
@@ -97,39 +80,27 @@ tbody tr:hover{background:var(--subtle)}
 td{padding:10px 14px;text-align:right;color:var(--text)}
 td:first-child{text-align:left;color:var(--muted)}
 td.hi-green{color:var(--green);font-weight:500}
-td.hi-blue{color:var(--blue)}
-td.hi-amber{color:var(--amber);font-weight:500}
-td.hi-red{color:var(--red)}
-td.center{text-align:center}
-.badge{display:inline-block;background:var(--subtle);border:1px solid var(--border2);
-  border-radius:4px;padding:2px 7px;font-size:10px;letter-spacing:.04em}
+td.hi-blue{color:var(--blue)}td.hi-amber{color:var(--amber);font-weight:500}
+td.hi-orange{color:var(--orange);font-weight:500}
+td.hi-red{color:var(--red)}td.center{text-align:center}
+td.growth-pos{color:var(--green)}.growth-neg{color:var(--red)}.growth-zero{color:var(--muted)}
+.badge{display:inline-block;background:var(--subtle);border:1px solid var(--border2);border-radius:4px;padding:2px 7px;font-size:10px;letter-spacing:.04em}
 .badge.new{background:#7c3aed22;border-color:#7c3aed44;color:var(--accent)}
-
-/* Scenario cards */
 .scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:24px}
 .scenario-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:all .2s}
 .scenario-card:hover{border-color:var(--border2);transform:translateY(-1px)}
 .scenario-card.active-card{border-color:var(--accent);background:#7c3aed0d}
-.sc-tag{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  margin-bottom:10px;display:inline-block;padding:3px 8px;border-radius:4px}
-.sc-tag.t1{background:#1e3a5f;color:var(--blue)}
-.sc-tag.t2{background:#3a2a00;color:var(--amber)}
-.sc-tag.t3{background:#0d3a25;color:var(--green)}
+.sc-tag{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:inline-block;padding:3px 8px;border-radius:4px}
+.sc-tag.t1{background:#1e3a5f;color:var(--blue)}.sc-tag.t2{background:#3a2a00;color:var(--amber)}.sc-tag.t3{background:#0d3a25;color:var(--green)}
 .sc-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
 .sc-val{font-size:18px;font-weight:700;margin-bottom:4px}
 .sc-val.c1{color:var(--blue)}.sc-val.c2{color:var(--amber)}.sc-val.c3{color:var(--green)}
 .sc-desc{font-size:11px;color:var(--muted)}
 .sc-results{display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-.sc-r{flex:1}
-.sc-r-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px}
+.sc-r{flex:1}.sc-r-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px}
 .sc-r-val{font-size:12px;font-weight:500;color:var(--text)}
-
-/* Detail toggle */
-.detail-btn{font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:.06em;
-  background:var(--subtle);border:1px solid var(--border2);color:var(--muted);
-  padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.detail-btn{font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:.06em;background:var(--subtle);border:1px solid var(--border2);color:var(--muted);padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .2s;margin-bottom:16px}
 .detail-btn:hover{color:var(--text);border-color:var(--accent)}
-
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .panel.active{animation:fadeIn .25s ease}
 </style>
@@ -151,59 +122,56 @@ td.center{text-align:center}
   <div id="panel-farm" class="panel active">
     <div class="section-label">Thông số đầu vào</div>
     <div class="input-grid">
-      <div class="input-group">
-        <label>ACC ban đầu</label>
-        <input type="number" id="f-acc" value="30" min="1"/>
-      </div>
-      <div class="input-group">
-        <label>Số tuần farming</label>
-        <input type="number" id="f-weeks" value="8" min="1" max="52"/>
-      </div>
-      <div class="input-group">
-        <label>NESO / ACC / tuần</label>
-        <input type="number" id="f-npacc" value="1300000" step="100000"/>
-      </div>
-      <div class="input-group">
-        <label>NESO / character</label>
-        <input type="number" id="f-npchar" value="10000000" step="1000000"/>
-      </div>
-      <div class="input-group">
-        <label>ACC / character</label>
-        <input type="number" id="f-apchar" value="1" min="1"/>
-      </div>
-      <div class="input-group">
-        <label>NXPC / USDT</label>
-        <input type="number" id="f-nxpc" value="0.4" step="0.001"/>
-      </div>
-      <div class="input-group">
-        <label>USDT / VND</label>
-        <input type="number" id="f-usdvnd" value="26500" step="100"/>
-      </div>
+      <div class="input-group"><label>ACC ban đầu</label><input type="number" id="f-acc" value="30" min="1"/></div>
+      <div class="input-group"><label>Số tuần farming</label><input type="number" id="f-weeks" value="8" min="1" max="52"/></div>
+      <div class="input-group"><label>NESO / ACC / tuần</label><input type="number" id="f-npacc" value="1300000" step="100000"/></div>
+      <div class="input-group"><label>NESO / character</label><input type="number" id="f-npchar" value="10000000" step="1000000"/></div>
+      <div class="input-group"><label>ACC / character</label><input type="number" id="f-apchar" value="1" min="1"/></div>
+      <div class="input-group"><label>NXPC / USDT</label><input type="number" id="f-nxpc" value="0.4" step="0.001"/></div>
+      <div class="input-group"><label>USDT / VND</label><input type="number" id="f-usdvnd" value="26500" step="100"/></div>
     </div>
 
-    <div class="formula-pill">
-      NESO ÷ 100,000 = NXPC &nbsp;→&nbsp; <span>NXPC × NXPC/USDT = USDT</span> &nbsp;→&nbsp; USDT × USDT/VND = VND
-    </div>
+    <div class="formula-pill">NESO ÷ 100,000 = NXPC &nbsp;→&nbsp; <span>NXPC × NXPC/USDT = USDT</span> &nbsp;→&nbsp; USDT × USDT/VND = VND</div>
 
     <div class="stat-row" id="farm-stats"></div>
 
-    <div class="section-label">Kết quả theo tuần</div>
+    <!-- Charts -->
+    <div class="section-label">Biểu đồ tăng trưởng</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Tăng trưởng ACC</div>
+        <div class="chart-sub">Số tài khoản tích lũy theo tuần</div>
+        <div class="chart-wrap"><canvas id="chart-acc"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Giá trị USDT & VND</div>
+        <div class="chart-sub">Quy đổi tích lũy theo tuần</div>
+        <div class="chart-wrap"><canvas id="chart-value"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">NESO tích lũy</div>
+        <div class="chart-sub">Tổng NESO farm được & NXPC quy đổi</div>
+        <div class="chart-wrap"><canvas id="chart-neso"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Tỷ lệ tăng trưởng ACC (%)</div>
+        <div class="chart-sub">% tăng so với tuần trước</div>
+        <div class="chart-wrap"><canvas id="chart-growth"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Growth insights -->
+    <div class="section-label">Phân tích tăng trưởng ACC</div>
+    <div class="growth-grid" id="growth-insights"></div>
+
+    <div class="section-label">Chi tiết theo tuần</div>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Tuần</th>
-            <th>ACC</th>
-            <th>NESO/tuần</th>
-            <th>NESO tích lũy</th>
-            <th>NXPC tích lũy</th>
-            <th>Char mới</th>
-            <th>ACC mới</th>
-            <th>NESO dư</th>
-            <th>USDT</th>
-            <th>VND</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>Tuần</th><th>ACC</th><th>Tăng trưởng</th><th>NESO/tuần</th>
+          <th>NESO tích lũy</th><th>NXPC tích lũy</th><th>Char mới</th>
+          <th>ACC mới</th><th>NESO dư</th><th>USDT</th><th>VND</th>
+        </tr></thead>
         <tbody id="farm-tbody"></tbody>
       </table>
     </div>
@@ -213,60 +181,40 @@ td.center{text-align:center}
   <div id="panel-target" class="panel">
     <div class="section-label">Thông số mục tiêu</div>
     <div class="input-grid">
-      <div class="input-group">
-        <label>Mục tiêu ACC</label>
-        <input type="number" id="t-target" value="100" min="1"/>
-      </div>
-      <div class="input-group">
-        <label>NESO / character</label>
-        <input type="number" id="t-npchar" value="10000000" step="1000000"/>
-      </div>
-      <div class="input-group">
-        <label>ACC / character</label>
-        <input type="number" id="t-apchar" value="1" min="1"/>
-      </div>
-      <div class="input-group">
-        <label>NXPC / USDT</label>
-        <input type="number" id="t-nxpc" value="0.4" step="0.001"/>
-      </div>
-      <div class="input-group">
-        <label>USDT / VND</label>
-        <input type="number" id="t-usdvnd" value="26500" step="100"/>
-      </div>
+      <div class="input-group"><label>Mục tiêu ACC</label><input type="number" id="t-target" value="100" min="1"/></div>
+      <div class="input-group"><label>NESO / character</label><input type="number" id="t-npchar" value="10000000" step="1000000"/></div>
+      <div class="input-group"><label>ACC / character</label><input type="number" id="t-apchar" value="1" min="1"/></div>
+      <div class="input-group"><label>NXPC / USDT</label><input type="number" id="t-nxpc" value="0.4" step="0.001"/></div>
+      <div class="input-group"><label>USDT / VND</label><input type="number" id="t-usdvnd" value="26500" step="100"/></div>
     </div>
-    <div class="section-label" style="margin-top:4px">Base (giữ nguyên 2/3 biến mỗi kịch bản)</div>
+    <div class="section-label">Base (giữ nguyên 2/3 biến mỗi kịch bản)</div>
     <div class="input-grid" style="margin-bottom:28px">
-      <div class="input-group">
-        <label>Base ACC ban đầu</label>
-        <input type="number" id="t-bacc" value="30" min="1"/>
-        <div class="input-note">dùng cho KB1 &amp; KB3</div>
-      </div>
-      <div class="input-group">
-        <label>Base NESO/tuần</label>
-        <input type="number" id="t-bneso" value="1300000" step="100000"/>
-        <div class="input-note">dùng cho KB1 &amp; KB2</div>
-      </div>
-      <div class="input-group">
-        <label>Base số tuần</label>
-        <input type="number" id="t-bweeks" value="8" min="1"/>
-        <div class="input-note">dùng cho KB2 &amp; KB3</div>
-      </div>
+      <div class="input-group"><label>Base ACC ban đầu</label><input type="number" id="t-bacc" value="30" min="1"/><div class="input-note">dùng cho KB1 &amp; KB3</div></div>
+      <div class="input-group"><label>Base NESO/tuần</label><input type="number" id="t-bneso" value="1300000" step="100000"/><div class="input-note">dùng cho KB1 &amp; KB2</div></div>
+      <div class="input-group"><label>Base số tuần</label><input type="number" id="t-bweeks" value="8" min="1"/><div class="input-note">dùng cho KB2 &amp; KB3</div></div>
     </div>
-
     <div class="section-label">3 kịch bản để đạt mục tiêu</div>
     <div class="scenario-grid" id="scenario-cards"></div>
-
     <button class="detail-btn" id="detail-toggle" onclick="toggleDetail()">▼ Xem chi tiết kịch bản đang chọn</button>
     <div id="detail-wrap" style="display:none">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Tăng trưởng ACC — kịch bản đang chọn</div>
+          <div class="chart-sub">So sánh 3 kịch bản</div>
+          <div class="chart-wrap"><canvas id="chart-scenario-acc"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Giá trị USDT — 3 kịch bản</div>
+          <div class="chart-sub">Tích lũy theo tuần</div>
+          <div class="chart-wrap"><canvas id="chart-scenario-usdt"></canvas></div>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>Tuần</th><th>ACC</th><th>NESO/tuần</th>
-              <th>NESO tích lũy</th><th>NXPC tích lũy</th>
-              <th>Char mới</th><th>ACC mới</th><th>NESO dư</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th>Tuần</th><th>ACC</th><th>Tăng trưởng</th><th>NESO/tuần</th>
+            <th>NESO tích lũy</th><th>NXPC tích lũy</th><th>Char mới</th><th>ACC mới</th><th>NESO dư</th>
+          </tr></thead>
           <tbody id="detail-tbody"></tbody>
         </table>
       </div>
@@ -276,17 +224,33 @@ td.center{text-align:center}
 
 <script>
 const NESO_PER_NXPC = 100000;
-const f = (n) => Math.round(n).toLocaleString('vi-VN');
+const f  = n => Math.round(n).toLocaleString('vi-VN');
 const fd = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = n => (n>=0?'+':'')+fd(n,1)+'%';
 
-function switchTab(t) {
+let chartAcc=null, chartValue=null, chartNeso=null, chartGrowth=null;
+let chartScAcc=null, chartScUsdt=null;
+
+const CHART_DEFAULTS = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{labels:{color:'#6b6b8a',font:{family:'DM Mono',size:10},boxWidth:12}},tooltip:{backgroundColor:'#181827',borderColor:'#ffffff22',borderWidth:1,titleColor:'#f1f0ff',bodyColor:'#9ca3af',titleFont:{family:'Syne',size:12},bodyFont:{family:'DM Mono',size:11}}},
+  scales:{x:{ticks:{color:'#6b6b8a',font:{family:'DM Mono',size:10}},grid:{color:'#ffffff08'}},y:{ticks:{color:'#6b6b8a',font:{family:'DM Mono',size:10}},grid:{color:'#ffffff08'}}}
+};
+
+function makeChart(id, cfg) {
+  const el = document.getElementById(id);
+  const existing = Chart.getChart(el);
+  if(existing) existing.destroy();
+  return new Chart(el, cfg);
+}
+
+function switchTab(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target'][i]===t));
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
 }
 
-// ── Farm calc ──
-function calcFarm() {
+function calcFarm(){
   const acc0   = +document.getElementById('f-acc').value||0;
   const weeks  = +document.getElementById('f-weeks').value||0;
   const npacc  = +document.getElementById('f-npacc').value||0;
@@ -298,114 +262,125 @@ function calcFarm() {
   let acc=acc0, carry=0, totalNeso=0, totalChars=0;
   const rows=[];
   for(let w=1;w<=weeks;w++){
-    const earned = acc*npacc;
-    const avail  = carry+earned;
-    totalNeso   += earned;
-    const newChars = Math.floor(avail/npchar);
-    const used     = newChars*npchar;
-    const rem      = avail-used;
-    const newAcc   = newChars*apchar;
-    totalChars    += newChars;
-    const nxpcTot  = totalNeso/NESO_PER_NXPC;
-    const usdt     = nxpcTot*nxpc;
-    const vnd      = usdt*usdvnd;
-    rows.push({w,acc,earned,avail,totalNeso,nxpcTot,newChars,newAcc,rem,usdt,vnd});
-    acc  += newAcc;
-    carry = rem;
+    const earned=acc*npacc, avail=carry+earned;
+    totalNeso+=earned;
+    const newChars=Math.floor(avail/npchar);
+    const rem=avail-newChars*npchar, newAcc=newChars*apchar;
+    totalChars+=newChars;
+    const nxpcTot=totalNeso/NESO_PER_NXPC, usdt=nxpcTot*nxpc, vnd=usdt*usdvnd;
+    const prevAcc = rows.length>0 ? rows[rows.length-1].acc : acc0;
+    const growthPct = prevAcc>0 ? (acc-prevAcc)/prevAcc*100 : 0;
+    rows.push({w,acc,earned,avail,totalNeso,nxpcTot,newChars,newAcc,rem,usdt,vnd,growthPct});
+    acc+=newAcc; carry=rem;
   }
 
-  const last = rows[rows.length-1]||{};
-  const finalAcc  = last.acc+(last.newAcc||0);
-  const finalUsdt = last.usdt||0;
-  const finalVnd  = last.vnd||0;
-  const finalNxpc = last.nxpcTot||0;
+  const last=rows[rows.length-1]||{};
+  const finalAcc=last.acc+(last.newAcc||0);
+  const finalUsdt=last.usdt||0, finalVnd=last.vnd||0, finalNxpc=last.nxpcTot||0;
+
+  // Total growth
+  const totalGrowthPct = acc0>0 ? (finalAcc-acc0)/acc0*100 : 0;
+  const avgWeeklyGrowth = rows.length>0 ? rows.filter(r=>r.growthPct>0).reduce((s,r)=>s+r.growthPct,0)/Math.max(1,rows.filter(r=>r.growthPct>0).length) : 0;
+  const peakGrowthWeek = rows.reduce((best,r)=>r.growthPct>best.growthPct?r:best,{growthPct:-Infinity,w:0});
+  const weeksWithGrowth = rows.filter(r=>r.newChars>0).length;
 
   // Stats
-  document.getElementById('farm-stats').innerHTML = `
-    <div class="stat s-purple"><div class="stat-label">ACC cuối kỳ</div><div class="stat-val">${f(finalAcc)}</div><div class="stat-sub">bắt đầu: ${f(acc0)}</div></div>
+  document.getElementById('farm-stats').innerHTML=`
+    <div class="stat s-purple"><div class="stat-label">ACC cuối kỳ</div><div class="stat-val">${f(finalAcc)}</div><div class="stat-sub">bắt đầu: ${f(acc0)}</div><span class="stat-badge up">+${f(finalAcc-acc0)} ACC</span></div>
+    <div class="stat s-orange"><div class="stat-label">Tăng trưởng tổng</div><div class="stat-val">${fd(totalGrowthPct,1)}%</div><div class="stat-sub">trong ${weeks} tuần</div></div>
     <div class="stat s-green"><div class="stat-label">NXPC tổng</div><div class="stat-val">${fd(finalNxpc,0)}</div><div class="stat-sub">100k NESO = 1 NXPC</div></div>
     <div class="stat s-blue"><div class="stat-label">USDT tổng</div><div class="stat-val">${fd(finalUsdt,2)}</div><div class="stat-sub">${fd(nxpc,3)} USDT/NXPC</div></div>
     <div class="stat s-amber"><div class="stat-label">VND tổng</div><div class="stat-val">${f(finalVnd)}</div><div class="stat-sub">${f(usdvnd)} VND/USDT</div></div>
-    <div class="stat s-red"><div class="stat-label">Char mua được</div><div class="stat-val">${totalChars}</div><div class="stat-sub">×${f(npchar)} NESO</div></div>
-  `;
+    <div class="stat s-red"><div class="stat-label">Char mua được</div><div class="stat-val">${totalChars}</div><div class="stat-sub">×${f(npchar)} NESO</div></div>`;
+
+  // Growth insights
+  document.getElementById('growth-insights').innerHTML=`
+    <div class="growth-card"><div class="growth-label">Tăng trưởng tổng</div><div class="growth-val" style="color:var(--orange)">${fd(totalGrowthPct,1)}%</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,totalGrowthPct)}%;background:var(--orange)"></div></div></div>
+    <div class="growth-card"><div class="growth-label">Tăng trưởng TB/tuần</div><div class="growth-val" style="color:var(--green)">${fd(avgWeeklyGrowth,1)}%</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,avgWeeklyGrowth*5)}%;background:var(--green)"></div></div></div>
+    <div class="growth-card"><div class="growth-label">Tuần tăng mạnh nhất</div><div class="growth-val" style="color:var(--accent)">Tuần ${peakGrowthWeek.w||'—'}</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,peakGrowthWeek.growthPct||0)}%;background:var(--accent)"></div></div></div>
+    <div class="growth-card"><div class="growth-label">Tuần có tăng ACC</div><div class="growth-val" style="color:var(--amber)">${weeksWithGrowth} / ${weeks}</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${weeks>0?weeksWithGrowth/weeks*100:0}%;background:var(--amber)"></div></div></div>`;
 
   // Table
-  const tbody = document.getElementById('farm-tbody');
-  tbody.innerHTML = rows.map(r=>`
-    <tr>
+  const labels=rows.map(r=>'T'+r.w);
+  document.getElementById('farm-tbody').innerHTML=rows.map(r=>{
+    const gClass = r.growthPct>0?'hi-orange growth-pos':r.growthPct<0?'growth-neg':'growth-zero';
+    const gStr   = r.growthPct>0?'+'+fd(r.growthPct,1)+'%':r.growthPct===0?'—':fd(r.growthPct,1)+'%';
+    return `<tr>
       <td class="center"><span class="badge">${r.w}</span></td>
       <td>${f(r.acc)}</td>
+      <td class="${gClass}">${gStr}</td>
       <td>${f(r.earned)}</td>
       <td>${f(r.avail)}</td>
       <td class="hi-green">${fd(r.nxpcTot,0)}</td>
       <td class="hi-amber center">${r.newChars>0?'<span class="badge new">+'+r.newChars+'</span>':'—'}</td>
       <td class="hi-amber">${r.newAcc>0?'+'+f(r.newAcc):'—'}</td>
-      <td class="muted">${f(r.rem)}</td>
+      <td>${f(r.rem)}</td>
       <td class="hi-blue">${fd(r.usdt,2)}</td>
       <td class="hi-green">${f(r.vnd)}</td>
-    </tr>`).join('');
+    </tr>`;}).join('');
+
+  // Charts
+  const accData  = rows.map(r=>r.acc+(r.w===rows[rows.length-1].w?r.newAcc:0));
+  const usdtData = rows.map(r=>parseFloat(r.usdt.toFixed(2)));
+  const vndData  = rows.map(r=>r.vnd);
+  const nesoData = rows.map(r=>r.totalNeso);
+  const nxpcData = rows.map(r=>parseFloat(r.nxpcTot.toFixed(0)));
+  const growthData = rows.map(r=>parseFloat(r.growthPct.toFixed(2)));
+
+  const baseOpts = JSON.parse(JSON.stringify(CHART_DEFAULTS));
+
+  chartAcc = makeChart('chart-acc',{type:'line',data:{labels,datasets:[{label:'ACC',data:accData,borderColor:'#a78bfa',backgroundColor:'#a78bfa18',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#a78bfa',borderWidth:2}]},options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>' '+f(ctx.raw)+' ACC'}}}}});
+
+  chartValue = makeChart('chart-value',{type:'line',data:{labels,datasets:[{label:'USDT',data:usdtData,borderColor:'#60a5fa',backgroundColor:'#60a5fa12',fill:true,tension:.4,pointRadius:3,borderWidth:2,yAxisID:'y'},{label:'VND (÷1M)',data:vndData.map(v=>+(v/1000000).toFixed(1)),borderColor:'#34d399',backgroundColor:'#34d39912',fill:false,tension:.4,pointRadius:3,borderWidth:2,yAxisID:'y2'}]},options:{...baseOpts,scales:{x:baseOpts.scales.x,y:{...baseOpts.scales.y,position:'left'},y2:{...baseOpts.scales.y,position:'right',grid:{display:false}}}}});
+
+  chartNeso = makeChart('chart-neso',{type:'bar',data:{labels,datasets:[{label:'NESO (÷1M)',data:nesoData.map(v=>+(v/1000000).toFixed(1)),backgroundColor:'#7c3aed55',borderColor:'#a78bfa',borderWidth:1,yAxisID:'y'},{label:'NXPC',data:nxpcData,backgroundColor:'#34d39933',borderColor:'#34d399',borderWidth:1,type:'line',tension:.4,yAxisID:'y2'}]},options:{...baseOpts,scales:{x:baseOpts.scales.x,y:{...baseOpts.scales.y,position:'left'},y2:{...baseOpts.scales.y,position:'right',grid:{display:false}}}}});
+
+  chartGrowth = makeChart('chart-growth',{type:'bar',data:{labels,datasets:[{label:'% tăng trưởng ACC',data:growthData,backgroundColor:growthData.map(v=>v>0?'#fb923c55':'#6b6b8a33'),borderColor:growthData.map(v=>v>0?'#fb923c':'#6b6b8a'),borderWidth:1}]},options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>' '+(ctx.raw>=0?'+':'')+fd(ctx.raw,2)+'%'}}}}});
 }
 
-// ── Simulate for target panel ──
 function simulate(acc0,npacc,maxW,npchar,apchar,nxpc,usdvnd){
   let acc=acc0,carry=0,totalNeso=0;
   const rows=[];
   for(let w=1;w<=maxW;w++){
-    const earned=acc*npacc, avail=carry+earned;
+    const earned=acc*npacc,avail=carry+earned;
     totalNeso+=earned;
-    const newChars=Math.floor(avail/npchar), rem=avail-newChars*npchar, newAcc=newChars*apchar;
-    rows.push({w,acc,earned,avail,totalNeso,nxpcTot:totalNeso/NESO_PER_NXPC,newChars,newAcc,rem});
-    acc+=newAcc; carry=rem;
+    const newChars=Math.floor(avail/npchar),rem=avail-newChars*npchar,newAcc=newChars*apchar;
+    const nxpcTot=totalNeso/NESO_PER_NXPC,usdt=nxpcTot*nxpc,vnd=usdt*usdvnd;
+    const prevAcc=rows.length>0?rows[rows.length-1].acc:acc0;
+    const growthPct=prevAcc>0?(acc-prevAcc)/prevAcc*100:0;
+    rows.push({w,acc,earned,avail,totalNeso,nxpcTot,newChars,newAcc,rem,usdt,vnd,growthPct});
+    acc+=newAcc;carry=rem;
   }
   const last=rows[rows.length-1]||{};
   const nxpcTot=(last.totalNeso||0)/NESO_PER_NXPC;
   return{finalAcc:last.acc+(last.newAcc||0),usdt:nxpcTot*nxpc,vnd:nxpcTot*nxpc*usdvnd,rows};
 }
 
-let activeScenario=0;
-let scenarioData=[];
+let activeScenario=0,scenarioData=[];
 
 function calcTarget(){
-  const target = +document.getElementById('t-target').value||100;
-  const npchar = +document.getElementById('t-npchar').value||10000000;
-  const apchar = +document.getElementById('t-apchar').value||1;
-  const nxpc   = +document.getElementById('t-nxpc').value||0.4;
-  const usdvnd = +document.getElementById('t-usdvnd').value||26500;
-  const bAcc   = +document.getElementById('t-bacc').value||30;
-  const bNeso  = +document.getElementById('t-bneso').value||1300000;
-  const bWeeks = +document.getElementById('t-bweeks').value||8;
+  const target=+document.getElementById('t-target').value||100;
+  const npchar=+document.getElementById('t-npchar').value||10000000;
+  const apchar=+document.getElementById('t-apchar').value||1;
+  const nxpc  =+document.getElementById('t-nxpc').value||0.4;
+  const usdvnd=+document.getElementById('t-usdvnd').value||26500;
+  const bAcc  =+document.getElementById('t-bacc').value||30;
+  const bNeso =+document.getElementById('t-bneso').value||1300000;
+  const bWeeks=+document.getElementById('t-bweeks').value||8;
 
-  // Scenario 1: add weeks, keep acc=bAcc, neso=bNeso
-  let w1=null;
-  {let a=bAcc,c=0;
-   for(let w=1;w<=200;w++){const av=c+a*bNeso;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){w1=w;break;}}}
+  let w1=null;{let a=bAcc,c=0;for(let w=1;w<=200;w++){const av=c+a*bNeso;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){w1=w;break;}}}
+  let a2=null;for(let ia=1;ia<=5000;ia++){let a=ia,c=0;for(let w=1;w<=bWeeks;w++){const av=c+a*bNeso;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){a2=ia;break;}}if(a2)break;}
+  let n3=null;for(let rate=100000;rate<=100000000;rate+=100000){let a=bAcc,c=0;for(let w=1;w<=bWeeks;w++){const av=c+a*rate;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){n3=rate;break;}}if(n3)break;}
 
-  // Scenario 2: increase init acc, keep neso=bNeso, weeks=bWeeks
-  let a2=null;
-  for(let ia=1;ia<=5000;ia++){let a=ia,c=0;for(let w=1;w<=bWeeks;w++){const av=c+a*bNeso;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){a2=ia;break;}}if(a2)break;}
+  const s1w=w1||200,s2a=a2||bAcc,s3n=n3||bNeso;
 
-  // Scenario 3: increase neso rate, keep acc=bAcc, weeks=bWeeks
-  let n3=null;
-  for(let rate=100000;rate<=100000000;rate+=100000){let a=bAcc,c=0;for(let w=1;w<=bWeeks;w++){const av=c+a*rate;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){n3=rate;break;}}if(n3)break;}
-
-  const s1w = w1||200;
-  const s2a = a2||bAcc;
-  const s3n = n3||bNeso;
-
-  scenarioData = [
-    {tag:'t1',tagLabel:'KB 1',name:'Thêm tuần',valLabel:w1?w1+' tuần':'> 200 tuần',cls:'c1',
-     desc:`Giữ ${f(bAcc)} ACC, ${f(bNeso)} NESO/tuần`,
-     ...simulate(bAcc,bNeso,s1w,npchar,apchar,nxpc,usdvnd)},
-    {tag:'t2',tagLabel:'KB 2',name:'Tăng ACC ban đầu',valLabel:a2?f(a2)+' ACC':'Không đủ',cls:'c2',
-     desc:`Giữ ${f(bNeso)} NESO/tuần, ${bWeeks} tuần`,
-     ...simulate(s2a,bNeso,bWeeks,npchar,apchar,nxpc,usdvnd)},
-    {tag:'t3',tagLabel:'KB 3',name:'Tăng NESO/tuần',valLabel:n3?f(n3)+' NESO':'Không đủ',cls:'c3',
-     desc:`Giữ ${f(bAcc)} ACC ban đầu, ${bWeeks} tuần`,
-     ...simulate(bAcc,s3n,bWeeks,npchar,apchar,nxpc,usdvnd)},
+  scenarioData=[
+    {tag:'t1',tagLabel:'KB 1',name:'Thêm tuần',valLabel:w1?w1+' tuần':'> 200 tuần',cls:'c1',desc:`Giữ ${f(bAcc)} ACC, ${f(bNeso)} NESO/tuần`,...simulate(bAcc,bNeso,s1w,npchar,apchar,nxpc,usdvnd)},
+    {tag:'t2',tagLabel:'KB 2',name:'Tăng ACC ban đầu',valLabel:a2?f(a2)+' ACC':'Không đủ',cls:'c2',desc:`Giữ ${f(bNeso)} NESO/tuần, ${bWeeks} tuần`,...simulate(s2a,bNeso,bWeeks,npchar,apchar,nxpc,usdvnd)},
+    {tag:'t3',tagLabel:'KB 3',name:'Tăng NESO/tuần',valLabel:n3?f(n3)+' NESO':'Không đủ',cls:'c3',desc:`Giữ ${f(bAcc)} ACC ban đầu, ${bWeeks} tuần`,...simulate(bAcc,s3n,bWeeks,npchar,apchar,nxpc,usdvnd)},
   ];
 
-  const cards = document.getElementById('scenario-cards');
-  cards.innerHTML = scenarioData.map((s,i)=>`
+  document.getElementById('scenario-cards').innerHTML=scenarioData.map((s,i)=>`
     <div class="scenario-card ${i===activeScenario?'active-card':''}" onclick="selectScenario(${i})">
       <div><span class="sc-tag ${s.tag}">${s.tagLabel}</span></div>
       <div class="sc-name">${s.name}</div>
@@ -439,25 +414,36 @@ function toggleDetail(){
 function renderDetail(){
   const s=scenarioData[activeScenario];
   if(!s) return;
-  document.getElementById('detail-tbody').innerHTML=s.rows.map(r=>`
-    <tr>
+
+  // Comparison charts across all 3 scenarios
+  const maxW=Math.max(...scenarioData.map(sc=>sc.rows.length));
+  const labels=Array.from({length:maxW},(_,i)=>'T'+(i+1));
+  const colors=['#60a5fa','#fbbf24','#34d399'];
+  const accDatasets=scenarioData.map((sc,i)=>({label:sc.name,data:sc.rows.map(r=>r.acc),borderColor:colors[i],backgroundColor:colors[i]+'18',fill:false,tension:.4,pointRadius:3,borderWidth:2}));
+  const usdtDatasets=scenarioData.map((sc,i)=>({label:sc.name,data:sc.rows.map(r=>parseFloat(r.usdt.toFixed(2))),borderColor:colors[i],backgroundColor:colors[i]+'18',fill:false,tension:.4,pointRadius:3,borderWidth:2}));
+
+  chartScAcc=makeChart('chart-scenario-acc',{type:'line',data:{labels,datasets:accDatasets},options:CHART_DEFAULTS});
+  chartScUsdt=makeChart('chart-scenario-usdt',{type:'line',data:{labels,datasets:usdtDatasets},options:CHART_DEFAULTS});
+
+  document.getElementById('detail-tbody').innerHTML=s.rows.map(r=>{
+    const gClass=r.growthPct>0?'hi-orange growth-pos':r.growthPct===0?'growth-zero':'growth-neg';
+    const gStr=r.growthPct>0?'+'+fd(r.growthPct,1)+'%':r.growthPct===0?'—':fd(r.growthPct,1)+'%';
+    return `<tr>
       <td class="center"><span class="badge">${r.w}</span></td>
       <td>${f(r.acc)}</td>
+      <td class="${gClass}">${gStr}</td>
       <td>${f(r.earned)}</td>
       <td>${f(r.avail)}</td>
       <td class="hi-green">${fd(r.nxpcTot,0)}</td>
       <td class="hi-amber center">${r.newChars>0?'<span class="badge new">+'+r.newChars+'</span>':'—'}</td>
       <td class="hi-amber">${r.newAcc>0?'+'+f(r.newAcc):'—'}</td>
       <td>${f(r.rem)}</td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 }
 
-// Wire inputs
 document.querySelectorAll('#panel-farm input').forEach(el=>el.addEventListener('input',calcFarm));
 document.querySelectorAll('#panel-target input').forEach(el=>el.addEventListener('input',calcTarget));
-
-calcFarm();
-calcTarget();
+calcFarm(); calcTarget();
 </script>
 </body>
 </html>
