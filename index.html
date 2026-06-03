@@ -513,7 +513,25 @@ Ví sếp, 0x5678...efgh
       <div class="stat-row" id="team-stats"></div>
 
       <!-- Team wallet table -->
-      <div class="section-label">Danh sách ví team</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <div class="section-label" style="margin-bottom:0">Danh sách ví team</div>
+        <div style="font-size:11px;color:var(--muted2)" id="team-filter-count"></div>
+      </div>
+      <!-- Search + filter bar -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center">
+        <div style="position:relative;flex:1;min-width:180px">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:13px">🔍</span>
+          <input id="team-search" type="text" placeholder="Tìm tên hoặc địa chỉ..."
+            oninput="renderTeam()"
+            style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px 9px 34px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+        </div>
+        <div style="display:flex;gap:4px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:3px">
+          <button id="sort-btn-default" onclick="setTeamSort('default')" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap">Mặc định</button>
+          <button id="sort-btn-neso-desc" onclick="setTeamSort('neso-desc')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap">NESO ↓</button>
+          <button id="sort-btn-neso-asc" onclick="setTeamSort('neso-asc')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap">NESO ↑</button>
+          <button id="sort-btn-vnd-desc" onclick="setTeamSort('vnd-desc')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap">VND ↓</button>
+        </div>
+      </div>
       <div id="team-loading" style="text-align:center;padding:40px;color:var(--muted2);font-size:13px;display:none">
         <span style="display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:10px"></span>
         Đang tải dữ liệu...
@@ -1285,6 +1303,19 @@ async function loadTeamWallets() {
   }
 }
 
+let teamSortMode = 'default';
+
+function setTeamSort(mode) {
+  teamSortMode = mode;
+  ['default','neso-desc','neso-asc','vnd-desc'].forEach(m => {
+    const btn = document.getElementById('sort-btn-'+m);
+    if (!btn) return;
+    btn.style.background = m === mode ? 'var(--accent)' : 'transparent';
+    btn.style.color      = m === mode ? '#fff' : 'var(--muted2)';
+  });
+  renderTeam();
+}
+
 function renderTeam() {
   document.getElementById('team-loading').style.display    = 'none';
   document.getElementById('team-table-wrap').style.display = 'block';
@@ -1295,9 +1326,35 @@ function renderTeam() {
   const f   = n => n==null?'—':Math.round(n).toLocaleString('vi-VN');
 
   const isAdmin = teamUser?.role === 'admin';
+  const query   = (document.getElementById('team-search')?.value||'').toLowerCase().trim();
+
+  // Filter by search
+  let displayWallets = teamWallets.map((w,i) => ({...w, origIdx: i}));
+  if (query) {
+    displayWallets = displayWallets.filter(w =>
+      (w.label||'').toLowerCase().includes(query) ||
+      w.address.toLowerCase().includes(query)
+    );
+  }
+
+  // Sort
+  const nesoVal = w => w.neso ?? -1;
+  const vndVal  = w => w.neso != null ? w.neso/100000*nxpcRate*usdvnd : -1;
+  if (teamSortMode === 'neso-desc') displayWallets.sort((a,b) => nesoVal(b)-nesoVal(a));
+  else if (teamSortMode === 'neso-asc')  displayWallets.sort((a,b) => nesoVal(a)-nesoVal(b));
+  else if (teamSortMode === 'vnd-desc')  displayWallets.sort((a,b) => vndVal(b)-vndVal(a));
+
+  // Update count
+  const countEl = document.getElementById('team-filter-count');
+  if (countEl) {
+    countEl.textContent = query || teamSortMode !== 'default'
+      ? `Hiển thị ${displayWallets.length} / ${teamWallets.length} ví`
+      : `${teamWallets.length} ví`;
+  }
+
   let totNxpc=0, totNeso=0;
 
-  document.getElementById('team-tbody').innerHTML = teamWallets.map((w,i) => {
+  document.getElementById('team-tbody').innerHTML = displayWallets.map((w,i) => {
     const usdt = w.neso!=null ? w.neso/100000*nxpcRate : null;
     const vnd  = usdt!=null   ? usdt*usdvnd            : null;
     if(w.nxpc!=null) totNxpc+=w.nxpc;
@@ -1314,7 +1371,7 @@ function renderTeam() {
       <td class="c-green">${f(w.neso)}</td>
       <td class="c-blue">${fd2(usdt,2)}</td>
       <td class="c-amber">${f(vnd)}</td>
-      <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
+      <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>`;
   }).join('');
 
