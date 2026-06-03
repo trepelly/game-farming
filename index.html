@@ -392,6 +392,17 @@ Ví sếp, 0x5678...efgh
       </div>
     </div>
 
+    <!-- Portfolio summary (on top) -->
+    <div id="portfolio-section" style="display:none">
+      <div class="section-label">Tổng hợp tất cả ví</div>
+      <div class="stat-row" id="portfolio-stats"></div>
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:28px">
+        <div class="chart-title" style="margin-bottom:4px">📊 Phân bổ NESO theo ví</div>
+        <div class="chart-sub" style="margin-bottom:16px">Tỷ lệ % mỗi ví trong tổng portfolio</div>
+        <div style="position:relative;height:240px"><canvas id="chart-portfolio"></canvas></div>
+      </div>
+    </div>
+
     <!-- Wallet list -->
     <div id="wallet-list-section" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
@@ -402,17 +413,6 @@ Ví sếp, 0x5678...efgh
         </div>
       </div>
       <div id="wallet-cards" style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px"></div>
-    </div>
-
-    <!-- Portfolio summary -->
-    <div id="portfolio-section" style="display:none">
-      <div class="section-label">Tổng hợp tất cả ví</div>
-      <div class="stat-row" id="portfolio-stats"></div>
-      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:28px">
-        <div class="chart-title" style="margin-bottom:4px">📊 Phân bổ NESO theo ví</div>
-        <div class="chart-sub" style="margin-bottom:16px">Tỷ lệ % mỗi ví trong tổng portfolio</div>
-        <div style="position:relative;height:240px"><canvas id="chart-portfolio"></canvas></div>
-      </div>
     </div>
 
     <!-- Info box -->
