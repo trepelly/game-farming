@@ -779,21 +779,30 @@ function setInputMode(mode) {
 }
 
 // ── Live preview for bulk ──
-document.addEventListener('DOMContentLoaded', () => {
-  const ta = document.getElementById('wallet-bulk');
-  if(ta) ta.addEventListener('input', updateBulkPreview);
-});
-function updateBulkPreview() {
-  const lines = document.getElementById('wallet-bulk').value.split('\n').map(l=>l.trim()).filter(Boolean);
-  const valid = lines.filter(l => {
-    const addr = l.includes(',') ? l.split(',').pop().trim() : l;
-    return /^0x[0-9a-fA-F]{40}$/.test(addr);
+// bulk preview wired via oninput inline
+function parseBulkLines(raw) {
+  return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    let label = null, addr = line;
+    if (line.includes(',')) {
+      const idx = line.lastIndexOf(',');
+      addr  = line.slice(idx + 1).trim();
+      label = line.slice(0, idx).trim();
+    }
+    const valid = /^0x[0-9a-fA-F]{40}$/i.test(addr);
+    return { addr, label, valid, raw: line };
   });
-  const invalid = lines.length - valid.length;
+}
+function updateBulkPreview() {
+  const ta = document.getElementById('wallet-bulk');
   const preview = document.getElementById('bulk-preview');
-  if(lines.length === 0) { preview.innerHTML = 'Nhập địa chỉ bên trên'; return; }
-  preview.innerHTML = `<span style="color:var(--green)">✓ ${valid.length} hợp lệ</span>`
-    + (invalid > 0 ? ` · <span style="color:var(--red)">✗ ${invalid} lỗi</span>` : '');
+  if (!ta || !preview) return;
+  const parsed = parseBulkLines(ta.value);
+  if (parsed.length === 0) { preview.innerHTML = 'Nhập địa chỉ bên trên'; return; }
+  const valid = parsed.filter(p => p.valid).length;
+  const bad   = parsed.length - valid;
+  preview.innerHTML =
+    (valid > 0 ? `<span style="color:var(--green)">✓ ${valid} hợp lệ</span>` : '') +
+    (bad   > 0 ? ` · <span style="color:var(--red)">✗ ${bad} không hợp lệ</span>` : '');
 }
 
 function addWalletManual() {
@@ -812,42 +821,32 @@ function addWalletManual() {
 function addWalletsBulk() {
   const ta  = document.getElementById('wallet-bulk');
   const err = document.getElementById('wallet-error');
-  const lines = ta.value.split('\n').map(l=>l.trim()).filter(Boolean);
-  let added=0, skipped=0, invalid=[];
+  if (!ta) return;
+  const parsed = parseBulkLines(ta.value);
+  let added = 0, skipped = 0, badCount = 0;
 
-  lines.forEach(line => {
-    let label = null, addr = line;
-    if(line.includes(',')) {
-      const parts = line.split(',');
-      addr  = parts.pop().trim();
-      label = parts.join(',').trim();
-    }
-    if(!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
-      invalid.push(addr.slice(0,12)||line.slice(0,12));
-      return;
-    }
+  parsed.forEach(({ addr, label, valid }) => {
+    if (!valid) { badCount++; return; }
     const norm = addr.toLowerCase();
-    if(wallets.find(w=>w.address.toLowerCase()===norm)) { skipped++; return; }
-    const autoLabel = label || `Ví ${wallets.length+1}`;
-    wallets.push({address:addr, label:autoLabel, source:'Thủ công', nxpc:null, neso:null, loading:true, error:null});
+    if (wallets.find(w => w.address.toLowerCase() === norm)) { skipped++; return; }
+    const autoLabel = label || ('Ví ' + (wallets.length + 1));
+    wallets.push({ address: addr, label: autoLabel, source: 'Thủ công', nxpc: null, neso: null, loading: true, error: null });
     added++;
   });
 
-  saveWallets();
-  renderWallets();
-  // kick off loading for new wallets
-  wallets.filter(w=>w.loading).forEach(w=>loadWalletData(w.address));
+  if (added > 0) {
+    saveWallets();
+    renderWallets();
+    wallets.filter(w => w.loading && w.nxpc === null).forEach(w => loadWalletData(w.address));
+    ta.value = '';
+    document.getElementById('bulk-preview').innerHTML = 'Nhập địa chỉ bên trên';
+  }
 
   const msgs = [];
-  if(added)   msgs.push(`<span style="color:var(--green)">✓ Đã thêm ${added} ví</span>`);
-  if(skipped) msgs.push(`<span style="color:var(--amber)">${skipped} ví đã tồn tại</span>`);
-  if(invalid.length) msgs.push(`<span style="color:var(--red)">✗ ${invalid.length} địa chỉ lỗi</span>`);
-  err.innerHTML = msgs.join(' · ');
-
-  if(added > 0) {
-    ta.value = '';
-    document.getElementById('bulk-preview').textContent = 'Nhập địa chỉ bên trên';
-  }
+  if (added)    msgs.push(`<span style="color:var(--green)">✓ Đã thêm ${added} ví</span>`);
+  if (skipped)  msgs.push(`<span style="color:var(--amber)">${skipped} trùng, bỏ qua</span>`);
+  if (badCount) msgs.push(`<span style="color:var(--red)">✗ ${badCount} địa chỉ không hợp lệ</span>`);
+  err.innerHTML = msgs.length ? msgs.join(' · ') : '';
 }
 
 function addWallet(address, source='Thủ công') {
