@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>API CORS Test</title>
+<style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
+pre{background:#1c1c32;padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;white-space:pre-wrap}
+.ok{color:#34d399}.err{color:#f87171}.warn{color:#f59e0b}
+</style></head>
+<body>
+<h2 style="color:#a78bfa">🔬 API CORS Test</h2>
+<p style="color:#6b6b8a">Testing which APIs work from browser...</p>
+<pre id="out">Running tests...
+</pre>
+<script>
+const addr = "0x3B4c2193bdd9bEE1aEbDF974a10cd4add33889D5";
+const out = document.getElementById('out');
+const log = (msg, cls='') => { out.innerHTML += `<span class="${cls}">${msg}</span>
+`; };
+
+const tests = [
+  ["maplen tRPC getAssets", `https://maplen.gg/api/trpc/wallet.getAssets?input=${encodeURIComponent(JSON.stringify({json:{address:addr}}))}`, {}],
+  ["maplen tRPC getCharacters", `https://maplen.gg/api/trpc/wallet.getCharacters?input=${encodeURIComponent(JSON.stringify({json:{address:addr}}))}`, {}],
+  ["gamedatahub character", `https://gamedatahub.msu.io/openapi/v1/character?ownerAddress=${addr}&limit=5`, {accept:'application/json'}],
+  ["MSU open API", `https://api.msu.io/openapi/v1/character?ownerAddress=${addr}`, {accept:'application/json'}],
+  ["Henesys RPC (eth_blockNumber)", `https://henesys-rpc.msu.io`, {}, 'POST', JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]})],
+];
+
+async function run() {
+  for (const [name, url, headers, method='GET', body=null] of tests) {
+    log(`\n🔍 Testing: ${name}`);
+    log(`   URL: ${url.slice(0,80)}...`);
+    try {
+      const opts = {method, headers:{'Content-Type':'application/json',...headers}};
+      if(body) opts.body = body;
+      const r = await fetch(url, opts);
+      const text = await r.text();
+      log(`   ✓ HTTP ${r.status}`, 'ok');
+      log(`   CORS: ${r.headers.get('access-control-allow-origin')||'(none)'}`);
+      log(`   Body: ${text.slice(0,150)}`);
+    } catch(e) {
+      log(`   ✗ ${e.message}`, 'err');
+    }
+  }
+  log('\n✅ Tests complete');
+}
+run();
+</script>
+</body>
+</html>
