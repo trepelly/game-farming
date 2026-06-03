@@ -559,6 +559,10 @@ Ví sếp, 0x5678...efgh
         <button onclick="closeChainSettings()" style="background:var(--subtle);border:none;border-radius:8px;padding:6px 12px;color:var(--muted2);font-family:inherit;cursor:pointer;font-size:13px">✕ Đóng</button>
       </div>
 
+      <!-- Game presets -->
+      <div class="section-label" style="margin-bottom:12px">Chọn nhanh theo game</div>
+      <div id="preset-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:20px"></div>
+
       <!-- Chains -->
       <div class="section-label" style="margin-bottom:12px">Danh sách chain</div>
       <div id="chain-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
@@ -1566,15 +1570,34 @@ window.switchTab = function(t) { _origSwitchTeam(t); };
 // ══ CHAIN & TOKEN MODULE ══
 
 const DEFAULT_CHAINS = [
-  { id: 'henesys', name: 'Henesys L1', chainId: 68414, rpc: 'https://henesys-rpc.msu.io',   symbol: 'NXPC', color: '#f59e0b' },
-  { id: 'bsc',     name: 'BSC',        chainId: 56,    rpc: 'https://bsc-dataseed.binance.org', symbol: 'BNB',  color: '#f0b90b' },
-  { id: 'eth',     name: 'Ethereum',   chainId: 1,     rpc: 'https://eth.llamarpc.com',       symbol: 'ETH',  color: '#627eea' },
-  { id: 'polygon', name: 'Polygon',    chainId: 137,   rpc: 'https://polygon-rpc.com',        symbol: 'MATIC',color: '#8247e5' },
+  { id: 'henesys', name: 'Henesys L1', chainId: 68414, rpc: 'https://henesys-rpc.msu.io',        symbol: 'NXPC',  color: '#f59e0b', icon: '🍁', game: 'MapleStory Universe' },
+  { id: 'eth',     name: 'Ethereum',   chainId: 1,     rpc: 'https://eth.llamarpc.com',           symbol: 'ETH',   color: '#627eea', icon: '⟠',  game: null },
+  { id: 'polygon', name: 'Polygon',    chainId: 137,   rpc: 'https://polygon-rpc.com',            symbol: 'POL',   color: '#8247e5', icon: '🟣', game: null },
+  { id: 'bsc',     name: 'BSC',        chainId: 56,    rpc: 'https://bsc-dataseed.binance.org',   symbol: 'BNB',   color: '#f0b90b', icon: '🟡', game: null },
+  { id: 'ron',     name: 'Ronin',      chainId: 2020,  rpc: 'https://api.roninchain.com/rpc',     symbol: 'RON',   color: '#1273ea', icon: '🔵', game: 'Axie Infinity' },
 ];
 
 const DEFAULT_TOKENS = [
-  { id: 'neso', name: 'NESO', chainId: 'henesys', contract: '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08', decimals: 18, color: '#10b981' },
+  // MapleStory Universe
+  { id: 'neso',      name: 'NESO', chainId: 'henesys', contract: '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08', decimals: 18, color: '#10b981', game: 'MapleStory Universe', icon: '🍄' },
+  // The Sandbox
+  { id: 'sand-eth',  name: 'SAND', chainId: 'eth',     contract: '0x3845badAde8e6dFF049820680d1F14bD3903a5d0', decimals: 18, color: '#00adef', game: 'The Sandbox', icon: '🏖️' },
+  { id: 'sand-poly', name: 'SAND', chainId: 'polygon', contract: '0xbbba073c31bf03b8acf7c28ef0738decf3695683', decimals: 18, color: '#00adef', game: 'The Sandbox', icon: '🏖️' },
 ];
+
+// Game presets for quick add
+const GAME_PRESETS = {
+  'maplestory': {
+    name: 'MapleStory Universe', icon: '🍁', color: '#f59e0b',
+    chains: ['henesys'],
+    tokens: ['neso'],
+  },
+  'sandbox': {
+    name: 'The Sandbox', icon: '🏖️', color: '#00adef',
+    chains: ['eth', 'polygon'],
+    tokens: ['sand-eth', 'sand-poly'],
+  },
+};
 
 function loadChains()  { try { return JSON.parse(localStorage.getItem('ct_chains')  || 'null') || DEFAULT_CHAINS;  } catch{ return DEFAULT_CHAINS;  } }
 function loadTokens()  { try { return JSON.parse(localStorage.getItem('ct_tokens')  || 'null') || DEFAULT_TOKENS;  } catch{ return DEFAULT_TOKENS;  } }
@@ -1630,9 +1653,58 @@ async function fetchAllBalances(address) {
 // ── Settings modal ──
 function openChainSettings() {
   document.getElementById('chain-token-settings').style.display = 'block';
+  renderPresets();
   renderChainList();
   renderTokenList();
   populateChainSelect();
+}
+
+function renderPresets() {
+  const el = document.getElementById('preset-list');
+  if (!el) return;
+  const saved = loadTokens().map(t=>t.id);
+  el.innerHTML = Object.entries(GAME_PRESETS).map(([key, g]) => {
+    const active = g.tokens.every(tid => saved.includes(tid));
+    return `<button onclick="togglePreset('${key}')"
+      style="display:flex;align-items:center;gap:8px;background:${active?g.color+'22':' var(--surface)'};border:1px solid ${active?g.color+'66':'var(--border2)'};border-radius:10px;padding:10px 16px;cursor:pointer;font-family:inherit;transition:all .2s;flex-direction:column;align-items:flex-start">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">${g.icon}</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text)">${g.name}</span>
+        ${active ? '<span style="font-size:9px;font-weight:700;background:'+g.color+'33;color:'+g.color+';padding:2px 7px;border-radius:20px">✓ Active</span>' : '<span style="font-size:9px;color:var(--muted2);padding:2px 7px;border-radius:20px;border:1px solid var(--border2)">+ Thêm</span>'}
+      </div>
+      <div style="font-size:10px;color:var(--muted2);padding-left:26px">${g.tokens.map(tid=>{const t=DEFAULT_TOKENS.find(x=>x.id===tid);return t?t.name:tid}).join(', ')} · ${g.chains.map(cid=>{const c=DEFAULT_CHAINS.find(x=>x.id===cid);return c?c.name:cid}).join(', ')}</div>
+    </button>`;
+  }).join('');
+}
+
+function togglePreset(key) {
+  const g = GAME_PRESETS[key];
+  if (!g) return;
+  let tokens = loadTokens();
+  const allActive = g.tokens.every(tid => tokens.find(t=>t.id===tid));
+  if (allActive) {
+    // Remove preset tokens (keep built-in NESO)
+    tokens = tokens.filter(t => !g.tokens.includes(t.id) || t.id === 'neso');
+  } else {
+    // Add missing tokens
+    g.tokens.forEach(tid => {
+      if (!tokens.find(t=>t.id===tid)) {
+        const preset = DEFAULT_TOKENS.find(t=>t.id===tid);
+        if (preset) tokens.push({...preset});
+      }
+    });
+    // Add missing chains
+    let chains = loadChains();
+    g.chains.forEach(cid => {
+      if (!chains.find(c=>c.id===cid)) {
+        const preset = DEFAULT_CHAINS.find(c=>c.id===cid);
+        if (preset) chains.push({...preset});
+      }
+    });
+    saveChains(chains); appChains = chains;
+  }
+  saveTokens(tokens); appTokens = tokens;
+  renderPresets(); renderChainList(); renderTokenList(); populateChainSelect();
 }
 function closeChainSettings() {
   document.getElementById('chain-token-settings').style.display = 'none';
@@ -1641,7 +1713,7 @@ function closeChainSettings() {
 function renderChainList() {
   document.getElementById('chain-list').innerHTML = appChains.map((c,i) => `
     <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
-      <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0"></div>
+      <span style="font-size:18px;flex-shrink:0">${c.icon||'🔗'}</span>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${c.name} <span style="font-size:10px;color:var(--muted2)">(${c.symbol})</span></div>
         <div style="font-size:10px;color:var(--muted2);font-family:monospace">${c.rpc.slice(0,48)}${c.rpc.length>48?'...':''}</div>
@@ -1655,9 +1727,9 @@ function renderTokenList() {
     const chain = appChains.find(c => c.id === t.chainId);
     return `
     <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 14px">
-      <div style="width:10px;height:10px;border-radius:50%;background:${t.color};flex-shrink:0"></div>
+      <span style="font-size:18px;flex-shrink:0">${t.icon||'🪙'}</span>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${t.name} <span style="font-size:10px;color:var(--muted2)">on ${chain?.name||t.chainId}</span></div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${t.name} <span style="font-size:10px;color:var(--muted2)">on ${chain?.name||t.chainId}</span>${t.game?'<span style="margin-left:6px;font-size:9px;background:var(--accent-glow);color:var(--accent);padding:2px 6px;border-radius:10px">'+t.game+'</span>':''}</div>
         <div style="font-size:10px;color:var(--muted2);font-family:monospace">${t.contract.slice(0,20)}...${t.contract.slice(-6)} · ${t.decimals} decimals</div>
       </div>
       ${i >= DEFAULT_TOKENS.length ? `<button onclick="removeToken(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 8px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : '<span style="font-size:10px;color:var(--muted2)">built-in</span>'}
