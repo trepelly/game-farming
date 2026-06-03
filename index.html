@@ -1,124 +1,250 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<meta name="theme-color" content="#0a0a12"/>
-<title>NESO Farm Dashboard</title>
+<meta name="theme-color" content="#0d0d1a"/>
+<title>Game Farming Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Clash+Display:wght@500;600;700&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0a12;--surface:#12121f;--card:#181827;--border:#ffffff12;--border2:#ffffff22;
-  --accent:#a78bfa;--accent2:#7c3aed;--green:#34d399;--blue:#60a5fa;--amber:#fbbf24;--red:#f87171;--orange:#fb923c;
-  --text:#f1f0ff;--muted:#6b6b8a;--subtle:#2a2a40;
-  --font-display:'Syne',sans-serif;--font-mono:'DM Mono',monospace;
+
+/* ── DARK THEME ── */
+[data-theme="dark"]{
+  --bg:#0d0d1a;
+  --bg2:#111120;
+  --surface:#16162a;
+  --card:#1c1c32;
+  --card2:#20203a;
+  --border:#ffffff0d;
+  --border2:#ffffff1a;
+  --border3:#ffffff2a;
+  --text:#eeeef8;
+  --text2:#c4c4d4;
+  --muted:#6060808;
+  --muted2:#8888aa;
+  --accent:#8b5cf6;
+  --accent-glow:#8b5cf640;
+  --accent2:#6d28d9;
+  --green:#10b981;
+  --green-bg:#10b98115;
+  --blue:#3b82f6;
+  --blue-bg:#3b82f615;
+  --amber:#f59e0b;
+  --amber-bg:#f59e0b15;
+  --red:#ef4444;
+  --red-bg:#ef444415;
+  --orange:#f97316;
+  --orange-bg:#f9731615;
+  --shadow:0 1px 3px #00000060, 0 4px 16px #00000040;
+  --shadow-lg:0 8px 32px #00000060;
+  --input-bg:#0d0d1a;
+  --scrollbar:#ffffff15;
+  --chart-grid:#ffffff08;
+  --tooltip-bg:#1c1c32;
 }
+
+/* ── LIGHT THEME ── */
+[data-theme="light"]{
+  --bg:#f4f4f8;
+  --bg2:#ebebf2;
+  --surface:#ffffff;
+  --card:#ffffff;
+  --card2:#f8f8fc;
+  --border:#00000010;
+  --border2:#0000001a;
+  --border3:#0000002a;
+  --text:#0f0f1a;
+  --text2:#3a3a55;
+  --muted:#9090b0;
+  --muted2:#6060808;
+  --accent:#7c3aed;
+  --accent-glow:#7c3aed20;
+  --accent2:#6d28d9;
+  --green:#059669;
+  --green-bg:#05966912;
+  --blue:#2563eb;
+  --blue-bg:#2563eb12;
+  --amber:#d97706;
+  --amber-bg:#d9770612;
+  --red:#dc2626;
+  --red-bg:#dc262612;
+  --orange:#ea580c;
+  --orange-bg:#ea580c12;
+  --shadow:0 1px 3px #00000014, 0 4px 16px #0000000a;
+  --shadow-lg:0 8px 32px #00000018;
+  --input-bg:#f4f4f8;
+  --scrollbar:#00000015;
+  --chart-grid:#00000008;
+  --tooltip-bg:#ffffff;
+}
+
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;
-  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
-  background-size:48px 48px;pointer-events:none;z-index:0;}
-.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:24px 20px 60px}
-header{margin-bottom:36px}
-.logo{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:12px}
-h1{font-family:var(--font-display);font-size:clamp(22px,4vw,32px);font-weight:800;color:var(--text);line-height:1.1;margin-bottom:6px}
-h1 span{color:var(--accent)}
-.subtitle{font-size:12px;color:var(--muted);letter-spacing:.04em}
-.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content}
-.tab{font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.06em;padding:8px 20px;border-radius:7px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
-.tab.active{background:var(--accent2);color:#fff}
-.tab:hover:not(.active){color:var(--text)}
-.panel{display:none}.panel.active{display:block}
-.section-label{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-left:2px solid var(--accent);padding-left:10px;margin-bottom:14px}
-.input-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:28px}
-.input-group{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
-.input-group label{display:block;font-size:10px;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
-.input-group input{width:100%;background:var(--subtle);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-family:var(--font-mono);font-size:14px;font-weight:500;color:var(--blue);outline:none;transition:border-color .2s}
-.input-group input:focus{border-color:var(--accent)}
-.input-note{font-size:10px;color:var(--muted);margin-top:5px;opacity:.7}
-.formula-pill{display:inline-flex;align-items:center;gap:6px;background:var(--subtle);border:1px solid var(--border2);border-radius:20px;padding:6px 14px;font-size:11px;color:var(--muted);margin-bottom:24px}
-.formula-pill span{color:var(--accent)}
-.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:28px}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
-.stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.stat.s-purple::after{background:var(--accent)}.stat.s-green::after{background:var(--green)}
-.stat.s-blue::after{background:var(--blue)}.stat.s-amber::after{background:var(--amber)}
-.stat.s-red::after{background:var(--red)}.stat.s-orange::after{background:var(--orange)}
-.stat-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.stat-val{font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text)}
-.stat-sub{font-size:10px;color:var(--muted);margin-top:3px}
-.stat-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;margin-top:4px}
-.stat-badge.up{background:#34d39920;color:var(--green)}.stat-badge.down{background:#f8717120;color:var(--red)}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Courier New',monospace;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
 
-/* Chart area */
-.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
-@media(max-width:640px){.charts-grid{grid-template-columns:1fr}}
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
-.chart-title{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
-.chart-sub{font-size:10px;color:var(--muted);margin-bottom:16px}
-.chart-wrap{position:relative;height:220px}
+/* Grid bg - dark only */
+[data-theme="dark"] body::before{content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle at 20% 20%,#4c1d9520 0%,transparent 50%),
+    radial-gradient(circle at 80% 80%,#1e3a5f20 0%,transparent 50%),
+    linear-gradient(#ffffff06 1px,transparent 1px),
+    linear-gradient(90deg,#ffffff06 1px,transparent 1px);
+  background-size:100% 100%,100% 100%,52px 52px,52px 52px;
+  pointer-events:none;z-index:0;}
+[data-theme="light"] body::before{content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle at 20% 20%,#7c3aed08 0%,transparent 50%),
+    radial-gradient(circle at 80% 80%,#2563eb08 0%,transparent 50%);
+  pointer-events:none;z-index:0;}
 
-/* Growth insight cards */
-.growth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:28px}
-.growth-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
-.growth-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.growth-val{font-family:var(--font-display);font-size:16px;font-weight:700}
-.growth-bar-wrap{height:4px;background:var(--subtle);border-radius:2px;margin-top:8px;overflow:hidden}
-.growth-bar{height:100%;border-radius:2px;transition:width .6s ease}
+.wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:28px 20px 80px}
 
-.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:28px}
+/* ── HEADER ── */
+header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:40px;gap:16px;flex-wrap:wrap}
+.header-left{}
+.logo{font-size:10px;font-weight:600;letter-spacing:.22em;color:var(--muted2);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.logo-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
+h1{font-family:'Cabinet Grotesk','Segoe UI',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:800;color:var(--text);line-height:1.05;margin-bottom:8px;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--accent)}
+.subtitle{font-size:11px;color:var(--muted2);letter-spacing:.05em}
+
+/* Theme toggle */
+.theme-toggle{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border2);border-radius:40px;padding:6px 14px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);flex-shrink:0;margin-top:4px}
+.theme-toggle:hover{border-color:var(--border3)}
+.theme-toggle span{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--muted2)}
+.toggle-track{width:36px;height:20px;background:var(--border2);border-radius:10px;position:relative;transition:background .3s}
+[data-theme="light"] .toggle-track{background:var(--accent)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .3s;box-shadow:0 1px 3px #0003}
+[data-theme="light"] .toggle-thumb{transform:translateX(16px)}
+.icon-sun,.icon-moon{font-size:14px}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;margin-bottom:32px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:4px;width:fit-content;box-shadow:var(--shadow)}
+.tab{font-family:'Cabinet Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:.03em;padding:9px 22px;border-radius:9px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .25s;position:relative}
+.tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
+.tab:hover:not(.active){color:var(--text);background:var(--border)}
+
+.panel{display:none}
+.panel.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ── SECTION LABEL ── */
+.section-label{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.section-label::before{content:'';display:block;width:3px;height:14px;background:var(--accent);border-radius:2px}
+
+/* ── INPUTS ── */
+.input-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:32px}
+.input-group{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);transition:border-color .2s}
+.input-group:hover{border-color:var(--border3)}
+.input-group:focus-within{border-color:var(--accent)}
+.input-group label{display:block;font-size:9px;letter-spacing:.12em;color:var(--muted2);margin-bottom:8px;text-transform:uppercase;font-weight:600}
+.input-group input{width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--blue);outline:none;transition:border-color .2s}
+.input-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.input-note{font-size:9px;color:var(--muted2);margin-top:6px;opacity:.8}
+
+/* ── FORMULA PILL ── */
+.formula-pill{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:24px;padding:8px 18px;font-size:11px;color:var(--muted2);margin-bottom:28px;box-shadow:var(--shadow)}
+.formula-pill b{color:var(--accent);font-weight:600}
+.formula-arrow{color:var(--border3)}
+
+/* ── STAT CARDS ── */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:32px}
+.stat{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.stat-icon{font-size:18px;margin-bottom:8px;display:block}
+.stat-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px;font-weight:600}
+.stat-val{font-family:'Cabinet Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1}
+.stat-sub{font-size:10px;color:var(--muted2);margin-top:5px}
+.stat-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;margin-top:6px}
+.badge-up{background:var(--green-bg);color:var(--green)}
+.badge-dn{background:var(--red-bg);color:var(--red)}
+.badge-neu{background:var(--border);color:var(--muted2)}
+
+/* ── CHARTS ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+@media(max-width:600px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+.chart-header{margin-bottom:16px}
+.chart-title{font-family:'Cabinet Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.chart-sub{font-size:10px;color:var(--muted2)}
+.chart-wrap{position:relative;height:210px}
+
+/* ── GROWTH INSIGHTS ── */
+.growth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:32px}
+.growth-card{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.growth-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px;font-weight:600}
+.growth-val{font-family:'Cabinet Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:10px;letter-spacing:-.01em}
+.growth-bar-wrap{height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.growth-bar{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border:1px solid var(--border2);border-radius:14px;box-shadow:var(--shadow);margin-bottom:32px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead tr{background:var(--surface)}
-th{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border)}
+th{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:13px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2)}
 th:first-child{text-align:left}
 tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
 tbody tr:last-child{border-bottom:none}
-tbody tr:hover{background:var(--subtle)}
-td{padding:10px 14px;text-align:right;color:var(--text)}
-td:first-child{text-align:left;color:var(--muted)}
-td.hi-green{color:var(--green);font-weight:500}
-td.hi-blue{color:var(--blue)}td.hi-amber{color:var(--amber);font-weight:500}
-td.hi-orange{color:var(--orange);font-weight:500}
-td.hi-red{color:var(--red)}td.center{text-align:center}
-td.growth-pos{color:var(--green)}.growth-neg{color:var(--red)}.growth-zero{color:var(--muted)}
-.badge{display:inline-block;background:var(--subtle);border:1px solid var(--border2);border-radius:4px;padding:2px 7px;font-size:10px;letter-spacing:.04em}
-.badge.new{background:#7c3aed22;border-color:#7c3aed44;color:var(--accent)}
-.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:24px}
-.scenario-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:all .2s}
-.scenario-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.scenario-card.active-card{border-color:var(--accent);background:#7c3aed0d}
-.sc-tag{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:inline-block;padding:3px 8px;border-radius:4px}
-.sc-tag.t1{background:#1e3a5f;color:var(--blue)}.sc-tag.t2{background:#3a2a00;color:var(--amber)}.sc-tag.t3{background:#0d3a25;color:var(--green)}
-.sc-name{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
-.sc-val{font-size:18px;font-weight:700;margin-bottom:4px}
-.sc-val.c1{color:var(--blue)}.sc-val.c2{color:var(--amber)}.sc-val.c3{color:var(--green)}
-.sc-desc{font-size:11px;color:var(--muted)}
-.sc-results{display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-.sc-r{flex:1}.sc-r-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px}
-.sc-r-val{font-size:12px;font-weight:500;color:var(--text)}
-.detail-btn{font-family:var(--font-display);font-size:11px;font-weight:600;letter-spacing:.06em;background:var(--subtle);border:1px solid var(--border2);color:var(--muted);padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .2s;margin-bottom:16px}
-.detail-btn:hover{color:var(--text);border-color:var(--accent)}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.panel.active{animation:fadeIn .25s ease}
+tbody tr:hover{background:var(--card2)}
+td{padding:11px 14px;text-align:right;color:var(--text2)}
+td:first-child{text-align:left;color:var(--muted2)}
+.c-green{color:var(--green);font-weight:500}
+.c-blue{color:var(--blue)}
+.c-amber{color:var(--amber);font-weight:500}
+.c-orange{color:var(--orange);font-weight:500}
+.c-red{color:var(--red)}
+.c-center{text-align:center}
+.pill{display:inline-block;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600;letter-spacing:.04em}
+.pill-week{background:var(--border2);color:var(--muted2)}
+.pill-char{background:var(--accent-glow);color:var(--accent);border:1px solid var(--accent)30}
+
+/* ── SCENARIOS ── */
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-bottom:28px}
+.sc-card{background:var(--card);border:2px solid var(--border2);border-radius:16px;padding:20px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.sc-card::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;border-radius:14px}
+.sc-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.sc-card.active-card{border-color:var(--accent);background:var(--accent-glow)}
+.sc-num{font-size:9px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px}
+.sc-num.n1{color:var(--blue)}.sc-num.n2{color:var(--amber)}.sc-num.n3{color:var(--green)}
+.sc-name{font-family:'Cabinet Grotesk',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.sc-result{font-size:22px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;margin-bottom:4px;letter-spacing:-.02em}
+.sc-result.r1{color:var(--blue)}.sc-result.r2{color:var(--amber)}.sc-result.r3{color:var(--green)}
+.sc-desc{font-size:11px;color:var(--muted2);margin-bottom:14px}
+.sc-footer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:14px;border-top:1px solid var(--border2)}
+.sc-f-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:3px;font-weight:600}
+.sc-f-val{font-size:12px;font-weight:600;color:var(--text)}
+
+.detail-btn{font-family:'Cabinet Grotesk',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;background:var(--card);border:1px solid var(--border2);color:var(--muted2);padding:10px 20px;border-radius:10px;cursor:pointer;transition:all .2s;margin-bottom:20px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+.detail-btn:hover{color:var(--text);border-color:var(--accent);background:var(--accent-glow)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:3px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">NESO Farm</div>
-    <h1>Farm <span>Dashboard</span></h1>
-    <div class="subtitle">Thay đổi thông số → tất cả tự cập nhật</div>
+    <div class="header-left">
+      <div class="logo"><span class="logo-dot"></span>Game Farming</div>
+      <h1>Farm <em>Dashboard</em></h1>
+      <div class="subtitle">Thay đổi thông số → tất cả tự cập nhật tức thì</div>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <span class="icon-sun">☀️</span>
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="icon-moon">🌙</span>
+    </button>
   </header>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('farm')">Vòng quay tích lũy</button>
-    <button class="tab" onclick="switchTab('target')">Mục tiêu ngược</button>
+    <button class="tab active" onclick="switchTab('farm')">⚡ Vòng quay tích lũy</button>
+    <button class="tab" onclick="switchTab('target')">🎯 Mục tiêu ngược</button>
   </div>
 
-  <!-- PANEL 1: FARM -->
+  <!-- PANEL 1 -->
   <div id="panel-farm" class="panel active">
     <div class="section-label">Thông số đầu vào</div>
     <div class="input-grid">
@@ -131,37 +257,36 @@ td.growth-pos{color:var(--green)}.growth-neg{color:var(--red)}.growth-zero{color
       <div class="input-group"><label>USDT / VND</label><input type="number" id="f-usdvnd" value="26500" step="100"/></div>
     </div>
 
-    <div class="formula-pill">NESO ÷ 100,000 = NXPC &nbsp;→&nbsp; <span>NXPC × NXPC/USDT = USDT</span> &nbsp;→&nbsp; USDT × USDT/VND = VND</div>
+    <div class="formula-pill">
+      NESO <b>÷ 100,000</b> <span class="formula-arrow">→</span> NXPC
+      <span class="formula-arrow">→</span> NXPC <b>× NXPC/USDT</b>
+      <span class="formula-arrow">→</span> USDT <b>× USDT/VND</b>
+      <span class="formula-arrow">→</span> VND
+    </div>
 
     <div class="stat-row" id="farm-stats"></div>
 
-    <!-- Charts -->
     <div class="section-label">Biểu đồ tăng trưởng</div>
     <div class="charts-grid">
       <div class="chart-card">
-        <div class="chart-title">Tăng trưởng ACC</div>
-        <div class="chart-sub">Số tài khoản tích lũy theo tuần</div>
+        <div class="chart-header"><div class="chart-title">📈 Tăng trưởng ACC</div><div class="chart-sub">Số tài khoản tích lũy theo tuần</div></div>
         <div class="chart-wrap"><canvas id="chart-acc"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Giá trị USDT & VND</div>
-        <div class="chart-sub">Quy đổi tích lũy theo tuần</div>
+        <div class="chart-header"><div class="chart-title">💰 Giá trị USDT & VND</div><div class="chart-sub">Tích lũy qua các tuần</div></div>
         <div class="chart-wrap"><canvas id="chart-value"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">NESO tích lũy</div>
-        <div class="chart-sub">Tổng NESO farm được & NXPC quy đổi</div>
+        <div class="chart-header"><div class="chart-title">🪙 NESO & NXPC</div><div class="chart-sub">Tổng farm được & quy đổi</div></div>
         <div class="chart-wrap"><canvas id="chart-neso"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Tỷ lệ tăng trưởng ACC (%)</div>
-        <div class="chart-sub">% tăng so với tuần trước</div>
+        <div class="chart-header"><div class="chart-title">🚀 Tỷ lệ tăng trưởng ACC (%)</div><div class="chart-sub">% tăng so với tuần trước</div></div>
         <div class="chart-wrap"><canvas id="chart-growth"></canvas></div>
       </div>
     </div>
 
-    <!-- Growth insights -->
-    <div class="section-label">Phân tích tăng trưởng ACC</div>
+    <div class="section-label">Phân tích tăng trưởng</div>
     <div class="growth-grid" id="growth-insights"></div>
 
     <div class="section-label">Chi tiết theo tuần</div>
@@ -169,7 +294,7 @@ td.growth-pos{color:var(--green)}.growth-neg{color:var(--red)}.growth-zero{color
       <table>
         <thead><tr>
           <th>Tuần</th><th>ACC</th><th>Tăng trưởng</th><th>NESO/tuần</th>
-          <th>NESO tích lũy</th><th>NXPC tích lũy</th><th>Char mới</th>
+          <th>NESO tích lũy</th><th>NXPC</th><th>Char mới</th>
           <th>ACC mới</th><th>NESO dư</th><th>USDT</th><th>VND</th>
         </tr></thead>
         <tbody id="farm-tbody"></tbody>
@@ -177,7 +302,7 @@ td.growth-pos{color:var(--green)}.growth-neg{color:var(--red)}.growth-zero{color
     </div>
   </div>
 
-  <!-- PANEL 2: TARGET -->
+  <!-- PANEL 2 -->
   <div id="panel-target" class="panel">
     <div class="section-label">Thông số mục tiêu</div>
     <div class="input-grid">
@@ -188,32 +313,32 @@ td.growth-pos{color:var(--green)}.growth-neg{color:var(--red)}.growth-zero{color
       <div class="input-group"><label>USDT / VND</label><input type="number" id="t-usdvnd" value="26500" step="100"/></div>
     </div>
     <div class="section-label">Base (giữ nguyên 2/3 biến mỗi kịch bản)</div>
-    <div class="input-grid" style="margin-bottom:28px">
+    <div class="input-grid" style="margin-bottom:32px">
       <div class="input-group"><label>Base ACC ban đầu</label><input type="number" id="t-bacc" value="30" min="1"/><div class="input-note">dùng cho KB1 &amp; KB3</div></div>
       <div class="input-group"><label>Base NESO/tuần</label><input type="number" id="t-bneso" value="1300000" step="100000"/><div class="input-note">dùng cho KB1 &amp; KB2</div></div>
       <div class="input-group"><label>Base số tuần</label><input type="number" id="t-bweeks" value="8" min="1"/><div class="input-note">dùng cho KB2 &amp; KB3</div></div>
     </div>
     <div class="section-label">3 kịch bản để đạt mục tiêu</div>
     <div class="scenario-grid" id="scenario-cards"></div>
-    <button class="detail-btn" id="detail-toggle" onclick="toggleDetail()">▼ Xem chi tiết kịch bản đang chọn</button>
+    <button class="detail-btn" id="detail-toggle" onclick="toggleDetail()">
+      <span id="detail-arrow">▼</span> Xem chi tiết & so sánh biểu đồ
+    </button>
     <div id="detail-wrap" style="display:none">
       <div class="charts-grid">
         <div class="chart-card">
-          <div class="chart-title">Tăng trưởng ACC — kịch bản đang chọn</div>
-          <div class="chart-sub">So sánh 3 kịch bản</div>
-          <div class="chart-wrap"><canvas id="chart-scenario-acc"></canvas></div>
+          <div class="chart-header"><div class="chart-title">📊 So sánh ACC — 3 kịch bản</div><div class="chart-sub">Tăng trưởng theo tuần</div></div>
+          <div class="chart-wrap"><canvas id="chart-sc-acc"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-title">Giá trị USDT — 3 kịch bản</div>
-          <div class="chart-sub">Tích lũy theo tuần</div>
-          <div class="chart-wrap"><canvas id="chart-scenario-usdt"></canvas></div>
+          <div class="chart-header"><div class="chart-title">💵 So sánh USDT — 3 kịch bản</div><div class="chart-sub">Tích lũy theo tuần</div></div>
+          <div class="chart-wrap"><canvas id="chart-sc-usdt"></canvas></div>
         </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
             <th>Tuần</th><th>ACC</th><th>Tăng trưởng</th><th>NESO/tuần</th>
-            <th>NESO tích lũy</th><th>NXPC tích lũy</th><th>Char mới</th><th>ACC mới</th><th>NESO dư</th>
+            <th>NESO tích lũy</th><th>NXPC</th><th>Char mới</th><th>ACC mới</th><th>NESO dư</th>
           </tr></thead>
           <tbody id="detail-tbody"></tbody>
         </table>
@@ -223,25 +348,52 @@ td.growth-pos{color:var(--green)}.growth-neg{color:var(--red)}.growth-zero{color
 </div>
 
 <script>
-const NESO_PER_NXPC = 100000;
-const f  = n => Math.round(n).toLocaleString('vi-VN');
-const fd = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
-const pct = n => (n>=0?'+':'')+fd(n,1)+'%';
+// ── Theme ──
+function toggleTheme(){
+  const html=document.documentElement;
+  const next=html.getAttribute('data-theme')==='dark'?'light':'dark';
+  html.setAttribute('data-theme',next);
+  localStorage.setItem('theme',next);
+  redrawCharts();
+}
+(function(){
+  const saved=localStorage.getItem('theme');
+  if(saved) document.documentElement.setAttribute('data-theme',saved);
+})();
 
-let chartAcc=null, chartValue=null, chartNeso=null, chartGrowth=null;
-let chartScAcc=null, chartScUsdt=null;
+// ── Helpers ──
+const NESO_PER_NXPC=100000;
+const f  = n=>Math.round(n).toLocaleString('vi-VN');
+const fd = (n,d)=>n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
 
-const CHART_DEFAULTS = {
-  responsive:true, maintainAspectRatio:false,
-  plugins:{legend:{labels:{color:'#6b6b8a',font:{family:'DM Mono',size:10},boxWidth:12}},tooltip:{backgroundColor:'#181827',borderColor:'#ffffff22',borderWidth:1,titleColor:'#f1f0ff',bodyColor:'#9ca3af',titleFont:{family:'Syne',size:12},bodyFont:{family:'DM Mono',size:11}}},
-  scales:{x:{ticks:{color:'#6b6b8a',font:{family:'DM Mono',size:10}},grid:{color:'#ffffff08'}},y:{ticks:{color:'#6b6b8a',font:{family:'DM Mono',size:10}},grid:{color:'#ffffff08'}}}
-};
+function getVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
 
-function makeChart(id, cfg) {
-  const el = document.getElementById(id);
-  const existing = Chart.getChart(el);
-  if(existing) existing.destroy();
-  return new Chart(el, cfg);
+function chartDefaults(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  const muted=isDark?'#6b6b8a':'#9090b0';
+  const grid=isDark?'#ffffff08':'#00000008';
+  const tooltipBg=isDark?'#1c1c32':'#ffffff';
+  const tooltipBorder=isDark?'#ffffff1a':'#0000001a';
+  return{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:muted,font:{family:'JetBrains Mono',size:10},boxWidth:10,padding:12}},
+      tooltip:{backgroundColor:tooltipBg,borderColor:tooltipBorder,borderWidth:1,
+        titleColor:isDark?'#eeeef8':'#0f0f1a',bodyColor:muted,
+        titleFont:{family:'Cabinet Grotesk',size:12,weight:'700'},bodyFont:{family:'JetBrains Mono',size:11},
+        padding:10,cornerRadius:8}},
+    scales:{
+      x:{ticks:{color:muted,font:{family:'JetBrains Mono',size:10}},grid:{color:grid},border:{display:false}},
+      y:{ticks:{color:muted,font:{family:'JetBrains Mono',size:10}},grid:{color:grid},border:{display:false}}
+    }
+  };
+}
+
+let charts={};
+function makeChart(id,cfg){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(charts[id]) charts[id].destroy();
+  charts[id]=new Chart(el,cfg);
 }
 
 function switchTab(t){
@@ -250,110 +402,118 @@ function switchTab(t){
   document.getElementById('panel-'+t).classList.add('active');
 }
 
+// ── Farm ──
+let farmRows=[];
 function calcFarm(){
-  const acc0   = +document.getElementById('f-acc').value||0;
-  const weeks  = +document.getElementById('f-weeks').value||0;
-  const npacc  = +document.getElementById('f-npacc').value||0;
-  const npchar = +document.getElementById('f-npchar').value||1;
-  const apchar = +document.getElementById('f-apchar').value||1;
-  const nxpc   = +document.getElementById('f-nxpc').value||0;
-  const usdvnd = +document.getElementById('f-usdvnd').value||0;
+  const acc0  =+document.getElementById('f-acc').value||0;
+  const weeks =+document.getElementById('f-weeks').value||0;
+  const npacc =+document.getElementById('f-npacc').value||0;
+  const npchar=+document.getElementById('f-npchar').value||1;
+  const apchar=+document.getElementById('f-apchar').value||1;
+  const nxpc  =+document.getElementById('f-nxpc').value||0;
+  const usdvnd=+document.getElementById('f-usdvnd').value||0;
 
-  let acc=acc0, carry=0, totalNeso=0, totalChars=0;
-  const rows=[];
+  let acc=acc0,carry=0,totalNeso=0,totalChars=0;
+  farmRows=[];
   for(let w=1;w<=weeks;w++){
-    const earned=acc*npacc, avail=carry+earned;
-    totalNeso+=earned;
-    const newChars=Math.floor(avail/npchar);
-    const rem=avail-newChars*npchar, newAcc=newChars*apchar;
-    totalChars+=newChars;
-    const nxpcTot=totalNeso/NESO_PER_NXPC, usdt=nxpcTot*nxpc, vnd=usdt*usdvnd;
-    const prevAcc = rows.length>0 ? rows[rows.length-1].acc : acc0;
-    const growthPct = prevAcc>0 ? (acc-prevAcc)/prevAcc*100 : 0;
-    rows.push({w,acc,earned,avail,totalNeso,nxpcTot,newChars,newAcc,rem,usdt,vnd,growthPct});
-    acc+=newAcc; carry=rem;
-  }
-
-  const last=rows[rows.length-1]||{};
-  const finalAcc=last.acc+(last.newAcc||0);
-  const finalUsdt=last.usdt||0, finalVnd=last.vnd||0, finalNxpc=last.nxpcTot||0;
-
-  // Total growth
-  const totalGrowthPct = acc0>0 ? (finalAcc-acc0)/acc0*100 : 0;
-  const avgWeeklyGrowth = rows.length>0 ? rows.filter(r=>r.growthPct>0).reduce((s,r)=>s+r.growthPct,0)/Math.max(1,rows.filter(r=>r.growthPct>0).length) : 0;
-  const peakGrowthWeek = rows.reduce((best,r)=>r.growthPct>best.growthPct?r:best,{growthPct:-Infinity,w:0});
-  const weeksWithGrowth = rows.filter(r=>r.newChars>0).length;
-
-  // Stats
-  document.getElementById('farm-stats').innerHTML=`
-    <div class="stat s-purple"><div class="stat-label">ACC cuối kỳ</div><div class="stat-val">${f(finalAcc)}</div><div class="stat-sub">bắt đầu: ${f(acc0)}</div><span class="stat-badge up">+${f(finalAcc-acc0)} ACC</span></div>
-    <div class="stat s-orange"><div class="stat-label">Tăng trưởng tổng</div><div class="stat-val">${fd(totalGrowthPct,1)}%</div><div class="stat-sub">trong ${weeks} tuần</div></div>
-    <div class="stat s-green"><div class="stat-label">NXPC tổng</div><div class="stat-val">${fd(finalNxpc,0)}</div><div class="stat-sub">100k NESO = 1 NXPC</div></div>
-    <div class="stat s-blue"><div class="stat-label">USDT tổng</div><div class="stat-val">${fd(finalUsdt,2)}</div><div class="stat-sub">${fd(nxpc,3)} USDT/NXPC</div></div>
-    <div class="stat s-amber"><div class="stat-label">VND tổng</div><div class="stat-val">${f(finalVnd)}</div><div class="stat-sub">${f(usdvnd)} VND/USDT</div></div>
-    <div class="stat s-red"><div class="stat-label">Char mua được</div><div class="stat-val">${totalChars}</div><div class="stat-sub">×${f(npchar)} NESO</div></div>`;
-
-  // Growth insights
-  document.getElementById('growth-insights').innerHTML=`
-    <div class="growth-card"><div class="growth-label">Tăng trưởng tổng</div><div class="growth-val" style="color:var(--orange)">${fd(totalGrowthPct,1)}%</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,totalGrowthPct)}%;background:var(--orange)"></div></div></div>
-    <div class="growth-card"><div class="growth-label">Tăng trưởng TB/tuần</div><div class="growth-val" style="color:var(--green)">${fd(avgWeeklyGrowth,1)}%</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,avgWeeklyGrowth*5)}%;background:var(--green)"></div></div></div>
-    <div class="growth-card"><div class="growth-label">Tuần tăng mạnh nhất</div><div class="growth-val" style="color:var(--accent)">Tuần ${peakGrowthWeek.w||'—'}</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,peakGrowthWeek.growthPct||0)}%;background:var(--accent)"></div></div></div>
-    <div class="growth-card"><div class="growth-label">Tuần có tăng ACC</div><div class="growth-val" style="color:var(--amber)">${weeksWithGrowth} / ${weeks}</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${weeks>0?weeksWithGrowth/weeks*100:0}%;background:var(--amber)"></div></div></div>`;
-
-  // Table
-  const labels=rows.map(r=>'T'+r.w);
-  document.getElementById('farm-tbody').innerHTML=rows.map(r=>{
-    const gClass = r.growthPct>0?'hi-orange growth-pos':r.growthPct<0?'growth-neg':'growth-zero';
-    const gStr   = r.growthPct>0?'+'+fd(r.growthPct,1)+'%':r.growthPct===0?'—':fd(r.growthPct,1)+'%';
-    return `<tr>
-      <td class="center"><span class="badge">${r.w}</span></td>
-      <td>${f(r.acc)}</td>
-      <td class="${gClass}">${gStr}</td>
-      <td>${f(r.earned)}</td>
-      <td>${f(r.avail)}</td>
-      <td class="hi-green">${fd(r.nxpcTot,0)}</td>
-      <td class="hi-amber center">${r.newChars>0?'<span class="badge new">+'+r.newChars+'</span>':'—'}</td>
-      <td class="hi-amber">${r.newAcc>0?'+'+f(r.newAcc):'—'}</td>
-      <td>${f(r.rem)}</td>
-      <td class="hi-blue">${fd(r.usdt,2)}</td>
-      <td class="hi-green">${f(r.vnd)}</td>
-    </tr>`;}).join('');
-
-  // Charts
-  const accData  = rows.map(r=>r.acc+(r.w===rows[rows.length-1].w?r.newAcc:0));
-  const usdtData = rows.map(r=>parseFloat(r.usdt.toFixed(2)));
-  const vndData  = rows.map(r=>r.vnd);
-  const nesoData = rows.map(r=>r.totalNeso);
-  const nxpcData = rows.map(r=>parseFloat(r.nxpcTot.toFixed(0)));
-  const growthData = rows.map(r=>parseFloat(r.growthPct.toFixed(2)));
-
-  const baseOpts = JSON.parse(JSON.stringify(CHART_DEFAULTS));
-
-  chartAcc = makeChart('chart-acc',{type:'line',data:{labels,datasets:[{label:'ACC',data:accData,borderColor:'#a78bfa',backgroundColor:'#a78bfa18',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#a78bfa',borderWidth:2}]},options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>' '+f(ctx.raw)+' ACC'}}}}});
-
-  chartValue = makeChart('chart-value',{type:'line',data:{labels,datasets:[{label:'USDT',data:usdtData,borderColor:'#60a5fa',backgroundColor:'#60a5fa12',fill:true,tension:.4,pointRadius:3,borderWidth:2,yAxisID:'y'},{label:'VND (÷1M)',data:vndData.map(v=>+(v/1000000).toFixed(1)),borderColor:'#34d399',backgroundColor:'#34d39912',fill:false,tension:.4,pointRadius:3,borderWidth:2,yAxisID:'y2'}]},options:{...baseOpts,scales:{x:baseOpts.scales.x,y:{...baseOpts.scales.y,position:'left'},y2:{...baseOpts.scales.y,position:'right',grid:{display:false}}}}});
-
-  chartNeso = makeChart('chart-neso',{type:'bar',data:{labels,datasets:[{label:'NESO (÷1M)',data:nesoData.map(v=>+(v/1000000).toFixed(1)),backgroundColor:'#7c3aed55',borderColor:'#a78bfa',borderWidth:1,yAxisID:'y'},{label:'NXPC',data:nxpcData,backgroundColor:'#34d39933',borderColor:'#34d399',borderWidth:1,type:'line',tension:.4,yAxisID:'y2'}]},options:{...baseOpts,scales:{x:baseOpts.scales.x,y:{...baseOpts.scales.y,position:'left'},y2:{...baseOpts.scales.y,position:'right',grid:{display:false}}}}});
-
-  chartGrowth = makeChart('chart-growth',{type:'bar',data:{labels,datasets:[{label:'% tăng trưởng ACC',data:growthData,backgroundColor:growthData.map(v=>v>0?'#fb923c55':'#6b6b8a33'),borderColor:growthData.map(v=>v>0?'#fb923c':'#6b6b8a'),borderWidth:1}]},options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>' '+(ctx.raw>=0?'+':'')+fd(ctx.raw,2)+'%'}}}}});
-}
-
-function simulate(acc0,npacc,maxW,npchar,apchar,nxpc,usdvnd){
-  let acc=acc0,carry=0,totalNeso=0;
-  const rows=[];
-  for(let w=1;w<=maxW;w++){
     const earned=acc*npacc,avail=carry+earned;
     totalNeso+=earned;
     const newChars=Math.floor(avail/npchar),rem=avail-newChars*npchar,newAcc=newChars*apchar;
+    totalChars+=newChars;
+    const nxpcTot=totalNeso/NESO_PER_NXPC,usdt=nxpcTot*nxpc,vnd=usdt*usdvnd;
+    const prevAcc=farmRows.length>0?farmRows[farmRows.length-1].acc:acc0;
+    const gr=prevAcc>0?(acc-prevAcc)/prevAcc*100:0;
+    farmRows.push({w,acc,earned,avail,totalNeso,nxpcTot,newChars,newAcc,rem,usdt,vnd,gr});
+    acc+=newAcc;carry=rem;
+  }
+  const last=farmRows[farmRows.length-1]||{};
+  const finalAcc=last.acc+(last.newAcc||0);
+  const finUsdt=last.usdt||0,finVnd=last.vnd||0,finNxpc=last.nxpcTot||0;
+  const totalGr=acc0>0?(finalAcc-acc0)/acc0*100:0;
+  const growthRows=farmRows.filter(r=>r.gr>0);
+  const avgGr=growthRows.length>0?growthRows.reduce((s,r)=>s+r.gr,0)/growthRows.length:0;
+  const peakRow=farmRows.reduce((b,r)=>r.gr>b.gr?r:b,{gr:-Infinity,w:0});
+  const weeksUp=farmRows.filter(r=>r.newChars>0).length;
+
+  document.getElementById('farm-stats').innerHTML=`
+    <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
+      <span class="stat-icon">👥</span><div class="stat-label">ACC cuối kỳ</div>
+      <div class="stat-val">${f(finalAcc)}</div><div class="stat-sub">bắt đầu: ${f(acc0)}</div>
+      <span class="stat-badge badge-up">+${f(finalAcc-acc0)}</span></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--orange)"></div>
+      <span class="stat-icon">📈</span><div class="stat-label">Tăng trưởng tổng</div>
+      <div class="stat-val" style="color:var(--orange)">${fd(totalGr,1)}%</div><div class="stat-sub">trong ${weeks} tuần</div></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--green)"></div>
+      <span class="stat-icon">🪙</span><div class="stat-label">NXPC tổng</div>
+      <div class="stat-val" style="color:var(--green)">${fd(finNxpc,0)}</div><div class="stat-sub">≈ ${f(totalNeso)} NESO</div></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--blue)"></div>
+      <span class="stat-icon">💵</span><div class="stat-label">USDT tổng</div>
+      <div class="stat-val" style="color:var(--blue)">${fd(finUsdt,2)}</div><div class="stat-sub">${fd(nxpc,3)}/NXPC</div></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
+      <span class="stat-icon">💰</span><div class="stat-label">VND tổng</div>
+      <div class="stat-val" style="color:var(--amber)">${f(finVnd)}</div><div class="stat-sub">${f(usdvnd)}/USDT</div></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--red)"></div>
+      <span class="stat-icon">🎮</span><div class="stat-label">Char mua được</div>
+      <div class="stat-val" style="color:var(--red)">${totalChars}</div><div class="stat-sub">×${f(npchar)} NESO</div></div>`;
+
+  document.getElementById('growth-insights').innerHTML=`
+    <div class="growth-card"><div class="growth-label">Tổng tăng trưởng</div><div class="growth-val" style="color:var(--orange)">${fd(totalGr,1)}%</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,totalGr)}%;background:var(--orange)"></div></div></div>
+    <div class="growth-card"><div class="growth-label">TB tăng / tuần có char</div><div class="growth-val" style="color:var(--green)">${fd(avgGr,1)}%</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,avgGr*4)}%;background:var(--green)"></div></div></div>
+    <div class="growth-card"><div class="growth-label">Tuần tăng mạnh nhất</div><div class="growth-val" style="color:var(--accent)">Tuần ${peakRow.w||'—'}</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${Math.min(100,peakRow.gr||0)}%;background:var(--accent)"></div></div></div>
+    <div class="growth-card"><div class="growth-label">Tuần có mua char</div><div class="growth-val" style="color:var(--amber)">${weeksUp} / ${weeks}</div><div class="growth-bar-wrap"><div class="growth-bar" style="width:${weeks>0?weeksUp/weeks*100:0}%;background:var(--amber)"></div></div></div>`;
+
+  document.getElementById('farm-tbody').innerHTML=farmRows.map(r=>{
+    const gc=r.gr>0?'c-orange':r.gr<0?'c-red':'';
+    const gs=r.gr>0?'+'+fd(r.gr,1)+'%':r.gr===0?'—':fd(r.gr,1)+'%';
+    return `<tr>
+      <td class="c-center"><span class="pill pill-week">${r.w}</span></td>
+      <td>${f(r.acc)}</td><td class="${gc}">${gs}</td>
+      <td>${f(r.earned)}</td><td>${f(r.avail)}</td>
+      <td class="c-green">${fd(r.nxpcTot,0)}</td>
+      <td class="c-center">${r.newChars>0?'<span class="pill pill-char">+'+r.newChars+'</span>':'—'}</td>
+      <td class="c-amber">${r.newAcc>0?'+'+f(r.newAcc):'—'}</td>
+      <td>${f(r.rem)}</td>
+      <td class="c-blue">${fd(r.usdt,2)}</td>
+      <td class="c-green">${f(r.vnd)}</td>
+    </tr>`;}).join('');
+
+  drawFarmCharts();
+}
+
+function drawFarmCharts(){
+  const d=chartDefaults();
+  const labels=farmRows.map(r=>'T'+r.w);
+  makeChart('chart-acc',{type:'line',data:{labels,datasets:[{label:'ACC',data:farmRows.map(r=>r.acc),borderColor:'#8b5cf6',backgroundColor:'#8b5cf620',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#8b5cf6',pointBorderColor:'#fff',pointBorderWidth:2,borderWidth:2.5}]},options:{...d,plugins:{...d.plugins,tooltip:{...d.plugins.tooltip,callbacks:{label:ctx=>' '+f(ctx.raw)+' ACC'}}}}});
+
+  makeChart('chart-value',{type:'line',data:{labels,datasets:[
+    {label:'USDT',data:farmRows.map(r=>+r.usdt.toFixed(2)),borderColor:'#3b82f6',backgroundColor:'#3b82f615',fill:true,tension:.4,pointRadius:4,borderWidth:2,yAxisID:'y'},
+    {label:'VND (÷1M)',data:farmRows.map(r=>+(r.vnd/1e6).toFixed(2)),borderColor:'#10b981',backgroundColor:'#10b98115',fill:false,tension:.4,pointRadius:4,borderWidth:2,yAxisID:'y2'}
+  ]},options:{...d,scales:{x:d.scales.x,y:{...d.scales.y,position:'left'},y2:{...d.scales.y,position:'right',grid:{display:false}}}}});
+
+  makeChart('chart-neso',{type:'bar',data:{labels,datasets:[
+    {label:'NESO (÷1M)',data:farmRows.map(r=>+(r.totalNeso/1e6).toFixed(2)),backgroundColor:'#6d28d940',borderColor:'#8b5cf6',borderWidth:1.5,yAxisID:'y'},
+    {label:'NXPC',data:farmRows.map(r=>+r.nxpcTot.toFixed(0)),borderColor:'#10b981',backgroundColor:'transparent',borderWidth:2,type:'line',tension:.4,pointRadius:4,yAxisID:'y2'}
+  ]},options:{...d,scales:{x:d.scales.x,y:{...d.scales.y,position:'left'},y2:{...d.scales.y,position:'right',grid:{display:false}}}}});
+
+  const gd=farmRows.map(r=>+r.gr.toFixed(2));
+  makeChart('chart-growth',{type:'bar',data:{labels,datasets:[{label:'% tăng trưởng',data:gd,backgroundColor:gd.map(v=>v>0?'#f9731650':'#6b6b8a30'),borderColor:gd.map(v=>v>0?'#f97316':'#6b6b8a'),borderWidth:1.5,borderRadius:4}]},options:{...d,plugins:{...d.plugins,tooltip:{...d.plugins.tooltip,callbacks:{label:ctx=>' '+(ctx.raw>=0?'+':'')+fd(ctx.raw,2)+'%'}}}}});
+}
+
+// ── Target ──
+function simulate(acc0,npacc,maxW,npchar,apchar,nxpc,usdvnd){
+  let acc=acc0,carry=0,totalNeso=0;const rows=[];
+  for(let w=1;w<=maxW;w++){
+    const earned=acc*npacc,avail=carry+earned;totalNeso+=earned;
+    const newChars=Math.floor(avail/npchar),rem=avail-newChars*npchar,newAcc=newChars*apchar;
     const nxpcTot=totalNeso/NESO_PER_NXPC,usdt=nxpcTot*nxpc,vnd=usdt*usdvnd;
     const prevAcc=rows.length>0?rows[rows.length-1].acc:acc0;
-    const growthPct=prevAcc>0?(acc-prevAcc)/prevAcc*100:0;
-    rows.push({w,acc,earned,avail,totalNeso,nxpcTot,newChars,newAcc,rem,usdt,vnd,growthPct});
+    const gr=prevAcc>0?(acc-prevAcc)/prevAcc*100:0;
+    rows.push({w,acc,earned,avail,totalNeso,nxpcTot,newChars,newAcc,rem,usdt,vnd,gr});
     acc+=newAcc;carry=rem;
   }
   const last=rows[rows.length-1]||{};
-  const nxpcTot=(last.totalNeso||0)/NESO_PER_NXPC;
-  return{finalAcc:last.acc+(last.newAcc||0),usdt:nxpcTot*nxpc,vnd:nxpcTot*nxpc*usdvnd,rows};
+  const nt=(last.totalNeso||0)/NESO_PER_NXPC;
+  return{finalAcc:last.acc+(last.newAcc||0),usdt:nt*nxpc,vnd:nt*nxpc*usdvnd,rows};
 }
 
 let activeScenario=0,scenarioData=[];
@@ -370,26 +530,28 @@ function calcTarget(){
 
   let w1=null;{let a=bAcc,c=0;for(let w=1;w<=200;w++){const av=c+a*bNeso;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){w1=w;break;}}}
   let a2=null;for(let ia=1;ia<=5000;ia++){let a=ia,c=0;for(let w=1;w<=bWeeks;w++){const av=c+a*bNeso;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){a2=ia;break;}}if(a2)break;}
-  let n3=null;for(let rate=100000;rate<=100000000;rate+=100000){let a=bAcc,c=0;for(let w=1;w<=bWeeks;w++){const av=c+a*rate;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){n3=rate;break;}}if(n3)break;}
-
-  const s1w=w1||200,s2a=a2||bAcc,s3n=n3||bNeso;
+  let n3=null;for(let r=100000;r<=100000000;r+=100000){let a=bAcc,c=0;for(let w=1;w<=bWeeks;w++){const av=c+a*r;const nc=Math.floor(av/npchar);c=av-nc*npchar;a+=nc*apchar;if(a>=target){n3=r;break;}}if(n3)break;}
 
   scenarioData=[
-    {tag:'t1',tagLabel:'KB 1',name:'Thêm tuần',valLabel:w1?w1+' tuần':'> 200 tuần',cls:'c1',desc:`Giữ ${f(bAcc)} ACC, ${f(bNeso)} NESO/tuần`,...simulate(bAcc,bNeso,s1w,npchar,apchar,nxpc,usdvnd)},
-    {tag:'t2',tagLabel:'KB 2',name:'Tăng ACC ban đầu',valLabel:a2?f(a2)+' ACC':'Không đủ',cls:'c2',desc:`Giữ ${f(bNeso)} NESO/tuần, ${bWeeks} tuần`,...simulate(s2a,bNeso,bWeeks,npchar,apchar,nxpc,usdvnd)},
-    {tag:'t3',tagLabel:'KB 3',name:'Tăng NESO/tuần',valLabel:n3?f(n3)+' NESO':'Không đủ',cls:'c3',desc:`Giữ ${f(bAcc)} ACC ban đầu, ${bWeeks} tuần`,...simulate(bAcc,s3n,bWeeks,npchar,apchar,nxpc,usdvnd)},
+    {tag:'t1',num:'n1',name:'Thêm tuần',result:w1?w1+' tuần':'> 200 tuần',rc:'r1',
+     desc:`Giữ ${f(bAcc)} ACC & ${f(bNeso)} NESO/tuần`,...simulate(bAcc,bNeso,w1||200,npchar,apchar,nxpc,usdvnd)},
+    {tag:'t2',num:'n2',name:'Tăng ACC ban đầu',result:a2?f(a2)+' ACC':'Không đủ',rc:'r2',
+     desc:`Giữ ${f(bNeso)} NESO/tuần & ${bWeeks} tuần`,...simulate(a2||bAcc,bNeso,bWeeks,npchar,apchar,nxpc,usdvnd)},
+    {tag:'t3',num:'n3',name:'Tăng NESO/tuần',result:n3?f(n3)+' NESO':'Không đủ',rc:'r3',
+     desc:`Giữ ${f(bAcc)} ACC ban đầu & ${bWeeks} tuần`,...simulate(bAcc,n3||bNeso,bWeeks,npchar,apchar,nxpc,usdvnd)},
   ];
 
+  const labels=['Kịch bản 1','Kịch bản 2','Kịch bản 3'];
   document.getElementById('scenario-cards').innerHTML=scenarioData.map((s,i)=>`
-    <div class="scenario-card ${i===activeScenario?'active-card':''}" onclick="selectScenario(${i})">
-      <div><span class="sc-tag ${s.tag}">${s.tagLabel}</span></div>
+    <div class="sc-card ${i===activeScenario?'active-card':''}" onclick="selectScenario(${i})">
+      <div class="sc-num ${s.num}">Kịch bản ${i+1}</div>
       <div class="sc-name">${s.name}</div>
-      <div class="sc-val ${s.cls}">${s.valLabel}</div>
+      <div class="sc-result ${s.rc}">${s.result}</div>
       <div class="sc-desc">${s.desc}</div>
-      <div class="sc-results">
-        <div class="sc-r"><div class="sc-r-label">ACC cuối</div><div class="sc-r-val">${f(s.finalAcc)}</div></div>
-        <div class="sc-r"><div class="sc-r-label">USDT</div><div class="sc-r-val">${fd(s.usdt,2)}</div></div>
-        <div class="sc-r"><div class="sc-r-label">VND</div><div class="sc-r-val">${f(s.vnd)}</div></div>
+      <div class="sc-footer">
+        <div><div class="sc-f-label">ACC cuối</div><div class="sc-f-val">${f(s.finalAcc)}</div></div>
+        <div><div class="sc-f-label">USDT</div><div class="sc-f-val">${fd(s.usdt,2)}</div></div>
+        <div><div class="sc-f-label">VND</div><div class="sc-f-val">${f(s.vnd)}</div></div>
       </div>
     </div>`).join('');
 
@@ -398,52 +560,49 @@ function calcTarget(){
 
 function selectScenario(i){
   activeScenario=i;
-  document.querySelectorAll('.scenario-card').forEach((el,j)=>el.classList.toggle('active-card',j===i));
+  document.querySelectorAll('.sc-card').forEach((el,j)=>el.classList.toggle('active-card',j===i));
   if(document.getElementById('detail-wrap').style.display!=='none') renderDetail();
 }
 
 function toggleDetail(){
   const wrap=document.getElementById('detail-wrap');
-  const btn=document.getElementById('detail-toggle');
   const open=wrap.style.display==='none';
   wrap.style.display=open?'block':'none';
-  btn.textContent=(open?'▲':'▼')+' Xem chi tiết kịch bản đang chọn';
+  document.getElementById('detail-arrow').textContent=open?'▲':'▼';
   if(open) renderDetail();
 }
 
 function renderDetail(){
-  const s=scenarioData[activeScenario];
-  if(!s) return;
-
-  // Comparison charts across all 3 scenarios
+  const s=scenarioData[activeScenario];if(!s)return;
+  const d=chartDefaults();
   const maxW=Math.max(...scenarioData.map(sc=>sc.rows.length));
   const labels=Array.from({length:maxW},(_,i)=>'T'+(i+1));
-  const colors=['#60a5fa','#fbbf24','#34d399'];
-  const accDatasets=scenarioData.map((sc,i)=>({label:sc.name,data:sc.rows.map(r=>r.acc),borderColor:colors[i],backgroundColor:colors[i]+'18',fill:false,tension:.4,pointRadius:3,borderWidth:2}));
-  const usdtDatasets=scenarioData.map((sc,i)=>({label:sc.name,data:sc.rows.map(r=>parseFloat(r.usdt.toFixed(2))),borderColor:colors[i],backgroundColor:colors[i]+'18',fill:false,tension:.4,pointRadius:3,borderWidth:2}));
-
-  chartScAcc=makeChart('chart-scenario-acc',{type:'line',data:{labels,datasets:accDatasets},options:CHART_DEFAULTS});
-  chartScUsdt=makeChart('chart-scenario-usdt',{type:'line',data:{labels,datasets:usdtDatasets},options:CHART_DEFAULTS});
+  const colors=['#3b82f6','#f59e0b','#10b981'];
+  makeChart('chart-sc-acc',{type:'line',data:{labels,datasets:scenarioData.map((sc,i)=>({label:sc.name,data:sc.rows.map(r=>r.acc),borderColor:colors[i],backgroundColor:colors[i]+'15',fill:false,tension:.4,pointRadius:4,borderWidth:2.5}))},options:d});
+  makeChart('chart-sc-usdt',{type:'line',data:{labels,datasets:scenarioData.map((sc,i)=>({label:sc.name,data:sc.rows.map(r=>+r.usdt.toFixed(2)),borderColor:colors[i],backgroundColor:colors[i]+'15',fill:false,tension:.4,pointRadius:4,borderWidth:2.5}))},options:d});
 
   document.getElementById('detail-tbody').innerHTML=s.rows.map(r=>{
-    const gClass=r.growthPct>0?'hi-orange growth-pos':r.growthPct===0?'growth-zero':'growth-neg';
-    const gStr=r.growthPct>0?'+'+fd(r.growthPct,1)+'%':r.growthPct===0?'—':fd(r.growthPct,1)+'%';
+    const gc=r.gr>0?'c-orange':r.gr<0?'c-red':'';
+    const gs=r.gr>0?'+'+fd(r.gr,1)+'%':r.gr===0?'—':fd(r.gr,1)+'%';
     return `<tr>
-      <td class="center"><span class="badge">${r.w}</span></td>
-      <td>${f(r.acc)}</td>
-      <td class="${gClass}">${gStr}</td>
-      <td>${f(r.earned)}</td>
-      <td>${f(r.avail)}</td>
-      <td class="hi-green">${fd(r.nxpcTot,0)}</td>
-      <td class="hi-amber center">${r.newChars>0?'<span class="badge new">+'+r.newChars+'</span>':'—'}</td>
-      <td class="hi-amber">${r.newAcc>0?'+'+f(r.newAcc):'—'}</td>
+      <td class="c-center"><span class="pill pill-week">${r.w}</span></td>
+      <td>${f(r.acc)}</td><td class="${gc}">${gs}</td>
+      <td>${f(r.earned)}</td><td>${f(r.avail)}</td>
+      <td class="c-green">${fd(r.nxpcTot,0)}</td>
+      <td class="c-center">${r.newChars>0?'<span class="pill pill-char">+'+r.newChars+'</span>':'—'}</td>
+      <td class="c-amber">${r.newAcc>0?'+'+f(r.newAcc):'—'}</td>
       <td>${f(r.rem)}</td>
     </tr>`;}).join('');
 }
 
+function redrawCharts(){
+  if(farmRows.length>0) drawFarmCharts();
+  if(scenarioData.length>0&&document.getElementById('detail-wrap').style.display!=='none') renderDetail();
+}
+
 document.querySelectorAll('#panel-farm input').forEach(el=>el.addEventListener('input',calcFarm));
 document.querySelectorAll('#panel-target input').forEach(el=>el.addEventListener('input',calcTarget));
-calcFarm(); calcTarget();
+calcFarm();calcTarget();
 </script>
 </body>
 </html>
