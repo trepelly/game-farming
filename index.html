@@ -378,7 +378,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 
         <!-- Bulk mode -->
         <div id="input-bulk" style="display:none">
-          <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">Mỗi dòng 1 địa chỉ (hoặc "tên,0x...")</div>
+          <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">Mỗi dòng 1 địa chỉ · Hỗ trợ: <code style="font-weight:400;color:var(--accent)">0x...</code> · <code style="font-weight:400;color:var(--accent)">tên, 0x...</code> · <code style="font-weight:400;color:var(--accent)">tên 0x...</code></div>
           <textarea id="wallet-bulk" placeholder="0x1234...abcd
 Ví sếp, 0x5678...efgh
 0xaaaa...1111" rows="5" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;line-height:1.6"></textarea>
@@ -783,11 +783,18 @@ function setInputMode(mode) {
 function parseBulkLines(raw) {
   return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
     let label = null, addr = line;
-    if (line.includes(',')) {
-      const idx = line.lastIndexOf(',');
-      addr  = line.slice(idx + 1).trim();
-      label = line.slice(0, idx).trim();
+
+    // Find 0x address anywhere in the line
+    const match = line.match(/0x[0-9a-fA-F]{40}/i);
+    if (match) {
+      addr = match[0];
+      // Everything before the address (strip trailing comma/space) is the label
+      const before = line.slice(0, match.index).replace(/[,\s]+$/, '').trim();
+      // Everything after the address (strip leading comma/space) could also be label
+      const after  = line.slice(match.index + 42).replace(/^[,\s]+/, '').trim();
+      label = before || after || null;
     }
+
     const valid = /^0x[0-9a-fA-F]{40}$/i.test(addr);
     return { addr, label, valid, raw: line };
   });
