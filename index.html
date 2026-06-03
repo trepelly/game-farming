@@ -1625,7 +1625,6 @@ function setWsSort(wsId, mode) {
 function initWalletTab() {
   renderGameTabs();
   renderWorkspace();
-  // Refresh balances for all workspaces
   workspaces.forEach(ws => {
     ws.wallets.forEach(w=>{ w.loading=true; w.error=null; });
     ws.wallets.forEach(w=>loadWalletInWs(ws.id,w.address));
@@ -1634,11 +1633,13 @@ function initWalletTab() {
 
 // Patch switchTab
 const _origSW2 = window.switchTab;
-let walletInited2 = false;
 window.switchTab = function(t) {
   _origSW2(t);
-  if(t==='wallet' && !walletInited2){ walletInited2=true; initWalletTab(); }
+  if(t==='wallet') { renderGameTabs(); renderWorkspace(); }
 };
+
+// Always init on load (in case wallet tab is default active)
+setTimeout(() => { renderGameTabs(); renderWorkspace(); }, 100);
 </script>
 
 </body>
