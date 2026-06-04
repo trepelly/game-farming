@@ -1080,8 +1080,8 @@ function renderWalletCard(w) {
   const short = a=>`${a.slice(0,6)}...${a.slice(-4)}`;
   const maplenUrl = `https://maplen.gg/assets?address=${w.address}`;
 
-  const nxpc   = liveNxpcUsd || +document.getElementById('f-nxpc').value||0.4;
-  const usdvnd = liveUsdVnd  || +document.getElementById('f-usdvnd').value||26500;
+  const nxpc   = liveNxpcUsd || 0;
+  const usdvnd = liveUsdVnd  || 0;
   const nesoUsdtPerNeso = liveNesoUsd || (nxpc/100000);
   const nesoUsdt = w.neso!=null ? w.neso * nesoUsdtPerNeso : null;
 
@@ -1145,7 +1145,7 @@ function updatePortfolio() {
   if(loaded.length<1){ sec.style.display='none'; return; }
   sec.style.display='block';
 
-  const usdvnd = liveUsdVnd || +document.getElementById('f-usdvnd').value||26500;
+  const usdvnd = liveUsdVnd || 0;
   const totalNxpc = loaded.reduce((s,w)=>s+w.nxpc,0);
   const totalNeso = loaded.reduce((s,w)=>s+w.neso,0);
   const totalUsdt = totalNeso/100000*0.4;
@@ -1356,8 +1356,8 @@ function renderTeam() {
   document.getElementById('team-loading').style.display    = 'none';
   document.getElementById('team-table-wrap').style.display = 'block';
 
-  const nxpcRate = liveNxpcUsd || +document.getElementById('f-nxpc').value   || 0.4;
-  const usdvnd   = liveUsdVnd  || +document.getElementById('f-usdvnd').value || 26500;
+  const nxpcRate = liveNxpcUsd || 0;
+  const usdvnd   = liveUsdVnd  || 0;
   const nesoRate = liveNesoUsd || (nxpcRate/100000);
   const fd2 = (n,d) => n==null?'—':n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const f   = n => n==null?'—':Math.round(n).toLocaleString('vi-VN');
@@ -1605,7 +1605,7 @@ const _patchTeamPrices = () => {
     orig();
     // After render, update USDT and VND cells using live price
     if (!liveNxpcUsd) return;
-    const usdvnd = liveUsdVnd || +document.getElementById('f-usdvnd')?.value || 26500;
+    const usdvnd = liveUsdVnd || 0;
     // Re-render team stats with live NXPC price
     const loaded = (window.teamWallets||[]).filter(w=>!w.loading&&!w.error&&w.neso!=null);
     if(!loaded.length) return;
