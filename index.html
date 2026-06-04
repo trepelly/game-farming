@@ -463,6 +463,17 @@ Ví sếp, 0x5678...efgh
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
+            <span style="font-size:10px;color:var(--muted2)">Tự động:</span>
+            <select id="auto-refresh-select" onchange="setAutoRefresh(+this.value)" style="background:transparent;border:none;color:var(--text);font-family:inherit;font-size:11px;font-weight:600;outline:none;cursor:pointer">
+              <option value="0">Tắt</option>
+              <option value="60">1 phút</option>
+              <option value="300" selected>5 phút</option>
+              <option value="600">10 phút</option>
+              <option value="1800">30 phút</option>
+            </select>
+            <span id="auto-refresh-countdown" style="font-size:10px;color:var(--accent);font-weight:600;min-width:32px"></span>
+          </div>
           <button onclick="lockTeam()" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🔒 Khoá</button>
         </div>
       </div>
@@ -1836,6 +1847,73 @@ if (_origLoadTeam) {
   window.loadTeamWallets = async function() {
     await _origLoadTeam();
     (window.teamWallets||[]).forEach(w => { if(w.neso!=null) trackWalletChange(w); });
+  };
+}
+</script>
+
+
+<script>
+// ── AUTO REFRESH MODULE ──
+let autoRefreshInterval = null;
+let autoRefreshSeconds  = 300; // default 5 min
+let countdownTimer      = null;
+let countdownLeft       = 0;
+
+function setAutoRefresh(seconds) {
+  autoRefreshSeconds = seconds;
+  // Clear existing
+  if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+  if (countdownTimer)      { clearInterval(countdownTimer);      countdownTimer = null; }
+  const el = document.getElementById('auto-refresh-countdown');
+  if (!seconds) { if(el) el.textContent = ''; return; }
+
+  // Start countdown
+  countdownLeft = seconds;
+  updateCountdown();
+  countdownTimer = setInterval(() => {
+    countdownLeft--;
+    updateCountdown();
+    if (countdownLeft <= 0) {
+      countdownLeft = autoRefreshSeconds;
+      if (typeof loadTeamWallets === 'function' && teamUser) {
+        loadTeamWallets();
+      }
+    }
+  }, 1000);
+}
+
+function updateCountdown() {
+  const el = document.getElementById('auto-refresh-countdown');
+  if (!el) return;
+  if (!autoRefreshSeconds) { el.textContent = ''; return; }
+  const m = Math.floor(countdownLeft / 60);
+  const s = countdownLeft % 60;
+  el.textContent = m > 0 ? `${m}:${String(s).padStart(2,'0')}` : `${s}s`;
+}
+
+// Start auto refresh when team tab unlocks
+const _origUnlockAR = window.unlockTeam;
+if (_origUnlockAR) {
+  window.unlockTeam = async function() {
+    await _origUnlockAR();
+    // Start auto refresh with default setting
+    const sel = document.getElementById('auto-refresh-select');
+    const val = sel ? +sel.value : 300;
+    setAutoRefresh(val);
+    // Also fetch live prices
+    if (typeof fetchLivePrices === 'function') fetchLivePrices();
+  };
+}
+
+// Stop auto refresh on lock
+const _origLockAR = window.lockTeam;
+if (_origLockAR) {
+  window.lockTeam = function() {
+    _origLockAR();
+    if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+    if (countdownTimer)      { clearInterval(countdownTimer);      countdownTimer = null; }
+    const el = document.getElementById('auto-refresh-countdown');
+    if (el) el.textContent = '';
   };
 }
 </script>
