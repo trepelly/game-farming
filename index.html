@@ -1080,9 +1080,10 @@ function renderWalletCard(w) {
   const short = a=>`${a.slice(0,6)}...${a.slice(-4)}`;
   const maplenUrl = `https://maplen.gg/assets?address=${w.address}`;
 
-  const nxpc   = +document.getElementById('f-nxpc').value||0.4;
-  const usdvnd = +document.getElementById('f-usdvnd').value||26500;
-  const nesoUsdt = w.neso!=null ? w.neso/100000*nxpc : null;
+  const nxpc   = liveNxpcUsd || +document.getElementById('f-nxpc').value||0.4;
+  const usdvnd = liveUsdVnd  || +document.getElementById('f-usdvnd').value||26500;
+  const nesoUsdtPerNeso = liveNesoUsd || (nxpc/100000);
+  const nesoUsdt = w.neso!=null ? w.neso * nesoUsdtPerNeso : null;
 
   el.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)">
@@ -1125,7 +1126,7 @@ function renderWalletCard(w) {
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ USDT</div>
             <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--blue)">${fd2(nesoUsdt)}</div>
-            <div style="font-size:9px;color:var(--muted2);margin-top:3px">NESO÷100k×0.4</div>
+            <div style="font-size:9px;color:var(--muted2);margin-top:3px">${liveNesoUsd?"Giá TT":"NESO÷100k×0.4"}</div>
           </div>
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ VND</div>
@@ -1144,7 +1145,7 @@ function updatePortfolio() {
   if(loaded.length<1){ sec.style.display='none'; return; }
   sec.style.display='block';
 
-  const usdvnd = +document.getElementById('f-usdvnd').value||26500;
+  const usdvnd = liveUsdVnd || +document.getElementById('f-usdvnd').value||26500;
   const totalNxpc = loaded.reduce((s,w)=>s+w.nxpc,0);
   const totalNeso = loaded.reduce((s,w)=>s+w.neso,0);
   const totalUsdt = totalNeso/100000*0.4;
@@ -1355,8 +1356,9 @@ function renderTeam() {
   document.getElementById('team-loading').style.display    = 'none';
   document.getElementById('team-table-wrap').style.display = 'block';
 
-  const nxpcRate = +document.getElementById('f-nxpc').value   || 0.4;
-  const usdvnd   = +document.getElementById('f-usdvnd').value || 26500;
+  const nxpcRate = liveNxpcUsd || +document.getElementById('f-nxpc').value   || 0.4;
+  const usdvnd   = liveUsdVnd  || +document.getElementById('f-usdvnd').value || 26500;
+  const nesoRate = liveNesoUsd || (nxpcRate/100000);
   const fd2 = (n,d) => n==null?'—':n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const f   = n => n==null?'—':Math.round(n).toLocaleString('vi-VN');
 
@@ -1382,7 +1384,7 @@ function renderTeam() {
 
   // Sort
   const nesoVal = w => w.neso ?? -1;
-  const vndVal  = w => w.neso != null ? w.neso/100000*nxpcRate*usdvnd : -1;
+  const vndVal  = w => w.neso != null ? w.neso*nesoRate*usdvnd : -1;
   if (teamSortMode === 'neso-desc') displayWallets.sort((a,b) => nesoVal(b)-nesoVal(a));
   else if (teamSortMode === 'neso-asc')  displayWallets.sort((a,b) => nesoVal(a)-nesoVal(b));
   else if (teamSortMode === 'vnd-desc')  displayWallets.sort((a,b) => vndVal(b)-vndVal(a));
@@ -1398,7 +1400,7 @@ function renderTeam() {
   let totNxpc=0, totNeso=0;
 
   document.getElementById('team-tbody').innerHTML = displayWallets.map((w,i) => {
-    const usdt = w.neso!=null ? w.neso/100000*nxpcRate : null;
+    const usdt = w.neso!=null ? w.neso*nesoRate : null;
     const vnd  = usdt!=null   ? usdt*usdvnd            : null;
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
@@ -1418,7 +1420,7 @@ function renderTeam() {
     </tr>`;
   }).join('');
 
-  const totUsdt = totNeso/100000*nxpcRate;
+  const totUsdt = totNeso*nesoRate;
   const totVnd  = totUsdt*usdvnd;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface)">
     <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${teamWallets.length} ví)</td>
