@@ -530,6 +530,13 @@ Ví sếp, 0x5678...efgh
           <button id="sort-btn-vnd-desc" onclick="setTeamSort('vnd-desc')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap">VND ↓</button>
         </div>
       </div>
+      <!-- Alphabet filter -->
+      <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px;align-items:center">
+        <button onclick="setAlpha('all')" id="alpha-all" class="alpha-btn alpha-active">Tất cả</button>
+        <button onclick="setAlpha('#')" id="alpha-hash" class="alpha-btn">#</button>
+        <button onclick="setAlpha('A')" id="alpha-A" class="alpha-btn">A</button><button onclick="setAlpha('B')" id="alpha-B" class="alpha-btn">B</button><button onclick="setAlpha('C')" id="alpha-C" class="alpha-btn">C</button><button onclick="setAlpha('D')" id="alpha-D" class="alpha-btn">D</button><button onclick="setAlpha('E')" id="alpha-E" class="alpha-btn">E</button><button onclick="setAlpha('F')" id="alpha-F" class="alpha-btn">F</button><button onclick="setAlpha('G')" id="alpha-G" class="alpha-btn">G</button><button onclick="setAlpha('H')" id="alpha-H" class="alpha-btn">H</button><button onclick="setAlpha('I')" id="alpha-I" class="alpha-btn">I</button><button onclick="setAlpha('J')" id="alpha-J" class="alpha-btn">J</button><button onclick="setAlpha('K')" id="alpha-K" class="alpha-btn">K</button><button onclick="setAlpha('L')" id="alpha-L" class="alpha-btn">L</button><button onclick="setAlpha('M')" id="alpha-M" class="alpha-btn">M</button><button onclick="setAlpha('N')" id="alpha-N" class="alpha-btn">N</button><button onclick="setAlpha('O')" id="alpha-O" class="alpha-btn">O</button><button onclick="setAlpha('P')" id="alpha-P" class="alpha-btn">P</button><button onclick="setAlpha('Q')" id="alpha-Q" class="alpha-btn">Q</button><button onclick="setAlpha('R')" id="alpha-R" class="alpha-btn">R</button><button onclick="setAlpha('S')" id="alpha-S" class="alpha-btn">S</button><button onclick="setAlpha('T')" id="alpha-T" class="alpha-btn">T</button><button onclick="setAlpha('U')" id="alpha-U" class="alpha-btn">U</button><button onclick="setAlpha('V')" id="alpha-V" class="alpha-btn">V</button><button onclick="setAlpha('W')" id="alpha-W" class="alpha-btn">W</button><button onclick="setAlpha('X')" id="alpha-X" class="alpha-btn">X</button><button onclick="setAlpha('Y')" id="alpha-Y" class="alpha-btn">Y</button><button onclick="setAlpha('Z')" id="alpha-Z" class="alpha-btn">Z</button>
+      </div>
+
       <div id="team-loading" style="text-align:center;padding:40px;color:var(--muted2);font-size:13px;display:none">
         <span style="display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:10px"></span>
         Đang tải dữ liệu...
@@ -1302,6 +1309,16 @@ async function loadTeamWallets() {
 }
 
 let teamSortMode = 'default';
+let teamAlpha = 'all';
+
+function setAlpha(letter) {
+  teamAlpha = letter;
+  document.querySelectorAll('.alpha-btn').forEach(b => b.classList.remove('alpha-active'));
+  const id = letter==='all' ? 'alpha-all' : letter==='#' ? 'alpha-hash' : 'alpha-'+letter;
+  const el = document.getElementById(id);
+  if(el) el.classList.add('alpha-active');
+  renderTeam();
+}
 
 function setTeamSort(mode) {
   teamSortMode = mode;
@@ -1333,6 +1350,14 @@ function renderTeam() {
       (w.label||'').toLowerCase().includes(query) ||
       w.address.toLowerCase().includes(query)
     );
+  }
+  // Filter by alphabet
+  if (teamAlpha !== 'all') {
+    displayWallets = displayWallets.filter(w => {
+      const first = (w.label||w.address).trim()[0]?.toUpperCase();
+      if (teamAlpha === '#') return first && !/[A-Z]/.test(first);
+      return first === teamAlpha;
+    });
   }
 
   // Sort
