@@ -508,6 +508,22 @@ Ví sếp, 0x5678...efgh
       </div>
 
       <!-- Team portfolio summary -->
+      <!-- Live price ticker -->
+      <div id="price-ticker" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center">
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:var(--muted2);font-weight:600">NXPC</span>
+          <span id="price-nxpc" style="font-size:14px;font-weight:700;color:var(--amber)">—</span>
+          <span id="change-nxpc" style="font-size:10px;font-weight:600"></span>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:var(--muted2);font-weight:600">NESO</span>
+          <span id="price-neso" style="font-size:14px;font-weight:700;color:var(--green)">—</span>
+          <span id="change-neso" style="font-size:10px;font-weight:600"></span>
+        </div>
+        <div style="font-size:10px;color:var(--muted2);margin-left:4px" id="price-updated"></div>
+        <button onclick="fetchLivePrices(true)" style="background:var(--subtle);border:1px solid var(--border2);border-radius:7px;padding:5px 10px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⟳</button>
+      </div>
+
       <div class="stat-row" id="team-stats"></div>
 
       <!-- Team wallet table -->
@@ -1510,6 +1526,138 @@ async function refreshTeam() { loadTeamWallets(); }
 // Patch switchTab
 const _origSwitchTeam = window.switchTab;
 window.switchTab = function(t) { _origSwitchTeam(t); };
+</script>
+
+
+<script>
+// ── LIVE PRICE MODULE ──
+let liveNxpcUsd = null;
+let liveNesoUsd = null;
+
+async function fetchLivePrices(force=false) {
+  // Cache 60s
+  const cached = JSON.parse(sessionStorage.getItem('live_prices') || 'null');
+  if (!force && cached && Date.now() - cached.ts < 60000) {
+    liveNxpcUsd = cached.nxpc;
+    liveNesoUsd = cached.neso;
+    renderPriceTicker(cached);
+    return;
+  }
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=nexpace,maplestory-universe-neso&vs_currencies=usd&include_24hr_change=true');
+    const d = await r.json();
+    const nxpc = d['nexpace']?.usd || null;
+    const nxpcChg = d['nexpace']?.usd_24h_change || 0;
+    const neso = d['maplestory-universe-neso']?.usd || null;
+    const nesoChg = d['maplestory-universe-neso']?.usd_24h_change || 0;
+    const data = { nxpc, nxpcChg, neso, nesoChg, ts: Date.now() };
+    sessionStorage.setItem('live_prices', JSON.stringify(data));
+    liveNxpcUsd = nxpc;
+    liveNesoUsd = neso;
+    renderPriceTicker(data);
+    // Re-render team stats with live prices
+    if (typeof renderTeam === 'function' && document.getElementById('team-tbody')) renderTeam();
+  } catch(e) {
+    const el = document.getElementById('price-updated');
+    if(el) el.textContent = 'Không tải được giá';
+  }
+}
+
+function renderPriceTicker(data) {
+  const fmtChg = (v) => {
+    if(!v) return '';
+    const pos = v >= 0;
+    return `<span style="color:${pos?'var(--green)':'var(--red)'}">${pos?'+':''}${v.toFixed(2)}%</span>`;
+  };
+  const nxpcEl = document.getElementById('price-nxpc');
+  const nesoEl = document.getElementById('price-neso');
+  const upEl   = document.getElementById('price-updated');
+  const chgNxpc = document.getElementById('change-nxpc');
+  const chgNeso = document.getElementById('change-neso');
+  if(nxpcEl) nxpcEl.textContent = data.nxpc ? '$'+data.nxpc.toFixed(4) : '—';
+  if(nesoEl) nesoEl.textContent = data.neso ? '$'+data.neso.toFixed(6) : '—';
+  if(chgNxpc) chgNxpc.innerHTML = fmtChg(data.nxpcChg);
+  if(chgNeso) chgNeso.innerHTML = fmtChg(data.nesoChg);
+  if(upEl) upEl.textContent = 'Cập nhật: ' + new Date(data.ts).toLocaleTimeString('vi-VN');
+}
+
+// ── Patch renderTeam to use live prices ──
+const _origRenderTeam = typeof renderTeam !== 'undefined' ? renderTeam : null;
+
+// Override updatePortfolio-style rendering in team to use live price
+// Patch is applied when team tab is active - we hook into the existing renderTeam
+const _patchTeamPrices = () => {
+  const orig = window.renderTeam;
+  if (!orig) return;
+  window.renderTeam = function() {
+    // Temporarily override nxpcRate/usdvnd inputs if live prices available
+    orig();
+    // After render, update USDT and VND cells using live price
+    if (!liveNxpcUsd) return;
+    const usdvnd = +document.getElementById('f-usdvnd')?.value || 26500;
+    // Re-render team stats with live NXPC price
+    const loaded = (window.teamWallets||[]).filter(w=>!w.loading&&!w.error&&w.neso!=null);
+    if(!loaded.length) return;
+    const totNxpc = loaded.reduce((s,w)=>s+(w.nxpc||0),0);
+    const totNeso = loaded.reduce((s,w)=>s+(w.neso||0),0);
+    const totUsdtLive = (totNxpc * liveNxpcUsd) + (liveNesoUsd ? totNeso * liveNesoUsd * 100000 : 0);
+    const fd2 = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
+    const f   = n => Math.round(n).toLocaleString('vi-VN');
+    // Append live price cards to stats
+    const statsEl = document.getElementById('team-stats');
+    if(statsEl && liveNxpcUsd) {
+      // Add live USDT stat card after existing ones
+      const existingLive = document.getElementById('team-stat-live');
+      if(existingLive) existingLive.remove();
+      const div = document.createElement('div');
+      div.id = 'team-stat-live';
+      div.className = 'stat';
+      div.innerHTML = `<div class="stat-accent" style="background:#f7931a"></div>
+        <span class="stat-icon">📈</span>
+        <div class="stat-label">NXPC × Giá thị trường</div>
+        <div class="stat-val" style="color:#f7931a;font-size:16px">$${fd2(totNxpc*liveNxpcUsd,2)}</div>
+        <div class="stat-sub" style="color:var(--muted2)">≈ ${f(totNxpc*liveNxpcUsd*usdvnd)} VND</div>
+        <div class="stat-sub" style="color:var(--muted2);font-size:9px">@$${liveNxpcUsd.toFixed(4)}/NXPC</div>`;
+      statsEl.appendChild(div);
+
+      if(liveNesoUsd) {
+        const div2 = document.createElement('div');
+        div2.className = 'stat';
+        div2.innerHTML = `<div class="stat-accent" style="background:#10b981"></div>
+          <span class="stat-icon">🪙</span>
+          <div class="stat-label">NESO × Giá thị trường</div>
+          <div class="stat-val" style="color:var(--green);font-size:16px">$${fd2(totNeso*liveNesoUsd,2)}</div>
+          <div class="stat-sub" style="color:var(--muted2)">≈ ${f(totNeso*liveNesoUsd*usdvnd)} VND</div>
+          <div class="stat-sub" style="color:var(--muted2);font-size:9px">@$${liveNesoUsd.toFixed(8)}/NESO</div>`;
+        statsEl.appendChild(div2);
+      }
+    }
+  };
+};
+setTimeout(_patchTeamPrices, 300);
+
+// Auto fetch every 60s when team tab is visible
+setInterval(() => {
+  if(document.getElementById('panel-team')?.classList.contains('active')) fetchLivePrices();
+}, 60000);
+
+// Fetch on team unlock
+const _origUnlock = window.unlockTeam;
+if(_origUnlock) {
+  window.unlockTeam = async function() {
+    await _origUnlock();
+    fetchLivePrices();
+  };
+} else {
+  // Fallback: fetch when team content becomes visible
+  const obs = new MutationObserver(() => {
+    if(document.getElementById('team-content')?.style.display !== 'none') {
+      fetchLivePrices();
+      obs.disconnect();
+    }
+  });
+  obs.observe(document.body, {childList:true, subtree:true, attributes:true});
+}
 </script>
 
 </body>
