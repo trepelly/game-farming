@@ -516,9 +516,8 @@ Ví sếp, 0x5678...efgh
           <span id="change-nxpc" style="font-size:10px;font-weight:600"></span>
         </div>
         <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;color:var(--muted2);font-weight:600">NESO</span>
+          <span style="font-size:11px;color:var(--muted2);font-weight:600">NXPC/NESO</span>
           <span id="price-neso" style="font-size:14px;font-weight:700;color:var(--green)">—</span>
-          <span id="change-neso" style="font-size:10px;font-weight:600"></span>
         </div>
         <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px">
           <span style="font-size:11px;color:var(--muted2);font-weight:600">USDT/VND</span>
@@ -1614,10 +1613,11 @@ function renderPriceTicker(data) {
   const chgNxpc  = document.getElementById('change-nxpc');
   const chgNeso  = document.getElementById('change-neso');
   if(nxpcEl)   nxpcEl.textContent   = data.nxpc   ? '$'+data.nxpc.toFixed(4)   : '—';
-  if(nesoEl)   nesoEl.textContent   = data.neso   ? '$'+data.neso.toFixed(6)   : '—';
+  // Show NXPC/NESO rate = 1 NXPC = 100,000 NESO (protocol fixed rate)
+  if(nesoEl)   nesoEl.textContent   = '1 NXPC = 100,000 NESO';
   if(usdvndEl) usdvndEl.textContent = data.usdvnd ? Math.round(data.usdvnd).toLocaleString('vi-VN') : '—';
   if(chgNxpc)  chgNxpc.innerHTML    = fmtChg(data.nxpcChg);
-  if(chgNeso)  chgNeso.innerHTML    = fmtChg(data.nesoChg);
+
   if(upEl)     upEl.textContent     = 'Cập nhật: ' + new Date(data.ts).toLocaleTimeString('vi-VN');
 }
 
