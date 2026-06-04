@@ -1,36 +1,31 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>API CORS Test</title>
-<style>
-body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px;line-height:1.6}
-pre{background:#1c1c32;padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;white-space:pre-wrap;word-break:break-all}
-h2{color:#a78bfa}.ok{color:#34d399}.err{color:#f87171}.info{color:#60a5fa}
+<head><meta charset="UTF-8"><title>API Test v3</title>
+<style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px;line-height:1.6}
+pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
+.ok{color:#34d399}.err{color:#f87171}.info{color:#60a5fa}
+h2{color:#a78bfa}
 </style></head>
 <body>
-<h2>🔬 API CORS Test v2</h2>
-<p style="color:#6b6b8a">Testing character APIs from browser...</p>
+<h2>🔬 API Test v3 — msuhub + MSU</h2>
 <pre id="out">Running...
 </pre>
 <script>
-const addr  = "0x3B4c2193bdd9bEE1aEbDF974a10cd4add33889D5";
-const addr2 = "0x479a5734c905f2ab78bea832de149ee3075180ae";
+const addr = "0x3B4c2193bdd9bEE1aEbDF974a10cd4add33889D5";
 const out = document.getElementById('out');
-const log = (msg, cls='') => { out.innerHTML += (cls ? `<span class="${cls}">${msg}</span>` : msg) + '
+const log = (msg, cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'
 '; };
 
 const tests = [
-  // xangle MSU explorer API
-  ["xangle /accounts NFTs", `https://msu-explorer.xangle.io/api/v1/accounts/${addr2}/nfts`, "GET", null],
-  ["xangle /accounts portfolio", `https://msu-explorer.xangle.io/api/v1/accounts/${addr2}/portfolio`, "GET", null],
-  ["xangle /nfts by owner", `https://msu-explorer.xangle.io/api/v1/nfts?owner=${addr2}`, "GET", null],
-  // Try with different path patterns
-  ["xangle v2 accounts", `https://msu-explorer.xangle.io/api/v2/accounts/${addr2}/nfts`, "GET", null],
-  // maplen with explicit CORS header
-  ["maplen assets (no-cors)", `https://maplen.gg/api/trpc/wallet.getAssets?input=${encodeURIComponent(JSON.stringify({json:{address:addr}}))}`, "GET", null],
-  // gamedatahub direct
-  ["gamedatahub v1", `https://gamedatahub.msu.io/openapi/v1/character?ownerAddress=${addr}&limit=5`, "GET", null],
-  // Henesys RPC - already works, get block to confirm
-  ["Henesys RPC blockNumber", "https://henesys-rpc.msu.io", "POST", JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_blockNumber",params:[]})],
+  ["msuhub /characters (no auth)",        `https://msuhub.com/api/characters?walletAddress=${addr}`, "GET", null],
+  ["msuhub /api/v1/characters",           `https://msuhub.com/api/v1/characters?walletAddress=${addr}`, "GET", null],
+  ["msuhub /api/nft/characters",          `https://msuhub.com/api/nft/characters?address=${addr}`, "GET", null],
+  ["msuhub graphql",                      `https://msuhub.com/graphql`, "POST", JSON.stringify({query:`{characters(walletAddress:"${addr}"){name level}}`})],
+  ["gamedatahub openapi v1",              `https://gamedatahub.msu.io/openapi/v1/character?ownerAddress=${addr}&limit=5`, "GET", null],
+  ["gamedatahub openapi v2",              `https://gamedatahub.msu.io/openapi/v2/character?ownerAddress=${addr}`, "GET", null],
+  ["MSU api v1 character",                `https://api.msu.io/openapi/v1/character?ownerAddress=${addr}`, "GET", null],
+  ["MSU api v2 character",                `https://api.msu.io/v2/character?walletAddress=${addr}`, "GET", null],
+  ["Henesys RPC (control test)",          `https://henesys-rpc.msu.io`, "POST", JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_blockNumber",params:[]})],
 ];
 
 async function run() {
@@ -38,12 +33,12 @@ async function run() {
     log(`
 🔍 ${name}`);
     try {
-      const opts = { method, headers: { "Content-Type": "application/json", "Accept": "application/json" } };
-      if (body) opts.body = body;
+      const opts = {method, headers:{"Content-Type":"application/json","Accept":"application/json"}};
+      if(body) opts.body = body;
       const r = await fetch(url, opts);
       const text = await r.text();
-      log(`   HTTP ${r.status} | CORS: ${r.headers.get('access-control-allow-origin') || '(none)'}`, r.ok ? 'ok' : 'err');
-      log(`   ${text.slice(0, 300)}`);
+      log(`   HTTP ${r.status} | CORS: ${r.headers.get('access-control-allow-origin')||'(none)'}`, r.ok?'ok':'err');
+      log(`   ${text.slice(0,300)}`);
     } catch(e) {
       log(`   ✗ ${e.message}`, 'err');
     }
