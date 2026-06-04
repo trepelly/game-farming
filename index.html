@@ -1547,28 +1547,57 @@ async function fetchLivePrices(force=false) {
   if (!force && cached && Date.now() - cached.ts < 60000) {
     liveNxpcUsd = cached.nxpc;
     liveNesoUsd = cached.neso;
+    liveUsdVnd  = cached.usdvnd;
     renderPriceTicker(cached);
     return;
   }
+
+  const upEl = document.getElementById('price-updated');
+  if(upEl) upEl.textContent = 'Đang tải...';
+
   try {
-    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=nexpace,maplestory-universe-neso,tether&vs_currencies=usd,vnd&include_24hr_change=true');
-    const d = await r.json();
-    const nxpc = d['nexpace']?.usd || null;
-    const nxpcChg = d['nexpace']?.usd_24h_change || 0;
-    const neso = d['maplestory-universe-neso']?.usd || null;
-    const nesoChg = d['maplestory-universe-neso']?.usd_24h_change || 0;
-    const usdvnd = d['tether']?.vnd || null;
+    // Binance API - no CORS issues, public
+    // NXPC/USDT ticker
+    const [nxpcRes, usdvndRes] = await Promise.all([
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=NXPCUSDT'),
+      fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTVND').catch(()=>null),
+    ]);
+
+    let nxpc = null, nxpcChg = 0, usdvnd = null;
+
+    if(nxpcRes.ok) {
+      const d = await nxpcRes.json();
+      nxpc    = parseFloat(d.lastPrice) || null;
+      nxpcChg = parseFloat(d.priceChangePercent) || 0;
+    }
+
+    // USDT/VND — try Binance, fallback to fixed rate
+    if(usdvndRes?.ok) {
+      const d = await usdvndRes.json();
+      usdvnd = parseFloat(d.price) || null;
+    }
+    // Binance doesn't have USDTVND — use a reliable fallback API
+    if(!usdvnd) {
+      try {
+        const r2 = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        if(r2.ok) { const d2 = await r2.json(); usdvnd = d2.rates?.VND || null; }
+      } catch {}
+    }
+
+    // NESO: 100,000 NESO = 1 NXPC (fixed protocol rate)
+    // So NESO price in USD = nxpc / 100000
+    const neso    = nxpc ? nxpc / 100000 : null;
+    const nesoChg = nxpcChg; // NESO tracks NXPC
+
     const data = { nxpc, nxpcChg, neso, nesoChg, usdvnd, ts: Date.now() };
     sessionStorage.setItem('live_prices', JSON.stringify(data));
     liveNxpcUsd = nxpc;
     liveNesoUsd = neso;
     liveUsdVnd  = usdvnd;
     renderPriceTicker(data);
-    // Re-render team stats with live prices
     if (typeof renderTeam === 'function' && document.getElementById('team-tbody')) renderTeam();
   } catch(e) {
-    const el = document.getElementById('price-updated');
-    if(el) el.textContent = 'Không tải được giá';
+    if(upEl) upEl.textContent = 'Lỗi: ' + e.message;
   }
 }
 
