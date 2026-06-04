@@ -180,7 +180,7 @@ h1 em{font-style:normal;color:var(--accent)}
 .table-wrap{overflow-x:auto;border:1px solid var(--border2);border-radius:14px;box-shadow:var(--shadow);margin-bottom:32px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead tr{background:var(--surface)}
-th{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:13px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2)}
+th{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:13px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2);position:sticky;top:0;background:var(--surface);z-index:2}
 th:first-child{text-align:left}
 tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
 tbody tr:last-child{border-bottom:none}
@@ -534,7 +534,7 @@ Ví sếp, 0x5678...efgh
         <span style="display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:10px"></span>
         Đang tải dữ liệu...
       </div>
-      <div class="table-wrap" id="team-table-wrap" style="display:none">
+      <div class="table-wrap" id="team-table-wrap" style="display:none;max-height:480px;overflow-y:auto">
         <table>
           <thead><tr>
             <th style="text-align:center">#</th>
