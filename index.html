@@ -1428,8 +1428,6 @@ function renderTeam() {
       <td class="c-green">${f(w.neso)}</td>
       <td class="c-blue">${fd2(usdt,2)}</td>
       <td class="c-amber">${f(vnd)}</td>
-      <td style="text-align:right">${renderChange(w.address,'24h')}</td>
-      <td style="text-align:right">${renderChange(w.address,'7d')}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>`;
   }).join('');
@@ -1437,7 +1435,7 @@ function renderTeam() {
   const totUsdt = totNeso*nesoRate;
   const totVnd  = totUsdt*usdvnd;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface)">
-    <td colspan="5" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${teamWallets.length} ví)</td>
+    <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${teamWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdt,2)}</td>
