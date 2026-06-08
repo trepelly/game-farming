@@ -417,8 +417,8 @@ Ví sếp, 0x5678...efgh
     <!-- Info box -->
     <div style="background:var(--blue-bg);border:1px solid var(--blue)25;border-radius:12px;padding:14px 18px;font-size:11px;color:var(--muted2);line-height:1.7">
       <b style="color:var(--blue)">ℹ️ Thông tin kỹ thuật</b><br/>
-      Chain: <b style="color:var(--text)">Henesys L1</b> · Chain ID: <b style="color:var(--text)">68414</b> · RPC: <b style="color:var(--text)">henesys-rpc.msu.io</b><br/>
-      NESO contract: <code style="color:var(--green);font-size:10px">0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08</code><br/>
+      Henesys: NXPC (gas) · NESO <code style="color:var(--green);font-size:10px">0x07E49...7c08</code><br/>
+      Avalanche: AVAX (gas) · NXPC <code style="color:var(--amber);font-size:10px">0x5E0E...fb59</code><br/>
       Dữ liệu đọc trực tiếp từ blockchain · Không lưu khóa riêng tư · Chỉ đọc (read-only)
     </div>
   </div>
@@ -853,6 +853,8 @@ const HENESYS_RPC    = 'https://henesys-rpc.msu.io';
 const HENESYS_CHAIN  = '0x10b3e'; // 68414
 const NESO_CONTRACT  = '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08';
 const NESO_DECIMALS  = 18;
+const AVAX_RPC       = 'https://api.avax.network/ext/bc/C/rpc';
+const NXPC_AVAX_CONTRACT = '0x5E0E90E268BC247Cc850c789A0DB0d5c7621fb59';
 
 let wallets = JSON.parse(localStorage.getItem('wl_wallets')||'[]');
 let portfolioChart = null;
@@ -877,17 +879,42 @@ function hexToDec(hex, decimals=18) {
   return Number(whole) + Number(rem) / (10**decimals);
 }
 
+async function rpcCallUrl(rpc, method, params=[]) {
+  const r = await fetch(rpc, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
+  });
+  const d = await r.json();
+  if(d.error) throw new Error(d.error.message);
+  return d.result;
+}
+
 async function fetchBalances(address) {
-  // NXPC native balance
-  const nxpcHex = await rpcCall('eth_getBalance',[address,'latest']);
-  const nxpcBal = hexToDec(nxpcHex, 18);
+  const calldata = '0x70a08231'+'000000000000000000000000'+address.slice(2).toLowerCase();
 
-  // NESO ERC20 balance via balanceOf(address)
-  const data = '0x70a08231'+'000000000000000000000000'+address.slice(2).toLowerCase();
-  const nesoHex = await rpcCall('eth_call',[{to:NESO_CONTRACT,data},'latest']);
-  const nesoBal = hexToDec(nesoHex, 18);
+  // Henesys: NXPC native + NESO ERC20
+  const [nxpcHex, nesoHex] = await Promise.all([
+    rpcCall('eth_getBalance',[address,'latest']),
+    rpcCall('eth_call',[{to:NESO_CONTRACT,data:calldata},'latest'])
+  ]);
 
-  return {nxpc: nxpcBal, neso: nesoBal};
+  // Avalanche: AVAX native + NXPC ERC20 (optional, don't fail if timeout)
+  let avaxBal = null, nxpcAvaxBal = null;
+  try {
+    const [avaxHex, nxpcAvaxHex] = await Promise.all([
+      rpcCallUrl(AVAX_RPC,'eth_getBalance',[address,'latest']),
+      rpcCallUrl(AVAX_RPC,'eth_call',[{to:NXPC_AVAX_CONTRACT,data:calldata},'latest'])
+    ]);
+    avaxBal     = hexToDec(avaxHex, 18);
+    nxpcAvaxBal = hexToDec(nxpcAvaxHex, 18);
+  } catch(e) { console.warn('AVAX fetch error:', e.message); }
+
+  return {
+    nxpc: hexToDec(nxpcHex, 18),
+    neso: hexToDec(nesoHex, 18),
+    avax: avaxBal,
+    nxpc_avax: nxpcAvaxBal
+  };
 }
 
 // ── MetaMask ──
@@ -1127,13 +1154,23 @@ function renderWalletCard(w) {
       ` : `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
-            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">NXPC <span style="font-size:8px">(gas token)</span></div>
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">⛽ NXPC</div>
             <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--amber)">${fd2(w.nxpc)}</div>
           </div>
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
-            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">NESO</div>
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">🪙 NESO</div>
             <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--green)">${fd4(w.neso)}</div>
           </div>
+          ${w.avax!=null?`
+          <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">🔺 AVAX</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:#e84142">${fd2(w.avax)}</div>
+          </div>`:''}
+          ${w.nxpc_avax!=null?`
+          <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">⚡ NXPC (AVAX)</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:#f59e0b">${fd2(w.nxpc_avax)}</div>
+          </div>`:''}
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ USDT</div>
             <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--blue)">${fd2(nesoUsdt)}</div>
