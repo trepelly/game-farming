@@ -581,9 +581,9 @@ Ví sếp, 0x5678...efgh
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('usdt')">USDT <span id="sort-icon-usdt" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('vnd')">VND <span id="sort-icon-vnd" style="opacity:.3">↕</span></th>
-            <th style="color:#e84142;cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
-            <th style="color:#e84142;cursor:pointer;user-select:none" onclick="colSort('usdt_avax')">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
-            <th style="color:#e84142;cursor:pointer;user-select:none" onclick="colSort('vnd_avax')">VND(AVAX) <span id="sort-icon-vnd_avax" style="opacity:.3">↕</span></th>
+            <th style="opacity:.7;cursor:pointer;user-select:none;border-left:1px solid var(--border2)" onclick="colSort('nxpc_avax')">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
+            <th style="opacity:.7;cursor:pointer;user-select:none" onclick="colSort('usdt_avax')">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
+            <th style="opacity:.7;cursor:pointer;user-select:none" onclick="colSort('vnd_avax')">VND(AVAX) <span id="sort-icon-vnd_avax" style="opacity:.3">↕</span></th>
             <th></th>
           </tr></thead>
           <tbody id="team-tbody"></tbody>
@@ -1522,13 +1522,13 @@ function renderTeam() {
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
         <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
       </td>
-      <td class="c-amber">${fd2(w.nxpc,4)}</td>
-      <td class="c-green">${f(w.neso)}</td>
-      <td class="c-blue">${fd2(usdt,2)}</td>
-      <td class="c-amber">${f(vnd)}</td>
-      <td style="text-align:right;color:#e84142;font-weight:500">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
-      <td style="text-align:right;color:#e84142">${w.nxpc_avax!=null?fd2(w.nxpc_avax*liveNxpcUsd,2):'—'}</td>
-      <td style="text-align:right;color:#e84142">${w.nxpc_avax!=null?f(w.nxpc_avax*liveNxpcUsd*(liveUsdVnd||0)):'—'}</td>
+      <td style="text-align:right">${fd2(w.nxpc,4)}</td>
+      <td style="text-align:right">${f(w.neso)}</td>
+      <td style="text-align:right">${fd2(usdt,2)}</td>
+      <td style="text-align:right">${f(vnd)}</td>
+      <td style="text-align:right;opacity:.7">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
+      <td style="text-align:right;opacity:.7">${w.nxpc_avax!=null?fd2(w.nxpc_avax*liveNxpcUsd,2):'—'}</td>
+      <td style="text-align:right;opacity:.7">${w.nxpc_avax!=null?f(w.nxpc_avax*liveNxpcUsd*(liveUsdVnd||0)):'—'}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>`;
   }).join('');
@@ -1540,13 +1540,13 @@ function renderTeam() {
   const totVndAvax     = totUsdtAvax * (liveUsdVnd||0);
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--amber)">${fd2(totNxpc,4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdt,2)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totVnd)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(totNxpcAvax,4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(totUsdtAvax,2)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#e84142">${f(totVndAvax)}</td>
+    <td style="text-align:right;padding:10px 14px">${fd2(totNxpc,4)}</td>
+    <td style="text-align:right;padding:10px 14px">${f(totNeso)}</td>
+    <td style="text-align:right;padding:10px 14px">${fd2(totUsdt,2)}</td>
+    <td style="text-align:right;padding:10px 14px">${f(totVnd)}</td>
+    <td style="text-align:right;padding:10px 14px;opacity:.7">${fd2(totNxpcAvax,4)}</td>
+    <td style="text-align:right;padding:10px 14px;opacity:.7">${fd2(totUsdtAvax,2)}</td>
+    <td style="text-align:right;padding:10px 14px;opacity:.7">${f(totVndAvax)}</td>
     <td></td>
   </tr>`;
 
