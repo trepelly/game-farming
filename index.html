@@ -1475,11 +1475,12 @@ function renderTeam() {
 
   const totUsdt = totNeso*nesoRate;
   const totVnd  = totUsdt*usdvnd;
+  const totNxpcAvax = displayWallets.filter(w=>w.nxpc_avax!=null).reduce((s,w)=>s+(w.nxpc_avax||0),0);
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface)">
-    <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${teamWallets.length} ví)</td>
-    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(loaded.reduce((s,w)=>s+(w.nxpc_avax||0),0),4)}</td>
+    <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}</td>
+    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(totNxpcAvax,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdt,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totVnd)}</td>
     <td></td>
@@ -1492,6 +1493,9 @@ function renderTeam() {
     <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
       <span class="stat-icon">⛽</span><div class="stat-label">NXPC tổng</div>
       <div class="stat-val" style="color:var(--amber)">${fd2(totNxpc,2)}</div></div>
+    <div class="stat"><div class="stat-accent" style="background:#e84142"></div>
+      <span class="stat-icon">🔺</span><div class="stat-label">NXPC (AVAX)</div>
+      <div class="stat-val" style="color:#e84142">${fd2(totNxpcAvax,2)}</div></div>
     <div class="stat"><div class="stat-accent" style="background:var(--green)"></div>
       <span class="stat-icon">🪙</span><div class="stat-label">NESO tổng</div>
       <div class="stat-val" style="color:var(--green)">${f(totNeso)}</div></div>
