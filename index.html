@@ -1371,9 +1371,11 @@ async function loadTeamWallets() {
     teamWallets = data.wallets || [];
     await Promise.all(teamWallets.map(async w => {
       try {
-        const {nxpc, neso} = await fetchBalances(w.address);
-        w.nxpc = nxpc; w.neso = neso; w.err = null;
-      } catch(e) { w.nxpc = null; w.neso = null; w.err = e.message; }
+        const {nxpc, neso, avax, nxpc_avax} = await fetchBalances(w.address);
+        w.nxpc = nxpc; w.neso = neso;
+        w.avax = avax; w.nxpc_avax = nxpc_avax;
+        w.err = null;
+      } catch(e) { w.nxpc = null; w.neso = null; w.avax = null; w.nxpc_avax = null; w.err = e.message; }
     }));
     renderTeam();
   } catch(e) {
