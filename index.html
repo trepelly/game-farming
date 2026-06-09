@@ -575,10 +575,14 @@ Ví sếp, 0x5678...efgh
         <table>
           <thead><tr>
             <th style="text-align:center">#</th>
-            <th style="text-align:left">Tên</th>
+            <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
-            <th>NXPC</th><th>NESO</th><th style="color:#e84142">NXPC(AVAX)</th><th>USDT</th><th>VND</th>
-                        <th></th>
+            <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none" onclick="colSort('neso')">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
+            <th style="color:#e84142;cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none" onclick="colSort('usdt')">USDT <span id="sort-icon-usdt" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none" onclick="colSort('vnd')">VND <span id="sort-icon-vnd" style="opacity:.3">↕</span></th>
+            <th></th>
           </tr></thead>
           <tbody id="team-tbody"></tbody>
           <tfoot id="team-tfoot" style="border-top:2px solid var(--border2)"></tfoot>
@@ -1384,6 +1388,37 @@ async function loadTeamWallets() {
 }
 
 let teamSortMode = 'default';
+let teamSortCol  = null;
+let teamSortDir  = 'desc';
+
+function colSort(col) {
+  if (teamSortCol === col) {
+    teamSortDir = teamSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    teamSortCol = col;
+    teamSortDir = 'desc';
+  }
+  teamSortMode = 'col';
+  // Reset old sort buttons
+  ['default','neso-desc','neso-asc','vnd-desc'].forEach(m => {
+    const btn = document.getElementById('sort-btn-'+m);
+    if(btn){ btn.style.background='transparent'; btn.style.color='var(--muted2)'; }
+  });
+  // Activate default button visually
+  const defBtn = document.getElementById('sort-btn-default');
+  renderTeam();
+}
+
+function updateColSortIcons() {
+  ['label','nxpc','neso','nxpc_avax','usdt','vnd'].forEach(c => {
+    const el = document.getElementById('sort-icon-'+c);
+    if (!el) return;
+    if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
+    el.textContent = teamSortDir === 'desc' ? '↓' : '↑';
+    el.style.opacity = '1';
+    el.style.color = 'var(--accent)';
+  });
+}
 let teamAlpha = 'all';
 
 function setAlpha(letter) {
@@ -1442,7 +1477,24 @@ function renderTeam() {
   if (teamSortMode === 'neso-desc') displayWallets.sort((a,b) => nesoVal(b)-nesoVal(a));
   else if (teamSortMode === 'neso-asc')  displayWallets.sort((a,b) => nesoVal(a)-nesoVal(b));
   else if (teamSortMode === 'vnd-desc')  displayWallets.sort((a,b) => vndVal(b)-vndVal(a));
+  else if (teamSortMode === 'col' && teamSortCol) {
+    const getVal = w => {
+      if (teamSortCol==='label')     return (w.label||'').toLowerCase();
+      if (teamSortCol==='nxpc')      return w.nxpc     ?? -1;
+      if (teamSortCol==='neso')      return w.neso     ?? -1;
+      if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
+      if (teamSortCol==='usdt')      return w.neso != null ? w.neso*nesoRate : -1;
+      if (teamSortCol==='vnd')       return w.neso != null ? w.neso*nesoRate*usdvnd : -1;
+      return 0;
+    };
+    displayWallets.sort((a,b) => {
+      const av=getVal(a), bv=getVal(b);
+      if(typeof av==='string') return teamSortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+      return teamSortDir==='asc' ? av-bv : bv-av;
+    });
+  }
 
+  updateColSortIcons();
   // Update count
   const countEl = document.getElementById('team-filter-count');
   if (countEl) {
