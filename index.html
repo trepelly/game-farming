@@ -1550,25 +1550,42 @@ function renderTeam() {
     <td></td>
   </tr>`;
 
+  const greenLine = 'background:var(--green)';
+  const blueLine  = 'background:var(--blue)';
   document.getElementById('team-stats').innerHTML = `
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
       <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
       <div class="stat-val">${teamWallets.length}</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
-      <span class="stat-icon">⛽</span><div class="stat-label">NXPC tổng</div>
-      <div class="stat-val" style="color:var(--amber)">${fd2(totNxpc,2)}</div></div>
-    <div class="stat"><div class="stat-accent" style="background:#e84142"></div>
-      <span class="stat-icon">🔺</span><div class="stat-label">NXPC (AVAX)</div>
-      <div class="stat-val" style="color:#e84142">${fd2(totNxpcAvax,2)}</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--green)"></div>
-      <span class="stat-icon">🪙</span><div class="stat-label">NESO tổng</div>
+
+    <div class="stat" style="border-top:2px solid var(--green)22"><div class="stat-accent" style="${greenLine}"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--green);margin-bottom:8px;text-transform:uppercase">🍁 Henesys</div>
+      <div class="stat-label">NXPC</div>
+      <div class="stat-val" style="color:var(--green)">${fd2(totNxpc,2)}</div></div>
+    <div class="stat"><div class="stat-accent" style="${greenLine}"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--green);margin-bottom:8px;text-transform:uppercase">🍁 Henesys</div>
+      <div class="stat-label">NESO</div>
       <div class="stat-val" style="color:var(--green)">${f(totNeso)}</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--blue)"></div>
-      <span class="stat-icon">💵</span><div class="stat-label">USDT tổng</div>
-      <div class="stat-val" style="color:var(--blue)">${fd2(totUsdt,2)}</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
-      <span class="stat-icon">💰</span><div class="stat-label">VND tổng</div>
-      <div class="stat-val" style="color:var(--amber)">${f(totVnd)}</div></div>`;
+    <div class="stat"><div class="stat-accent" style="${greenLine}"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--green);margin-bottom:8px;text-transform:uppercase">🍁 Henesys</div>
+      <div class="stat-label">USDT</div>
+      <div class="stat-val" style="color:var(--green)">${fd2(totUsdt,2)}</div></div>
+    <div class="stat"><div class="stat-accent" style="${greenLine}"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--green);margin-bottom:8px;text-transform:uppercase">🍁 Henesys</div>
+      <div class="stat-label">VND</div>
+      <div class="stat-val" style="color:var(--green)">${f(totVnd)}</div></div>
+
+    <div class="stat"><div class="stat-accent" style="${blueLine}"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--blue);margin-bottom:8px;text-transform:uppercase">🔺 Avalanche</div>
+      <div class="stat-label">NXPC</div>
+      <div class="stat-val" style="color:var(--blue)">${fd2(totNxpcAvax,2)}</div></div>
+    <div class="stat"><div class="stat-accent" style="${blueLine}"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--blue);margin-bottom:8px;text-transform:uppercase">🔺 Avalanche</div>
+      <div class="stat-label">USDT</div>
+      <div class="stat-val" style="color:var(--blue)">${fd2(totUsdtAvax,2)}</div></div>
+    <div class="stat"><div class="stat-accent" style="${blueLine}"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--blue);margin-bottom:8px;text-transform:uppercase">🔺 Avalanche</div>
+      <div class="stat-label">VND</div>
+      <div class="stat-val" style="color:var(--blue)">${f(totVndAvax)}</div></div>`;
 }
 
 // ── Team input mode ──
