@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0d0d1a"/>
 <title>Game Farming Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Clash+Display:wght@500;600;700&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -82,7 +82,7 @@
 }
 
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Courier New',monospace;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
 
 /* Grid bg - dark only */
 [data-theme="dark"] body::before{content:'';position:fixed;inset:0;
@@ -102,7 +102,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;margin-
 .header-left{}
 .logo{font-size:10px;font-weight:600;letter-spacing:.22em;color:var(--muted2);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .logo-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
-h1{font-family:'Cabinet Grotesk','Segoe UI',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:800;color:var(--text);line-height:1.05;margin-bottom:8px;letter-spacing:-.02em}
+h1{font-family:'Inter','Segoe UI',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:800;color:var(--text);line-height:1.05;margin-bottom:8px;letter-spacing:-.02em}
 h1 em{font-style:normal;color:var(--accent)}
 .subtitle{font-size:11px;color:var(--muted2);letter-spacing:.05em}
 
@@ -118,7 +118,7 @@ h1 em{font-style:normal;color:var(--accent)}
 
 /* ── TABS ── */
 .tabs{display:flex;gap:2px;margin-bottom:32px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:4px;width:fit-content;box-shadow:var(--shadow)}
-.tab{font-family:'Cabinet Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:.03em;padding:9px 22px;border-radius:9px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .25s;position:relative}
+.tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;letter-spacing:.03em;padding:9px 22px;border-radius:9px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .25s;position:relative}
 .tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
 .tab:hover:not(.active){color:var(--text);background:var(--border)}
 
@@ -136,7 +136,7 @@ h1 em{font-style:normal;color:var(--accent)}
 .input-group:hover{border-color:var(--border3)}
 .input-group:focus-within{border-color:var(--accent)}
 .input-group label{display:block;font-size:9px;letter-spacing:.12em;color:var(--muted2);margin-bottom:8px;text-transform:uppercase;font-weight:600}
-.input-group input{width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:var(--blue);outline:none;transition:border-color .2s}
+.input-group input{width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:'Chakra Petch',monospace;font-size:15px;font-weight:500;color:var(--blue);outline:none;transition:border-color .2s}
 .input-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
 .input-note{font-size:9px;color:var(--muted2);margin-top:6px;opacity:.8}
 
@@ -152,7 +152,7 @@ h1 em{font-style:normal;color:var(--accent)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
 .stat-icon{font-size:18px;margin-bottom:8px;display:block}
 .stat-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px;font-weight:600}
-.stat-val{font-family:'Cabinet Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1}
+.stat-val{font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1}
 .stat-sub{font-size:10px;color:var(--muted2);margin-top:5px}
 .stat-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;margin-top:6px}
 .badge-up{background:var(--green-bg);color:var(--green)}
@@ -164,7 +164,7 @@ h1 em{font-style:normal;color:var(--accent)}
 @media(max-width:600px){.charts-grid{grid-template-columns:1fr}}
 .chart-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
 .chart-header{margin-bottom:16px}
-.chart-title{font-family:'Cabinet Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.chart-title{font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
 .chart-sub{font-size:10px;color:var(--muted2)}
 .chart-wrap{position:relative;height:210px}
 
@@ -172,7 +172,7 @@ h1 em{font-style:normal;color:var(--accent)}
 .growth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:32px}
 .growth-card{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
 .growth-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px;font-weight:600}
-.growth-val{font-family:'Cabinet Grotesk',sans-serif;font-size:18px;font-weight:800;margin-bottom:10px;letter-spacing:-.01em}
+.growth-val{font-family:'Inter',sans-serif;font-size:18px;font-weight:800;margin-bottom:10px;letter-spacing:-.01em}
 .growth-bar-wrap{height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
 .growth-bar{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.4,0,.2,1)}
 
@@ -205,15 +205,15 @@ td:first-child{text-align:left;color:var(--muted2)}
 .sc-card.active-card{border-color:var(--accent);background:var(--accent-glow)}
 .sc-num{font-size:9px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px}
 .sc-num.n1{color:var(--blue)}.sc-num.n2{color:var(--amber)}.sc-num.n3{color:var(--green)}
-.sc-name{font-family:'Cabinet Grotesk',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
-.sc-result{font-size:22px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;margin-bottom:4px;letter-spacing:-.02em}
+.sc-name{font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.sc-result{font-size:22px;font-weight:800;font-family:'Inter',sans-serif;margin-bottom:4px;letter-spacing:-.02em}
 .sc-result.r1{color:var(--blue)}.sc-result.r2{color:var(--amber)}.sc-result.r3{color:var(--green)}
 .sc-desc{font-size:11px;color:var(--muted2);margin-bottom:14px}
 .sc-footer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:14px;border-top:1px solid var(--border2)}
 .sc-f-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:3px;font-weight:600}
 .sc-f-val{font-size:12px;font-weight:600;color:var(--text)}
 
-.detail-btn{font-family:'Cabinet Grotesk',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;background:var(--card);border:1px solid var(--border2);color:var(--muted2);padding:10px 20px;border-radius:10px;cursor:pointer;transition:all .2s;margin-bottom:20px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+.detail-btn{font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;background:var(--card);border:1px solid var(--border2);color:var(--muted2);padding:10px 20px;border-radius:10px;cursor:pointer;transition:all .2s;margin-bottom:20px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
 .detail-btn:hover{color:var(--text);border-color:var(--accent);background:var(--accent-glow)}
 
 /* Scrollbar */
@@ -429,7 +429,7 @@ Ví sếp, 0x5678...efgh
     <!-- Lock screen -->
     <div id="team-lock" style="max-width:400px;margin:60px auto;text-align:center">
       <div style="font-size:48px;margin-bottom:16px">🔐</div>
-      <div style="font-family:'Cabinet Grotesk',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px">Team Wallet</div>
+      <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px">Team Wallet</div>
       <div style="font-size:12px;color:var(--muted2);margin-bottom:28px">Đăng nhập để xem danh sách ví team</div>
       <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:24px;box-shadow:var(--shadow);text-align:left">
         <div style="margin-bottom:12px">
@@ -1165,30 +1165,30 @@ function renderWalletCard(w) {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">⛽ NXPC</div>
-            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--amber)">${fd2(w.nxpc)}</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;color:var(--amber)">${fd2(w.nxpc)}</div>
           </div>
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">🪙 NESO</div>
-            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--green)">${fd4(w.neso)}</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;color:var(--green)">${fd4(w.neso)}</div>
           </div>
           ${w.avax!=null?`
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">🔺 AVAX</div>
-            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:#e84142">${fd2(w.avax)}</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;color:#e84142">${fd2(w.avax)}</div>
           </div>`:''}
           ${w.nxpc_avax!=null?`
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">⚡ NXPC (AVAX)</div>
-            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:#f59e0b">${fd2(w.nxpc_avax)}</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;color:#f59e0b">${fd2(w.nxpc_avax)}</div>
           </div>`:''}
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ USDT</div>
-            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--blue)">${fd2(nesoUsdt)}</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;color:var(--blue)">${fd2(nesoUsdt)}</div>
             <div style="font-size:9px;color:var(--muted2);margin-top:3px">${liveNesoUsd?"Giá TT":"NESO÷100k×0.4"}</div>
           </div>
           <div style="background:var(--card2);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:600;margin-bottom:6px">≈ VND</div>
-            <div style="font-size:20px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;color:var(--amber)">${nesoUsdt!=null?f(nesoUsdt*usdvnd):'—'}</div>
+            <div style="font-size:20px;font-weight:800;font-family:'Inter',sans-serif;color:var(--amber)">${nesoUsdt!=null?f(nesoUsdt*usdvnd):'—'}</div>
             <div style="font-size:9px;color:var(--muted2);margin-top:3px">×${f(usdvnd)}</div>
           </div>
         </div>
