@@ -146,7 +146,8 @@ h1 em{font-style:normal;color:var(--accent)}
 .formula-arrow{color:var(--border3)}
 
 /* ── STAT CARDS ── */
-.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:32px}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:32px}
+@media(max-width:700px){.stat-row{grid-template-columns:repeat(2,1fr)}}
 .stat{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
@@ -1551,38 +1552,27 @@ function renderTeam() {
   </tr>`;
 
   const G = 'var(--green)', B = 'var(--blue)', A = 'var(--amber)';
+  const sc = (accent,chain,chainColor,label,val) =>
+    `<div class="stat"><div class="stat-accent" style="background:${accent}"></div>
+      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
+      <div class="stat-label">${label}</div><div class="stat-val" style="color:${accent}">${val}</div></div>`;
+
   document.getElementById('team-stats').innerHTML = `
-    <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
-      <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
-      <div class="stat-val">${teamWallets.length}</div></div>
-
-    <div class="stat"><div class="stat-accent" style="background:${G}"></div>
-      <div style="font-size:9px;font-weight:700;color:${G};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">🍁 HENESYS</div>
-      <div class="stat-label">NXPC</div><div class="stat-val" style="color:${G}">${fd2(totNxpc,2)}</div></div>
-
-    <div class="stat"><div class="stat-accent" style="background:${A}"></div>
-      <div style="font-size:9px;font-weight:700;color:${G};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">🍁 HENESYS</div>
-      <div class="stat-label">NESO</div><div class="stat-val" style="color:${A}">${f(totNeso)}</div></div>
-
-    <div class="stat"><div class="stat-accent" style="background:${G}"></div>
-      <div style="font-size:9px;font-weight:700;color:${G};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">🍁 HENESYS</div>
-      <div class="stat-label">USDT</div><div class="stat-val" style="color:${G}">${fd2(totUsdt,2)}</div></div>
-
-    <div class="stat"><div class="stat-accent" style="background:${G}"></div>
-      <div style="font-size:9px;font-weight:700;color:${G};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">🍁 HENESYS</div>
-      <div class="stat-label">VND</div><div class="stat-val" style="color:${G}">${f(totVnd)}</div></div>
-
-    <div class="stat"><div class="stat-accent" style="background:${B}"></div>
-      <div style="font-size:9px;font-weight:700;color:${B};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">🔺 AVALANCHE</div>
-      <div class="stat-label">NXPC</div><div class="stat-val" style="color:${B}">${fd2(totNxpcAvax,2)}</div></div>
-
-    <div class="stat"><div class="stat-accent" style="background:${B}"></div>
-      <div style="font-size:9px;font-weight:700;color:${B};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">🔺 AVALANCHE</div>
-      <div class="stat-label">USDT</div><div class="stat-val" style="color:${B}">${fd2(totUsdtAvax,2)}</div></div>
-
-    <div class="stat"><div class="stat-accent" style="background:${B}"></div>
-      <div style="font-size:9px;font-weight:700;color:${B};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">🔺 AVALANCHE</div>
-      <div class="stat-label">VND</div><div class="stat-val" style="color:${B}">${f(totVndAvax)}</div></div>`;
+    <div style="display:contents">
+      <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
+        <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
+        <div class="stat-val">${teamWallets.length}</div></div>
+      ${sc(A, '🍁 HENESYS', G, 'NESO',         f(totNeso))}
+      ${sc(G, '🍁 HENESYS', G, 'NXPC',         fd2(totNxpc,2))}
+      ${sc(G, '🍁 HENESYS', G, 'USDT',         fd2(totUsdt,2))}
+      ${sc(G, '🍁 HENESYS', G, 'VND',          f(totVnd))}
+    </div>
+    <div style="grid-column:1/-1;height:0;border-top:1px solid var(--border);margin:0 -4px"></div>
+    <div style="display:contents">
+      ${sc(B, '🔺 AVALANCHE', B, 'NXPC', fd2(totNxpcAvax,2))}
+      ${sc(B, '🔺 AVALANCHE', B, 'USDT', fd2(totUsdtAvax,2))}
+      ${sc(B, '🔺 AVALANCHE', B, 'VND',  f(totVndAvax))}
+    </div>`;
 }
 
 // ── Team input mode ──
