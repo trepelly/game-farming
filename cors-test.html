@@ -1,18 +1,16 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>AVAX RPC Test</title>
+<html><head><meta charset="UTF-8"><title>AVAX Balance Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px;line-height:1.6}
-pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap}
+pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
 <body>
-<h2>🔺 Avalanche RPC Test</h2>
+<h2>🔺 Avalanche Balance Test</h2>
 <p style="color:#6b6b8a">Wallet: 0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806</p>
-<p style="color:#6b6b8a">NXPC contract: 0x5E0E90E268BC247Cc850c789A0DB0d5c7621fb59</p>
 <pre id="out">Testing...
 </pre>
 <script>
-const calldata = '0x70a082310000000000000000000000003c7854d9edb3a60df46343a5c0f2d418ce7ae806';
-const nxpc_contract = '0x5E0E90E268BC247Cc850c789A0DB0d5c7621fb59';
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
+const nxpc_contract = '0x5E0E90E268BC247Cc850c789A0DB0d5c7621fb59';
 const out = document.getElementById('out');
 const log = (msg, cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
 
@@ -21,36 +19,37 @@ function h2d(hex, dec=18) {
   try { return Number(BigInt(hex) * BigInt(1000000) / BigInt('1'+'0'.repeat(dec))) / 1000000; } catch { return 0; }
 }
 
-const rpcs = [
-  'https://api.avax.network/ext/bc/C/rpc',
-  'https://avalanche-c-chain-rpc.publicnode.com',
-  'https://rpc.ankr.com/avalanche',
-  'https://avax.meowrpc.com',
-  'https://1rpc.io/avax/c',
-];
-
-async function testRpc(url) {
-  const body = JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_call',params:[{to:nxpc_contract,data:calldata},'latest']});
-  const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body});
-  const d = await r.json();
-  return { ok: r.ok, result: d.result, status: r.status };
-}
-
 async function run() {
+  // Test 1: Routescan API (no CORS issues, public)
+  log('\n🔍 Routescan API (tokenbalance)');
+  try {
+    const url = `https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api?module=account&action=tokenbalance&contractaddress=${nxpc_contract}&address=${addr}&tag=latest&apikey=YourApiKeyToken`;
+    const r = await fetch(url);
+    const d = await r.json();
+    log(`   HTTP ${r.status} | status: ${d.status} | result: ${d.result}`, r.ok?'ok':'err');
+    if(d.result && d.result !== '0') log(`   NXPC(AVAX) = ${h2d('0x'+parseInt(d.result).toString(16))}`,'ok');
+  } catch(e) { log(`   ✗ ${e.message}`, 'err'); }
+
+  // Test 2: Avalanche RPC direct
+  const rpcs = [
+    'https://api.avax.network/ext/bc/C/rpc',
+    'https://avalanche-c-chain-rpc.publicnode.com',
+    'https://rpc.ankr.com/avalanche',
+  ];
+  const calldata = '0x70a08231' + '000000000000000000000000' + addr.slice(2).toLowerCase();
   for(const rpc of rpcs) {
-    log(`\n🔍 ${rpc}`);
+    log(`\n🔍 RPC: ${rpc}`);
     try {
-      const r = await testRpc(rpc);
-      const bal = h2d(r.result);
-      log(`   HTTP ${r.status} → NXPC(AVAX) = ${bal}`, 'ok');
-      if(bal > 0) log(`   ✅ RPC WORKS! Use this RPC.`, 'ok');
-      break; // found working RPC
-    } catch(e) {
-      log(`   ✗ ${e.message}`, 'err');
-    }
+      const r = await fetch(rpc, {method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_call',params:[{to:nxpc_contract,data:calldata},'latest']})
+      });
+      const d = await r.json();
+      log(`   HTTP ${r.status} | result: ${d.result}`, r.ok?'ok':'err');
+      log(`   NXPC(AVAX) = ${h2d(d.result)}`, 'ok');
+      break;
+    } catch(e) { log(`   ✗ ${e.message}`, 'err'); }
   }
   log('\n✅ Done');
 }
 run();
-</script>
-</body></html>
+</script></body></html>
