@@ -578,8 +578,8 @@ Ví sếp, 0x5678...efgh
             <th style="text-align:center">#</th>
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
-            <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('usdt')" style="color:var(--green)">USDT <span id="sort-icon-usdt" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('vnd')" style="color:var(--green)">VND <span id="sort-icon-vnd" style="opacity:.3">↕</span></th>
             <th style="opacity:.9;color:var(--blue);cursor:pointer;user-select:none;border-left:1px solid var(--border2)" onclick="colSort('nxpc_avax')">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
@@ -1523,8 +1523,8 @@ function renderTeam() {
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
         <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
       </td>
-      <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
+      <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
       <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
@@ -1541,8 +1541,8 @@ function renderTeam() {
   const totVndAvax     = totUsdtAvax * (liveUsdVnd||0);
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totVnd)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}</td>
@@ -1556,23 +1556,21 @@ function renderTeam() {
     `<div class="stat"><div class="stat-accent" style="background:${accent}"></div>
       <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
       <div class="stat-label">${label}</div><div class="stat-val" style="color:${accent}">${val}</div></div>`;
+  const scEmpty = () =>
+    `<div class="stat" style="background:transparent;border-color:transparent;box-shadow:none"></div>`;
 
   document.getElementById('team-stats').innerHTML = `
-    <div style="display:contents">
-      <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
-        <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
-        <div class="stat-val">${teamWallets.length}</div></div>
-      ${sc(A, '🍁 HENESYS', G, 'NESO',         f(totNeso))}
-      ${sc(G, '🍁 HENESYS', G, 'NXPC',         fd2(totNxpc,2))}
-      ${sc(G, '🍁 HENESYS', G, 'USDT',         fd2(totUsdt,2))}
-      ${sc(G, '🍁 HENESYS', G, 'VND',          f(totVnd))}
-    </div>
-    <div style="grid-column:1/-1;height:0;border-top:1px solid var(--border);margin:0 -4px"></div>
-    <div style="display:contents">
-      ${sc(B, '🔺 AVALANCHE', B, 'NXPC', fd2(totNxpcAvax,2))}
-      ${sc(B, '🔺 AVALANCHE', B, 'USDT', fd2(totUsdtAvax,2))}
-      ${sc(B, '🔺 AVALANCHE', B, 'VND',  f(totVndAvax))}
-    </div>`;
+    <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
+      <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
+      <div class="stat-val">${teamWallets.length}</div></div>
+    ${sc(A, '🍁 HENESYS', G, 'NESO', f(totNeso))}
+    ${sc(G, '🍁 HENESYS', G, 'NXPC', fd2(totNxpc,2))}
+    ${sc(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2))}
+    ${sc(G, '🍁 HENESYS', G, 'VND',  f(totVnd))}
+    ${scEmpty()}
+    ${sc(B, '🔺 AVALANCHE', B, 'NXPC', fd2(totNxpcAvax,2))}
+    ${sc(B, '🔺 AVALANCHE', B, 'USDT', fd2(totUsdtAvax,2))}
+    ${sc(B, '🔺 AVALANCHE', B, 'VND',  f(totVndAvax))}`;
 }
 
 // ── Team input mode ──
