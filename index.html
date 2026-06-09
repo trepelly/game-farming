@@ -898,12 +898,16 @@ async function fetchBalances(address) {
     rpcCall('eth_call',[{to:NESO_CONTRACT,data:calldata},'latest'])
   ]);
 
-  // Avalanche: AVAX native + NXPC ERC20 (optional, don't fail if timeout)
+  // Avalanche: AVAX native + NXPC ERC20 (confirmed working from browser)
   let avaxBal = null, nxpcAvaxBal = null;
   try {
+    const avaxPost = (method, params) => fetch(AVAX_RPC, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
+    }).then(r=>r.json()).then(d=>d.result);
     const [avaxHex, nxpcAvaxHex] = await Promise.all([
-      rpcCallUrl(AVAX_RPC,'eth_getBalance',[address,'latest']),
-      rpcCallUrl(AVAX_RPC,'eth_call',[{to:NXPC_AVAX_CONTRACT,data:calldata},'latest'])
+      avaxPost('eth_getBalance', [address,'latest']),
+      avaxPost('eth_call', [{to:NXPC_AVAX_CONTRACT, data:calldata},'latest'])
     ]);
     avaxBal     = hexToDec(avaxHex, 18);
     nxpcAvaxBal = hexToDec(nxpcAvaxHex, 18);
