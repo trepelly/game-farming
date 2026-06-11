@@ -405,14 +405,48 @@ Ví sếp, 0x5678...efgh
 
     <!-- Wallet list -->
     <div id="wallet-list-section" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
         <div class="section-label" style="margin-bottom:0">Danh sách ví</div>
         <div style="display:flex;gap:8px">
           <button onclick="refreshAll()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
           <button onclick="clearAll()" style="background:var(--red-bg);border:1px solid var(--red)30;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">✕ Xóa tất cả</button>
         </div>
       </div>
-      <div id="wallet-cards" style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px"></div>
+      <!-- Search + alpha filter -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+        <div style="position:relative;flex:1;min-width:180px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:12px">🔍</span>
+          <input id="wallet-search" type="text" placeholder="Tìm tên hoặc địa chỉ..."
+            oninput="renderWallets();updateWalletSearchClear()"
+            style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:8px 32px 8px 30px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+          <span id="wallet-search-clear" onclick="clearWalletSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:14px;cursor:pointer" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">✕</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:3px" id="wallet-alpha-filter">
+          <button onclick="setWalletAlpha('all')" id="walpha-all" class="alpha-btn alpha-active">Tất cả</button>
+          <button onclick="setWalletAlpha('#')" id="walpha-hash" class="alpha-btn">#</button>
+          <button onclick="setWalletAlpha('A')" id="walpha-A" class="alpha-btn">A</button><button onclick="setWalletAlpha('B')" id="walpha-B" class="alpha-btn">B</button><button onclick="setWalletAlpha('C')" id="walpha-C" class="alpha-btn">C</button><button onclick="setWalletAlpha('D')" id="walpha-D" class="alpha-btn">D</button><button onclick="setWalletAlpha('E')" id="walpha-E" class="alpha-btn">E</button><button onclick="setWalletAlpha('F')" id="walpha-F" class="alpha-btn">F</button><button onclick="setWalletAlpha('G')" id="walpha-G" class="alpha-btn">G</button><button onclick="setWalletAlpha('H')" id="walpha-H" class="alpha-btn">H</button><button onclick="setWalletAlpha('I')" id="walpha-I" class="alpha-btn">I</button><button onclick="setWalletAlpha('J')" id="walpha-J" class="alpha-btn">J</button><button onclick="setWalletAlpha('K')" id="walpha-K" class="alpha-btn">K</button><button onclick="setWalletAlpha('L')" id="walpha-L" class="alpha-btn">L</button><button onclick="setWalletAlpha('M')" id="walpha-M" class="alpha-btn">M</button><button onclick="setWalletAlpha('N')" id="walpha-N" class="alpha-btn">N</button><button onclick="setWalletAlpha('O')" id="walpha-O" class="alpha-btn">O</button><button onclick="setWalletAlpha('P')" id="walpha-P" class="alpha-btn">P</button><button onclick="setWalletAlpha('Q')" id="walpha-Q" class="alpha-btn">Q</button><button onclick="setWalletAlpha('R')" id="walpha-R" class="alpha-btn">R</button><button onclick="setWalletAlpha('S')" id="walpha-S" class="alpha-btn">S</button><button onclick="setWalletAlpha('T')" id="walpha-T" class="alpha-btn">T</button><button onclick="setWalletAlpha('U')" id="walpha-U" class="alpha-btn">U</button><button onclick="setWalletAlpha('V')" id="walpha-V" class="alpha-btn">V</button><button onclick="setWalletAlpha('W')" id="walpha-W" class="alpha-btn">W</button><button onclick="setWalletAlpha('X')" id="walpha-X" class="alpha-btn">X</button><button onclick="setWalletAlpha('Y')" id="walpha-Y" class="alpha-btn">Y</button><button onclick="setWalletAlpha('Z')" id="walpha-Z" class="alpha-btn">Z</button>
+        </div>
+      </div>
+      <!-- Table -->
+      <div class="table-wrap" style="max-height:520px;overflow-y:auto;margin-bottom:28px">
+        <table>
+          <thead><tr>
+            <th style="text-align:center">#</th>
+            <th style="text-align:left;cursor:pointer;user-select:none" onclick="wColSort('label')">Tên <span id="wsort-label" style="opacity:.3">↕</span></th>
+            <th style="text-align:left">Địa chỉ</th>
+            <th style="cursor:pointer;user-select:none;color:var(--amber)" onclick="wColSort('neso')">NESO <span id="wsort-neso" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('nxpc')">NXPC <span id="wsort-nxpc" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('usdt')">USDT <span id="wsort-usdt" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('vnd')">VND <span id="wsort-vnd" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--blue);border-left:1px solid var(--border2)" onclick="wColSort('nxpc_avax')">NXPC(AVAX) <span id="wsort-nxpc_avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('usdt_avax')">USDT(AVAX) <span id="wsort-usdt_avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('vnd_avax')">VND(AVAX) <span id="wsort-vnd_avax" style="opacity:.3">↕</span></th>
+            <th></th>
+          </tr></thead>
+          <tbody id="wallet-tbody"></tbody>
+          <tfoot id="wallet-tfoot" style="position:sticky;bottom:0;z-index:2;border-top:2px solid var(--border2)"></tfoot>
+        </table>
+      </div>
     </div>
 
     <!-- Info box -->
@@ -1108,13 +1142,132 @@ function refreshAll() {
 }
 
 // ── Render ──
+let wSortCol=null, wSortDir='desc', wAlpha='all';
+
+function wColSort(col) {
+  if(wSortCol===col) wSortDir = wSortDir==='desc'?'asc':'desc';
+  else { wSortCol=col; wSortDir='desc'; }
+  ['label','neso','nxpc','usdt','vnd','nxpc_avax','usdt_avax','vnd_avax'].forEach(c=>{
+    const el=document.getElementById('wsort-'+c); if(!el) return;
+    if(c!==wSortCol){el.textContent='↕';el.style.opacity='.3';el.style.color='';}
+    else{el.textContent=wSortDir==='desc'?'↓':'↑';el.style.opacity='1';el.style.color='var(--accent)';}
+  });
+  renderWallets();
+}
+
+function setWalletAlpha(letter) {
+  wAlpha=letter;
+  document.querySelectorAll('[id^="walpha-"]').forEach(b=>b.classList.remove('alpha-active'));
+  const id=letter==='all'?'walpha-all':letter==='#'?'walpha-hash':'walpha-'+letter;
+  const el=document.getElementById(id); if(el) el.classList.add('alpha-active');
+  renderWallets();
+}
+
+function clearWalletSearch() {
+  const inp=document.getElementById('wallet-search');
+  if(inp){inp.value='';renderWallets();updateWalletSearchClear();}
+}
+function updateWalletSearchClear() {
+  const inp=document.getElementById('wallet-search');
+  const btn=document.getElementById('wallet-search-clear');
+  if(inp&&btn) btn.style.display=inp.value?'block':'none';
+}
+
 function renderWallets() {
   const sec = document.getElementById('wallet-list-section');
-  const container = document.getElementById('wallet-cards');
   if(wallets.length===0){ sec.style.display='none'; updatePortfolio(); return; }
   sec.style.display='block';
-  container.innerHTML = wallets.map(w=>`<div id="wcard-${w.address}" class="wcard"></div>`).join('');
-  wallets.forEach(w=>renderWalletCard(w));
+
+  const nxpcRate = liveNxpcUsd||0;
+  const usdvnd   = liveUsdVnd||0;
+  const nesoRate = liveNesoUsd||0;
+  const f   = n=>Math.round(n).toLocaleString('vi-VN');
+  const fd2 = (n,d)=>n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const query = (document.getElementById('wallet-search')?.value||'').toLowerCase().trim();
+
+  let display = wallets.map((w,i)=>({...w,origIdx:i}));
+
+  if(query) display=display.filter(w=>(w.label||'').toLowerCase().includes(query)||w.address.toLowerCase().includes(query));
+  if(wAlpha!=='all') display=display.filter(w=>{
+    const first=(w.label||w.address).trim()[0]?.toUpperCase();
+    if(wAlpha==='#') return first&&!/[A-Z]/.test(first);
+    return first===wAlpha;
+  });
+
+  if(wSortCol) {
+    const getVal=w=>{
+      if(wSortCol==='label') return (w.label||'').toLowerCase();
+      if(wSortCol==='neso')  return w.neso??-1;
+      if(wSortCol==='nxpc')  return w.nxpc??-1;
+      if(wSortCol==='usdt')  return (w.neso??0)*nesoRate;
+      if(wSortCol==='vnd')   return (w.neso??0)*nesoRate*usdvnd;
+      if(wSortCol==='nxpc_avax') return w.nxpc_avax??-1;
+      if(wSortCol==='usdt_avax') return (w.nxpc_avax??0)*nxpcRate;
+      if(wSortCol==='vnd_avax')  return (w.nxpc_avax??0)*nxpcRate*usdvnd;
+      return 0;
+    };
+    display.sort((a,b)=>{
+      const av=getVal(a),bv=getVal(b);
+      if(typeof av==='string') return wSortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+      return wSortDir==='asc'?av-bv:bv-av;
+    });
+  }
+
+  const rows = display.map((w,i)=>{
+    const usdt = (w.neso??0)*nesoRate;
+    const vnd  = usdt*usdvnd;
+    const usdtA= (w.nxpc_avax??0)*nxpcRate;
+    const vndA = usdtA*usdvnd;
+    const short= a=>`<span title="${a}" style="font-family:monospace;font-size:11px">${a.slice(0,6)}...${a.slice(-4)}</span>`;
+    if(w.loading) return `<tr><td class="c-center"><span class="pill pill-week">${i+1}</span></td>
+      <td style="text-align:left;font-weight:600">${w.label}</td>
+      <td style="text-align:left">${short(w.address)}</td>
+      <td colspan="7" style="text-align:center;color:var(--muted2);font-size:11px">
+        <span style="display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:middle"></span>Đang tải...
+      </td><td></td></tr>`;
+    if(w.error) return `<tr><td class="c-center">${i+1}</td><td style="text-align:left">${w.label}</td><td>${short(w.address)}</td>
+      <td colspan="7" style="color:var(--red);font-size:11px">⚠ ${w.error}</td><td></td></tr>`;
+    return `<tr>
+      <td style="text-align:center;color:var(--muted2);font-size:11px">${i+1}</td>
+      <td style="text-align:left">
+        <input value="${w.label}" onchange="updateLabel('${w.address}',this.value)"
+          style="background:transparent;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-family:inherit;font-size:13px;font-weight:600;outline:none;width:110px;padding:1px 3px"/>
+      </td>
+      <td style="text-align:left">${short(w.address)}
+        <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:5px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
+        <span onclick="navigator.clipboard.writeText('${w.address}')" style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)">⎘</span>
+      </td>
+      <td style="text-align:right;color:var(--amber)">${w.neso!=null?f(w.neso):'—'}</td>
+      <td style="text-align:right;color:var(--green)">${w.nxpc!=null?fd2(w.nxpc,4):'—'}</td>
+      <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
+      <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
+      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
+      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(usdtA,2):'—'}</td>
+      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(vndA):'—'}</td>
+      <td><button onclick="removeWallet('${w.address}')" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:5px;padding:3px 8px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('wallet-tbody').innerHTML = rows;
+
+  // Footer totals
+  const loaded = display.filter(w=>!w.loading&&!w.error&&w.neso!=null);
+  const tNeso=loaded.reduce((s,w)=>s+(w.neso||0),0);
+  const tNxpc=loaded.reduce((s,w)=>s+(w.nxpc||0),0);
+  const tUsdt=tNeso*nesoRate, tVnd=tUsdt*usdvnd;
+  const tNxpcA=loaded.reduce((s,w)=>s+(w.nxpc_avax||0),0);
+  const tUsdtA=tNxpcA*nxpcRate, tVndA=tUsdtA*usdvnd;
+  document.getElementById('wallet-tfoot').innerHTML=`<tr style="font-weight:700;background:var(--surface)">
+    <td colspan="3" style="padding:10px 14px;color:var(--muted2)">TỔNG (${display.length} ví)</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(tNeso)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(tNxpc,4)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(tUsdt,2)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(tVnd)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(tNxpcA,4)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(tUsdtA,2)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${f(tVndA)}</td>
+    <td></td>
+  </tr>`;
 }
 
 function renderWalletCard(w) {
@@ -1207,23 +1360,31 @@ function updatePortfolio() {
   const fd = n=>Math.round(n).toLocaleString('vi-VN');
   const fd2 = (n,d)=>n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
 
+  const totalNxpcAvax = loaded.reduce((s,w)=>s+(w.nxpc_avax||0),0);
+  const nesoRate2 = liveNesoUsd || 0;
+  const totalUsdt2 = totalNeso * nesoRate2;
+  const totalVnd2  = totalUsdt2 * usdvnd;
+  const totalUsdtAvax = totalNxpcAvax * (liveNxpcUsd||0);
+  const totalVndAvax  = totalUsdtAvax * usdvnd;
+  const sc2 = (acc,chain,cc,lbl,val) =>
+    `<div class="stat"><div class="stat-accent" style="background:${acc}"></div>
+      <div style="font-size:9px;font-weight:700;color:${cc};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
+      <div class="stat-label">${lbl}</div><div class="stat-val" style="color:${acc}">${val}</div></div>`;
+  const scEmpty2 = () => `<div class="stat" style="background:transparent;border-color:transparent;box-shadow:none"></div>`;
+  const G='var(--green)',B='var(--blue)',A='var(--amber)';
   document.getElementById('portfolio-stats').innerHTML=`
-    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
+    <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
       <span class="stat-icon">👜</span><div class="stat-label">Tổng ví</div>
-      <div class="stat-val">${loaded.length}</div><div class="stat-sub">đã tải xong</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
-      <span class="stat-icon">⛽</span><div class="stat-label">NXPC tổng</div>
-      <div class="stat-val" style="color:var(--amber)">${fd2(totalNxpc,4)}</div><div class="stat-sub">gas token</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--green)"></div>
-      <span class="stat-icon">🪙</span><div class="stat-label">NESO tổng</div>
-      <div class="stat-val" style="color:var(--green)">${fd(totalNeso)}</div><div class="stat-sub">across ${loaded.length} ví</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--blue)"></div>
-      <span class="stat-icon">💵</span><div class="stat-label">≈ USDT tổng</div>
-      <div class="stat-val" style="color:var(--blue)">${fd2(totalUsdt,2)}</div><div class="stat-sub">NESO÷100k×0.4</div></div>
-    <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
-      <span class="stat-icon">💵</span><div class="stat-label">≈ VND tổng</div>
-      <div class="stat-val" style="color:var(--amber)">${f(totalUsdt*usdvnd)}</div><div class="stat-sub">${f(usdvnd)} VND/USDT</div></div>
-  `;
+      <div class="stat-val">${loaded.length}</div></div>
+    ${sc2(A,'🍁 HENESYS',G,'NESO',fd(totalNeso))}
+    ${sc2(G,'🍁 HENESYS',G,'NXPC',fd2(totalNxpc,4))}
+    ${sc2(G,'🍁 HENESYS',G,'USDT',fd2(totalUsdt2,2))}
+    ${sc2(G,'🍁 HENESYS',G,'VND',fd(totalVnd2))}
+    ${scEmpty2()}
+    ${scEmpty2()}
+    ${sc2(B,'🔺 AVALANCHE',B,'NXPC',fd2(totalNxpcAvax,4))}
+    ${sc2(B,'🔺 AVALANCHE',B,'USDT',fd2(totalUsdtAvax,2))}
+    ${sc2(B,'🔺 AVALANCHE',B,'VND',fd(totalVndAvax))}`;
 
   // Pie chart
   const isDark = document.documentElement.getAttribute('data-theme')==='dark';
