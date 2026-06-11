@@ -926,29 +926,37 @@ async function rpcCallUrl(rpc, method, params=[]) {
   return d.result;
 }
 
+// Timeout helper
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+}
+
 async function fetchBalances(address) {
   const calldata = '0x70a08231'+'000000000000000000000000'+address.slice(2).toLowerCase();
 
-  // Henesys: NXPC native + NESO ERC20
+  // Henesys: NXPC + NESO (priority, no timeout needed - fast RPC)
   const [nxpcHex, nesoHex] = await Promise.all([
     rpcCall('eth_getBalance',[address,'latest']),
     rpcCall('eth_call',[{to:NESO_CONTRACT,data:calldata},'latest'])
   ]);
 
-  // Avalanche: AVAX native + NXPC ERC20 (confirmed working from browser)
+  // Avalanche: fetch with 4s timeout, non-blocking
   let avaxBal = null, nxpcAvaxBal = null;
   try {
-    const avaxPost = (method, params) => fetch(AVAX_RPC, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
-    }).then(r=>r.json()).then(d=>d.result);
+    const avaxPost = (method, params) => withTimeout(
+      fetch(AVAX_RPC, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
+      }).then(r=>r.json()).then(d=>d.result),
+      4000
+    );
     const [avaxHex, nxpcAvaxHex] = await Promise.all([
       avaxPost('eth_getBalance', [address,'latest']),
       avaxPost('eth_call', [{to:NXPC_AVAX_CONTRACT, data:calldata},'latest'])
     ]);
     avaxBal     = hexToDec(avaxHex, 18);
     nxpcAvaxBal = hexToDec(nxpcAvaxHex, 18);
-  } catch(e) { console.warn('AVAX fetch error:', e.message); }
+  } catch(e) { /* AVAX timeout or error - show — */ }
 
   return {
     nxpc: hexToDec(nxpcHex, 18),
@@ -1125,14 +1133,14 @@ async function loadWalletData(address) {
   const w = wallets.find(w=>w.address===address);
   if(!w) return;
   w.loading=true; w.error=null;
-  renderWalletCard(w);
+  renderWallets();
   try {
-    const {nxpc,neso} = await fetchBalances(address);
-    w.nxpc=nxpc; w.neso=neso; w.loading=false;
+    const {nxpc,neso,avax,nxpc_avax} = await fetchBalances(address);
+    w.nxpc=nxpc; w.neso=neso; w.avax=avax; w.nxpc_avax=nxpc_avax; w.loading=false;
   } catch(e) {
     w.error=e.message; w.loading=false;
   }
-  renderWalletCard(w);
+  renderWallets();
   updatePortfolio();
 }
 
