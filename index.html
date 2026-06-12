@@ -438,7 +438,8 @@ Ví sếp, 0x5678...efgh
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('nxpc')">NXPC <span id="wsort-nxpc" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('usdt')">USDT <span id="wsort-usdt" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('vnd')">VND <span id="wsort-vnd" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:#e84142;border-left:1px solid var(--border2)" onclick="wColSort('nxpc_avax')">NXPC(AVAX) <span id="wsort-nxpc_avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:#e84142;border-left:1px solid var(--border2)" onclick="wColSort('avax')">AVAX <span id="wsort-avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:#e84142" onclick="wColSort('nxpc_avax')">NXPC(AVAX) <span id="wsort-nxpc_avax" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:#e84142" onclick="wColSort('usdt_avax')">USDT(AVAX) <span id="wsort-usdt_avax" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:#e84142" onclick="wColSort('vnd_avax')">VND(AVAX) <span id="wsort-vnd_avax" style="opacity:.3">↕</span></th>
             <th></th>
@@ -1272,6 +1273,7 @@ function renderWallets() {
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(tNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(tUsdt,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(tVnd)}</td>
+    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(loaded.reduce((s,w)=>s+(w.avax||0),0),4)}</td>
     <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(tNxpcA,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(tUsdtA,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:#e84142">${f(tVndA)}</td>
