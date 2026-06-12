@@ -1249,7 +1249,7 @@ function renderWallets() {
       <td style="text-align:right;color:var(--green)">${w.nxpc!=null?fd2(w.nxpc,4):'—'}</td>
       <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
       <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
-      <td style="text-align:right;color:var(--blue)">${w.avax!=null?fd2(w.avax,4):'—'}</td>
+      <td style="text-align:right;color:#e84142">${w.avax!=null?fd2(w.avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(usdtA,2):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(vndA):'—'}</td>
@@ -1704,7 +1704,7 @@ function renderTeam() {
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
       <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
-      <td style="text-align:right;color:var(--blue)">${w.avax!=null?fd2(w.avax,4):'—'}</td>
+      <td style="text-align:right;color:#e84142">${w.avax!=null?fd2(w.avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax*liveNxpcUsd,2):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(w.nxpc_avax*liveNxpcUsd*(liveUsdVnd||0)):'—'}</td>
@@ -1724,7 +1724,7 @@ function renderTeam() {
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totVnd)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totAvax,4)}</td>
+    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(totAvax,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdtAvax,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${f(totVndAvax)}</td>
@@ -1748,7 +1748,7 @@ function renderTeam() {
     ${sc(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2))}
     ${sc(G, '🍁 HENESYS', G, 'VND',  f(totVnd))}
     ${scEmpty()}
-    ${sc(B, '🔺 AVALANCHE', B, 'AVAX', fd2(totAvax,4))}
+    ${sc('#e84142', '🔺 AVALANCHE', '#e84142', 'AVAX', fd2(totAvax,4))}
     ${sc(B, '🔺 AVALANCHE', B, 'NXPC', fd2(totNxpcAvax,2))}
     ${sc(B, '🔺 AVALANCHE', B, 'USDT', fd2(totUsdtAvax,2))}
     ${sc(B, '🔺 AVALANCHE', B, 'VND',  f(totVndAvax))}`;
