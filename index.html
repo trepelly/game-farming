@@ -1249,6 +1249,7 @@ function renderWallets() {
       <td style="text-align:right;color:var(--green)">${w.nxpc!=null?fd2(w.nxpc,4):'—'}</td>
       <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
       <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
+      <td style="text-align:right;color:var(--blue)">${w.avax!=null?fd2(w.avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(usdtA,2):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(vndA):'—'}</td>
@@ -1578,7 +1579,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','nxpc','neso','usdt','vnd','nxpc_avax','usdt_avax','vnd_avax'].forEach(c => {
+  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -1660,6 +1661,7 @@ function renderTeam() {
       if (teamSortCol==='label')     return (w.label||'').toLowerCase();
       if (teamSortCol==='nxpc')      return w.nxpc     ?? -1;
       if (teamSortCol==='neso')      return w.neso     ?? -1;
+      if (teamSortCol==='avax')      return w.avax ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
       if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
@@ -1702,6 +1704,7 @@ function renderTeam() {
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
       <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
+      <td style="text-align:right;color:var(--blue)">${w.avax!=null?fd2(w.avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax*liveNxpcUsd,2):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(w.nxpc_avax*liveNxpcUsd*(liveUsdVnd||0)):'—'}</td>
@@ -1712,6 +1715,7 @@ function renderTeam() {
   const totUsdt = totNeso*nesoRate;
   const totVnd  = totUsdt*usdvnd;
   const totNxpcAvax    = displayWallets.filter(w=>w.nxpc_avax!=null).reduce((s,w)=>s+(w.nxpc_avax||0),0);
+  const totAvax        = displayWallets.filter(w=>w.avax!=null).reduce((s,w)=>s+(w.avax||0),0);
   const totUsdtAvax    = totNxpcAvax * (liveNxpcUsd||0);
   const totVndAvax     = totUsdtAvax * (liveUsdVnd||0);
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
@@ -1720,6 +1724,7 @@ function renderTeam() {
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totVnd)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totAvax,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdtAvax,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${f(totVndAvax)}</td>
@@ -1743,7 +1748,7 @@ function renderTeam() {
     ${sc(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2))}
     ${sc(G, '🍁 HENESYS', G, 'VND',  f(totVnd))}
     ${scEmpty()}
-    ${scEmpty()}
+    ${sc(B, '🔺 AVALANCHE', B, 'AVAX', fd2(totAvax,4))}
     ${sc(B, '🔺 AVALANCHE', B, 'NXPC', fd2(totNxpcAvax,2))}
     ${sc(B, '🔺 AVALANCHE', B, 'USDT', fd2(totUsdtAvax,2))}
     ${sc(B, '🔺 AVALANCHE', B, 'VND',  f(totVndAvax))}`;
