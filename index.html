@@ -1733,7 +1733,7 @@ function renderTeam() {
 
   const G = 'var(--green)', B = 'var(--blue)', A = 'var(--amber)';
   const sc = (accent,chain,chainColor,label,val) =>
-    `<div class="stat"><div class="stat-accent" style="background:${accent}"></div>
+    `<div class="stat" style="border-top:2px solid ${accent}33"><div class="stat-accent" style="background:${accent}"></div>
       <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
       <div class="stat-label">${label}</div><div class="stat-val" style="color:${accent}">${val}</div></div>`;
   const scEmpty = () =>
