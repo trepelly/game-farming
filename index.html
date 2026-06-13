@@ -653,10 +653,7 @@ Ví sếp, 0x5678...efgh
         <div style="display:flex;gap:6px" id="mvp-wallet-nav" style="display:none"></div>
       </div>
       <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border2);box-shadow:var(--shadow)">
-        <iframe id="mvp-iframe"
-          style="width:100%;height:700px;border:none;background:var(--surface)"
-          loading="lazy">
-        </iframe>
+<div id="mvp-iframe"></div>
       </div>
       <div style="font-size:10px;color:var(--muted2);margin-top:8px;text-align:right">
         Powered by <a href="https://dune.com/rabel/maplestory-universe-weekly-mvp-points" target="_blank" style="color:var(--blue)">Dune Analytics</a>
@@ -2284,23 +2281,36 @@ function checkMvp() {
 }
 
 function showMvpIframe(address, label) {
-  const wrap  = document.getElementById('mvp-iframe-wrap');
-  const frame = document.getElementById('mvp-iframe');
-  const lbl   = document.getElementById('mvp-iframe-label');
+  const wrap = document.getElementById('mvp-iframe-wrap');
+  const lbl  = document.getElementById('mvp-iframe-label');
+  const url  = getMvpUrl(address);
   wrap.style.display = 'block';
   lbl.textContent = '🏅 MVP: ' + label;
-  // Use embed URL with parameter
-  frame.src = `https://dune.com/embeds/rabel/maplestory-universe-weekly-mvp-points/widget?${DUNE_PARAM}=${encodeURIComponent(address)}`;
-  frame.onerror = () => {
-    // Fallback: open in new tab if embed blocked
-    wrap.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px;text-align:center">
-      <div style="font-size:13px;color:var(--muted2);margin-bottom:12px">Embed bị chặn — mở trực tiếp trên Dune:</div>
-      <a href="${getMvpUrl(address)}" target="_blank"
-        style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;text-decoration:none;display:inline-block">
-        🔗 Xem MVP trên Dune ↗
+  // Replace iframe section with link card (Dune blocks all iframe embeds)
+  const frame = document.getElementById('mvp-iframe');
+  if (frame) {
+    frame.outerHTML = `<div id="mvp-link-card" style="background:var(--surface);border-radius:10px;padding:28px;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">🏅</div>
+      <div style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">${label}</div>
+      <div style="font-family:monospace;font-size:11px;color:var(--muted2);margin-bottom:20px">${address}</div>
+      <a href="${url}" target="_blank"
+        style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border-radius:8px;padding:12px 24px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;text-decoration:none">
+        Xem MVP Dashboard trên Dune ↗
+      </a>
+      <div style="font-size:10px;color:var(--muted2);margin-top:12px">Dune Analytics không cho phép nhúng iframe — click để mở tab mới</div>
+    </div>`;
+  } else {
+    const card = document.getElementById('mvp-link-card');
+    if (card) card.outerHTML = `<div id="mvp-link-card" style="background:var(--surface);border-radius:10px;padding:28px;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">🏅</div>
+      <div style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">${label}</div>
+      <div style="font-family:monospace;font-size:11px;color:var(--muted2);margin-bottom:20px">${address}</div>
+      <a href="${url}" target="_blank"
+        style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border-radius:8px;padding:12px 24px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;text-decoration:none">
+        Xem MVP Dashboard trên Dune ↗
       </a>
     </div>`;
-  };
+  }
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
