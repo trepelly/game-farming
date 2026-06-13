@@ -2324,7 +2324,38 @@ function fmtDate(d) {
   return d.toISOString().slice(0,10) + ' ' + d.toISOString().slice(11,19);
 }
 
-// Addresses to EXCLUDE from MVP point calculation
+// ── msutool Supabase API ──
+const MSUTOOL_SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
+const MSUTOOL_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
+
+async function fetchMsutoolStats(address) {
+  const r = await fetch(`${MSUTOOL_SUPABASE}/rest/v1/rpc/neso_wallet_personal_stats`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': MSUTOOL_KEY,
+      'Authorization': 'Bearer ' + MSUTOOL_KEY,
+    },
+    body: JSON.stringify({ wallet_address: address.toLowerCase() })
+  });
+  if (!r.ok) throw new Error('msutool API ' + r.status);
+  return await r.json();
+}
+
+async function fetchMvpFromMsutool(address) {
+  const stats = await fetchMsutoolStats(address);
+  const get = (m, w) => stats.find(s=>s.metric===m&&s.window_label===w)?.user_value || 0;
+  // Try 13w window first, fallback to all
+  const mint        = get('mint',        '13w') || get('mint',        'all') || 0;
+  const crystal     = get('crystal',     '13w') || get('crystal',     'all') || 0;
+  const marketplace = get('marketplace', '13w') || get('marketplace', 'all') || 0;
+  // MVP rule: mint + crystal + marketplace*5% = eligible spending
+  const eligible = mint + crystal + (marketplace * 0.05);
+  const points   = Math.floor(eligible / 100000);
+  return { points, source: 'msutool.com', mint, crystal, marketplace, eligible };
+}
+
+// Addresses to EXCLUDE from MVP point calculation (fallback on-chain)
 const EXCLUDED_RECIPIENTS = new Set([
   '0x0000000000000000000000000000000000000000', // burn address
   '0xcde2de9d407e0a7d07da78ca96184333d9fdc602', // Swap contract (NESO→NXPC)
@@ -2383,6 +2414,10 @@ async function fetchMvpWeeklyBreakdown(address) {
   const results = [];
   let cumulative = 0;
 
+  // Try msutool for total, use on-chain for weekly breakdown
+  let msutoolData = null;
+  try { msutoolData = await fetchMvpFromMsutool(address); } catch(e) {}
+
   // Get block range estimates for all weeks
   const weekData = await Promise.all(weeks.map(async (w, i) => {
     try {
@@ -2418,7 +2453,9 @@ function renderWeeklyTable(address, rows, label) {
   const f = n => Math.round(n).toLocaleString('vi-VN');
   const fd = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const lastRow = rows[rows.length-1];
-  const totalPts = lastRow?.cumulativePoints || 0;
+  // Use msutool total if available (more accurate), else use on-chain cumulative
+  const onChainTotal = lastRow?.cumulativePoints || 0;
+  const totalPts = (msutoolData && msutoolData.points > onChainTotal) ? msutoolData.points : onChainTotal;
   const tier = getTier(totalPts);
   const next = getNextTier(totalPts);
 
