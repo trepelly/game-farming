@@ -2446,10 +2446,10 @@ async function fetchMvpWeeklyBreakdown(address) {
     });
   });
 
-  return results;
+  return { rows: results, msutoolData };
 }
 
-function renderWeeklyTable(address, rows, label) {
+function renderWeeklyTable(address, rows, label, msutoolData) {
   const f = n => Math.round(n).toLocaleString('vi-VN');
   const fd = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const lastRow = rows[rows.length-1];
@@ -2595,7 +2595,7 @@ async function checkMvpBulk() {
   await Promise.all(parsed.map(async (p,i) => {
     await new Promise(r=>setTimeout(r, i*300));
     try {
-      const rows = await fetchMvpWeeklyBreakdown(p.addr);
+      const {rows} = await fetchMvpWeeklyBreakdown(p.addr);
       const last = rows[rows.length-1];
       const pts  = last?.cumulativePoints||0;
       const tier = getTier(pts);
@@ -2631,8 +2631,8 @@ async function checkMvp() {
   res.style.display = 'block';
   res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>Đang quét 13 tuần từ blockchain...</div>';
   try {
-    const rows = await fetchMvpWeeklyBreakdown(addr);
-    res.innerHTML = renderWeeklyTable(addr, rows, addr.slice(0,6)+'...'+addr.slice(-4));
+    const {rows, msutoolData} = await fetchMvpWeeklyBreakdown(addr);
+    res.innerHTML = renderWeeklyTable(addr, rows, addr.slice(0,6)+'...'+addr.slice(-4), msutoolData);
   } catch(e) {
     res.innerHTML = `<div style="color:var(--red);padding:12px">Lỗi: ${e.message}</div>`;
   }
@@ -2683,7 +2683,7 @@ async function openTeamMvpList() {
   await Promise.all(wallets.map(async (w,i) => {
     await new Promise(r=>setTimeout(r, i*300));
     try {
-      const rows = await fetchMvpWeeklyBreakdown(w.address);
+      const {rows} = await fetchMvpWeeklyBreakdown(w.address);
       const last = rows[rows.length-1];
       const pts  = last?.cumulativePoints || 0;
       const tier = getTier(pts);
