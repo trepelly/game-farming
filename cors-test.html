@@ -1,56 +1,36 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>NESO Recipients Test</title>
+<html><head><meta charset="UTF-8"><title>msu.gg API Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px;line-height:1.6}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 NESO Transfer Recipients</h2>
-<p style="color:#6b6b8a">Tìm swap contract address từ transfer logs</p>
+<body><h2>🔍 msu.gg API Test</h2>
 <pre id="out">Running...\n</pre>
 <script>
-const HENESYS = 'https://henesys-rpc.msu.io';
-const NESO    = '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08';
-const addr    = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
-const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-const fromTopic = '0x000000000000000000000000' + addr.slice(2).toLowerCase();
-
+const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out = document.getElementById('out');
 const log = (msg,cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
 
-async function rpc(method, params) {
-  const r = await fetch(HENESYS, {method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
-  const d = await r.json();
-  return d.result;
-}
+const tests = [
+  `https://msu.gg/api/wallet-analytics?address=${addr}`,
+  `https://msu.gg/api/wallet/${addr}/analytics`,
+  `https://msu.gg/api/v1/wallet-analytics?wallet=${addr}`,
+  `https://msu.gg/api/mvp?address=${addr}`,
+  `https://msu.gg/api/wallet/${addr}/mvp`,
+  `https://msu.gg/api/wallet/${addr}/spending`,
+  `https://msu.gg/api/analytics/${addr}`,
+];
 
 async function run() {
-  log('Fetching NESO transfer logs...');
-  const logs = await rpc('eth_getLogs', [{
-    address: NESO,
-    topics: [TRANSFER, fromTopic],
-    fromBlock: 'earliest',
-    toBlock: 'latest'
-  }]);
-  log(`Total logs: ${logs.length}`, 'ok');
-
-  // Count by recipient
-  const recipients = {};
-  logs.forEach(log => {
-    if (log.topics.length >= 3) {
-      const to = '0x' + log.topics[2].slice(-40);
-      const amt = log.data && log.data !== '0x' ? parseInt(log.data,16)/1e18 : 0;
-      if (!recipients[to]) recipients[to] = {count:0, total:0};
-      recipients[to].count++;
-      recipients[to].total += amt;
-    }
-  });
-
-  log('\nTop recipients (sorted by NESO amount):');
-  const sorted = Object.entries(recipients).sort((a,b)=>b[1].total-a[1].total);
-  sorted.slice(0,20).forEach(([addr,v]) => {
-    log(`  ${addr}  txs:${v.count}  total:${Math.round(v.total).toLocaleString()} NESO`,'ok');
-  });
+  for (const url of tests) {
+    log(`\n🔍 ${url}`);
+    try {
+      const r = await fetch(url, {headers:{'Accept':'application/json','Content-Type':'application/json'}});
+      const text = await r.text();
+      log(`   HTTP ${r.status}`, r.ok?'ok':'err');
+      log(`   ${text.slice(0,300)}`);
+    } catch(e) { log(`   ✗ ${e.message}`, 'err'); }
+  }
   log('\n✅ Done');
 }
-run().catch(e=>log('Error: '+e.message,'err'));
+run();
 </script></body></html>
