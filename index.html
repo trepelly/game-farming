@@ -633,16 +633,34 @@ Ví sếp, 0x5678...efgh
 
     <!-- Input -->
     <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">Nhập địa chỉ ví để check MVP</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input id="mvp-addr-input" type="text" placeholder="0x..."
-          style="flex:1;min-width:260px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:13px;color:var(--text);outline:none"
-          onkeydown="if(event.key==='Enter') checkMvp()"/>
-        <button onclick="checkMvp()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Check MVP</button>
+      <!-- Mode toggle -->
+      <div style="display:flex;gap:4px;margin-bottom:14px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2);width:fit-content">
+        <button id="mvp-mode-single" onclick="setMvpMode('single')" style="background:var(--accent);border:none;border-radius:6px;padding:7px 16px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">1 ví</button>
+        <button id="mvp-mode-bulk"   onclick="setMvpMode('bulk')"   style="background:transparent;border:none;border-radius:6px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Nhiều ví</button>
       </div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button onclick="openTeamMvpList()" style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">📋 Xem danh sách ví Team</button>
+
+      <!-- Single mode -->
+      <div id="mvp-input-single">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="mvp-addr-input" type="text" placeholder="0x..."
+            style="flex:1;min-width:260px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:13px;color:var(--text);outline:none"
+            onkeydown="if(event.key==='Enter') checkMvp()"/>
+          <button onclick="checkMvp()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Check MVP</button>
+        </div>
       </div>
+
+      <!-- Bulk mode -->
+      <div id="mvp-input-bulk" style="display:none">
+        <div style="font-size:10px;color:var(--muted2);margin-bottom:6px">Mỗi dòng 1 địa chỉ · Hỗ trợ: <code style="color:var(--accent)">0x...</code> · <code style="color:var(--accent)">tên 0x...</code></div>
+        <textarea id="mvp-bulk-ta" oninput="updateMvpBulkPreview()" rows="4"
+          placeholder="0x1234...&#10;Ví sếp 0x5678...&#10;Ví farm, 0xaaaa..."
+          style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div id="mvp-bulk-preview" style="font-size:10px;color:var(--muted2)">Nhập địa chỉ bên trên</div>
+          <button onclick="checkMvpBulk()" style="background:var(--accent);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Check tất cả</button>
+        </div>
+      </div>
+
       <div id="mvp-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
     </div>
 
@@ -2447,6 +2465,109 @@ function renderWeeklyTable(address, rows, label) {
         <a href="https://dune.com/rabel/maplestory-universe-weekly-mvp-points?wallet_address_tf0e36=${encodeURIComponent(address)}" target="_blank" style="margin-left:8px;color:var(--blue)">Xem Dune ↗</a>
       </div>
     </div>`;
+}
+
+function setMvpMode(mode) {
+  const isSingle = mode === 'single';
+  document.getElementById('mvp-input-single').style.display = isSingle ? '' : 'none';
+  document.getElementById('mvp-input-bulk').style.display   = isSingle ? 'none' : '';
+  document.getElementById('mvp-mode-single').style.background = isSingle ? 'var(--accent)' : 'transparent';
+  document.getElementById('mvp-mode-single').style.color      = isSingle ? '#fff' : 'var(--muted2)';
+  document.getElementById('mvp-mode-bulk').style.background   = isSingle ? 'transparent' : 'var(--accent)';
+  document.getElementById('mvp-mode-bulk').style.color        = isSingle ? 'var(--muted2)' : '#fff';
+  document.getElementById('mvp-err').textContent = '';
+}
+
+function updateMvpBulkPreview() {
+  const ta = document.getElementById('mvp-bulk-ta');
+  const p  = document.getElementById('mvp-bulk-preview');
+  if(!ta||!p) return;
+  const parsed = parseBulkLines(ta.value);
+  if(!parsed.length){p.textContent='Nhập địa chỉ bên trên';return;}
+  const v=parsed.filter(x=>x.valid).length, b=parsed.length-v;
+  p.innerHTML=(v?`<span style="color:var(--green)">✓ ${v} ví hợp lệ</span>`:'')+
+    (b?` · <span style="color:var(--red)">✗ ${b} lỗi</span>`:'');
+}
+
+async function checkMvpBulk() {
+  const ta  = document.getElementById('mvp-bulk-ta');
+  const err = document.getElementById('mvp-err');
+  const res = document.getElementById('mvp-single-result');
+  if(!ta) return;
+  const parsed = parseBulkLines(ta.value).filter(p=>p.valid);
+  if(!parsed.length){err.textContent='Không có địa chỉ hợp lệ';return;}
+  err.textContent = '';
+  res.style.display = 'block';
+  res.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted2)">
+    <span style="display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>
+    Đang quét ${parsed.length} ví...</div>`;
+
+  // Show summary table first, then load detail one by one
+  const wrap = document.getElementById('mvp-iframe-wrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div class="section-label" style="margin-bottom:0">🏅 MVP Status — Bulk</div>
+      <div id="mvp-bulk-prog" style="font-size:11px;color:var(--muted2)">0/${parsed.length} ví</div>
+    </div>
+    <div class="table-wrap" style="max-height:520px;overflow-y:auto">
+      <table>
+        <thead><tr>
+          <th style="text-align:center">#</th>
+          <th style="text-align:left">Tên</th>
+          <th style="text-align:left">Địa chỉ</th>
+          <th>Current Tier</th>
+          <th>13W Points</th>
+          <th>To Next</th>
+          <th>Next Tier</th>
+        </tr></thead>
+        <tbody id="mvp-bulk-tbody"></tbody>
+      </table>
+    </div>`;
+
+  const tbody = document.getElementById('mvp-bulk-tbody');
+  tbody.innerHTML = parsed.map((p,i)=>`
+    <tr id="mvpbr-${i}">
+      <td style="text-align:center;color:var(--muted2)">${i+1}</td>
+      <td style="font-weight:600">${p.label||p.addr.slice(0,6)+'...'+p.addr.slice(-4)}</td>
+      <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
+      <td colspan="4" style="text-align:center;color:var(--muted2);font-size:11px">
+        <span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:4px"></span>Loading...
+      </td>
+    </tr>`).join('');
+
+  const f = n=>Math.round(n).toLocaleString('vi-VN');
+  let done=0, totPts=0;
+  res.style.display='none';
+
+  await Promise.all(parsed.map(async (p,i) => {
+    await new Promise(r=>setTimeout(r, i*300));
+    try {
+      const rows = await fetchMvpWeeklyBreakdown(p.addr);
+      const last = rows[rows.length-1];
+      const pts  = last?.cumulativePoints||0;
+      const tier = getTier(pts);
+      const next = getNextTier(pts);
+      totPts += pts; done++;
+      document.getElementById('mvp-bulk-prog').textContent=`${done}/${parsed.length} ví`;
+      const row = document.getElementById(`mvpbr-${i}`);
+      if(row) row.innerHTML=`
+        <td style="text-align:center;color:var(--muted2)">${i+1}</td>
+        <td style="font-weight:600">${p.label||p.addr.slice(0,6)+'...'+p.addr.slice(-4)}</td>
+        <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
+        <td style="text-align:center;font-weight:700;color:${tier.color}">${tier.icon} ${tier.name}</td>
+        <td style="text-align:right">${f(pts)}</td>
+        <td style="text-align:right;color:var(--accent)">${next?f(next.min-pts):'—'}</td>
+        <td style="text-align:center;color:${next?.color||'var(--muted2)'}">${next?next.icon+' '+next.name:'🏆 Max'}</td>`;
+    } catch(e) {
+      done++;
+      const row = document.getElementById(`mvpbr-${i}`);
+      if(row) row.innerHTML=`<td>${i+1}</td><td>${p.label||'—'}</td>
+        <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
+        <td colspan="4" style="color:var(--red);font-size:11px">Lỗi</td>`;
+    }
+  }));
+  document.getElementById('mvp-bulk-prog').textContent=`✓ Xong ${parsed.length} ví`;
 }
 
 async function checkMvp() {
