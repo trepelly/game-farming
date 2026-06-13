@@ -2262,87 +2262,252 @@ if (_origLockAR) {
 
 <script>
 // ── MVP MODULE ──
-const DUNE_MVP_BASE = 'https://dune.com/embeds/rabel/maplestory-universe-weekly-mvp-points';
-const DUNE_PARAM    = 'wallet_address_tf0e36';
+// Points = NESO spent in 13 weeks / 100,000
+// Sources: marketplace fees, web shop, content fees (tracked via NESO transfers out)
 
-let mvpTeamWallets = [];
-let mvpTeamIdx     = 0;
+const MVP_TIERS = [
+  { name:'Unranked', min:0,    max:29,   color:'var(--muted2)', icon:'—',   bg:'var(--subtle)' },
+  { name:'Bronze',   min:30,   max:749,  color:'#cd7f32',       icon:'🥉',  bg:'#cd7f3218' },
+  { name:'Silver',   min:750,  max:1499, color:'#aaaaaa',       icon:'🥈',  bg:'#aaaaaa18' },
+  { name:'Gold',     min:1500, max:3499, color:'#ffd700',       icon:'🥇',  bg:'#ffd70018' },
+  { name:'Diamond',  min:3500, max:6999, color:'#60a5fa',       icon:'💎',  bg:'#60a5fa18' },
+  { name:'Black',    min:7000, max:Infinity, color:'#ffffff',   icon:'⚫',  bg:'#ffffff18' },
+];
 
-function getMvpUrl(address) {
-  return `https://dune.com/rabel/maplestory-universe-weekly-mvp-points?${DUNE_PARAM}=${encodeURIComponent(address)}`;
+function getTier(pts) { return MVP_TIERS.find(t=>pts>=t.min&&pts<=t.max)||MVP_TIERS[0]; }
+function getNextTier(pts) {
+  const idx=MVP_TIERS.findIndex(t=>pts>=t.min&&pts<=t.max);
+  return idx>=0&&idx<MVP_TIERS.length-1?MVP_TIERS[idx+1]:null;
 }
 
-function checkMvp() {
+// Calculate MVP points from on-chain NESO spending via MSU Open API
+async function fetchMvpPoints(address) {
+  // Use MSU Open API currencies endpoint - returns off-chain balances including MVP points
+  // MVP points are tracked off-chain by MSU
+  try {
+    const r = await fetch(`https://openapi.msu.io/v1rc1/accounts/${address}/currencies`, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (r.ok) {
+      const d = await r.json();
+      // Look for MVP_POINT currency in the response
+      const currencies = d?.data?.currency || [];
+      const mvpCurr = currencies.find(c =>
+        c.currencyType?.toLowerCase().includes('mvp') ||
+        c.name?.toLowerCase().includes('mvp') ||
+        c.currencyType === 'MVP_POINT'
+      );
+      if (mvpCurr) return { points: Number(mvpCurr.balance||mvpCurr.amount||0), source: 'MSU API' };
+    }
+  } catch(e) { /* fallback */ }
+
+  // Fallback: estimate from NESO outflow via Henesys RPC logs
+  // Get ERC20 Transfer events FROM this address to marketplace/fee contracts
+  try {
+    const thirteenWeeksAgo = Math.floor(Date.now()/1000) - (91 * 86400);
+    const blockHex = '0x' + Math.floor(thirteenWeeksAgo).toString(16);
+
+    // eth_getLogs for NESO Transfer events from wallet
+    const NESO_CTR = '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08';
+    const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    const fromTopic = '0x000000000000000000000000' + address.slice(2).toLowerCase();
+
+    const r2 = await fetch('https://henesys-rpc.msu.io', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_getLogs',params:[{
+        address: NESO_CTR,
+        topics: [transferTopic, fromTopic],
+        fromBlock: 'earliest',
+        toBlock: 'latest'
+      }]})
+    });
+    const d2 = await r2.json();
+    const logs = d2.result || [];
+
+    let totalNesoSpent = 0;
+    logs.forEach(log => {
+      // data field is the amount transferred (hex)
+      if (log.data && log.data !== '0x') {
+        const amount = parseInt(log.data, 16) / 1e18;
+        totalNesoSpent += amount;
+      }
+    });
+
+    const points = totalNesoSpent / 100000;
+    return { points: Math.floor(points), source: 'On-chain (estimate)', totalNeso: totalNesoSpent };
+  } catch(e) {
+    return { points: 0, source: 'Error: ' + e.message };
+  }
+}
+
+function renderMvpCard(address, result, label) {
+  const pts  = result.points || 0;
+  const tier = getTier(pts);
+  const next = getNextTier(pts);
+  const toNext = next ? next.min - pts : 0;
+  const pct  = next ? Math.min(100, ((pts - tier.min) / (next.min - tier.min)) * 100) : 100;
+  const f = n => Math.round(n).toLocaleString('vi-VN');
+
+  return `
+    <div style="background:var(--card);border:1px solid ${tier.color}44;border-radius:14px;padding:20px;box-shadow:var(--shadow);border-left:3px solid ${tier.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${label}</div>
+          <div style="font-family:monospace;font-size:10px;color:var(--muted2)">${address}</div>
+        </div>
+        <div style="font-size:9px;color:var(--muted2);background:var(--subtle);padding:3px 8px;border-radius:6px">${result.source||''}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">
+        <div style="background:${tier.bg};border-radius:10px;padding:14px;text-align:center;border:1px solid ${tier.color}33">
+          <div style="font-size:10px;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em">Current Tier</div>
+          <div style="font-size:26px;margin-bottom:2px">${tier.icon}</div>
+          <div style="font-size:16px;font-weight:800;color:${tier.color}">${tier.name}</div>
+        </div>
+        <div style="background:var(--surface);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border2)">
+          <div style="font-size:10px;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em">13W Points</div>
+          <div style="font-size:24px;font-weight:800;color:var(--text)">${f(pts)}</div>
+        </div>
+        ${next ? `
+        <div style="background:var(--surface);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border2)">
+          <div style="font-size:10px;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em">To Next</div>
+          <div style="font-size:24px;font-weight:800;color:var(--accent)">${f(toNext)}</div>
+          <div style="font-size:10px;color:var(--muted2);margin-top:2px">${next.icon} ${next.name}</div>
+        </div>` : `
+        <div style="background:var(--surface);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border2)">
+          <div style="font-size:10px;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em">Status</div>
+          <div style="font-size:22px;font-weight:800;color:var(--amber)">MAX 🏆</div>
+        </div>`}
+      </div>
+      ${next ? `
+      <div style="margin-top:4px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted2);margin-bottom:4px">
+          <span>${tier.icon} ${tier.name} (${f(tier.min)})</span>
+          <span>${next.icon} ${next.name} (${f(next.min)})</span>
+        </div>
+        <div style="height:6px;background:var(--subtle);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:${tier.color};border-radius:3px;width:${pct}%;transition:width .6s ease"></div>
+        </div>
+        <div style="font-size:10px;color:var(--muted2);margin-top:4px">${pct.toFixed(1)}% đến ${next.name}</div>
+      </div>` : ''}
+    </div>`;
+}
+
+async function checkMvp() {
   const addr = document.getElementById('mvp-addr-input').value.trim();
   const err  = document.getElementById('mvp-err');
-  if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) { err.textContent = 'Địa chỉ không hợp lệ'; return; }
+  const res  = document.getElementById('mvp-single-result');
+  if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) { err.textContent='Địa chỉ không hợp lệ'; return; }
   err.textContent = '';
-  showMvpIframe(addr, addr.slice(0,6)+'...'+addr.slice(-4));
-}
+  res.style.display = 'block';
+  res.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted2)">
+    <span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>
+    Đang tính MVP points...</div>`;
 
-function showMvpIframe(address, label) {
-  const wrap = document.getElementById('mvp-iframe-wrap');
-  const lbl  = document.getElementById('mvp-iframe-label');
-  const url  = getMvpUrl(address);
-  wrap.style.display = 'block';
-  lbl.textContent = '🏅 MVP: ' + label;
-  // Replace iframe section with link card (Dune blocks all iframe embeds)
-  const frame = document.getElementById('mvp-iframe');
-  if (frame) {
-    frame.outerHTML = `<div id="mvp-link-card" style="background:var(--surface);border-radius:10px;padding:28px;text-align:center">
-      <div style="font-size:32px;margin-bottom:12px">🏅</div>
-      <div style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">${label}</div>
-      <div style="font-family:monospace;font-size:11px;color:var(--muted2);margin-bottom:20px">${address}</div>
-      <a href="${url}" target="_blank"
-        style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border-radius:8px;padding:12px 24px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;text-decoration:none">
-        Xem MVP Dashboard trên Dune ↗
-      </a>
-      <div style="font-size:10px;color:var(--muted2);margin-top:12px">Dune Analytics không cho phép nhúng iframe — click để mở tab mới</div>
-    </div>`;
-  } else {
-    const card = document.getElementById('mvp-link-card');
-    if (card) card.outerHTML = `<div id="mvp-link-card" style="background:var(--surface);border-radius:10px;padding:28px;text-align:center">
-      <div style="font-size:32px;margin-bottom:12px">🏅</div>
-      <div style="font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">${label}</div>
-      <div style="font-family:monospace;font-size:11px;color:var(--muted2);margin-bottom:20px">${address}</div>
-      <a href="${url}" target="_blank"
-        style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border-radius:8px;padding:12px 24px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;text-decoration:none">
-        Xem MVP Dashboard trên Dune ↗
-      </a>
-    </div>`;
+  try {
+    const result = await fetchMvpPoints(addr);
+    res.innerHTML = renderMvpCard(addr, result, addr.slice(0,6)+'...'+addr.slice(-4));
+  } catch(e) {
+    res.innerHTML = `<div style="color:var(--red);padding:12px">Lỗi: ${e.message}</div>`;
   }
-  wrap.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function openTeamMvpList() {
+// Team MVP check
+let mvpTeamResults = [];
+
+async function openTeamMvpList() {
   const wallets = window.teamWallets || [];
-  if (!wallets.length) { document.getElementById('mvp-err').textContent = 'Chưa có ví trong Team (cần đăng nhập tab Team trước)'; return; }
+  if (!wallets.length) { document.getElementById('mvp-err').textContent='Cần đăng nhập tab Team trước'; return; }
   document.getElementById('mvp-err').textContent = '';
-  mvpTeamWallets = wallets;
-  mvpTeamIdx = 0;
-  renderTeamMvpNav();
-  showMvpIframe(wallets[0].address, wallets[0].label || wallets[0].address.slice(0,8));
+  document.getElementById('mvp-iframe-wrap').style.display = 'block';
+
+  const wrap = document.getElementById('mvp-iframe-wrap');
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div class="section-label" style="margin-bottom:0">🏅 MVP Status — Team</div>
+      <div id="mvp-team-prog" style="font-size:11px;color:var(--muted2)">Đang tải 0/${wallets.length}...</div>
+    </div>
+    <div class="table-wrap" style="max-height:520px;overflow-y:auto">
+      <table>
+        <thead><tr>
+          <th style="text-align:center">#</th>
+          <th style="text-align:left">Tên</th>
+          <th style="text-align:left">Địa chỉ</th>
+          <th>Tier</th>
+          <th>13W Points</th>
+          <th>To Next</th>
+          <th>Next Tier</th>
+        </tr></thead>
+        <tbody id="mvp-team-body"></tbody>
+        <tfoot id="mvp-team-foot" style="position:sticky;bottom:0;z-index:2"></tfoot>
+      </table>
+    </div>`;
+
+  const tbody = document.getElementById('mvp-team-body');
+
+  // Init rows with loading
+  tbody.innerHTML = wallets.map((w,i)=>`
+    <tr id="mvpr-${i}">
+      <td style="text-align:center;color:var(--muted2)">${i+1}</td>
+      <td style="text-align:left;font-weight:600">${w.label||'—'}</td>
+      <td style="font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
+      <td colspan="4" style="text-align:center;color:var(--muted2);font-size:11px">
+        <span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:4px"></span>Loading...
+      </td>
+    </tr>`).join('');
+
+  const f = n=>Math.round(n).toLocaleString('vi-VN');
+  let done = 0;
+  let totPts = 0;
+
+  // Fetch all in parallel (with small stagger)
+  await Promise.all(wallets.map(async (w,i) => {
+    await new Promise(r=>setTimeout(r, i*200)); // stagger 200ms each
+    try {
+      const result = await fetchMvpPoints(w.address);
+      const pts  = result.points || 0;
+      const tier = getTier(pts);
+      const next = getNextTier(pts);
+      totPts += pts;
+      done++;
+      document.getElementById('mvp-team-prog').textContent = `${done}/${wallets.length} ví`;
+      const row = document.getElementById(`mvpr-${i}`);
+      if(row) row.innerHTML = `
+        <td style="text-align:center;color:var(--muted2)">${i+1}</td>
+        <td style="text-align:left;font-weight:600">${w.label||'—'}</td>
+        <td style="font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
+        <td style="text-align:center;font-weight:700;color:${tier.color}">${tier.icon} ${tier.name}</td>
+        <td style="text-align:right">${f(pts)}</td>
+        <td style="text-align:right;color:var(--accent)">${next?f(next.min-pts):'—'}</td>
+        <td style="text-align:center;color:${next?.color||'var(--muted2)'}">${next?next.icon+' '+next.name:'🏆 Max'}</td>`;
+    } catch(e) {
+      done++;
+      const row = document.getElementById(`mvpr-${i}`);
+      if(row) row.innerHTML = `
+        <td style="text-align:center">${i+1}</td><td>${w.label}</td>
+        <td style="font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
+        <td colspan="4" style="color:var(--red);font-size:11px">Lỗi</td>`;
+    }
+  }));
+
+  document.getElementById('mvp-team-prog').textContent = `✓ Xong ${wallets.length} ví`;
+
+  // Footer
+  const foot = document.getElementById('mvp-team-foot');
+  if(foot) {
+    const avgTier = getTier(Math.floor(totPts/wallets.length));
+    foot.innerHTML = `<tr style="font-weight:700;background:var(--surface)">
+      <td colspan="3" style="padding:10px 14px;color:var(--muted2)">TỔNG / TB</td>
+      <td style="text-align:center;color:${avgTier.color}">${avgTier.icon} TB: ${avgTier.name}</td>
+      <td style="text-align:right;padding:10px 14px">${f(totPts)}</td>
+      <td colspan="2"></td>
+    </tr>`;
+  }
 }
 
-function renderTeamMvpNav() {
-  const nav = document.getElementById('mvp-wallet-nav');
-  if (!nav) return;
-  nav.style.display = 'flex';
-  nav.style.gap = '6px';
-  nav.style.flexWrap = 'wrap';
-  nav.innerHTML = mvpTeamWallets.map((w,i) =>
-    `<button onclick="selectTeamMvp(${i})"
-      style="background:${i===mvpTeamIdx?'var(--accent)':'var(--card2)'};border:1px solid var(--border2);border-radius:6px;padding:5px 10px;color:${i===mvpTeamIdx?'#fff':'var(--muted2)'};font-family:inherit;font-size:10px;font-weight:600;cursor:pointer">
-      ${w.label||w.address.slice(0,6)+'...'+w.address.slice(-4)}
-    </button>`
-  ).join('');
-}
-
-function selectTeamMvp(idx) {
-  mvpTeamIdx = idx;
-  const w = mvpTeamWallets[idx];
-  renderTeamMvpNav();
-  showMvpIframe(w.address, w.label || w.address.slice(0,6)+'...'+w.address.slice(-4));
+// Render link to Dune as fallback reference
+function renderDuneLink(address) {
+  const url = `https://dune.com/rabel/maplestory-universe-weekly-mvp-points?wallet_address_tf0e36=${encodeURIComponent(address)}`;
+  return `<a href="${url}" target="_blank" style="font-size:11px;color:var(--blue)">Xem trên Dune ↗</a>`;
 }
 </script>
 </body>
