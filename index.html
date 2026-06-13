@@ -632,7 +632,7 @@ Ví sếp, 0x5678...efgh
     <div class="section-label">MVP Status Checker</div>
 
     <!-- Input -->
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:24px">
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px">
       <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">Nhập địa chỉ ví để check MVP</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input id="mvp-addr-input" type="text" placeholder="0x..."
@@ -641,46 +641,38 @@ Ví sếp, 0x5678...efgh
         <button onclick="checkMvp()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Check MVP</button>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button onclick="checkTeamMvp()" style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">📋 Check tất cả ví Team</button>
+        <button onclick="openTeamMvpList()" style="background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">📋 Xem danh sách ví Team</button>
       </div>
       <div id="mvp-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
     </div>
 
-    <!-- Single result -->
-    <div id="mvp-single-result" style="display:none;margin-bottom:24px"></div>
-
-    <!-- Team results table -->
-    <div id="mvp-team-section" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-        <div class="section-label" style="margin-bottom:0">MVP Status — Team</div>
-        <div id="mvp-team-progress" style="font-size:11px;color:var(--muted2)"></div>
+    <!-- Dune iframe embed -->
+    <div id="mvp-iframe-wrap" style="display:none;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:12px;font-weight:600;color:var(--text)" id="mvp-iframe-label"></div>
+        <div style="display:flex;gap:6px" id="mvp-wallet-nav" style="display:none"></div>
       </div>
-      <div class="table-wrap" style="max-height:520px;overflow-y:auto">
-        <table>
-          <thead><tr>
-            <th style="text-align:center">#</th>
-            <th style="text-align:left">Tên</th>
-            <th style="text-align:left">Địa chỉ</th>
-            <th>Current Tier</th>
-            <th>13W Points</th>
-            <th>To Next Tier</th>
-            <th>Next Tier</th>
-          </tr></thead>
-          <tbody id="mvp-team-tbody"></tbody>
-        </table>
+      <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border2);box-shadow:var(--shadow)">
+        <iframe id="mvp-iframe"
+          style="width:100%;height:700px;border:none;background:var(--surface)"
+          loading="lazy">
+        </iframe>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:8px;text-align:right">
+        Powered by <a href="https://dune.com/rabel/maplestory-universe-weekly-mvp-points" target="_blank" style="color:var(--blue)">Dune Analytics</a>
       </div>
     </div>
 
     <!-- Info -->
-    <div style="background:var(--blue-bg);border:1px solid var(--blue)25;border-radius:12px;padding:14px 18px;font-size:11px;color:var(--muted2);line-height:1.7;margin-top:16px">
+    <div style="background:var(--blue-bg);border:1px solid var(--blue)25;border-radius:12px;padding:14px 18px;font-size:11px;color:var(--muted2);line-height:1.7">
       <b style="color:var(--blue)">ℹ️ MVP Tiers</b> · 
       Unranked: &lt;30 · 
       <span style="color:#cd7f32">🥉 Bronze: 30-749</span> · 
       <span style="color:#aaa">🥈 Silver: 750-1,499</span> · 
       <span style="color:#ffd700">🥇 Gold: 1,500-3,499</span> · 
       <span style="color:#b9f2ff">💎 Diamond: 3,500-6,999</span> · 
-      <span style="color:#111;background:#e2e2e2;padding:1px 5px;border-radius:3px">⚫ Black: 7,000+</span><br/>
-      Dữ liệu từ Dune Analytics · Points = NESO spent / 100,000 · 13-week rolling window
+      <span style="color:#fff;background:#222;padding:1px 5px;border-radius:3px">⚫ Black: 7,000+</span><br/>
+      Points = NESO spent / 100,000 · 13-week rolling window (Thu–Wed UTC)
     </div>
   </div>
 
@@ -2273,165 +2265,74 @@ if (_origLockAR) {
 
 <script>
 // ── MVP MODULE ──
-const DUNE_API_KEY = 'IUvWuQjdyISb1WeE34nusHfzeuxUXfVy';
-const DUNE_QUERY_ID = '7504910';
+const DUNE_MVP_BASE = 'https://dune.com/embeds/rabel/maplestory-universe-weekly-mvp-points';
+const DUNE_PARAM    = 'wallet_address_tf0e36';
 
-const MVP_TIERS = [
-  { name:'Unranked', min:0,    max:29,   color:'var(--muted2)', icon:'—' },
-  { name:'Bronze',   min:30,   max:749,  color:'#cd7f32',       icon:'🥉' },
-  { name:'Silver',   min:750,  max:1499, color:'#aaaaaa',       icon:'🥈' },
-  { name:'Gold',     min:1500, max:3499, color:'#ffd700',       icon:'🥇' },
-  { name:'Diamond',  min:3500, max:6999, color:'#b9f2ff',       icon:'💎' },
-  { name:'Black',    min:7000, max:Infinity, color:'#ffffff',   icon:'⚫' },
-];
+let mvpTeamWallets = [];
+let mvpTeamIdx     = 0;
 
-function getTier(points) {
-  return MVP_TIERS.find(t => points >= t.min && points <= t.max) || MVP_TIERS[0];
+function getMvpUrl(address) {
+  return `https://dune.com/rabel/maplestory-universe-weekly-mvp-points?${DUNE_PARAM}=${encodeURIComponent(address)}`;
 }
 
-function getNextTier(points) {
-  const idx = MVP_TIERS.findIndex(t => points >= t.min && points <= t.max);
-  return idx < MVP_TIERS.length - 1 ? MVP_TIERS[idx + 1] : null;
-}
-
-async function fetchMvpData(address) {
-  // Execute query with wallet_address parameter
-  const execRes = await fetch(`https://api.dune.com/api/v1/query/${DUNE_QUERY_ID}/execute`, {
-    method: 'POST',
-    headers: { 'X-Dune-Api-Key': DUNE_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query_parameters: { wallet_address: address.toLowerCase() } })
-  });
-  const execData = await execRes.json();
-  if (!execData.execution_id) throw new Error(execData.error || 'Failed to execute query');
-
-  const execId = execData.execution_id;
-
-  // Poll for results
-  for (let i = 0; i < 30; i++) {
-    await new Promise(r => setTimeout(r, 2000));
-    const statusRes = await fetch(`https://api.dune.com/api/v1/execution/${execId}/results`, {
-      headers: { 'X-Dune-Api-Key': DUNE_API_KEY }
-    });
-    const statusData = await statusRes.json();
-    if (statusData.state === 'QUERY_STATE_COMPLETED') {
-      return statusData.result?.rows?.[0] || null;
-    }
-    if (statusData.state === 'QUERY_STATE_FAILED') throw new Error('Query failed');
-  }
-  throw new Error('Timeout waiting for results');
-}
-
-function renderMvpCard(data, label) {
-  const points = data?.total_points_13w || data?.points_13w || 0;
-  const tier   = getTier(points);
-  const next   = getNextTier(points);
-  const toNext = next ? next.min - points : 0;
-  const f = n => Math.round(n).toLocaleString('vi-VN');
-  return `
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:24px;box-shadow:var(--shadow)">
-      <div style="font-size:11px;color:var(--muted2);margin-bottom:16px">${label}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
-        <div style="text-align:center;padding:16px;background:var(--surface);border-radius:10px;border:1px solid var(--border2)">
-          <div style="font-size:11px;color:var(--muted2);margin-bottom:8px">Current Tier</div>
-          <div style="font-size:28px;margin-bottom:4px">${tier.icon}</div>
-          <div style="font-size:20px;font-weight:800;color:${tier.color}">${tier.name}</div>
-        </div>
-        <div style="text-align:center;padding:16px;background:var(--surface);border-radius:10px;border:1px solid var(--border2)">
-          <div style="font-size:11px;color:var(--muted2);margin-bottom:8px">13W Points</div>
-          <div style="font-size:28px;font-weight:800;color:var(--text)">${f(points)}</div>
-        </div>
-        ${next ? `
-        <div style="text-align:center;padding:16px;background:var(--surface);border-radius:10px;border:1px solid var(--border2)">
-          <div style="font-size:11px;color:var(--muted2);margin-bottom:8px">To Next Tier</div>
-          <div style="font-size:28px;font-weight:800;color:var(--accent)">${f(toNext)}</div>
-          <div style="font-size:11px;color:var(--muted2)">${next.icon} ${next.name}</div>
-        </div>` : `
-        <div style="text-align:center;padding:16px;background:var(--surface);border-radius:10px;border:1px solid var(--border2)">
-          <div style="font-size:11px;color:var(--muted2);margin-bottom:8px">Next Tier</div>
-          <div style="font-size:24px;font-weight:800;color:var(--amber)">MAX 🏆</div>
-        </div>`}
-      </div>
-    </div>`;
-}
-
-async function checkMvp() {
+function checkMvp() {
   const addr = document.getElementById('mvp-addr-input').value.trim();
   const err  = document.getElementById('mvp-err');
-  const res  = document.getElementById('mvp-single-result');
   if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) { err.textContent = 'Địa chỉ không hợp lệ'; return; }
   err.textContent = '';
-  res.style.display = 'block';
-  res.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted2)">
-    <span style="display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>
-    Đang query Dune Analytics...</div>`;
-  try {
-    const data = await fetchMvpData(addr);
-    if (!data) {
-      res.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:24px;text-align:center;color:var(--muted2)">
-        Không tìm thấy dữ liệu cho ví này. Ví có thể chưa có hoạt động MVP.</div>`;
-      return;
-    }
-    res.innerHTML = renderMvpCard(data, addr);
-  } catch(e) {
-    res.innerHTML = `<div style="color:var(--red);padding:12px">Lỗi: ${e.message}</div>`;
-  }
+  showMvpIframe(addr, addr.slice(0,6)+'...'+addr.slice(-4));
 }
 
-async function checkTeamMvp() {
-  if (!teamUser) { document.getElementById('mvp-err').textContent = 'Cần đăng nhập tab Team trước'; return; }
+function showMvpIframe(address, label) {
+  const wrap  = document.getElementById('mvp-iframe-wrap');
+  const frame = document.getElementById('mvp-iframe');
+  const lbl   = document.getElementById('mvp-iframe-label');
+  wrap.style.display = 'block';
+  lbl.textContent = '🏅 MVP: ' + label;
+  // Use embed URL with parameter
+  frame.src = `https://dune.com/embeds/rabel/maplestory-universe-weekly-mvp-points/widget?${DUNE_PARAM}=${encodeURIComponent(address)}`;
+  frame.onerror = () => {
+    // Fallback: open in new tab if embed blocked
+    wrap.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px;text-align:center">
+      <div style="font-size:13px;color:var(--muted2);margin-bottom:12px">Embed bị chặn — mở trực tiếp trên Dune:</div>
+      <a href="${getMvpUrl(address)}" target="_blank"
+        style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;text-decoration:none;display:inline-block">
+        🔗 Xem MVP trên Dune ↗
+      </a>
+    </div>`;
+  };
+  wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function openTeamMvpList() {
   const wallets = window.teamWallets || [];
-  if (!wallets.length) { document.getElementById('mvp-err').textContent = 'Chưa có ví trong Team'; return; }
-
-  const section = document.getElementById('mvp-team-section');
-  const tbody   = document.getElementById('mvp-team-tbody');
-  const progress= document.getElementById('mvp-team-progress');
-  section.style.display = 'block';
+  if (!wallets.length) { document.getElementById('mvp-err').textContent = 'Chưa có ví trong Team (cần đăng nhập tab Team trước)'; return; }
   document.getElementById('mvp-err').textContent = '';
+  mvpTeamWallets = wallets;
+  mvpTeamIdx = 0;
+  renderTeamMvpNav();
+  showMvpIframe(wallets[0].address, wallets[0].label || wallets[0].address.slice(0,8));
+}
 
-  tbody.innerHTML = wallets.map((w,i) => `
-    <tr id="mvp-row-${i}">
-      <td style="text-align:center;color:var(--muted2)">${i+1}</td>
-      <td style="text-align:left;font-weight:600">${w.label||'—'}</td>
-      <td style="text-align:left;font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
-      <td colspan="4" style="text-align:center;color:var(--muted2)">
-        <span style="display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"></span>Loading...
-      </td>
-    </tr>`).join('');
+function renderTeamMvpNav() {
+  const nav = document.getElementById('mvp-wallet-nav');
+  if (!nav) return;
+  nav.style.display = 'flex';
+  nav.style.gap = '6px';
+  nav.style.flexWrap = 'wrap';
+  nav.innerHTML = mvpTeamWallets.map((w,i) =>
+    `<button onclick="selectTeamMvp(${i})"
+      style="background:${i===mvpTeamIdx?'var(--accent)':'var(--card2)'};border:1px solid var(--border2);border-radius:6px;padding:5px 10px;color:${i===mvpTeamIdx?'#fff':'var(--muted2)'};font-family:inherit;font-size:10px;font-weight:600;cursor:pointer">
+      ${w.label||w.address.slice(0,6)+'...'+w.address.slice(-4)}
+    </button>`
+  ).join('');
+}
 
-  // Sequential to avoid rate limiting
-  for (let i = 0; i < wallets.length; i++) {
-    const w = wallets[i];
-    progress.textContent = `${i+1} / ${wallets.length} ví`;
-    try {
-      const data = await fetchMvpData(w.address);
-      const points = data?.total_points_13w || data?.points_13w || 0;
-      const tier   = getTier(points);
-      const next   = getNextTier(points);
-      const toNext = next ? next.min - points : 0;
-      const f = n => Math.round(n).toLocaleString('vi-VN');
-      const row = document.getElementById(`mvp-row-${i}`);
-      if (row) row.innerHTML = `
-        <td style="text-align:center;color:var(--muted2)">${i+1}</td>
-        <td style="text-align:left;font-weight:600">${w.label||'—'}</td>
-        <td style="text-align:left;font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
-        <td style="text-align:center;font-weight:700;color:${tier.color}">${tier.icon} ${tier.name}</td>
-        <td style="text-align:right">${f(points)}</td>
-        <td style="text-align:right;color:var(--accent)">${next ? f(toNext) : '—'}</td>
-        <td style="text-align:center;color:${next?.color||'var(--muted2)'}'">${next ? next.icon+' '+next.name : '🏆 Max'}</td>`;
-    } catch(e) {
-      const row = document.getElementById(`mvp-row-${i}`);
-      if (row) row.innerHTML = `
-        <td style="text-align:center">${i+1}</td>
-        <td style="text-align:left">${w.label}</td>
-        <td style="font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
-        <td colspan="4" style="color:var(--red);font-size:11px">Lỗi: ${e.message}</td>`;
-    }
-    // Small delay between requests
-    if (i < wallets.length - 1) await new Promise(r => setTimeout(r, 500));
-  }
-  progress.textContent = `✓ Xong ${wallets.length} ví`;
+function selectTeamMvp(idx) {
+  mvpTeamIdx = idx;
+  const w = mvpTeamWallets[idx];
+  renderTeamMvpNav();
+  showMvpIframe(w.address, w.label || w.address.slice(0,6)+'...'+w.address.slice(-4));
 }
 </script>
-
 </body>
-</html>
