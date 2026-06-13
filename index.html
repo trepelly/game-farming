@@ -2324,7 +2324,14 @@ function fmtDate(d) {
   return d.toISOString().slice(0,10) + ' ' + d.toISOString().slice(11,19);
 }
 
-// Fetch NESO transfer logs for a wallet in a time range using eth_getLogs
+// Addresses to EXCLUDE from MVP point calculation
+const EXCLUDED_RECIPIENTS = new Set([
+  '0x0000000000000000000000000000000000000000', // burn address
+  '0xcde2de9d407e0a7d07da78ca96184333d9fdc602', // Swap contract (NESO→NXPC)
+  '0x07e49ad54fcd23f6e7b911c2068f0148d1827c08', // NESO contract itself
+]);
+
+// Fetch NESO transfer logs, excluding swap/burn transactions
 async function fetchNesoSpentInRange(address, fromBlock, toBlock) {
   const NESO_CTR  = '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08';
   const TRANSFER  = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
@@ -2341,10 +2348,18 @@ async function fetchNesoSpentInRange(address, fromBlock, toBlock) {
   const d = await r.json();
   if (d.error) throw new Error(d.error.message);
   let total = 0;
+  let excluded = 0;
   (d.result||[]).forEach(log => {
-    if (log.data && log.data !== '0x') total += parseInt(log.data,16) / 1e18;
+    if (!log.data || log.data === '0x') return;
+    const recipient = ('0x' + log.topics[2].slice(-40)).toLowerCase();
+    const amount = parseInt(log.data,16) / 1e18;
+    if (EXCLUDED_RECIPIENTS.has(recipient)) {
+      excluded += amount;
+      return; // skip swap/burn
+    }
+    total += amount;
   });
-  return total;
+  return { spent: total, excluded };
 }
 
 // Get block number closest to a timestamp using binary search
@@ -2373,9 +2388,9 @@ async function fetchMvpWeeklyBreakdown(address) {
     try {
       const fromBlock = await getBlockAtTime(w.start.getTime());
       const toBlock   = i === weeks.length-1 ? 'latest' : await getBlockAtTime(w.end.getTime());
-      const nesoSpent = await fetchNesoSpentInRange(address, fromBlock, toBlock);
-      const pts = Math.floor(nesoSpent / 100000);
-      return { week: w, pts, nesoSpent };
+      const result = await fetchNesoSpentInRange(address, fromBlock, toBlock);
+      const pts = Math.floor(result.spent / 100000);
+      return { week: w, pts, nesoSpent: result.spent, excluded: result.excluded };
     } catch(e) {
       return { week: w, pts: 0, nesoSpent: 0, error: e.message };
     }
@@ -2461,7 +2476,7 @@ function renderWeeklyTable(address, rows, label) {
         </table>
       </div>
       <div style="font-size:10px;color:var(--muted2);margin-top:8px">
-        ⚠️ Dữ liệu ước tính từ NESO Transfer logs · Có thể chênh lệch với Dune (marketplace fees tính khác)
+        ⚠️ Đã loại trừ: giao dịch swap NESO↔NXPC và burn · In-game spending + marketplace được tính · Có thể chênh lệch nhỏ với Dune
         <a href="https://dune.com/rabel/maplestory-universe-weekly-mvp-points?wallet_address_tf0e36=${encodeURIComponent(address)}" target="_blank" style="margin-left:8px;color:var(--blue)">Xem Dune ↗</a>
       </div>
     </div>`;
