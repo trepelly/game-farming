@@ -1,33 +1,34 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>msu.gg API Test</title>
+<html><head><meta charset="UTF-8"><title>msutool.com API Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px;line-height:1.6}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 msu.gg API Test</h2>
+<body><h2>🔍 msutool.com API Test</h2>
 <pre id="out">Running...\n</pre>
 <script>
-const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
+const addr = '0x3c7854d9edb3a60df46343a5c0f2d418ce7ae806';
 const out = document.getElementById('out');
 const log = (msg,cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
 
 const tests = [
-  `https://msu.gg/api/wallet-analytics?address=${addr}`,
-  `https://msu.gg/api/wallet/${addr}/analytics`,
-  `https://msu.gg/api/v1/wallet-analytics?wallet=${addr}`,
-  `https://msu.gg/api/mvp?address=${addr}`,
-  `https://msu.gg/api/wallet/${addr}/mvp`,
-  `https://msu.gg/api/wallet/${addr}/spending`,
-  `https://msu.gg/api/analytics/${addr}`,
+  `https://msutool.com/api/economy?tab=neso&wallet=${addr}`,
+  `https://msutool.com/api/neso?wallet=${addr}`,
+  `https://msutool.com/api/wallet/${addr}/economy`,
+  `https://msutool.com/api/wallet/${addr}/neso`,
+  `https://msutool.com/api/v1/economy?wallet=${addr}`,
+  `https://msutool.com/api/mvp?wallet=${addr}`,
+  `https://api.msutool.com/economy?wallet=${addr}`,
+  `https://api.msutool.com/neso?wallet=${addr}`,
 ];
 
 async function run() {
   for (const url of tests) {
-    log(`\n🔍 ${url}`);
+    log(`\n🔍 ${url.replace('https://','')}`);
     try {
-      const r = await fetch(url, {headers:{'Accept':'application/json','Content-Type':'application/json'}});
+      const r = await fetch(url, {headers:{'Accept':'application/json'}});
       const text = await r.text();
-      log(`   HTTP ${r.status}`, r.ok?'ok':'err');
-      log(`   ${text.slice(0,300)}`);
+      log(`   HTTP ${r.status} | CORS: ${r.headers.get('access-control-allow-origin')||'(none)'}`, r.ok?'ok':'err');
+      log(`   ${text.slice(0,400)}`);
     } catch(e) { log(`   ✗ ${e.message}`, 'err'); }
   }
   log('\n✅ Done');
