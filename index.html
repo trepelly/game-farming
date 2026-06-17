@@ -2828,6 +2828,7 @@ async function loadTeamMvpPoints() {
       w.mvpPoints = calc.points;
       w.mvpTier   = getTier(calc.points);
     } catch(e) {
+      console.warn('MVP load error for', w.address, e.message);
       w.mvpPoints = 0;
       w.mvpTier   = getTier(0);
     }
@@ -2839,6 +2840,9 @@ async function loadTeamMvpPoints() {
 }
 
 function updateMvpCell(w) {
+  // Also store in teamWallets to survive re-renders
+  const tw = (window.teamWallets||[]).find(x=>x.address===w.address);
+  if(tw) { tw.mvpPoints = w.mvpPoints; tw.mvpTier = w.mvpTier; }
   // Find the row by address in the current DOM
   const cells = document.querySelectorAll('#team-tbody td[data-addr="' + w.address + '"]');
   if (cells.length) {
