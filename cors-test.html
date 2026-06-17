@@ -1,32 +1,34 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MVP API Debug</title>
+<html><head><meta charset="UTF-8"><title>maplen.gg API Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 MVP API Debug</h2>
+<body><h2>🔍 maplen.gg API Test</h2>
 <pre id="out">Testing...\n</pre>
 <script>
-const SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
-const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
-const addr = '0xd3eb24b3231171615c94905c5066b78aa6a42829';
+const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
 const out = document.getElementById('out');
 const log = (msg,cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
-const H = {'apikey':KEY,'Authorization':'Bearer '+KEY};
+
+const tests = [
+  `https://maplen.gg/api/assets?address=${addr}`,
+  `https://maplen.gg/api/wallet/${addr}`,
+  `https://maplen.gg/api/v1/assets?address=${addr}`,
+  `https://api.maplen.gg/assets?address=${addr}`,
+  `https://maplen.gg/api/crystal?address=${addr}`,
+  `https://maplen.gg/api/power-crystal?address=${addr}`,
+];
 
 async function run() {
-  // Test exact URL formats
-  const urls = [
-    `${SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${addr}&day=gte.2026-05-15&order=day.asc&limit=3`,
-    `${SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${addr}&order=day.desc&limit=3`,
-  ];
-  for (const url of urls) {
-    log('\n🔍 ' + url.split('supabase.co')[1]);
+  for (const url of tests) {
+    log('\n🔍 ' + url.replace('https://',''));
     try {
-      const r = await fetch(url, {headers:H});
+      const r = await fetch(url, {headers:{'Accept':'application/json'}});
       const text = await r.text();
       log('   HTTP ' + r.status, r.ok?'ok':'err');
-      log('   ' + text.slice(0,400));
-    } catch(e) { log('   X '+e.message,'err'); }
+      if(r.ok) log('   '+text.slice(0,400),'ok');
+      else log('   '+text.slice(0,150));
+    } catch(e) { log('   X CORS/Error: '+e.message,'err'); }
   }
   log('\nDone');
 }
