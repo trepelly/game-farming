@@ -3024,19 +3024,42 @@ function renderFlowExpand(cont, rows) {
 
 <script>
 // ── MVP WEEK COUNTDOWN ──
-function getMvpWeekEnd() {
+// MVP 13-week cycle countdown
+// Launch: 2026-05-15 (Thursday). Each cycle = 13 weeks = 91 days.
+const MVP_CYCLE_START = new Date('2026-05-15T00:00:00Z');
+
+function get13WeekEnd() {
   const now = new Date();
-  const dow = now.getUTCDay(); // 0=Sun,1=Mon,...,3=Wed,4=Thu
-  // Week ends Wednesday 23:59:59 UTC
-  // Days until next Wednesday (end of week)
-  const daysToWed = (3 - dow + 7) % 7; // 0 if today is Wed
+  const elapsed = now - MVP_CYCLE_START;
+  const cycleDuration = 91 * 86400000; // 13 weeks in ms
+  // How many full 13-week cycles have passed?
+  const cyclesPassed = Math.floor(elapsed / cycleDuration);
+  // End of current 13-week cycle
+  const cycleEnd = new Date(MVP_CYCLE_START.getTime() + (cyclesPassed + 1) * cycleDuration);
+  // Adjust to end on Wednesday 23:59:59 UTC (cycle end is 91 days after Thu launch)
+  // Actually find the Wed 23:59:59 at end of 13th week
+  cycleEnd.setUTCSeconds(cycleEnd.getUTCSeconds() - 1); // 91 days from Thu = next Wed 23:59:59
+  return cycleEnd;
+}
+
+function getCurrentWeekEnd() {
+  const now = new Date();
+  const dow = now.getUTCDay();
+  const daysToWed = (3 - dow + 7) % 7;
   const end = new Date(Date.UTC(
     now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysToWed,
     23, 59, 59, 999
   ));
-  // If it's past Wed 23:59 today, use next Wed
   if (end < now) end.setUTCDate(end.getUTCDate() + 7);
   return end;
+}
+
+function getCycleWeekNumber() {
+  const now = new Date();
+  const elapsed = now - MVP_CYCLE_START;
+  if (elapsed < 0) return 1;
+  const weekNum = Math.floor(elapsed / (7 * 86400000)) % 13 + 1;
+  return Math.min(weekNum, 13);
 }
 
 function formatCountdown(ms) {
@@ -3050,19 +3073,26 @@ function formatCountdown(ms) {
 }
 
 function updateMvpCountdown() {
-  const weekEnd = getMvpWeekEnd();
-  const ms = weekEnd - new Date();
-  const txt = formatCountdown(ms);
-  const color = ms < 3600000 ? 'var(--red)' : ms < 86400000 ? 'var(--amber)' : 'var(--accent)';
+  const cycleEnd  = get13WeekEnd();
+  const weekEnd   = getCurrentWeekEnd();
+  const msWeek    = weekEnd  - new Date();
+  const msCycle   = cycleEnd - new Date();
+  const weekNum   = getCycleWeekNumber();
 
-  // Update header
+  const weekTxt  = formatCountdown(msWeek);
+  const cycleTxt = formatCountdown(msCycle);
+  const color    = msCycle < 86400000 ? 'var(--red)' : msCycle < 7*86400000 ? 'var(--amber)' : 'var(--accent)';
+
+  // Header: show week number + cycle countdown
   const hdr = document.getElementById('mvp-week-countdown');
-  if (hdr) { hdr.textContent = txt; hdr.style.color = color; }
+  if (hdr) {
+    hdr.innerHTML = `W${weekNum}/13 · <span style="color:${color}">${cycleTxt}</span>`;
+  }
 
-  // Update all row cells
+  // Row cells: show both week end + cycle end
   document.querySelectorAll('.mvp-week-cell').forEach(el => {
-    el.textContent = txt;
-    el.style.color = color;
+    el.innerHTML = `<div style="color:var(--muted2);font-size:10px">W${weekNum} ends: <span style="color:var(--accent)">${weekTxt}</span></div>
+      <div style="font-size:10px;margin-top:1px">13W: <span style="color:${color}">${cycleTxt}</span></div>`;
   });
 }
 
