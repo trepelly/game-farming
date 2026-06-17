@@ -1898,10 +1898,26 @@ function renderTeam() {
   const nesoPrice  = liveNesoUsd  ? '$'+liveNesoUsd.toFixed(6)  : '';
   const usdvndRate = liveUsdVnd   ? Math.round(liveUsdVnd).toLocaleString('vi-VN') : '';
 
+  const COIN_LOGOS = {
+    'NESO': 'https://gamedatahub-static.msu.io/msu/platform/tokens/neso.png',
+    'NXPC': 'https://gamedatahub-static.msu.io/msu/platform/tokens/nxpc.png',
+    'USDT': 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+    'VND':  'https://flagcdn.com/16x12/vn.png',
+    'AVAX': 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png',
+  };
+  const coinLogo = (label) => {
+    const key = Object.keys(COIN_LOGOS).find(k => label.toUpperCase().includes(k));
+    return key ? `<img src="${COIN_LOGOS[key]}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>` : '';
+  };
   const scTicker = (accent,chain,chainColor,label,val,ticker) =>
     `<div class="stat" style="border-top:2px solid ${accent}33"><div class="stat-accent" style="background:${accent}"></div>
-      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
-      <div class="stat-label">${label}${ticker?` <span style="font-size:9px;color:var(--muted2);font-weight:400">${ticker}</span>`:''}</div>
+      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        ${coinLogo(label)}
+        <div>
+          <div class="stat-label" style="margin:0">${label}${ticker?` <span style="font-size:9px;color:var(--muted2);font-weight:400">${ticker}</span>`:''}</div>
+        </div>
+      </div>
       <div class="stat-val" style="color:${accent}">${val}</div></div>`;
 
   document.getElementById('team-stats').innerHTML = `
