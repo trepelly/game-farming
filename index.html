@@ -2817,25 +2817,25 @@ function renderFlowTable(rows) {
 // MVP points loaded directly inside loadTeamWallets
 
 async function loadTeamMvpPoints() {
-  const wallets = window.teamWallets || [];
-  // Load all in parallel, update each cell as it comes in
+  // Use teamWallets directly by index to ensure we modify the actual objects
+  const wallets = teamWallets;
+  if (!wallets || !wallets.length) return;
   await Promise.all(wallets.map(async (w, idx) => {
     try {
       const rows = await fetchDailyData(w.address, MVP_LAUNCH);
       const allKeys = [...new Set(rows.map(x=>getWeekKey(x.day)))].sort().slice(-13);
       const winRows = rows.filter(r => allKeys.includes(getWeekKey(r.day)));
       const calc = calcMvpFromRows(winRows);
-      w.mvpPoints = calc.points;
-      w.mvpTier   = getTier(calc.points);
+      // Set directly on the teamWallets object
+      teamWallets[idx].mvpPoints = calc.points;
+      teamWallets[idx].mvpTier   = getTier(calc.points);
     } catch(e) {
       console.warn('MVP load error for', w.address, e.message);
-      w.mvpPoints = 0;
-      w.mvpTier   = getTier(0);
+      teamWallets[idx].mvpPoints = 0;
+      teamWallets[idx].mvpTier   = getTier(0);
     }
-    // Update just the MVP cell without re-rendering whole table
-    updateMvpCell(w);
+    updateMvpCell(teamWallets[idx]);
   }));
-  // Final render to update tfoot count
   renderTeam();
 }
 
