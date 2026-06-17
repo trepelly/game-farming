@@ -2395,16 +2395,26 @@ async function fetchMsutoolStats(address) {
 }
 
 async function fetchMvpFromMsutool(address) {
-  const stats = await fetchMsutoolStats(address);
-  const get = (m, w) => stats.find(s=>s.metric===m&&s.window_label===w)?.user_value || 0;
-  // Try 13w window first, fallback to all
-  const mint        = get('mint',        '13w') || get('mint',        'all') || 0;
-  const crystal     = get('crystal',     '13w') || get('crystal',     'all') || 0;
-  const marketplace = get('marketplace', '13w') || get('marketplace', 'all') || 0;
-  // MVP rule: mint + crystal + marketplace*5% = eligible spending
-  const eligible = mint + crystal + (marketplace * 0.05);
+  // Tính MVP từ ngày Maple công bố MVP system: 2026-03-19
+  // Công thức: Enhancement×100% + (Out NFT + Out FT)×5%
+  const MVP_LAUNCH = '2026-03-19';
+  const url = `${MSUTOOL_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte.${MVP_LAUNCH}&order=day.desc`;
+  const r = await fetch(url, {
+    headers: { 'apikey': MSUTOOL_KEY, 'Authorization': 'Bearer ' + MSUTOOL_KEY }
+  });
+  if (!r.ok) throw new Error('daily API ' + r.status);
+  const daily = await r.json();
+
+  let enhancement=0, outNft=0, outFt=0;
+  daily.forEach(row => {
+    enhancement += row.out_enhancement_amount || 0;
+    outNft      += row.out_nft_amount  || 0;
+    outFt       += row.out_ft_amount   || 0;
+  });
+
+  const eligible = enhancement + (outNft + outFt) * 0.05;
   const points   = Math.floor(eligible / 100000);
-  return { points, source: 'msutool.com', mint, crystal, marketplace, eligible };
+  return { points, source: 'msutool (từ 2026-03-19)', enhancement, outNft, outFt, eligible };
 }
 
 // Addresses to EXCLUDE from MVP point calculation (fallback on-chain)
