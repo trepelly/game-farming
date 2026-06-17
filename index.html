@@ -1818,8 +1818,6 @@ function renderTeam() {
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px">${a.slice(0,6)}...${a.slice(-4)}</span>`;
-    const mvpColor = w.mvpTier?.color || 'var(--muted2)';
-    const mvpIcon  = w.mvpTier?.icon  || '—';
     return `<tr>
       <td style="text-align:center;color:var(--muted2);font-size:12px;font-weight:600">${i+1}</td>
       <td style="text-align:left">
@@ -1835,7 +1833,7 @@ function renderTeam() {
       </td>
       <td style="text-align:center">
         ${w.mvpPoints!=null
-          ? `<span style="color:${mvpColor};font-weight:700;font-size:12px">${mvpIcon} ${w.mvpPoints}</span>`
+          ? `<span style="color:${w.mvpTier?.color||'var(--muted2)'};font-weight:700;font-size:12px">${w.mvpTier?.icon||''} ${w.mvpPoints}</span>`
           : '<span style="font-size:10px;color:var(--muted2)">—</span>'}
       </td>
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
@@ -1849,8 +1847,10 @@ function renderTeam() {
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" style="display:none">
-      <td colspan="14" style="padding:0">
-        <div id="flow-content-${w.address.slice(-8)}" style="padding:12px 16px;background:var(--card2);border-top:1px solid var(--border)"></div>
+      <td colspan="14" style="padding:0;border-bottom:3px solid var(--accent)22">
+        <div id="flow-content-${w.address.slice(-8)}"
+          style="padding:16px 20px;background:linear-gradient(135deg,var(--card2),var(--surface));border-top:2px solid var(--accent)33;border-left:3px solid var(--accent)66;overflow-x:auto">
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -1861,8 +1861,11 @@ function renderTeam() {
   const totAvax        = displayWallets.filter(w=>w.avax!=null).reduce((s,w)=>s+(w.avax||0),0);
   const totUsdtAvax    = totNxpcAvax * (liveNxpcUsd||0);
   const totVndAvax     = totUsdtAvax * (liveUsdVnd||0);
+  const mvpCount = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>=30).length;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
-    <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
+    <td colspan="2" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
+    <td style="padding:10px 14px"></td>
+    <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:11px">${mvpCount > 0 ? mvpCount+' ví MVP' : '—'}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
@@ -1871,7 +1874,6 @@ function renderTeam() {
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdtAvax,2)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${f(totVndAvax)}</td>
-    <td style="text-align:center;padding:10px 14px;color:var(--accent)">${displayWallets.filter(w=>w.mvpPoints!=null).length > 0 ? "—" : ""}</td>
     <td></td>
   </tr>`;
 
@@ -2922,7 +2924,7 @@ function renderFlowExpand(cont, rows) {
         <div style="font-size:13px;font-weight:700;color:#e84142">${f(totOutSwap)}</div>
       </div>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:11px">
+    <div style="overflow-x:auto"><table style="width:100%;min-width:500px;border-collapse:collapse;font-size:11px">
       <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
         <th style="padding:5px 8px;text-align:left;color:var(--muted2)">Ngày</th>
         <th style="padding:5px 8px;text-align:right;color:var(--amber)">Enhancement</th>
@@ -2946,7 +2948,7 @@ function renderFlowExpand(cont, rows) {
           <td style="padding:4px 8px;text-align:right;color:#e84142">${f(r.out_swap_amount||0)}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table></div>`;
 }
 </script>
 
