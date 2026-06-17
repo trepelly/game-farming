@@ -2874,7 +2874,7 @@ async function loadTeamMvpPoints() {
       if (Array.isArray(crystalRows)) {
         const totIn  = crystalRows.reduce((s,r)=>s+(r.in_crystal_amount||0),0);
         const totOut = crystalRows.reduce((s,r)=>s+(r.out_crystal_amount||0),0);
-        teamWallets[idx].crystalTotal = Math.max(0, totIn - totOut);
+        teamWallets[idx].crystalTotal = Math.max(0, totOut - totIn);
       } else {
         teamWallets[idx].crystalTotal = null;
       }
