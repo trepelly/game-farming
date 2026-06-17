@@ -1,33 +1,31 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>msutool REST API Test</title>
-<style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px;line-height:1.6}
+<html><head><meta charset="UTF-8"><title>MVP API Debug</title>
+<style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 msutool REST API Test</h2>
-<pre id="out">Running...\n</pre>
+<body><h2>🔍 MVP API Debug</h2>
+<pre id="out">Testing...\n</pre>
 <script>
 const SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
-const addr = '0x82f482ffee70b54698a2c0cfd8e1589365d92fad';
+const addr = '0xd3eb24b3231171615c94905c5066b78aa6a42829';
 const out = document.getElementById('out');
 const log = (msg,cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
 const H = {'apikey':KEY,'Authorization':'Bearer '+KEY};
 
-const tests = [
-  `${SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${addr}&order=day.desc&limit=5`,
-  `${SUPABASE}/rest/v1/neso_wallet_heatmap?select=*&wallet=eq.${addr}&limit=5`,
-  `${SUPABASE}/rest/v1/neso_wallet_personal_stats?select=*&wallet=eq.${addr}`,
-];
-
 async function run() {
-  for (const url of tests) {
-    const name = url.split('/rest/v1/')[1].split('?')[0];
-    log('\n🔍 ' + name);
+  // Test exact URL formats
+  const urls = [
+    `${SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${addr}&day=gte.2026-05-15&order=day.asc&limit=3`,
+    `${SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${addr}&order=day.desc&limit=3`,
+  ];
+  for (const url of urls) {
+    log('\n🔍 ' + url.split('supabase.co')[1]);
     try {
       const r = await fetch(url, {headers:H});
-      const d = await r.json();
-      log('   HTTP '+r.status, r.ok?'ok':'err');
-      if(r.ok) log('   '+JSON.stringify(d[0]||d, null, 2).slice(0,600),'ok');
+      const text = await r.text();
+      log('   HTTP ' + r.status, r.ok?'ok':'err');
+      log('   ' + text.slice(0,400));
     } catch(e) { log('   X '+e.message,'err'); }
   }
   log('\nDone');
