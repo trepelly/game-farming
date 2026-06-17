@@ -612,6 +612,7 @@ Ví sếp, 0x5678...efgh
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
             <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
+            <th style="color:var(--muted2);white-space:nowrap">Week End <span id="mvp-week-countdown" style="color:var(--accent);font-weight:700"></span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('usdt')" style="color:var(--green)">USDT <span id="sort-icon-usdt" style="opacity:.3">↕</span></th>
@@ -1838,6 +1839,7 @@ function renderTeam() {
           ? `<span style="color:${w.mvpTier?.color||'var(--muted2)'};font-weight:600;font-size:13px">${w.mvpPoints}</span>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
+      <td style="text-align:center;font-family:'Chakra Petch',monospace;font-size:11px;color:var(--muted2)" class="mvp-week-cell"></td>
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
@@ -1869,6 +1871,7 @@ function renderTeam() {
     <td colspan="2" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="padding:10px 14px"></td>
     <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
+    <td style="text-align:center;padding:10px 14px;color:var(--muted2);font-size:11px" class="mvp-week-cell"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
@@ -3000,6 +3003,56 @@ function renderFlowExpand(cont, rows) {
       </tbody>
     </table></div>`;
 }
+</script>
+
+
+<script>
+// ── MVP WEEK COUNTDOWN ──
+function getMvpWeekEnd() {
+  const now = new Date();
+  const dow = now.getUTCDay(); // 0=Sun,1=Mon,...,3=Wed,4=Thu
+  // Week ends Wednesday 23:59:59 UTC
+  // Days until next Wednesday (end of week)
+  const daysToWed = (3 - dow + 7) % 7; // 0 if today is Wed
+  const end = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysToWed,
+    23, 59, 59, 999
+  ));
+  // If it's past Wed 23:59 today, use next Wed
+  if (end < now) end.setUTCDate(end.getUTCDate() + 7);
+  return end;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return '00:00:00';
+  const d = Math.floor(ms / 86400000);
+  const h = Math.floor((ms % 86400000) / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  if (d > 0) return `${d}d ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateMvpCountdown() {
+  const weekEnd = getMvpWeekEnd();
+  const ms = weekEnd - new Date();
+  const txt = formatCountdown(ms);
+  const color = ms < 3600000 ? 'var(--red)' : ms < 86400000 ? 'var(--amber)' : 'var(--accent)';
+
+  // Update header
+  const hdr = document.getElementById('mvp-week-countdown');
+  if (hdr) { hdr.textContent = txt; hdr.style.color = color; }
+
+  // Update all row cells
+  document.querySelectorAll('.mvp-week-cell').forEach(el => {
+    el.textContent = txt;
+    el.style.color = color;
+  });
+}
+
+// Start countdown
+updateMvpCountdown();
+setInterval(updateMvpCountdown, 1000);
 </script>
 
 </body>
