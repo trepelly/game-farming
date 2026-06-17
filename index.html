@@ -2693,9 +2693,8 @@ async function checkMvpBulk() {
   await Promise.all(parsed.map(async (p,i) => {
     await new Promise(r=>setTimeout(r, i*300));
     try {
-      const {rows} = await fetchMvpWeeklyBreakdown(p.addr);
-      const last = rows[rows.length-1];
-      const pts  = last?.cumulativePoints||0;
+      const result = await fetchMvpFromMsutool(p.addr);
+      const pts  = result.points||0;
       const tier = getTier(pts);
       const next = getNextTier(pts);
       totPts += pts; done++;
@@ -2729,7 +2728,10 @@ async function checkMvp() {
   res.style.display = 'block';
   res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>Đang quét 13 tuần từ blockchain...</div>';
   try {
-    const {rows, msutoolData} = await fetchMvpWeeklyBreakdown(addr);
+    const [msutoolData, {rows, msutoolData: _}] = await Promise.all([
+      fetchMvpFromMsutool(addr).catch(()=>null),
+      fetchMvpWeeklyBreakdown(addr).catch(()=>({rows:[], msutoolData:null}))
+    ]);
     res.innerHTML = renderWeeklyTable(addr, rows, addr.slice(0,6)+'...'+addr.slice(-4), msutoolData);
   } catch(e) {
     res.innerHTML = `<div style="color:var(--red);padding:12px">Lỗi: ${e.message}</div>`;
