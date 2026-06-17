@@ -2359,7 +2359,7 @@ function getNextTier(pts) {
 
 // Fetch daily data từ msutool — EXACT same as NESO Flow
 async function fetchDailyData(address, since) {
-  const url = `${MVP_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte=${since}&order=day.asc`;
+  const url = `${MVP_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte.${since}&order=day.asc`;
   const r = await fetch(url, {
     headers: { 'apikey': MVP_KEY, 'Authorization': 'Bearer ' + MVP_KEY }
   });
