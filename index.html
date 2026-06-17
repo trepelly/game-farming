@@ -2335,11 +2335,13 @@ if (_origLockAR) {
 
 <script>
 // ── MVP MODULE ──
-// MVP system launched: 2026-05-15
-// Each week: Thu 00:00 UTC → Wed 23:59 UTC
-// Points = NESO spent / 100,000 per week
+// Dùng cùng API với NESO Flow: neso_wallet_daily từ msutool Supabase
+// Công thức: Enhancement×100% + (OutNFT + OutFT)×5% / 100,000 = Points
+// Tính từ 2026-05-15, rolling 13 tuần (Thu→Wed UTC)
 
-const MVP_LAUNCH = new Date('2026-05-15T00:00:00Z');
+const MVP_SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
+const MVP_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
+const MVP_LAUNCH   = '2026-05-15';
 
 const MVP_TIERS = [
   { name:'Unranked', min:0,    max:29,   color:'var(--muted2)', icon:'—',  bg:'var(--subtle)' },
@@ -2349,225 +2351,97 @@ const MVP_TIERS = [
   { name:'Diamond',  min:3500, max:6999, color:'#60a5fa',       icon:'💎', bg:'#60a5fa18' },
   { name:'Black',    min:7000, max:Infinity, color:'#f1f0ff',   icon:'⚫', bg:'#ffffff12' },
 ];
-
 function getTier(pts) { return MVP_TIERS.find(t=>pts>=t.min&&pts<=t.max)||MVP_TIERS[0]; }
 function getNextTier(pts) {
-  const idx = MVP_TIERS.findIndex(t=>pts>=t.min&&pts<=t.max);
-  return idx>=0 && idx<MVP_TIERS.length-1 ? MVP_TIERS[idx+1] : null;
+  const idx=MVP_TIERS.findIndex(t=>pts>=t.min&&pts<=t.max);
+  return idx>=0&&idx<MVP_TIERS.length-1?MVP_TIERS[idx+1]:null;
 }
 
-// Generate 13 weekly windows from MVP launch up to now
-function getMvpWeeks() {
-  const weeks = [];
-  const now = new Date();
-  let weekStart = new Date(MVP_LAUNCH);
-  while (weekStart < now) {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23,59,59,999);
-    weeks.push({ start: new Date(weekStart), end: new Date(weekEnd) });
-    weekStart.setDate(weekStart.getDate() + 7);
-  }
-  return weeks.slice(-13); // last 13 weeks
-}
-
-function tsToHex(ts) { return '0x' + Math.floor(ts/1000).toString(16); }
-function fmtDate(d) {
-  return d.toISOString().slice(0,10) + ' ' + d.toISOString().slice(11,19);
-}
-
-// ── msutool Supabase API ──
-const MSUTOOL_SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
-const MSUTOOL_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
-
-async function fetchMsutoolStats(address) {
-  const r = await fetch(`${MSUTOOL_SUPABASE}/rest/v1/rpc/neso_wallet_personal_stats`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': MSUTOOL_KEY,
-      'Authorization': 'Bearer ' + MSUTOOL_KEY,
-    },
-    body: JSON.stringify({ wallet_address: address.toLowerCase() })
+// Fetch daily data từ msutool — EXACT same as NESO Flow
+async function fetchDailyData(address, since) {
+  const url = `${MVP_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte=${since}&order=day.asc`;
+  const r = await fetch(url, {
+    headers: { 'apikey': MVP_KEY, 'Authorization': 'Bearer ' + MVP_KEY }
   });
-  if (!r.ok) throw new Error('msutool API ' + r.status);
+  if (!r.ok) throw new Error('API ' + r.status);
   return await r.json();
 }
 
-async function fetchMvpFromMsutool(address) {
-  // Dùng cùng logic với NESO Flow tab
-  // Lấy tất cả daily data từ MVP launch, tính 13 tuần gần nhất
-  const MVP_SINCE = '2026-05-15';
-  const url = `${MSUTOOL_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte.${MVP_SINCE}&order=day.asc`;
-  const r = await fetch(url, {
-    headers: { 'apikey': MSUTOOL_KEY, 'Authorization': 'Bearer ' + MSUTOOL_KEY }
-  });
-  if (!r.ok) throw new Error('daily API ' + r.status);
-  const daily = await r.json();
-  if (!daily.length) return { points: 0, source: 'msutool', enhancement: 0, outNft: 0, outFt: 0 };
-
-  // Group by Thu-week
-  const weekMap = {};
-  daily.forEach(row => {
-    const d = new Date(row.day + 'T00:00:00Z');
-    const dow = d.getUTCDay(); // 0=Sun ... 4=Thu
-    const diff = (dow + 3) % 7; // days since last Thu
-    const thu = new Date(d);
-    thu.setUTCDate(d.getUTCDate() - diff);
-    const key = thu.toISOString().slice(0,10);
-    if (!weekMap[key]) weekMap[key] = { e:0, nft:0, ft:0 };
-    weekMap[key].e   += row.out_enhancement_amount || 0;
-    weekMap[key].nft += row.out_nft_amount || 0;
-    weekMap[key].ft  += row.out_ft_amount  || 0;
-  });
-
-  // Rolling 13 weeks = last 13 Thu-weeks
-  const sortedKeys = Object.keys(weekMap).sort().slice(-13);
+// Tính MVP points từ daily rows — same logic as NESO Flow renderFlowStats
+function calcMvpFromRows(rows) {
   let enhancement=0, outNft=0, outFt=0;
-  sortedKeys.forEach(k => {
-    enhancement += weekMap[k].e;
-    outNft      += weekMap[k].nft;
-    outFt       += weekMap[k].ft;
+  rows.forEach(r => {
+    enhancement += r.out_enhancement_amount || 0;
+    outNft      += r.out_nft_amount  || 0;
+    outFt       += r.out_ft_amount   || 0;
   });
-
   const eligible = enhancement + (outNft + outFt) * 0.05;
   const points   = Math.floor(eligible / 100000);
-  return { points, source: 'msutool', enhancement, outNft, outFt, eligible, weekMap, sortedKeys };
+  return { points, enhancement, outNft, outFt, eligible };
 }
 
-function buildMvpWeekRows(msutoolData) {
-  if (!msutoolData?.weekMap) return [];
-  const { weekMap, sortedKeys } = msutoolData;
+// Get Thu-week key for a date
+function getWeekKey(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const dow = d.getUTCDay();
+  const diff = (dow + 3) % 7;
+  const thu = new Date(d);
+  thu.setUTCDate(d.getUTCDate() - diff);
+  return thu.toISOString().slice(0,10);
+}
+
+// Build weekly breakdown from daily rows
+function buildWeeklyRows(allRows) {
+  // Group by week
+  const weekMap = {};
+  allRows.forEach(r => {
+    const key = getWeekKey(r.day);
+    if (!weekMap[key]) weekMap[key] = [];
+    weekMap[key].push(r);
+  });
+
+  // Sort weeks, take last 13
+  const allKeys   = Object.keys(weekMap).sort();
+  const last13    = allKeys.slice(-13);
+  const inWindow  = new Set(last13);
+
   const rows = [];
   let cumulative = 0;
-  // Build all weeks from MVP launch
-  const allKeys = Object.keys(weekMap).sort();
   allKeys.forEach((key, i) => {
-    const w = weekMap[key];
-    const eligible = w.e + (w.nft + w.ft) * 0.05;
-    const pts = Math.floor(eligible / 100000);
-    // Only count if within rolling 13 weeks
-    const inWindow = sortedKeys.includes(key);
-    if (inWindow) cumulative += pts;
+    const weekRows = weekMap[key];
+    const calc = calcMvpFromRows(weekRows);
+    if (inWindow.has(key)) cumulative += calc.points;
+
     const weekStart = new Date(key + 'T00:00:00Z');
-    const weekEnd   = new Date(weekStart); weekEnd.setUTCDate(weekEnd.getUTCDate() + 6); weekEnd.setUTCHours(23,59,59,0);
+    const weekEnd   = new Date(weekStart);
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    weekEnd.setUTCHours(23,59,59,0);
+
     rows.push({
-      weekNum: i + 1,
-      periodStart: weekStart,
-      periodEnd: weekEnd,
-      weeklyPoints: pts,
-      cumulativePoints: inWindow ? cumulative : 0,
-      tier: getTier(inWindow ? cumulative : 0),
+      weekNum:          i + 1,
+      periodStart:      weekStart,
+      periodEnd:        weekEnd,
+      weeklyPoints:     inWindow.has(key) ? calc.points : 0,
+      cumulativePoints: inWindow.has(key) ? cumulative : 0,
+      tier:             getTier(inWindow.has(key) ? cumulative : 0),
+      inWindow:         inWindow.has(key),
     });
   });
   return rows;
 }
 
-// Addresses to EXCLUDE from MVP point calculation (fallback on-chain)
-const EXCLUDED_RECIPIENTS = new Set([
-  '0x0000000000000000000000000000000000000000', // burn address
-  '0xcde2de9d407e0a7d07da78ca96184333d9fdc602', // Swap contract (NESO→NXPC)
-  '0x07e49ad54fcd23f6e7b911c2068f0148d1827c08', // NESO contract itself
-]);
-
-// Fetch NESO transfer logs, excluding swap/burn transactions
-async function fetchNesoSpentInRange(address, fromBlock, toBlock) {
-  const NESO_CTR  = '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08';
-  const TRANSFER  = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-  const fromTopic = '0x000000000000000000000000' + address.slice(2).toLowerCase();
-
-  const r = await fetch('https://henesys-rpc.msu.io', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_getLogs',params:[{
-      address: NESO_CTR,
-      topics: [TRANSFER, fromTopic],
-      fromBlock, toBlock
-    }]})
-  });
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message);
-  let total = 0;
-  let excluded = 0;
-  (d.result||[]).forEach(log => {
-    if (!log.data || log.data === '0x') return;
-    const recipient = ('0x' + log.topics[2].slice(-40)).toLowerCase();
-    const amount = parseInt(log.data,16) / 1e18;
-    if (EXCLUDED_RECIPIENTS.has(recipient)) {
-      excluded += amount;
-      return; // skip swap/burn
-    }
-    total += amount;
-  });
-  return { spent: total, excluded };
+function fmtDate(d) {
+  return d.toISOString().slice(0,10) + ' ' + d.toISOString().slice(11,19);
 }
 
-// Get block number closest to a timestamp using binary search
-async function getBlockAtTime(timestamp) {
-  const r = await fetch('https://henesys-rpc.msu.io', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]})
-  });
-  const d = await r.json();
-  const latestBlock = parseInt(d.result,16);
-  // Henesys produces ~2s blocks, estimate block from timestamp
-  const latestTime = Date.now() / 1000;
-  const secondsDiff = latestTime - timestamp/1000;
-  const blocksDiff  = Math.floor(secondsDiff / 2);
-  const estimated   = Math.max(0, latestBlock - blocksDiff);
-  return '0x' + estimated.toString(16);
-}
-
-async function fetchMvpWeeklyBreakdown(address) {
-  const weeks = getMvpWeeks();
-  const results = [];
-  let cumulative = 0;
-
-  // Try msutool for total, use on-chain for weekly breakdown
-  let msutoolData = null;
-  try { msutoolData = await fetchMvpFromMsutool(address); } catch(e) {}
-
-  // Get block range estimates for all weeks
-  const weekData = await Promise.all(weeks.map(async (w, i) => {
-    try {
-      const fromBlock = await getBlockAtTime(w.start.getTime());
-      const toBlock   = i === weeks.length-1 ? 'latest' : await getBlockAtTime(w.end.getTime());
-      const result = await fetchNesoSpentInRange(address, fromBlock, toBlock);
-      const pts = Math.floor(result.spent / 100000);
-      return { week: w, pts, nesoSpent: result.spent, excluded: result.excluded };
-    } catch(e) {
-      return { week: w, pts: 0, nesoSpent: 0, error: e.message };
-    }
-  }));
-
-  // Build cumulative
-  weekData.forEach((d, i) => {
-    cumulative += d.pts;
-    results.push({
-      weekNum: i+1,
-      periodStart: d.week.start,
-      periodEnd: d.week.end,
-      weeklyPoints: d.pts,
-      cumulativePoints: cumulative,
-      tier: getTier(cumulative),
-      nesoSpent: d.nesoSpent,
-      error: d.error
-    });
-  });
-
-  return { rows: results, msutoolData };
-}
-
-function renderWeeklyTable(address, rows, label, msutoolData) {
-  const f = n => Math.round(n).toLocaleString('vi-VN');
-  const fd = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
-  const lastRow = rows[rows.length-1];
-  // Use msutool total if available (more accurate), else use on-chain cumulative
-  const totalPts = (msutoolData?.points != null) ? msutoolData.points : (lastRow?.cumulativePoints || 0);
+function renderMvpResult(address, rows, totalPts, label) {
+  const f   = n => Math.round(n).toLocaleString('vi-VN');
   const tier = getTier(totalPts);
   const next = getNextTier(totalPts);
+  const pct  = next ? Math.min(100,((totalPts-tier.min)/(next.min-tier.min)*100)) : 100;
 
   return `
-    <div style="background:var(--card);border:1px solid ${tier.color}44;border-radius:14px;padding:20px;box-shadow:var(--shadow);border-left:3px solid ${tier.color};margin-bottom:16px">
+    <div style="background:var(--card);border:1px solid ${tier.color}44;border-radius:14px;padding:20px;box-shadow:var(--shadow);border-left:3px solid ${tier.color}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
         <div>
           <div style="font-size:13px;font-weight:700;color:var(--text)">${label}</div>
@@ -2575,159 +2449,55 @@ function renderWeeklyTable(address, rows, label, msutoolData) {
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <div style="text-align:center;background:${tier.bg};border-radius:8px;padding:8px 14px;border:1px solid ${tier.color}33">
-            <div style="font-size:18px">${tier.icon}</div>
-            <div style="font-size:13px;font-weight:800;color:${tier.color}">${tier.name}</div>
+            <div style="font-size:20px">${tier.icon}</div>
+            <div style="font-size:14px;font-weight:800;color:${tier.color}">${tier.name}</div>
           </div>
           <div style="text-align:center">
             <div style="font-size:10px;color:var(--muted2)">13W Points</div>
-            <div style="font-size:20px;font-weight:800;color:var(--text)">${f(totalPts)}</div>
+            <div style="font-size:22px;font-weight:800;color:var(--text)">${f(totalPts)}</div>
           </div>
           ${next ? `<div style="text-align:center">
             <div style="font-size:10px;color:var(--muted2)">To ${next.name}</div>
-            <div style="font-size:20px;font-weight:800;color:var(--accent)">${f(next.min-totalPts)}</div>
+            <div style="font-size:22px;font-weight:800;color:var(--accent)">${f(next.min-totalPts)}</div>
           </div>` : ''}
         </div>
       </div>
-      ${next ? `
-      <div style="margin-bottom:14px">
-        <div style="height:6px;background:var(--subtle);border-radius:3px;overflow:hidden">
-          <div style="height:100%;background:${tier.color};border-radius:3px;width:${Math.min(100,((totalPts-tier.min)/(next.min-tier.min)*100)).toFixed(1)}%;transition:width .6s"></div>
+      ${next ? `<div style="margin-bottom:14px">
+        <div style="height:5px;background:var(--subtle);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:${tier.color};border-radius:3px;width:${pct.toFixed(1)}%;transition:width .6s"></div>
         </div>
       </div>` : ''}
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
-              <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Week</th>
-              <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Period Start (Thu UTC)</th>
-              <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Period End (Wed UTC)</th>
-              <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em">Weekly Points</th>
-              <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em">13W Cumulative</th>
-              <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em">MVP Tier</th>
-            </tr>
-          </thead>
+          <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+            <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Week</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Period Start (Thu UTC)</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Period End (Wed UTC)</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Weekly Points</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">13W Cumulative</th>
+            <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">MVP Tier</th>
+          </tr></thead>
           <tbody>
-            ${rows.map((r,i) => `
-            <tr style="border-bottom:1px solid var(--border);${i===rows.length-1?'font-weight:600;background:var(--surface)':''}">
-              <td style="padding:8px 10px;text-align:center;color:var(--muted2)">${r.weekNum}</td>
-              <td style="padding:8px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodStart)}</td>
-              <td style="padding:8px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodEnd)}</td>
-              <td style="padding:8px 10px;text-align:right;color:${r.weeklyPoints>0?'var(--green)':'var(--muted2)'}">${f(r.weeklyPoints)}</td>
-              <td style="padding:8px 10px;text-align:right;font-weight:600">${f(r.cumulativePoints)}</td>
-              <td style="padding:8px 10px;text-align:center;color:${r.tier.color}">${r.tier.icon} ${r.tier.name}</td>
+            ${rows.map(r=>`
+            <tr style="border-bottom:1px solid var(--border);opacity:${r.inWindow?'1':'0.4'}">
+              <td style="padding:7px 10px;text-align:center;color:var(--muted2)">${r.weekNum}</td>
+              <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodStart)}</td>
+              <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodEnd)}</td>
+              <td style="padding:7px 10px;text-align:right;color:${r.weeklyPoints>0?'var(--green)':'var(--muted2)'}">${f(r.weeklyPoints)}</td>
+              <td style="padding:7px 10px;text-align:right;font-weight:600">${f(r.cumulativePoints)}</td>
+              <td style="padding:7px 10px;text-align:center;color:${r.tier.color}">${r.tier.icon} ${r.tier.name}</td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>
       <div style="font-size:10px;color:var(--muted2);margin-top:8px">
-        ${msutoolData ? '✅ msutool.com · Enhancement×100% + (OutNFT+OutFT)×5%' : '⚠️ On-chain estimate'}
+        ✅ Data từ msutool.com · Enhancement×100% + (OutNFT+OutFT)×5% ÷ 100,000 = Points · Từ ${MVP_LAUNCH}
         <a href="https://dune.com/rabel/maplestory-universe-weekly-mvp-points?wallet_address_tf0e36=${encodeURIComponent(address)}" target="_blank" style="margin-left:8px;color:var(--blue)">Xem Dune ↗</a>
       </div>
     </div>`;
 }
 
-function setMvpMode(mode) {
-  const isSingle = mode === 'single';
-  document.getElementById('mvp-input-single').style.display = isSingle ? '' : 'none';
-  document.getElementById('mvp-input-bulk').style.display   = isSingle ? 'none' : '';
-  document.getElementById('mvp-mode-single').style.background = isSingle ? 'var(--accent)' : 'transparent';
-  document.getElementById('mvp-mode-single').style.color      = isSingle ? '#fff' : 'var(--muted2)';
-  document.getElementById('mvp-mode-bulk').style.background   = isSingle ? 'transparent' : 'var(--accent)';
-  document.getElementById('mvp-mode-bulk').style.color        = isSingle ? 'var(--muted2)' : '#fff';
-  document.getElementById('mvp-err').textContent = '';
-}
-
-function updateMvpBulkPreview() {
-  const ta = document.getElementById('mvp-bulk-ta');
-  const p  = document.getElementById('mvp-bulk-preview');
-  if(!ta||!p) return;
-  const parsed = parseBulkLines(ta.value);
-  if(!parsed.length){p.textContent='Nhập địa chỉ bên trên';return;}
-  const v=parsed.filter(x=>x.valid).length, b=parsed.length-v;
-  p.innerHTML=(v?`<span style="color:var(--green)">✓ ${v} ví hợp lệ</span>`:'')+
-    (b?` · <span style="color:var(--red)">✗ ${b} lỗi</span>`:'');
-}
-
-async function checkMvpBulk() {
-  const ta  = document.getElementById('mvp-bulk-ta');
-  const err = document.getElementById('mvp-err');
-  const res = document.getElementById('mvp-single-result');
-  if(!ta) return;
-  const parsed = parseBulkLines(ta.value).filter(p=>p.valid);
-  if(!parsed.length){err.textContent='Không có địa chỉ hợp lệ';return;}
-  err.textContent = '';
-  res.style.display = 'block';
-  res.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted2)">
-    <span style="display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>
-    Đang quét ${parsed.length} ví...</div>`;
-
-  // Show summary table first, then load detail one by one
-  const wrap = document.getElementById('mvp-iframe-wrap');
-  wrap.style.display = 'block';
-  wrap.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div class="section-label" style="margin-bottom:0">🏅 MVP Status — Bulk</div>
-      <div id="mvp-bulk-prog" style="font-size:11px;color:var(--muted2)">0/${parsed.length} ví</div>
-    </div>
-    <div class="table-wrap" style="max-height:520px;overflow-y:auto">
-      <table>
-        <thead><tr>
-          <th style="text-align:center">#</th>
-          <th style="text-align:left">Tên</th>
-          <th style="text-align:left">Địa chỉ</th>
-          <th>Current Tier</th>
-          <th>13W Points</th>
-          <th>To Next</th>
-          <th>Next Tier</th>
-        </tr></thead>
-        <tbody id="mvp-bulk-tbody"></tbody>
-      </table>
-    </div>`;
-
-  const tbody = document.getElementById('mvp-bulk-tbody');
-  tbody.innerHTML = parsed.map((p,i)=>`
-    <tr id="mvpbr-${i}">
-      <td style="text-align:center;color:var(--muted2)">${i+1}</td>
-      <td style="font-weight:600">${p.label||p.addr.slice(0,6)+'...'+p.addr.slice(-4)}</td>
-      <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
-      <td colspan="4" style="text-align:center;color:var(--muted2);font-size:11px">
-        <span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:4px"></span>Loading...
-      </td>
-    </tr>`).join('');
-
-  const f = n=>Math.round(n).toLocaleString('vi-VN');
-  let done=0, totPts=0;
-  res.style.display='none';
-
-  await Promise.all(parsed.map(async (p,i) => {
-    await new Promise(r=>setTimeout(r, i*300));
-    try {
-      const result = await fetchMvpFromMsutool(p.addr);
-      const pts  = result.points||0;
-      const tier = getTier(pts);
-      const next = getNextTier(pts);
-      totPts += pts; done++;
-      document.getElementById('mvp-bulk-prog').textContent=`${done}/${parsed.length} ví`;
-      const row = document.getElementById(`mvpbr-${i}`);
-      if(row) row.innerHTML=`
-        <td style="text-align:center;color:var(--muted2)">${i+1}</td>
-        <td style="font-weight:600">${p.label||p.addr.slice(0,6)+'...'+p.addr.slice(-4)}</td>
-        <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
-        <td style="text-align:center;font-weight:700;color:${tier.color}">${tier.icon} ${tier.name}</td>
-        <td style="text-align:right">${f(pts)}</td>
-        <td style="text-align:right;color:var(--accent)">${next?f(next.min-pts):'—'}</td>
-        <td style="text-align:center;color:${next?.color||'var(--muted2)'}">${next?next.icon+' '+next.name:'🏆 Max'}</td>`;
-    } catch(e) {
-      done++;
-      const row = document.getElementById(`mvpbr-${i}`);
-      if(row) row.innerHTML=`<td>${i+1}</td><td>${p.label||'—'}</td>
-        <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
-        <td colspan="4" style="color:var(--red);font-size:11px">Lỗi</td>`;
-    }
-  }));
-  document.getElementById('mvp-bulk-prog').textContent=`✓ Xong ${parsed.length} ví`;
-}
-
+// ── Single check ──
 async function checkMvp() {
   const addr = document.getElementById('mvp-addr-input').value.trim();
   const err  = document.getElementById('mvp-err');
@@ -2735,98 +2505,114 @@ async function checkMvp() {
   if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) { err.textContent='Địa chỉ không hợp lệ'; return; }
   err.textContent = '';
   res.style.display = 'block';
-  res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>Đang tính MVP points...</div>';
+  res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>Đang tải từ msutool...</div>';
   try {
-    const msutoolData = await fetchMvpFromMsutool(addr);
-    // Build weekly rows from msutool data
-    const rows = buildMvpWeekRows(msutoolData);
-    res.innerHTML = renderWeeklyTable(addr, rows, addr.slice(0,6)+'...'+addr.slice(-4), msutoolData);
+    const rows13w = await fetchDailyData(addr, MVP_LAUNCH);
+    const weeklyRows = buildWeeklyRows(rows13w);
+    const last13rows = rows13w.filter(r => {
+      const key = getWeekKey(r.day);
+      const allKeys = [...new Set(rows13w.map(x=>getWeekKey(x.day)))].sort().slice(-13);
+      return allKeys.includes(key);
+    });
+    const calc = calcMvpFromRows(last13rows);
+    res.innerHTML = renderMvpResult(addr, weeklyRows, calc.points, addr.slice(0,6)+'...'+addr.slice(-4));
   } catch(e) {
     res.innerHTML = `<div style="color:var(--red);padding:12px">Lỗi: ${e.message}</div>`;
   }
 }
 
-async function openTeamMvpList() {
-  const wallets = window.teamWallets || [];
-  if (!wallets.length) { document.getElementById('mvp-err').textContent='Cần đăng nhập tab Team trước'; return; }
-  document.getElementById('mvp-err').textContent = '';
-  const wrap = document.getElementById('mvp-iframe-wrap');
-  wrap.style.display = 'block';
+// ── Bulk check ──
+async function checkMvpBulk() {
+  const ta  = document.getElementById('mvp-bulk-ta');
+  const err = document.getElementById('mvp-err');
+  const res = document.getElementById('mvp-single-result');
+  if(!ta) return;
+  const parsed = parseBulkLines(ta.value).filter(p=>p.valid);
+  if(!parsed.length){err.textContent='Không có địa chỉ hợp lệ';return;}
+  err.textContent='';
+  res.style.display='none';
 
-  wrap.innerHTML = `
+  const wrap = document.getElementById('mvp-iframe-wrap');
+  wrap.style.display='block';
+  wrap.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div class="section-label" style="margin-bottom:0">🏅 MVP Status — Team</div>
-      <div id="mvp-team-prog" style="font-size:11px;color:var(--muted2)">Đang tải 0/${wallets.length}...</div>
+      <div class="section-label" style="margin-bottom:0">🏅 MVP Status — Bulk</div>
+      <div id="mvp-bulk-prog" style="font-size:11px;color:var(--muted2)">0/${parsed.length} ví</div>
     </div>
     <div class="table-wrap" style="max-height:520px;overflow-y:auto">
-      <table>
-        <thead><tr>
-          <th style="text-align:center">#</th>
-          <th style="text-align:left">Tên</th>
-          <th style="text-align:left">Địa chỉ</th>
-          <th>Current Tier</th>
-          <th>13W Points</th>
-          <th>To Next</th>
-          <th>Next Tier</th>
-        </tr></thead>
-        <tbody id="mvp-team-body"></tbody>
-        <tfoot id="mvp-team-foot" style="position:sticky;bottom:0;z-index:2"></tfoot>
-      </table>
+      <table><thead><tr>
+        <th style="text-align:center">#</th>
+        <th style="text-align:left">Tên</th>
+        <th style="text-align:left">Địa chỉ</th>
+        <th>Current Tier</th><th>13W Points</th><th>To Next</th><th>Next Tier</th>
+      </tr></thead>
+      <tbody id="mvp-bulk-tbody"></tbody></table>
     </div>`;
 
-  const tbody = document.getElementById('mvp-team-body');
-  tbody.innerHTML = wallets.map((w,i)=>`
-    <tr id="mvpr-${i}">
-      <td style="text-align:center;color:var(--muted2)">${i+1}</td>
-      <td style="font-weight:600">${w.label||'—'}</td>
-      <td style="font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
-      <td colspan="4" style="text-align:center;color:var(--muted2);font-size:11px">
-        <span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:4px"></span>Loading...
-      </td>
-    </tr>`).join('');
+  const tbody=document.getElementById('mvp-bulk-tbody');
+  tbody.innerHTML=parsed.map((p,i)=>`<tr id="mvpbr-${i}">
+    <td style="text-align:center;color:var(--muted2)">${i+1}</td>
+    <td style="font-weight:600">${p.label||p.addr.slice(0,6)+'...'+p.addr.slice(-4)}</td>
+    <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
+    <td colspan="4" style="text-align:center;color:var(--muted2);font-size:11px">
+      <span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:4px"></span>Loading...
+    </td></tr>`).join('');
 
-  const f = n=>Math.round(n).toLocaleString('vi-VN');
-  let done=0, totPts=0;
-
-  await Promise.all(wallets.map(async (w,i) => {
-    await new Promise(r=>setTimeout(r, i*300));
-    try {
-      const {rows} = await fetchMvpWeeklyBreakdown(w.address);
-      const last = rows[rows.length-1];
-      const pts  = last?.cumulativePoints || 0;
-      const tier = getTier(pts);
-      const next = getNextTier(pts);
-      totPts += pts; done++;
-      document.getElementById('mvp-team-prog').textContent = `${done}/${wallets.length} ví`;
-      const row = document.getElementById(`mvpr-${i}`);
-      if(row) row.innerHTML = `
+  const f=n=>Math.round(n).toLocaleString('vi-VN');
+  let done=0;
+  await Promise.all(parsed.map(async(p,i)=>{
+    await new Promise(r=>setTimeout(r,i*200));
+    try{
+      const daily=await fetchDailyData(p.addr, MVP_LAUNCH);
+      const allKeys=[...new Set(daily.map(x=>getWeekKey(x.day)))].sort().slice(-13);
+      const winRows=daily.filter(r=>allKeys.includes(getWeekKey(r.day)));
+      const calc=calcMvpFromRows(winRows);
+      const pts=calc.points; const tier=getTier(pts); const next=getNextTier(pts);
+      done++;
+      document.getElementById('mvp-bulk-prog').textContent=`${done}/${parsed.length} ví`;
+      const row=document.getElementById(`mvpbr-${i}`);
+      if(row) row.innerHTML=`
         <td style="text-align:center;color:var(--muted2)">${i+1}</td>
-        <td style="font-weight:600">${w.label||'—'}</td>
-        <td style="font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
+        <td style="font-weight:600">${p.label||p.addr.slice(0,6)+'...'+p.addr.slice(-4)}</td>
+        <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
         <td style="text-align:center;font-weight:700;color:${tier.color}">${tier.icon} ${tier.name}</td>
         <td style="text-align:right">${f(pts)}</td>
         <td style="text-align:right;color:var(--accent)">${next?f(next.min-pts):'—'}</td>
-        <td style="text-align:center;color:${next?.color||'var(--muted2)'}">${next?next.icon+' '+next.name:'🏆 Max'}</td>`;
-    } catch(e) {
+        <td style="text-align:center;color:${next?.color||'var(--muted2)'}'">${next?next.icon+' '+next.name:'🏆 Max'}</td>`;
+    }catch(e){
       done++;
-      const row = document.getElementById(`mvpr-${i}`);
-      if(row) row.innerHTML = `<td style="text-align:center">${i+1}</td><td>${w.label}</td>
-        <td style="font-family:monospace;font-size:11px">${w.address.slice(0,6)}...${w.address.slice(-4)}</td>
-        <td colspan="4" style="color:var(--red);font-size:11px">Lỗi</td>`;
+      const row=document.getElementById(`mvpbr-${i}`);
+      if(row) row.innerHTML=`<td>${i+1}</td><td>${p.label||'—'}</td>
+        <td style="font-family:monospace;font-size:11px">${p.addr.slice(0,6)}...${p.addr.slice(-4)}</td>
+        <td colspan="4" style="color:var(--red);font-size:11px">Lỗi: ${e.message}</td>`;
     }
   }));
+  document.getElementById('mvp-bulk-prog').textContent=`✓ Xong ${parsed.length} ví`;
+}
 
-  document.getElementById('mvp-team-prog').textContent = `✓ Xong ${wallets.length} ví`;
-  const avgTier = getTier(Math.floor(totPts/wallets.length));
-  const foot = document.getElementById('mvp-team-foot');
-  if(foot) foot.innerHTML = `<tr style="font-weight:700;background:var(--surface)">
-    <td colspan="3" style="padding:10px 14px;color:var(--muted2)">TỔNG / TB</td>
-    <td style="text-align:center;color:${avgTier.color}">${avgTier.icon} ${avgTier.name}</td>
-    <td style="text-align:right;padding:10px 14px">${f(totPts)}</td>
-    <td colspan="2"></td>
-  </tr>`;
+function setMvpMode(mode) {
+  const isSingle=mode==='single';
+  document.getElementById('mvp-input-single').style.display=isSingle?'':'none';
+  document.getElementById('mvp-input-bulk').style.display=isSingle?'none':'';
+  document.getElementById('mvp-mode-single').style.background=isSingle?'var(--accent)':'transparent';
+  document.getElementById('mvp-mode-single').style.color=isSingle?'#fff':'var(--muted2)';
+  document.getElementById('mvp-mode-bulk').style.background=isSingle?'transparent':'var(--accent)';
+  document.getElementById('mvp-mode-bulk').style.color=isSingle?'var(--muted2)':'#fff';
+  document.getElementById('mvp-err').textContent='';
+}
+
+function updateMvpBulkPreview() {
+  const ta=document.getElementById('mvp-bulk-ta');
+  const p=document.getElementById('mvp-bulk-preview');
+  if(!ta||!p) return;
+  const parsed=parseBulkLines(ta.value);
+  if(!parsed.length){p.textContent='Nhập địa chỉ bên trên';return;}
+  const v=parsed.filter(x=>x.valid).length,b=parsed.length-v;
+  p.innerHTML=(v?`<span style="color:var(--green)">✓ ${v} ví hợp lệ</span>`:'')+
+    (b?` · <span style="color:var(--red)">✗ ${b} lỗi</span>`:'');
 }
 </script>
+
 
 <script>
 // ── NESO FLOW MODULE ──
