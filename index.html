@@ -611,6 +611,7 @@ Ví sếp, 0x5678...efgh
             <th style="text-align:center">#</th>
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
+            <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('usdt')" style="color:var(--green)">USDT <span id="sort-icon-usdt" style="opacity:.3">↕</span></th>
@@ -619,7 +620,6 @@ Ví sếp, 0x5678...efgh
             <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
             <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('usdt_avax')">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
             <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('vnd_avax')">VND(AVAX) <span id="sort-icon-vnd_avax" style="opacity:.3">↕</span></th>
-            <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th></th>
           </tr></thead>
           <tbody id="team-tbody"></tbody>
@@ -1818,12 +1818,25 @@ function renderTeam() {
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px">${a.slice(0,6)}...${a.slice(-4)}</span>`;
+    const mvpColor = w.mvpTier?.color || 'var(--muted2)';
+    const mvpIcon  = w.mvpTier?.icon  || '—';
     return `<tr>
       <td style="text-align:center;color:var(--muted2);font-size:12px;font-weight:600">${i+1}</td>
-      <td style="text-align:left;font-weight:600">${w.label||'—'}</td>
+      <td style="text-align:left">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
+            style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
+          <span style="font-weight:600">${w.label||'—'}</span>
+        </div>
+      </td>
       <td style="text-align:left">${short(w.address)}
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
         <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
+      </td>
+      <td style="text-align:center">
+        ${w.mvpPoints!=null
+          ? `<span style="color:${mvpColor};font-weight:700;font-size:12px">${mvpIcon} ${w.mvpPoints}</span>`
+          : '<span style="font-size:10px;color:var(--muted2)">—</span>'}
       </td>
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -1833,14 +1846,7 @@ function renderTeam() {
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax*liveNxpcUsd,2):'—'}</td>
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(w.nxpc_avax*liveNxpcUsd*(liveUsdVnd||0)):'—'}</td>
-      <td style="text-align:center">
-        ${w.mvpPoints!=null ? `<span style="color:${w.mvpTier?.color||'var(--muted2)'};font-weight:700;font-size:12px">${w.mvpTier?.icon||''} ${w.mvpPoints}</span>` : `<span style="font-size:10px;color:var(--muted2)">—</span>`}
-      </td>
-      <td style="text-align:center">
-        <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
-          style="background:var(--subtle);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);font-family:inherit;font-size:11px;cursor:pointer">▼</button>
-        ${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="margin-left:4px;background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}
-      </td>
+      <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" style="display:none">
       <td colspan="14" style="padding:0">
