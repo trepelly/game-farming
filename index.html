@@ -1899,11 +1899,11 @@ function renderTeam() {
   const usdvndRate = liveUsdVnd   ? Math.round(liveUsdVnd).toLocaleString('vi-VN') : '';
 
   const COIN_LOGOS = {
-    'NESO': 'https://gamedatahub-static.msu.io/msu/platform/tokens/neso.png',
-    'NXPC': 'https://gamedatahub-static.msu.io/msu/platform/tokens/nxpc.png',
-    'USDT': 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
-    'VND':  'https://flagcdn.com/16x12/vn.png',
-    'AVAX': 'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png',
+    'NESO': 'https://s2.coinmarketcap.com/static/img/coins/64x64/35392.png',
+    'NXPC': 'https://s2.coinmarketcap.com/static/img/coins/64x64/33677.png',
+    'USDT': 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
+    'VND':  'https://flagcdn.com/vn.svg',
+    'AVAX': 'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
   };
   const coinLogo = (label) => {
     const key = Object.keys(COIN_LOGOS).find(k => label.toUpperCase().includes(k));
