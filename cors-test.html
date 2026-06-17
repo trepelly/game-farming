@@ -1,34 +1,35 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>maplen.gg API Test</title>
+<html><head><meta charset="UTF-8"><title>maplen.gg Deep Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 maplen.gg API Test</h2>
-<pre id="out">Testing...\n</pre>
+<body><h2>🔍 maplen.gg Deep API Test</h2>
+<pre id="out">Testing...
+</pre>
 <script>
 const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
 const out = document.getElementById('out');
 const log = (msg,cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
 
 const tests = [
-  `https://maplen.gg/api/assets?address=${addr}`,
-  `https://maplen.gg/api/wallet/${addr}`,
-  `https://maplen.gg/api/v1/assets?address=${addr}`,
-  `https://api.maplen.gg/assets?address=${addr}`,
-  `https://maplen.gg/api/crystal?address=${addr}`,
-  `https://maplen.gg/api/power-crystal?address=${addr}`,
+  `https://maplen.gg/api/wallet/assets?address=${addr}`,
+  `https://maplen.gg/api/wallet/balance?address=${addr}`,
+  `https://maplen.gg/api/currencies/${addr}`,
+  `https://maplen.gg/api/wallet/${addr}/currencies`,
+  `https://maplen.gg/api/wallet/${addr}/balance`,
+  `https://maplen.gg/_next/data/wallet?address=${addr}`,
 ];
 
 async function run() {
   for (const url of tests) {
-    log('\n🔍 ' + url.replace('https://',''));
+    log('\n🔍 '+url.replace('https://maplen.gg',''));
     try {
-      const r = await fetch(url, {headers:{'Accept':'application/json'}});
+      const r = await fetch(url,{headers:{'Accept':'application/json','Referer':'https://maplen.gg/'}});
       const text = await r.text();
-      log('   HTTP ' + r.status, r.ok?'ok':'err');
+      log('   HTTP '+r.status,r.ok?'ok':'err');
       if(r.ok) log('   '+text.slice(0,400),'ok');
-      else log('   '+text.slice(0,150));
-    } catch(e) { log('   X CORS/Error: '+e.message,'err'); }
+      else log('   '+text.slice(0,100));
+    } catch(e) { log('   X '+e.message,'err'); }
   }
   log('\nDone');
 }

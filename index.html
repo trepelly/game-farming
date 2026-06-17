@@ -2932,7 +2932,7 @@ async function toggleFlowExpand(address) {
   cont.innerHTML = '<div style="padding:8px;color:var(--muted2);font-size:11px"><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"></span>Loading NESO Flow...</div>';
 
   try {
-    const url = `https://pvydmytgmlrarwbozlnl.supabase.co/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&order=day.desc&limit=30`;
+    const url = `https://pvydmytgmlrarwbozlnl.supabase.co/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&order=day.desc`;
     const r = await fetch(url, {
       headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw' }
     });
@@ -2962,7 +2962,7 @@ function renderFlowExpand(cont, rows) {
 
   cont.innerHTML = `
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center">
-      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">NESO Flow (30 ngày gần nhất)</div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">NESO Flow (Tất cả)</div>
       <div style="background:${tier.bg};border:1px solid ${tier.color}44;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:${tier.color}">${tier.icon} ${tier.name} · ${f(mvpPts)} pts</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-bottom:10px">
