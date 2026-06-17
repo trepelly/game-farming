@@ -1,37 +1,42 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>msutool.com API Test</title>
+<html><head><meta charset="UTF-8"><title>msutool NESO Flow Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px;line-height:1.6}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 msutool.com API Test</h2>
+<body><h2>🔍 msutool NESO Flow API Test</h2>
 <pre id="out">Running...\n</pre>
 <script>
-const addr = '0x3c7854d9edb3a60df46343a5c0f2d418ce7ae806';
+const SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
+const addr = '0x82f482ffee70b54698a2c0cfd8e1589365d92fad';
 const out = document.getElementById('out');
 const log = (msg,cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
+const H = {'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY};
 
 const tests = [
-  `https://msutool.com/api/economy?tab=neso&wallet=${addr}`,
-  `https://msutool.com/api/neso?wallet=${addr}`,
-  `https://msutool.com/api/wallet/${addr}/economy`,
-  `https://msutool.com/api/wallet/${addr}/neso`,
-  `https://msutool.com/api/v1/economy?wallet=${addr}`,
-  `https://msutool.com/api/mvp?wallet=${addr}`,
-  `https://api.msutool.com/economy?wallet=${addr}`,
-  `https://api.msutool.com/neso?wallet=${addr}`,
+  ['neso_wallet_personal_stats', {wallet_address: addr}],
+  ['neso_wallet_daily', {wallet_address: addr}],
+  ['neso_wallet_heatmap', {wallet_address: addr}],
+  ['neso_wallet_flow', {wallet_address: addr}],
+  ['neso_wallet_flow_summary', {wallet_address: addr}],
+  ['neso_wallet_flow_daily', {wallet_address: addr}],
+  ['neso_flow_summary', {wallet_address: addr}],
+  ['wallet_neso_flow', {wallet_address: addr}],
+  ['neso_wallet_stats', {wallet_address: addr}],
 ];
 
 async function run() {
-  for (const url of tests) {
-    log(`\n🔍 ${url.replace('https://','')}`);
+  for (const [fn, body] of tests) {
+    log('\n🔍 rpc/' + fn);
     try {
-      const r = await fetch(url, {headers:{'Accept':'application/json'}});
+      const r = await fetch(SUPABASE+'/rest/v1/rpc/'+fn, {method:'POST',headers:H,body:JSON.stringify(body)});
       const text = await r.text();
-      log(`   HTTP ${r.status} | CORS: ${r.headers.get('access-control-allow-origin')||'(none)'}`, r.ok?'ok':'err');
-      log(`   ${text.slice(0,400)}`);
-    } catch(e) { log(`   ✗ ${e.message}`, 'err'); }
+      log('   HTTP '+r.status, r.ok?'ok':'err');
+      if(r.ok) log('   '+text.slice(0,500),'ok');
+      else log('   '+text.slice(0,150));
+    } catch(e) { log('   X '+e.message,'err'); }
   }
-  log('\n✅ Done');
+  log('\nDone');
 }
 run();
 </script></body></html>
