@@ -244,6 +244,7 @@ td:first-child{text-align:left;color:var(--muted2)}
     <button class="tab" onclick="switchTab('wallet')">🔗 Ví & Tài sản</button>
     <button class="tab" onclick="switchTab('team')">👥 Team Wallet</button>
     <button class="tab" onclick="switchTab('mvp')">🏅 MVP Status</button>
+    <button class="tab" onclick="switchTab('flow')">💸 NESO Flow</button>
   </div>
 
   <!-- PANEL 1 -->
@@ -694,6 +695,57 @@ Ví sếp, 0x5678...efgh
     </div>
   </div>
 
+  <!-- PANEL 6: NESO FLOW -->
+  <div id="panel-flow" class="panel">
+    <div class="section-label">NESO Flow Analytics</div>
+
+    <!-- Input -->
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:20px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">Nhập địa chỉ ví</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="flow-addr-input" type="text" placeholder="0x..."
+          style="flex:1;min-width:260px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:13px;color:var(--text);outline:none"
+          onkeydown="if(event.key==='Enter') checkFlow()"/>
+        <div style="display:flex;gap:4px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:3px">
+          <button id="flow-range-7"  onclick="setFlowRange(7)"   style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">7 ngày</button>
+          <button id="flow-range-30" onclick="setFlowRange(30)"  style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">30 ngày</button>
+          <button id="flow-range-91" onclick="setFlowRange(91)"  style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">13 tuần</button>
+          <button id="flow-range-0"  onclick="setFlowRange(0)"   style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tất cả</button>
+        </div>
+        <button onclick="checkFlow()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Xem Flow</button>
+      </div>
+      <div id="flow-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
+    </div>
+
+    <!-- Summary stats -->
+    <div id="flow-stats" style="display:none;margin-bottom:20px"></div>
+
+    <!-- Daily table -->
+    <div id="flow-table-section" style="display:none">
+      <div class="section-label" style="margin-bottom:12px" id="flow-table-label">Chi tiết theo ngày</div>
+      <div class="table-wrap" style="max-height:520px;overflow-y:auto">
+        <table>
+          <thead><tr>
+            <th style="text-align:left">Ngày</th>
+            <th style="color:var(--green)">In Swap</th>
+            <th style="color:var(--green)">In NFT</th>
+            <th style="color:var(--green)">In FT</th>
+            <th style="color:var(--green)">In Mint</th>
+            <th style="color:var(--green)">Tổng vào</th>
+            <th style="color:#e84142">Enhancement</th>
+            <th style="color:#e84142">Out NFT</th>
+            <th style="color:#e84142">Out FT</th>
+            <th style="color:#e84142">Out Swap</th>
+            <th style="color:#e84142">Tổng ra</th>
+            <th>Net</th>
+          </tr></thead>
+          <tbody id="flow-tbody"></tbody>
+          <tfoot id="flow-tfoot" style="position:sticky;bottom:0;z-index:2;border-top:2px solid var(--border2)"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -746,7 +798,7 @@ function makeChart(id,cfg){
 }
 
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet','team','mvp'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet','team','mvp','flow'][i]===t));
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
 }
@@ -2719,4 +2771,174 @@ async function openTeamMvpList() {
   </tr>`;
 }
 </script>
+
+<script>
+// ── NESO FLOW MODULE ──
+const FLOW_SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
+const FLOW_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
+let   flowRange     = 91; // days, 0 = all time
+
+function setFlowRange(days) {
+  flowRange = days;
+  [7,30,91,0].forEach(d => {
+    const btn = document.getElementById('flow-range-'+d);
+    if(!btn) return;
+    btn.style.background = d===days ? 'var(--accent)' : 'transparent';
+    btn.style.color      = d===days ? '#fff' : 'var(--muted2)';
+  });
+}
+
+async function fetchFlowData(address, days) {
+  let url = `${FLOW_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&order=day.desc`;
+  if (days > 0) {
+    const since = new Date(Date.now() - days * 86400000).toISOString().slice(0,10);
+    url += `&day=gte.${since}`;
+  }
+  const r = await fetch(url, {
+    headers: { 'apikey': FLOW_KEY, 'Authorization': 'Bearer ' + FLOW_KEY }
+  });
+  if (!r.ok) throw new Error('API ' + r.status);
+  return await r.json();
+}
+
+async function checkFlow() {
+  const addr = document.getElementById('flow-addr-input').value.trim();
+  const err  = document.getElementById('flow-err');
+  if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) { err.textContent='Địa chỉ không hợp lệ'; return; }
+  err.textContent = '';
+
+  const statsEl = document.getElementById('flow-stats');
+  const tableSection = document.getElementById('flow-table-section');
+  statsEl.style.display = 'block';
+  statsEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px"></span>Đang tải dữ liệu...</div>';
+
+  try {
+    const rows = await fetchFlowData(addr, flowRange);
+    if (!rows.length) {
+      statsEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted2)">Không có dữ liệu cho ví này</div>';
+      return;
+    }
+    renderFlowStats(rows);
+    renderFlowTable(rows);
+    tableSection.style.display = 'block';
+    const label = document.getElementById('flow-table-label');
+    if(label) label.textContent = `Chi tiết theo ngày (${rows.length} ngày)`;
+  } catch(e) {
+    statsEl.innerHTML = `<div style="color:var(--red);padding:12px">Lỗi: ${e.message}</div>`;
+  }
+}
+
+function renderFlowStats(rows) {
+  const f = n => Math.round(n).toLocaleString('vi-VN');
+  const fd = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+  // Aggregate totals
+  let totInSwap=0, totInNft=0, totInFt=0, totInMint=0, totInCrystal=0, totInTransfer=0;
+  let totEnhancement=0, totOutNft=0, totOutFt=0, totOutSwap=0, totOutCrystal=0, totOutBurn=0;
+
+  rows.forEach(r => {
+    totInSwap      += r.in_swap_amount      || 0;
+    totInNft       += r.in_nft_amount       || 0;
+    totInFt        += r.in_ft_amount        || 0;
+    totInMint      += r.in_mint_amount      || 0;
+    totInCrystal   += r.in_crystal_amount   || 0;
+    totInTransfer  += r.in_transfer_amount  || 0;
+    totEnhancement += r.out_enhancement_amount || r.out_crystal_amount || 0;
+    totOutNft      += r.out_nft_amount      || 0;
+    totOutFt       += r.out_ft_amount       || 0;
+    totOutSwap     += r.out_swap_amount     || 0;
+    totOutCrystal  += r.out_crystal_amount  || 0;
+    totOutBurn     += r.out_burn_amount     || 0;
+  });
+
+  const totIn  = totInSwap + totInNft + totInFt + totInMint + totInCrystal + totInTransfer;
+  const totOut = totEnhancement + totOutNft + totOutFt + totOutSwap + totOutBurn;
+  const net    = totIn - totOut;
+
+  // MVP eligible = enhancement + (out_nft + out_ft) * 5%
+  const mvpEligible = totEnhancement + (totOutNft + totOutFt) * 0.05;
+  const mvpPoints   = Math.floor(mvpEligible / 100000);
+  const mvpTier     = typeof getTier !== 'undefined' ? getTier(mvpPoints) : {name:'—',color:'var(--muted2)',icon:''};
+
+  const sc = (accent, label, val, sub='') =>
+    `<div class="stat"><div class="stat-accent" style="background:${accent}"></div>
+      <div class="stat-label">${label}</div>
+      <div class="stat-val" style="color:${accent}">${val}</div>
+      ${sub?`<div class="stat-sub">${sub}</div>`:''}
+    </div>`;
+
+  document.getElementById('flow-stats').innerHTML = `
+    ${sc('var(--green)',  'Tổng vào',      f(totIn))}
+    ${sc('#e84142',       'Tổng ra',        f(totOut))}
+    ${sc(net>=0?'var(--green)':'#e84142', 'Net', (net>=0?'+':'')+f(net))}
+    ${sc('var(--amber)',  'Enhancement',   f(totEnhancement), '×100% MVP')}
+    ${sc('var(--blue)',   'Out NFT',       f(totOutNft),      '×5% MVP')}
+    ${sc('var(--blue)',   'Out FT',        f(totOutFt),       '×5% MVP')}
+    ${sc('var(--accent)', 'MVP Points',    f(mvpPoints),      mvpTier.icon+' '+mvpTier.name)}
+  `;
+}
+
+function renderFlowTable(rows) {
+  const f = n => n ? Math.round(n).toLocaleString('vi-VN') : '—';
+  const G = 'color:var(--green)', R = 'color:#e84142', B = 'color:var(--blue)';
+
+  let totInSwap=0, totInNft=0, totInFt=0, totInMint=0;
+  let totEnhancement=0, totOutNft=0, totOutFt=0, totOutSwap=0;
+
+  const bodyRows = rows.map(r => {
+    const inSwap  = r.in_swap_amount  || 0;
+    const inNft   = r.in_nft_amount   || 0;
+    const inFt    = r.in_ft_amount    || 0;
+    const inMint  = r.in_mint_amount  || 0;
+    const enhance = r.out_enhancement_amount || r.out_crystal_amount || 0;
+    const outNft  = r.out_nft_amount  || 0;
+    const outFt   = r.out_ft_amount   || 0;
+    const outSwap = r.out_swap_amount || 0;
+    const totIn   = inSwap+inNft+inFt+inMint+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
+    const totOut  = enhance+outNft+outFt+outSwap+(r.out_burn_amount||0);
+    const net     = totIn - totOut;
+
+    totInSwap+=inSwap; totInNft+=inNft; totInFt+=inFt; totInMint+=inMint;
+    totEnhancement+=enhance; totOutNft+=outNft; totOutFt+=outFt; totOutSwap+=outSwap;
+
+    return `<tr>
+      <td style="font-family:monospace;font-size:11px">${r.day?.slice(0,10)||'—'}</td>
+      <td style="text-align:right;${G}">${f(inSwap)}</td>
+      <td style="text-align:right;${G}">${f(inNft)}</td>
+      <td style="text-align:right;${G}">${f(inFt)}</td>
+      <td style="text-align:right;${G}">${f(inMint)}</td>
+      <td style="text-align:right;font-weight:600;${G}">${f(totIn)}</td>
+      <td style="text-align:right;${R}">${f(enhance)}</td>
+      <td style="text-align:right;${B}">${f(outNft)}</td>
+      <td style="text-align:right;${B}">${f(outFt)}</td>
+      <td style="text-align:right;${R}">${f(outSwap)}</td>
+      <td style="text-align:right;font-weight:600;${R}">${f(totOut)}</td>
+      <td style="text-align:right;font-weight:600;color:${net>=0?'var(--green)':'#e84142'}">${net>=0?'+':''}${f(net)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('flow-tbody').innerHTML = bodyRows;
+
+  const tInAll  = rows.reduce((s,r)=>s+(r.in_swap_amount||0)+(r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0),0);
+  const tOutAll = rows.reduce((s,r)=>s+(r.out_enhancement_amount||r.out_crystal_amount||0)+(r.out_nft_amount||0)+(r.out_ft_amount||0)+(r.out_swap_amount||0)+(r.out_burn_amount||0),0);
+  const netAll  = tInAll - tOutAll;
+  const fb = n => Math.round(n).toLocaleString('vi-VN');
+
+  document.getElementById('flow-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface)">
+    <td style="padding:10px 14px;color:var(--muted2)">TỔNG</td>
+    <td style="text-align:right;color:var(--green)">${fb(totInSwap)}</td>
+    <td style="text-align:right;color:var(--green)">${fb(totInNft)}</td>
+    <td style="text-align:right;color:var(--green)">${fb(totInFt)}</td>
+    <td style="text-align:right;color:var(--green)">${fb(totInMint)}</td>
+    <td style="text-align:right;color:var(--green)">${fb(tInAll)}</td>
+    <td style="text-align:right;color:var(--amber)">${fb(totEnhancement)}</td>
+    <td style="text-align:right;color:var(--blue)">${fb(totOutNft)}</td>
+    <td style="text-align:right;color:var(--blue)">${fb(totOutFt)}</td>
+    <td style="text-align:right;color:#e84142">${fb(totOutSwap)}</td>
+    <td style="text-align:right;color:#e84142">${fb(tOutAll)}</td>
+    <td style="text-align:right;color:${netAll>=0?'var(--green)':'#e84142'}">${netAll>=0?'+':''}${fb(netAll)}</td>
+  </tr>`;
+}
+</script>
+
 </body>
