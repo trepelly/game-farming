@@ -2395,26 +2395,62 @@ async function fetchMsutoolStats(address) {
 }
 
 async function fetchMvpFromMsutool(address) {
-  // Tính MVP từ ngày Maple công bố MVP system: 2026-05-15
+  // MVP rolling 13 tuần: mỗi tuần Thu 00:00 UTC → Wed 23:59 UTC
+  // Chỉ tính 13 tuần gần nhất kể từ MVP launch 2026-05-15
   // Công thức: Enhancement×100% + (Out NFT + Out FT)×5%
-  const MVP_LAUNCH = '2026-05-15';
-  const url = `${MSUTOOL_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte.${MVP_LAUNCH}&order=day.desc`;
+
+  // Tính ngày bắt đầu tuần hiện tại (Thu gần nhất)
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0=Sun,1=Mon,...,4=Thu
+  const daysToLastThu = (dayOfWeek + 3) % 7; // days since last Thursday
+  const currentWeekStart = new Date(now);
+  currentWeekStart.setUTCDate(now.getUTCDate() - daysToLastThu);
+  currentWeekStart.setUTCHours(0,0,0,0);
+
+  // 13 tuần rolling = 91 ngày trước bắt đầu tuần hiện tại
+  const rollingStart = new Date(currentWeekStart);
+  rollingStart.setUTCDate(rollingStart.getUTCDate() - 12*7); // go back 12 more weeks
+
+  // But not before MVP launch
+  const mvpLaunch = new Date('2026-05-15T00:00:00Z');
+  const since = rollingStart < mvpLaunch ? mvpLaunch : rollingStart;
+  const sinceStr = since.toISOString().slice(0,10);
+
+  const url = `${MSUTOOL_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte.${sinceStr}&order=day.asc`;
   const r = await fetch(url, {
     headers: { 'apikey': MSUTOOL_KEY, 'Authorization': 'Bearer ' + MSUTOOL_KEY }
   });
   if (!r.ok) throw new Error('daily API ' + r.status);
   const daily = await r.json();
 
-  let enhancement=0, outNft=0, outFt=0;
+  // Group by week (Thu→Wed)
+  const weeks = {};
   daily.forEach(row => {
-    enhancement += row.out_enhancement_amount || 0;
-    outNft      += row.out_nft_amount  || 0;
-    outFt       += row.out_ft_amount   || 0;
+    const d = new Date(row.day + 'T00:00:00Z');
+    const dow = d.getUTCDay();
+    const daysToThu = (dow + 3) % 7;
+    const thu = new Date(d);
+    thu.setUTCDate(d.getUTCDate() - daysToThu);
+    thu.setUTCHours(0,0,0,0);
+    const key = thu.toISOString().slice(0,10);
+    if (!weeks[key]) weeks[key] = { enhancement:0, outNft:0, outFt:0 };
+    weeks[key].enhancement += row.out_enhancement_amount || 0;
+    weeks[key].outNft      += row.out_nft_amount || 0;
+    weeks[key].outFt       += row.out_ft_amount  || 0;
+  });
+
+  // Take last 13 weeks only
+  const sortedWeeks = Object.keys(weeks).sort().slice(-13);
+  let enhancement=0, outNft=0, outFt=0;
+  sortedWeeks.forEach(k => {
+    enhancement += weeks[k].enhancement;
+    outNft      += weeks[k].outNft;
+    outFt       += weeks[k].outFt;
   });
 
   const eligible = enhancement + (outNft + outFt) * 0.05;
   const points   = Math.floor(eligible / 100000);
-  return { points, source: 'msutool (từ 2026-05-15)', enhancement, outNft, outFt, eligible };
+  return { points, source: 'msutool (13W rolling)', enhancement, outNft, outFt, eligible, weekCount: sortedWeeks.length };
 }
 
 // Addresses to EXCLUDE from MVP point calculation (fallback on-chain)
