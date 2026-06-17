@@ -1865,11 +1865,10 @@ function renderTeam() {
   const totVndAvax     = totUsdtAvax * (liveUsdVnd||0);
   const mvpWallets = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>=30);
   const mvpCount   = mvpWallets.length;
-  const mvpTotPts  = mvpWallets.reduce((s,w)=>s+(w.mvpPoints||0),0);
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="2" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="padding:10px 14px"></td>
-    <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpTotPts : '—'}</td>
+    <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
