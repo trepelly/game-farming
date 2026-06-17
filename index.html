@@ -2534,8 +2534,7 @@ function renderWeeklyTable(address, rows, label, msutoolData) {
   const fd = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const lastRow = rows[rows.length-1];
   // Use msutool total if available (more accurate), else use on-chain cumulative
-  const onChainTotal = lastRow?.cumulativePoints || 0;
-  const totalPts = (msutoolData && msutoolData.points > onChainTotal) ? msutoolData.points : onChainTotal;
+  const totalPts = (msutoolData?.points != null) ? msutoolData.points : (lastRow?.cumulativePoints || 0);
   const tier = getTier(totalPts);
   const next = getNextTier(totalPts);
 
@@ -2593,7 +2592,7 @@ function renderWeeklyTable(address, rows, label, msutoolData) {
         </table>
       </div>
       <div style="font-size:10px;color:var(--muted2);margin-top:8px">
-        ⚠️ Đã loại trừ: giao dịch swap NESO↔NXPC và burn · In-game spending + marketplace được tính · Có thể chênh lệch nhỏ với Dune
+        ${msutoolData ? '✅ msutool.com · Enhancement×100% + (OutNFT+OutFT)×5%' : '⚠️ On-chain estimate'}
         <a href="https://dune.com/rabel/maplestory-universe-weekly-mvp-points?wallet_address_tf0e36=${encodeURIComponent(address)}" target="_blank" style="margin-left:8px;color:var(--blue)">Xem Dune ↗</a>
       </div>
     </div>`;
@@ -2708,7 +2707,7 @@ async function checkMvp() {
   if (!/^0x[0-9a-fA-F]{40}$/i.test(addr)) { err.textContent='Địa chỉ không hợp lệ'; return; }
   err.textContent = '';
   res.style.display = 'block';
-  res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>Đang quét 13 tuần từ blockchain...</div>';
+  res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>Đang tính MVP points...</div>';
   try {
     const [msutoolData, {rows, msutoolData: _}] = await Promise.all([
       fetchMvpFromMsutool(addr).catch(()=>null),
