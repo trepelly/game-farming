@@ -1675,6 +1675,8 @@ async function loadTeamWallets() {
       } catch(e) { w.nxpc = null; w.neso = null; w.avax = null; w.nxpc_avax = null; w.err = e.message; }
     }));
     renderTeam();
+    // Load MVP points after balances (non-blocking)
+    loadTeamMvpPoints().catch(()=>{});
   } catch(e) {
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
@@ -1849,7 +1851,7 @@ function renderTeam() {
     <tr id="flow-expand-${w.address.slice(-8)}" style="display:none">
       <td colspan="14" style="padding:0;border-bottom:3px solid var(--accent)22">
         <div id="flow-content-${w.address.slice(-8)}"
-          style="padding:16px 20px;background:linear-gradient(135deg,var(--card2),var(--surface));border-top:2px solid var(--accent)33;border-left:3px solid var(--accent)66;overflow-x:auto">
+          style="padding:16px 20px;background:linear-gradient(135deg,var(--card2),var(--surface));border-top:2px solid var(--accent)33;border-left:3px solid var(--accent)66;max-height:400px;overflow-x:auto;overflow-y:auto">
         </div>
       </td>
     </tr>`;
@@ -2810,14 +2812,7 @@ function renderFlowTable(rows) {
 <script>
 // ── TEAM MVP + FLOW EXPAND ──
 
-// Load MVP points for all team wallets after balance load
-const _origLoadTeamMvp = window.loadTeamWallets;
-if (_origLoadTeamMvp) {
-  window.loadTeamWallets = async function() {
-    await _origLoadTeamMvp();
-    loadTeamMvpPoints();
-  };
-}
+// MVP points loaded directly inside loadTeamWallets
 
 async function loadTeamMvpPoints() {
   const wallets = window.teamWallets || [];
