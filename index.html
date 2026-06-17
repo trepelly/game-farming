@@ -691,7 +691,7 @@ Ví sếp, 0x5678...efgh
       <span style="color:#ffd700">🥇 Gold: 1,500-3,499</span> · 
       <span style="color:#b9f2ff">💎 Diamond: 3,500-6,999</span> · 
       <span style="color:#fff;background:#222;padding:1px 5px;border-radius:3px">⚫ Black: 7,000+</span><br/>
-      Points = NESO spent / 100,000 · 13-week rolling window (Thu–Wed UTC) · MVP bắt đầu từ <b style="color:var(--text)">2026-03-19</b>
+      Points = NESO spent / 100,000 · 13-week rolling window (Thu–Wed UTC) · MVP bắt đầu từ <b style="color:var(--text)">2026-05-15</b>
     </div>
   </div>
 
@@ -2335,11 +2335,11 @@ if (_origLockAR) {
 
 <script>
 // ── MVP MODULE ──
-// MVP system launched: 2026-03-19 (Thu 00:00 UTC)
+// MVP system launched: 2026-05-15
 // Each week: Thu 00:00 UTC → Wed 23:59 UTC
 // Points = NESO spent / 100,000 per week
 
-const MVP_LAUNCH = new Date('2026-03-19T00:00:00Z');
+const MVP_LAUNCH = new Date('2026-05-15T00:00:00Z');
 
 const MVP_TIERS = [
   { name:'Unranked', min:0,    max:29,   color:'var(--muted2)', icon:'—',  bg:'var(--subtle)' },
@@ -2395,9 +2395,9 @@ async function fetchMsutoolStats(address) {
 }
 
 async function fetchMvpFromMsutool(address) {
-  // Tính MVP từ ngày Maple công bố MVP system: 2026-03-19
+  // Tính MVP từ ngày Maple công bố MVP system: 2026-05-15
   // Công thức: Enhancement×100% + (Out NFT + Out FT)×5%
-  const MVP_LAUNCH = '2026-03-19';
+  const MVP_LAUNCH = '2026-05-15';
   const url = `${MSUTOOL_SUPABASE}/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&day=gte.${MVP_LAUNCH}&order=day.desc`;
   const r = await fetch(url, {
     headers: { 'apikey': MSUTOOL_KEY, 'Authorization': 'Bearer ' + MSUTOOL_KEY }
@@ -2414,7 +2414,7 @@ async function fetchMvpFromMsutool(address) {
 
   const eligible = enhancement + (outNft + outFt) * 0.05;
   const points   = Math.floor(eligible / 100000);
-  return { points, source: 'msutool (từ 2026-03-19)', enhancement, outNft, outFt, eligible };
+  return { points, source: 'msutool (từ 2026-05-15)', enhancement, outNft, outFt, eligible };
 }
 
 // Addresses to EXCLUDE from MVP point calculation (fallback on-chain)
