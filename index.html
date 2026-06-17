@@ -2867,16 +2867,17 @@ async function loadTeamMvpPoints() {
     try {
       const [rows, crystalRows] = await Promise.all([
         fetchDailyData(w.address, MVP_LAUNCH),
-        fetch(`${MVP_SUPABASE}/rest/v1/rpc/neso_wallet_personal_stats`, {
-          method: 'POST',
-          headers: { 'apikey': MVP_KEY, 'Authorization': 'Bearer ' + MVP_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet_address: w.address.toLowerCase() })
+        fetch(`${MVP_SUPABASE}/rest/v1/neso_wallet_daily?select=in_crystal_amount,out_crystal_amount&wallet=eq.${w.address.toLowerCase()}`, {
+          headers: { 'apikey': MVP_KEY, 'Authorization': 'Bearer ' + MVP_KEY }
         }).then(r=>r.json()).catch(()=>[])
       ]);
-      const crystalStat = Array.isArray(crystalRows)
-        ? crystalRows.find(s=>s.metric==='crystal'&&s.window_label==='all')
-        : null;
-      teamWallets[idx].crystalTotal = crystalStat?.user_value ?? null;
+      if (Array.isArray(crystalRows)) {
+        const totIn  = crystalRows.reduce((s,r)=>s+(r.in_crystal_amount||0),0);
+        const totOut = crystalRows.reduce((s,r)=>s+(r.out_crystal_amount||0),0);
+        teamWallets[idx].crystalTotal = Math.max(0, totIn - totOut);
+      } else {
+        teamWallets[idx].crystalTotal = null;
+      }
       const allKeys = [...new Set(rows.map(x=>getWeekKey(x.day)))].sort().slice(-13);
       const winRows = rows.filter(r => allKeys.includes(getWeekKey(r.day)));
       const calc = calcMvpFromRows(winRows);
