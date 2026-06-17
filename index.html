@@ -2867,11 +2867,11 @@ async function loadTeamMvpPoints() {
     try {
       const [rows, crystalRows] = await Promise.all([
         fetchDailyData(w.address, MVP_LAUNCH),
-        fetch(`${MVP_SUPABASE}/rest/v1/neso_wallet_daily?select=in_crystal_amount&wallet=eq.${w.address.toLowerCase()}&order=day.asc`, {
+        fetch(`${MVP_SUPABASE}/rest/v1/neso_wallet_daily?select=in_crystal_amount&wallet=eq.${w.address.toLowerCase()}`, {
           headers: { 'apikey': MVP_KEY, 'Authorization': 'Bearer ' + MVP_KEY }
         }).then(r=>r.json()).catch(()=>[])
       ]);
-      teamWallets[idx].crystalTotal = crystalRows.reduce((s,r)=>s+(r.in_crystal_amount||0),0);
+      teamWallets[idx].crystalTotal = Array.isArray(crystalRows) ? crystalRows.reduce((s,r)=>s+(r.in_crystal_amount||0),0) : 0;
       const allKeys = [...new Set(rows.map(x=>getWeekKey(x.day)))].sort().slice(-13);
       const winRows = rows.filter(r => allKeys.includes(getWeekKey(r.day)));
       const calc = calcMvpFromRows(winRows);
