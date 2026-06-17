@@ -711,8 +711,8 @@ Ví sếp, 0x5678...efgh
         <div style="display:flex;gap:4px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:3px">
           <button id="flow-range-7"  onclick="setFlowRange(7)"   style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">7 ngày</button>
           <button id="flow-range-30" onclick="setFlowRange(30)"  style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">30 ngày</button>
-          <button id="flow-range-91" onclick="setFlowRange(91)"  style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">13 tuần</button>
-          <button id="flow-range-0"  onclick="setFlowRange(0)"   style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tất cả</button>
+          <button id="flow-range-91" onclick="setFlowRange(91)"  style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">13 tuần</button>
+          <button id="flow-range-0"  onclick="setFlowRange(0)"   style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tất cả</button>
         </div>
         <button onclick="checkFlow()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Xem Flow</button>
       </div>
@@ -2684,7 +2684,7 @@ function updateMvpBulkPreview() {
 // ── NESO FLOW MODULE ──
 const FLOW_SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
 const FLOW_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
-let   flowRange     = 91; // days, 0 = all time
+let   flowRange     = 0; // days, 0 = all time
 
 function setFlowRange(days) {
   flowRange = days;
