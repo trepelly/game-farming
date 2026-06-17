@@ -2371,7 +2371,7 @@ async function fetchDailyData(address, since) {
 function calcMvpFromRows(rows) {
   let enhancement=0, outNft=0, outFt=0;
   rows.forEach(r => {
-    enhancement += r.out_enhancement_amount || 0;
+    enhancement += r.out_enhancement_amount || r.out_crystal_amount || 0;
     outNft      += r.out_nft_amount  || 0;
     outFt       += r.out_ft_amount   || 0;
   });
