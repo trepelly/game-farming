@@ -2432,7 +2432,35 @@ async function fetchMvpFromMsutool(address) {
 
   const eligible = enhancement + (outNft + outFt) * 0.05;
   const points   = Math.floor(eligible / 100000);
-  return { points, source: 'msutool', enhancement, outNft, outFt, eligible };
+  return { points, source: 'msutool', enhancement, outNft, outFt, eligible, weekMap, sortedKeys };
+}
+
+function buildMvpWeekRows(msutoolData) {
+  if (!msutoolData?.weekMap) return [];
+  const { weekMap, sortedKeys } = msutoolData;
+  const rows = [];
+  let cumulative = 0;
+  // Build all weeks from MVP launch
+  const allKeys = Object.keys(weekMap).sort();
+  allKeys.forEach((key, i) => {
+    const w = weekMap[key];
+    const eligible = w.e + (w.nft + w.ft) * 0.05;
+    const pts = Math.floor(eligible / 100000);
+    // Only count if within rolling 13 weeks
+    const inWindow = sortedKeys.includes(key);
+    if (inWindow) cumulative += pts;
+    const weekStart = new Date(key + 'T00:00:00Z');
+    const weekEnd   = new Date(weekStart); weekEnd.setUTCDate(weekEnd.getUTCDate() + 6); weekEnd.setUTCHours(23,59,59,0);
+    rows.push({
+      weekNum: i + 1,
+      periodStart: weekStart,
+      periodEnd: weekEnd,
+      weeklyPoints: pts,
+      cumulativePoints: inWindow ? cumulative : 0,
+      tier: getTier(inWindow ? cumulative : 0),
+    });
+  });
+  return rows;
 }
 
 // Addresses to EXCLUDE from MVP point calculation (fallback on-chain)
@@ -2709,10 +2737,9 @@ async function checkMvp() {
   res.style.display = 'block';
   res.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle"></span>Đang tính MVP points...</div>';
   try {
-    const [msutoolData, {rows, msutoolData: _}] = await Promise.all([
-      fetchMvpFromMsutool(addr).catch(()=>null),
-      fetchMvpWeeklyBreakdown(addr).catch(()=>({rows:[], msutoolData:null}))
-    ]);
+    const msutoolData = await fetchMvpFromMsutool(addr);
+    // Build weekly rows from msutool data
+    const rows = buildMvpWeekRows(msutoolData);
     res.innerHTML = renderWeeklyTable(addr, rows, addr.slice(0,6)+'...'+addr.slice(-4), msutoolData);
   } catch(e) {
     res.innerHTML = `<div style="color:var(--red);padding:12px">Lỗi: ${e.message}</div>`;
