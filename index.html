@@ -612,7 +612,7 @@ Ví sếp, 0x5678...efgh
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
             <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
-            <th style="color:var(--muted2);white-space:nowrap">MVP Expiry</th>
+            <th style="color:var(--muted2);white-space:nowrap" title="Số tuần đã giữ MVP">Tuần MVP</th>
             <th style="color:#a78bfa;cursor:pointer;user-select:none" onclick="colSort('crystal')">Crystal <span id="sort-icon-crystal" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
@@ -1841,7 +1841,7 @@ function renderTeam() {
           ? `<span style="color:${w.mvpTier?.color||'var(--muted2)'};font-weight:600;font-size:13px">${w.mvpPoints}</span>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
-      <td style="text-align:center;font-size:10px" id="mvp-cd-${w.address.slice(-8)}">—</td>
+      <td style="text-align:center;font-size:12px;font-weight:600" id="mvp-cd-${w.address.slice(-8)}">—</td>
       <td style="text-align:right;color:#a78bfa;font-weight:500">${w.crystalTotal!=null?Math.round(w.crystalTotal).toLocaleString('vi-VN'):'—'}</td>
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -1855,8 +1855,16 @@ function renderTeam() {
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" style="display:none">
       <td colspan="14" style="padding:0;border-bottom:1px solid var(--border2)">
+        <div style="padding:10px 16px 0;background:var(--bg);box-shadow:inset 0 2px 8px #00000040;border-top:1px solid var(--border)">
+          <div style="display:flex;gap:4px;margin-bottom:0">
+            <button onclick="setExpandTab('${w.address.slice(-8)}','mvp')" id="etab-mvp-${w.address.slice(-8)}"
+              style="background:var(--accent);border:none;border-radius:6px 6px 0 0;padding:6px 14px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🏅 MVP</button>
+            <button onclick="setExpandTab('${w.address.slice(-8)}','flow')" id="etab-flow-${w.address.slice(-8)}"
+              style="background:var(--subtle);border:none;border-radius:6px 6px 0 0;padding:6px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">💸 NESO Flow</button>
+          </div>
+        </div>
         <div id="flow-content-${w.address.slice(-8)}"
-          style="padding:14px 20px;background:var(--bg);box-shadow:inset 0 2px 8px #00000040;border-top:1px solid var(--border);max-height:380px;overflow-x:auto;overflow-y:auto">
+          style="padding:14px 20px;background:var(--bg);box-shadow:inset 0 2px 8px #00000040;border-top:1px solid var(--border2);max-height:400px;overflow-x:auto;overflow-y:auto">
         </div>
       </td>
     </tr>`;
@@ -2886,17 +2894,15 @@ async function loadTeamMvpPoints() {
       teamWallets[idx].mvpPoints = calc.points;
       teamWallets[idx].mvpTier   = getTier(calc.points);
       if (calc.points >= 30 && rows.length > 0) {
-        // Find first week (Thu) where this wallet had MVP-eligible activity
+        // Find first Thu-week with MVP-eligible activity
         const eligibleRows = rows.filter(r =>
           (r.out_enhancement_amount||r.out_crystal_amount||0) > 0 ||
           (r.out_nft_amount||0) > 0 || (r.out_ft_amount||0) > 0
         );
         const firstEligible = eligibleRows.length > 0 ? eligibleRows[eligibleRows.length-1] : rows[rows.length-1];
-        const firstThu = new Date(getWeekKey(firstEligible.day) + 'T00:00:00Z');
-        // MVP expires 13 weeks (91 days) after that Thursday, at Wed 23:59:59
-        teamWallets[idx].mvpExpiry = new Date(firstThu.getTime() + 91*86400000 - 1000);
+        teamWallets[idx].mvpFirstWeek = new Date(getWeekKey(firstEligible.day) + 'T00:00:00Z');
       } else {
-        teamWallets[idx].mvpExpiry = null;
+        teamWallets[idx].mvpFirstWeek = null;
       }
     } catch(e) {
       console.warn('MVP load error for', w.address, e.message);
@@ -2943,26 +2949,9 @@ async function toggleFlowExpand(address) {
 
   row.style.display = '';
   if(btn) btn.textContent = '▲';
-
-  // Already loaded
-  if (expandedFlows[address]) {
-    renderFlowExpand(cont, expandedFlows[address]);
-    return;
-  }
-
-  cont.innerHTML = '<div style="padding:8px;color:var(--muted2);font-size:11px"><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"></span>Loading NESO Flow...</div>';
-
-  try {
-    const url = `https://pvydmytgmlrarwbozlnl.supabase.co/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&order=day.desc`;
-    const r = await fetch(url, {
-      headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw' }
-    });
-    const rows = await r.json();
-    expandedFlows[address] = rows;
-    renderFlowExpand(cont, rows);
-  } catch(e) {
-    cont.innerHTML = `<div style="color:var(--red);font-size:11px;padding:8px">Lỗi: ${e.message}</div>`;
-  }
+  // Default to MVP tab
+  const _key = address.slice(-8);
+  setExpandTab(_key, expandTabState[_key] || 'mvp');
 }
 
 function renderFlowExpand(cont, rows) {
@@ -3092,10 +3081,12 @@ function updateWalletCountdowns() {
   (window.teamWallets||[]).forEach(w => {
     const _el = document.getElementById('mvp-cd-' + w.address.slice(-8));
     if (!_el) return;
-    if (!w.mvpExpiry) { _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return; }
-    const _ms = w.mvpExpiry - _now;
-    const _color = _ms < 0 ? 'var(--red)' : _ms < 7*86400000 ? 'var(--amber)' : 'var(--green)';
-    _el.innerHTML = `<span style="color:${_color};font-weight:600">${formatCd(_ms)}</span>`;
+    if (!w.mvpFirstWeek) { _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return; }
+    // Count weeks held: from first week to now
+    const _msHeld = _now - w.mvpFirstWeek;
+    const _weeksHeld = Math.floor(_msHeld / (7 * 86400000));
+    const _color = _weeksHeld >= 13 ? 'var(--green)' : _weeksHeld >= 6 ? 'var(--amber)' : 'var(--accent)';
+    _el.innerHTML = `<span style="color:${_color};font-weight:600">W${_weeksHeld}</span>`;
   });
 }
 function updateMvpCountdown_UNUSED() {
@@ -3125,6 +3116,86 @@ function updateMvpCountdown_UNUSED() {
 // Start countdown
 updateWalletCountdowns();
 setInterval(updateWalletCountdowns, 1000);
+</script>
+
+
+<script>
+// ── EXPAND TAB SYSTEM ──
+const expandTabState = {};
+
+function setExpandTab(key, tab) {
+  expandTabState[key] = tab;
+  const mvpBtn  = document.getElementById('etab-mvp-'+key);
+  const flowBtn = document.getElementById('etab-flow-'+key);
+  if(mvpBtn)  { mvpBtn.style.background  = tab==='mvp'  ? 'var(--accent)' : 'var(--subtle)'; mvpBtn.style.color  = tab==='mvp'  ? '#fff' : 'var(--muted2)'; }
+  if(flowBtn) { flowBtn.style.background = tab==='flow' ? 'var(--accent)' : 'var(--subtle)'; flowBtn.style.color = tab==='flow' ? '#fff' : 'var(--muted2)'; }
+  const cont = document.getElementById('flow-content-'+key);
+  if (!cont) return;
+  const w = (window.teamWallets||[]).find(x=>x.address.slice(-8)===key);
+  if (!w) return;
+  if (tab === 'mvp') {
+    renderMvpExpand(cont, w);
+  } else {
+    if (expandedFlows[w.address]) {
+      renderFlowExpand(cont, expandedFlows[w.address]);
+    } else {
+      cont.innerHTML = '<div style="padding:8px;color:var(--muted2);font-size:11px"><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"></span>Loading...</div>';
+      fetch(`https://pvydmytgmlrarwbozlnl.supabase.co/rest/v1/neso_wallet_daily?select=*&wallet=eq.${w.address.toLowerCase()}&order=day.desc`, {
+        headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw' }
+      }).then(r=>r.json()).then(rows=>{ expandedFlows[w.address]=rows; renderFlowExpand(cont,rows); })
+        .catch(e=>{ cont.innerHTML=`<div style="color:var(--red);padding:8px;font-size:11px">Lỗi: ${e.message}</div>`; });
+    }
+  }
+}
+
+async function renderMvpExpand(cont, w) {
+  cont.innerHTML = '<div style="padding:8px;color:var(--muted2);font-size:11px"><span style="display:inline-block;width:10px;height:10px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"></span>Loading MVP...</div>';
+  try {
+    const rows    = await fetchDailyData(w.address, MVP_LAUNCH);
+    const weekMap = {};
+    rows.forEach(r => { const k=getWeekKey(r.day); if(!weekMap[k]) weekMap[k]=[]; weekMap[k].push(r); });
+    const allWKeys = Object.keys(weekMap).sort();
+    const last13   = allWKeys.slice(-13);
+    const inWin    = new Set(last13);
+    let cum = 0;
+    const f = n => Math.round(n).toLocaleString('vi-VN');
+    const wRows = allWKeys.map((key,i) => {
+      const calc = calcMvpFromRows(weekMap[key]);
+      if(inWin.has(key)) cum += calc.points;
+      const ws = new Date(key+'T00:00:00Z');
+      const we = new Date(ws); we.setUTCDate(we.getUTCDate()+6); we.setUTCHours(23,59,59,0);
+      return { i:i+1, pts:inWin.has(key)?calc.points:0, cum:inWin.has(key)?cum:0, tier:getTier(inWin.has(key)?cum:0), ws, we, inWin:inWin.has(key) };
+    });
+    const totalPts = wRows[wRows.length-1]?.cum||0;
+    const tier = getTier(totalPts), next = getNextTier(totalPts);
+    cont.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="background:${tier.bg};border:1px solid ${tier.color}44;border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">${tier.icon}</span>
+          <div><div style="font-size:12px;font-weight:800;color:${tier.color}">${tier.name}</div><div style="font-size:10px;color:var(--muted2)">${f(totalPts)} pts</div></div>
+        </div>
+        ${next?`<span style="font-size:11px;color:var(--muted2)">→ ${next.icon} ${next.name} cần <b style="color:var(--accent)">${f(next.min-totalPts)}</b> pts</span>`:''}
+      </div>
+      <div style="overflow-x:auto"><table style="width:100%;min-width:440px;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+          <th style="padding:5px 8px;text-align:center;color:var(--muted2)">W</th>
+          <th style="padding:5px 8px;text-align:left;color:var(--muted2)">Bắt đầu (Thu)</th>
+          <th style="padding:5px 8px;text-align:left;color:var(--muted2)">Kết thúc (Wed)</th>
+          <th style="padding:5px 8px;text-align:right;color:var(--muted2)">Điểm tuần</th>
+          <th style="padding:5px 8px;text-align:right;color:var(--muted2)">Tích lũy 13W</th>
+          <th style="padding:5px 8px;text-align:center;color:var(--muted2)">Tier</th>
+        </tr></thead>
+        <tbody>${wRows.map(r=>`<tr style="border-bottom:1px solid var(--border);opacity:${r.inWin?'1':'0.4'}">
+          <td style="padding:4px 8px;text-align:center;color:var(--muted2)">${r.i}</td>
+          <td style="padding:4px 8px;font-family:monospace;font-size:10px">${r.ws.toISOString().slice(0,10)}</td>
+          <td style="padding:4px 8px;font-family:monospace;font-size:10px">${r.we.toISOString().slice(0,10)}</td>
+          <td style="padding:4px 8px;text-align:right;color:${r.pts>0?'var(--green)':'var(--muted2)'}">${f(r.pts)}</td>
+          <td style="padding:4px 8px;text-align:right;font-weight:600">${f(r.cum)}</td>
+          <td style="padding:4px 8px;text-align:center;color:${r.tier.color}">${r.tier.icon} ${r.tier.name}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+  } catch(e) { cont.innerHTML=`<div style="color:var(--red);padding:8px;font-size:11px">Lỗi: ${e.message}</div>`; }
+}
 </script>
 
 </body>
