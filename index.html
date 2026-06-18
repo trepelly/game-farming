@@ -3099,11 +3099,12 @@ function updateWalletCountdowns() {
     const _el = document.getElementById('mvp-cd-' + w.address.slice(-8));
     if (!_el) return;
     if (!w.mvpFirstWeek) { _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return; }
-    // Count weeks held: from first week to now
-    const _msHeld = _now - w.mvpFirstWeek;
-    const _weeksHeld = Math.floor(_msHeld / (7 * 86400000));
-    const _color = _weeksHeld >= 13 ? 'var(--green)' : _weeksHeld >= 6 ? 'var(--amber)' : 'var(--accent)';
-    _el.innerHTML = `<span style="color:${_color};font-weight:600">W${_weeksHeld}</span>`;
+    // Expiry = 13 weeks (91 days) from first eligible week Thu 00:00 UTC
+    const _expiry = new Date(w.mvpFirstWeek.getTime() + 91 * 86400000 - 1000);
+    const _ms = _expiry - _now;
+    const _color = _ms < 0 ? 'var(--red)' : _ms < 7*86400000 ? 'var(--amber)' : 'var(--green)';
+    const _txt = _ms <= 0 ? 'Expired' : formatCd(_ms);
+    _el.innerHTML = `<span style="color:${_color};font-weight:600">${_txt}</span>`;
   });
 }
 function updateMvpCountdown_UNUSED() {
