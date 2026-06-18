@@ -1953,7 +1953,7 @@ function renderTeam() {
     ${scTicker(B, '🔺 AVALANCHE', B, 'NXPC', fd2(totNxpcAvax,2), nxpcPrice)}
     ${scTicker(B, '🔺 AVALANCHE', B, 'USDT', fd2(totUsdtAvax,2), '')}
     ${scTicker(B, '🔺 AVALANCHE', B, 'VND',  f(totVndAvax), '')}`;
-  setTimeout(updateWalletCountdowns, 50);
+  setTimeout(()=>{ updateWalletCountdowns(); reapplyExpandContent(); }, 50);
 }
 
 // ── Team input mode ──
@@ -2693,6 +2693,23 @@ function updateMvpBulkPreview() {
 </script>
 
 
+// ── EXPAND CONTENT CACHE ──
+const expandContentCache = {};
+
+function reapplyExpandContent() {
+  Object.keys(expandTabState||{}).forEach(key => {
+    const row  = document.getElementById('flow-expand-'+key);
+    const cont = document.getElementById('flow-content-'+key);
+    const btn  = document.getElementById('flow-btn-'+key);
+    if (!row || !cont) return;
+    if (expandContentCache[key]) {
+      row.style.display = '';
+      cont.innerHTML = expandContentCache[key];
+      if (btn) btn.textContent = '▲';
+    }
+  });
+}
+
 <script>
 // ── NESO FLOW MODULE ──
 const FLOW_SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
@@ -3168,7 +3185,7 @@ async function renderMvpExpand(cont, w) {
     });
     const totalPts = wRows[wRows.length-1]?.cum||0;
     const tier = getTier(totalPts), next = getNextTier(totalPts);
-    cont.innerHTML = `
+    const _mvpHtml = `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
         <div style="background:${tier.bg};border:1px solid ${tier.color}44;border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:8px">
           <span style="font-size:16px">${tier.icon}</span>
@@ -3194,6 +3211,8 @@ async function renderMvpExpand(cont, w) {
           <td style="padding:4px 8px;text-align:center;color:${r.tier.color}">${r.tier.icon} ${r.tier.name}</td>
         </tr>`).join('')}</tbody>
       </table></div>`;
+    cont.innerHTML = _mvpHtml;
+    if(typeof expandContentCache!=='undefined') expandContentCache[w.address.slice(-8)] = _mvpHtml;
   } catch(e) { cont.innerHTML=`<div style="color:var(--red);padding:8px;font-size:11px">Lỗi: ${e.message}</div>`; }
 }
 </script>
