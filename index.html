@@ -2885,8 +2885,15 @@ async function loadTeamMvpPoints() {
       // Set directly on the teamWallets object
       teamWallets[idx].mvpPoints = calc.points;
       teamWallets[idx].mvpTier   = getTier(calc.points);
-      if (calc.points >= 30 && allKeys.length > 0) {
-        const firstThu = new Date(allKeys[0] + 'T00:00:00Z');
+      if (calc.points >= 30 && rows.length > 0) {
+        // Find first week (Thu) where this wallet had MVP-eligible activity
+        const eligibleRows = rows.filter(r =>
+          (r.out_enhancement_amount||r.out_crystal_amount||0) > 0 ||
+          (r.out_nft_amount||0) > 0 || (r.out_ft_amount||0) > 0
+        );
+        const firstEligible = eligibleRows.length > 0 ? eligibleRows[eligibleRows.length-1] : rows[rows.length-1];
+        const firstThu = new Date(getWeekKey(firstEligible.day) + 'T00:00:00Z');
+        // MVP expires 13 weeks (91 days) after that Thursday, at Wed 23:59:59
         teamWallets[idx].mvpExpiry = new Date(firstThu.getTime() + 91*86400000 - 1000);
       } else {
         teamWallets[idx].mvpExpiry = null;
