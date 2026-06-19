@@ -152,8 +152,8 @@ h1 em{font-style:normal;color:var(--accent)}
 
 /* ── STAT CARDS ── */
 
-.stats-fixed{position:fixed;top:70px;right:20px;width:360px;display:grid;grid-template-columns:1fr 1fr;gap:8px;z-index:40;max-height:calc(100vh - 90px);overflow-y:auto}
-.stat{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stats-fixed{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+.stat{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:transform .2s}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
 .stat-icon{font-size:18px;margin-bottom:8px;display:block}
@@ -231,13 +231,32 @@ td:first-child{text-align:left;color:var(--muted2)}
 <body>
 <div class="wrap">
   <header>
-    <div style="display:flex;align-items:center;gap:14px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>
-        <span style="font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--muted2);text-transform:uppercase">Game Farming</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)"></span>
+        <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--muted2);text-transform:uppercase">Game Farming</span>
       </div>
-      <div style="width:1px;height:18px;background:var(--border2)"></div>
-      <h1 style="font-size:18px;font-weight:800;margin:0;line-height:1">Farm <em style="color:var(--accent);font-style:normal">Dashboard</em></h1>
+      <div style="width:1px;height:16px;background:var(--border2)"></div>
+      <h1 style="font-size:16px;font-weight:800;margin:0;line-height:1">Farm <em style="color:var(--accent);font-style:normal">Dashboard</em></h1>
+    </div>
+    <!-- Header tickers -->
+    <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:center;flex-wrap:nowrap">
+      <div id="hdr-nxpc" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;white-space:nowrap">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png" style="width:14px;height:14px;border-radius:50%"/>
+        <span style="color:var(--muted2);font-weight:600">NXPC</span>
+        <span id="hdr-nxpc-price" style="color:var(--green);font-weight:700;font-family:'Chakra Petch',monospace">$—</span>
+        <span id="hdr-nxpc-chg" style="font-size:10px;color:var(--muted2)"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;white-space:nowrap">
+        <span style="color:var(--muted2);font-weight:600">NXPC/NESO</span>
+        <span id="hdr-ratio" style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;white-space:nowrap">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:14px;height:14px;border-radius:50%"/>
+        <span style="color:var(--muted2);font-weight:600">USDT/VND</span>
+        <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
+      </div>
+      <div id="hdr-updated" style="font-size:10px;color:var(--muted2)"></div>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
       <span class="icon-sun">☀️</span>
@@ -252,9 +271,9 @@ td:first-child{text-align:left;color:var(--muted2)}
       <button class="tab active" onclick="switchTab('farm')"><span class="tab-icon">⚡</span>Vòng quay</button>
       <button class="tab" onclick="switchTab('target')"><span class="tab-icon">🎯</span>Mục tiêu ngược</button>
       <button class="tab" onclick="switchTab('wallet')"><span class="tab-icon">🔗</span>Ví & Tài sản</button>
-      <button class="tab" onclick="switchTab('team')"><span class="tab-icon">👥</span>Team Wallet</button>
       <button class="tab" onclick="switchTab('mvp')"><span class="tab-icon">🏅</span>MVP Status</button>
       <button class="tab" onclick="switchTab('flow')"><span class="tab-icon">💸</span>NESO Flow</button>
+      <button class="tab" onclick="switchTab('team')"><span class="tab-icon">👥</span>Team Wallet</button>
     </div>
   </div>
   <div class="main-content">
@@ -817,7 +836,7 @@ function makeChart(id,cfg){
 }
 
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet','team','mvp','flow'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet','mvp','flow','team'][i]===t));
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
 }
@@ -1951,21 +1970,22 @@ function renderTeam() {
   const statsEl = document.getElementById('team-stats');
   if (statsEl) statsEl.innerHTML = `
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
-      <span class="stat-icon">👥</span><div class="stat-label">Số ví</div>
+      <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
       <div class="stat-val">${teamWallets.length}</div></div>
+    ${scTicker(A, '🍁 HENESYS', G, 'NESO', f(totNeso), nesoPrice)}
+    ${scTicker(G, '🍁 HENESYS', G, 'NXPC', fd2(totNxpc,2), nxpcPrice)}
+    ${scTicker(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2), usdvndRate?'1$='+usdvndRate+'₫':'')}
+    ${scTicker(G, '🍁 HENESYS', G, 'VND',  f(totVnd), '')}
     <div class="stat" style="border-top:2px solid var(--accent)33"><div class="stat-accent" style="background:var(--accent)"></div>
       <div style="font-size:9px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em">🏅 MVP</div>
-      <div class="stat-label">Bronze+</div>
+      <div class="stat-label">Ví đạt Bronze+</div>
       <div class="stat-val" style="color:var(--accent)">${mvpLoadedPct>0?mvpBronzePlus:'...'}</div>
+      <div class="stat-sub">${mvpLoadedPct>0?'/ '+mvpLoadedPct+' đã load':''}</div>
     </div>
-    ${scTicker(A, '🍁', G, 'NESO', f(totNeso), nesoPrice)}
-    ${scTicker(G, '🍁', G, 'NXPC', fd2(totNxpc,2), nxpcPrice)}
-    ${scTicker(G, '🍁', G, 'USDT', fd2(totUsdt,2), '')}
-    ${scTicker(G, '🍁', G, 'VND',  f(totVnd), '')}
-    ${scTicker('#e84142', '🔺', '#e84142', 'AVAX', fd2(totAvax,4), '')}
-    ${scTicker(B, '🔺', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), nxpcPrice)}
-    ${scTicker(B, '🔺', B, 'USDT(AVAX)', fd2(totUsdtAvax,2), '')}
-    ${scTicker(B, '🔺', B, 'VND(AVAX)',  f(totVndAvax), '')}`;
+    ${scTicker('#e84142', '🔺 AVALANCHE', '#e84142', 'AVAX', fd2(totAvax,4), '')}
+    ${scTicker(B, '🔺 AVALANCHE', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), nxpcPrice)}
+    ${scTicker(B, '🔺 AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvax,2), '')}
+    ${scTicker(B, '🔺 AVALANCHE', B, 'VND(AVAX)',  f(totVndAvax), '')}`;
   setTimeout(()=>{ updateWalletCountdowns(); reapplyExpandContent(); }, 50);
 }
 
@@ -3169,13 +3189,16 @@ function updateWalletCountdowns() {
   (window.teamWallets||[]).forEach(w => {
     const _el = document.getElementById('mvp-cd-' + w.address.slice(-8));
     if (!_el) return;
-    if (!w.mvpFirstWeek) { _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return; }
-    // Expiry = 13 weeks (91 days) from first eligible week Thu 00:00 UTC
-    const _expiry = new Date(w.mvpFirstWeek.getTime() + 91 * 86400000 - 1000);
-    const _ms = _expiry - _now;
-    const _color = _ms < 0 ? 'var(--red)' : _ms < 7*86400000 ? 'var(--amber)' : 'var(--green)';
-    const _txt = _ms <= 0 ? 'Expired' : formatCd(_ms);
-    _el.innerHTML = `<span style="color:${_color};font-weight:600">${_txt}</span>`;
+    if (!w.mvpFirstWeek || !w.mvpPoints || w.mvpPoints < 30) {
+      _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return;
+    }
+    // Count weeks from first eligible week to now
+    const _msHeld = _now - w.mvpFirstWeek;
+    const _weeks  = Math.max(1, Math.min(13, Math.ceil(_msHeld / (7*86400000))));
+    const _expiry = new Date(w.mvpFirstWeek.getTime() + 91*86400000 - 1000);
+    const _msLeft = _expiry - _now;
+    const _color  = _msLeft < 7*86400000 ? 'var(--amber)' : 'var(--accent)';
+    _el.innerHTML = `<span style="color:${_color};font-weight:700">W${_weeks}</span>`;
   });
 }
 function updateMvpCountdown_UNUSED() {
