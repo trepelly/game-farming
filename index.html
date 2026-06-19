@@ -853,6 +853,14 @@ function calcFarm(){
   const peakRow=farmRows.reduce((b,r)=>r.gr>b.gr?r:b,{gr:-Infinity,w:0});
   const weeksUp=farmRows.filter(r=>r.newChars>0).length;
 
+const COIN_LOGO = {
+  NESO: 'https://cdn.mmogah.com/cdn-cgi/image/format=auto,metadata=none,quality=70,width=64/images/2025-05-21-16/maplestory-n-neso.png',
+  NXPC: 'https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png',
+  USDT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
+  AVAX: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
+  VND:  'https://flagcdn.com/vn.svg',
+};
+const cLogo = (k,s=16) => COIN_LOGO[k] ? `<img src="${COIN_LOGO[k]}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px" onerror="this.style.display='none'"/>` : '';
   document.getElementById('farm-stats').innerHTML=`
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
       <span class="stat-icon">👥</span><div class="stat-label">ACC cuối kỳ</div>
@@ -862,13 +870,13 @@ function calcFarm(){
       <span class="stat-icon">📈</span><div class="stat-label">Tăng trưởng tổng</div>
       <div class="stat-val" style="color:var(--orange)">${fd(totalGr,1)}%</div><div class="stat-sub">trong ${weeks} tuần</div></div>
     <div class="stat"><div class="stat-accent" style="background:var(--green)"></div>
-      <span class="stat-icon">🪙</span><div class="stat-label">NXPC tổng</div>
+      <span class="stat-icon">${cLogo('NXPC')}</span><div class="stat-label">NXPC tổng</div>
       <div class="stat-val" style="color:var(--green)">${fd(finNxpc,0)}</div><div class="stat-sub">≈ ${f(totalNeso)} NESO</div></div>
     <div class="stat"><div class="stat-accent" style="background:var(--blue)"></div>
-      <span class="stat-icon">💵</span><div class="stat-label">USDT tổng</div>
+      <span class="stat-icon">${cLogo('USDT')}</span><div class="stat-label">USDT tổng</div>
       <div class="stat-val" style="color:var(--blue)">${fd(finUsdt,2)}</div><div class="stat-sub">${fd(nxpc,3)}/NXPC</div></div>
     <div class="stat"><div class="stat-accent" style="background:var(--amber)"></div>
-      <span class="stat-icon">💰</span><div class="stat-label">VND tổng</div>
+      <span class="stat-icon">${cLogo('VND',14)}</span><div class="stat-label">VND tổng</div>
       <div class="stat-val" style="color:var(--amber)">${f(finVnd)}</div><div class="stat-sub">${f(usdvnd)}/USDT</div></div>
     <div class="stat"><div class="stat-accent" style="background:var(--red)"></div>
       <span class="stat-icon">🎮</span><div class="stat-label">Char mua được</div>
@@ -1935,16 +1943,17 @@ function renderTeam() {
     const key = Object.keys(COIN_LOGOS).find(k => label.toUpperCase().includes(k));
     return key ? `<img src="${COIN_LOGOS[key]}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>` : '';
   };
-  const scTicker = (accent,chain,chainColor,label,val,ticker) =>
-    `<div class="stat" style="border-top:2px solid ${accent}33"><div class="stat-accent" style="background:${accent}"></div>
+  const scTicker = (accent,chain,chainColor,label,val,ticker) => {
+    const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
+    const logo = cLogo(lk, 16);
+    return `<div class="stat" style="border-top:2px solid ${accent}33"><div class="stat-accent" style="background:${accent}"></div>
       <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        ${coinLogo(label)}
-        <div>
-          <div class="stat-label" style="margin:0">${label}${ticker?` <span style="font-size:9px;color:var(--muted2);font-weight:400">${ticker}</span>`:''}</div>
-        </div>
+        ${logo}
+        <div class="stat-label" style="margin:0">${label}${ticker?` <span style="font-size:9px;color:var(--muted2);font-weight:400">${ticker}</span>`:''}</div>
       </div>
       <div class="stat-val" style="color:${accent}">${val}</div></div>`;
+  };
 
   const statsEl = document.getElementById('team-stats');
   if (statsEl) statsEl.innerHTML = `
@@ -2134,7 +2143,7 @@ function renderPriceTicker(data) {
   const hU = document.getElementById('hdr-updated');
   if(hP && data.nxpc) hP.textContent = '$'+data.nxpc.toFixed(4);
   if(hC && data.nxpcChg != null) { hC.textContent=(data.nxpcChg>=0?'+':'')+data.nxpcChg.toFixed(2)+'%'; hC.style.color=data.nxpcChg>=0?'var(--green)':'var(--red)'; }
-  if(hR && data.nxpc) hR.textContent = '1 NXPC = '+Math.round(data.nxpc/0.00001).toLocaleString('vi-VN')+' NESO';
+  if(hR) hR.textContent = '1 NXPC = 100,000 NESO';
   if(hV && data.usdvnd) hV.textContent = Math.round(data.usdvnd).toLocaleString('vi-VN');
   if(hU) hU.textContent = 'Cập nhật: '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
@@ -2831,9 +2840,9 @@ function renderFlowStats(rows) {
   const mvpPoints   = Math.floor(mvpEligible / 100000);
   const mvpTier     = typeof getTier !== 'undefined' ? getTier(mvpPoints) : {name:'—',color:'var(--muted2)',icon:''};
 
-  const sc = (accent, label, val, sub='') =>
+  const sc = (accent, label, val, sub='', logoKey='') =>
     `<div class="stat"><div class="stat-accent" style="background:${accent}"></div>
-      <div class="stat-label">${label}</div>
+      <div class="stat-label">${logoKey?cLogo(logoKey):''}${label}</div>
       <div class="stat-val" style="color:${accent}">${val}</div>
       ${sub?`<div class="stat-sub">${sub}</div>`:''}
     </div>`;
@@ -2841,12 +2850,12 @@ function renderFlowStats(rows) {
   const fsEl = document.getElementById('flow-stats');
   if(fsEl) fsEl.style.display='grid';
     if(fsEl) fsEl.innerHTML = `
-    ${sc('var(--green)',  'Tổng vào',      f(totIn))}
-    ${sc('#e84142',       'Tổng ra',        f(totOut))}
+    ${sc('var(--green)',  'Tổng vào',      f(totIn), '', 'NESO')}
+    ${sc('#e84142',       'Tổng ra',        f(totOut), '', 'NESO')}
     ${sc(net>=0?'var(--green)':'#e84142', 'Net', (net>=0?'+':'')+f(net))}
-    ${sc('var(--amber)',  'Enhancement',   f(totEnhancement), '×100% MVP')}
-    ${sc('var(--blue)',   'Out NFT',       f(totOutNft),      '×5% MVP')}
-    ${sc('var(--blue)',   'Out FT',        f(totOutFt),       '×5% MVP')}
+    ${sc('var(--amber)',  'Enhancement',   f(totEnhancement), '×100% MVP', 'NESO')}
+    ${sc('var(--blue)',   'Out NFT',       f(totOutNft),      '×5% MVP', 'NESO')}
+    ${sc('var(--blue)',   'Out FT',        f(totOutFt),       '×5% MVP', 'NESO')}
     ${sc('var(--accent)', 'MVP Points',    f(mvpPoints),      mvpTier.icon+' '+mvpTier.name)}
   `;
 }
