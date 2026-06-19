@@ -151,9 +151,8 @@ h1 em{font-style:normal;color:var(--accent)}
 .formula-arrow{color:var(--border3)}
 
 /* ── STAT CARDS ── */
-.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:32px}
-@media(max-width:700px){.stat-row{grid-template-columns:repeat(2,1fr)}}
-.stat{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+
+.stat{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);position:relative;overflow:hidden}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
 .stat-icon{font-size:18px;margin-bottom:8px;display:block}
@@ -588,8 +587,6 @@ Ví sếp, 0x5678...efgh
         <button onclick="fetchLivePrices(true)" style="background:var(--subtle);border:1px solid var(--border2);border-radius:7px;padding:5px 10px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⟳</button>
       </div>
 
-      <div class="stat-row" id="team-stats"></div>
-
       <!-- Team wallet table -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
         <div class="section-label" style="margin-bottom:0">Danh sách ví team</div>
@@ -640,6 +637,11 @@ Ví sếp, 0x5678...efgh
           <tfoot id="team-tfoot" style="border-top:2px solid var(--border2);position:sticky;bottom:0;z-index:2"></tfoot>
         </table>
       </div>
+      </div><!-- end table col -->
+      <div style="width:190px;flex-shrink:0">
+        <div id="team-stats" style="display:flex;flex-direction:column;gap:8px;position:sticky;top:80px"></div>
+      </div>
+      </div><!-- end flex layout -->
     </div>
   </div>
 
