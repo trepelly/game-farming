@@ -231,10 +231,13 @@ td:first-child{text-align:left;color:var(--muted2)}
 <body>
 <div class="wrap">
   <header>
-    <div class="header-left">
-      <div class="logo"><span class="logo-dot"></span>Game Farming</div>
-      <h1>Farm <em>Dashboard</em></h1>
-      <div class="subtitle">Thay đổi thông số → tất cả tự cập nhật tức thì</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--muted2);text-transform:uppercase">Game Farming</span>
+      </div>
+      <div style="width:1px;height:18px;background:var(--border2)"></div>
+      <h1 style="font-size:18px;font-weight:800;margin:0;line-height:1">Farm <em style="color:var(--accent);font-style:normal">Dashboard</em></h1>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
       <span class="icon-sun">☀️</span>
