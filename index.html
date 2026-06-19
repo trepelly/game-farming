@@ -97,7 +97,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
 
 .wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 20px 80px}
 .app-layout{display:flex;gap:0;min-height:80vh}
-.sidebar{width:200px;flex-shrink:0;padding:0 12px 0 0;border-right:1px solid var(--border2);position:sticky;top:100px;height:fit-content;align-self:flex-start}
+.sidebar{width:210px;flex-shrink:0;padding:0 8px 0 0;position:sticky;top:100px;height:fit-content;align-self:flex-start}
 .main-content{flex:1;min-width:0;padding-left:20px}
 
 /* ── HEADER ── */
@@ -120,9 +120,11 @@ h1 em{font-style:normal;color:var(--accent)}
 .icon-sun,.icon-moon{font-size:14px}
 
 /* ── TABS ── */
-.tabs{display:flex;flex-direction:column;gap:3px;padding:8px 0;width:100%}
-.tab{font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;padding:10px 14px;border-radius:9px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .2s;text-align:left;width:100%}
-.tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px var(--accent-glow)}
+.tabs{display:flex;flex-direction:column;gap:1px;padding:4px 0;width:100%}
+.tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;letter-spacing:0;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .15s;text-align:left;width:100%;display:flex;align-items:center;gap:10px}
+.tab .tab-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.tab.active{background:var(--border);color:var(--text);font-weight:600}
+.tab.active .tab-icon{filter:none}
 .tab:hover:not(.active){color:var(--text);background:var(--border)}
 
 .panel{display:none}
@@ -243,14 +245,13 @@ td:first-child{text-align:left;color:var(--muted2)}
 
   <div class="app-layout">
   <div class="sidebar">
-    <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:4px 14px 8px;margin-bottom:4px;border-bottom:1px solid var(--border2)">MENU</div>
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('farm')">⚡ Vòng quay</button>
-      <button class="tab" onclick="switchTab('target')">🎯 Mục tiêu ngược</button>
-      <button class="tab" onclick="switchTab('wallet')">🔗 Ví & Tài sản</button>
-      <button class="tab" onclick="switchTab('team')">👥 Team Wallet</button>
-      <button class="tab" onclick="switchTab('mvp')">🏅 MVP Status</button>
-      <button class="tab" onclick="switchTab('flow')">💸 NESO Flow</button>
+      <button class="tab active" onclick="switchTab('farm')"><span class="tab-icon">⚡</span>Vòng quay</button>
+      <button class="tab" onclick="switchTab('target')"><span class="tab-icon">🎯</span>Mục tiêu ngược</button>
+      <button class="tab" onclick="switchTab('wallet')"><span class="tab-icon">🔗</span>Ví & Tài sản</button>
+      <button class="tab" onclick="switchTab('team')"><span class="tab-icon">👥</span>Team Wallet</button>
+      <button class="tab" onclick="switchTab('mvp')"><span class="tab-icon">🏅</span>MVP Status</button>
+      <button class="tab" onclick="switchTab('flow')"><span class="tab-icon">💸</span>NESO Flow</button>
     </div>
   </div>
   <div class="main-content">
