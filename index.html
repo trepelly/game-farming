@@ -95,7 +95,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
     radial-gradient(circle at 80% 80%,#2563eb08 0%,transparent 50%);
   pointer-events:none;z-index:0;}
 
-.wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:28px 20px 80px}
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:28px 20px 80px}
+.app-layout{display:flex;gap:0;min-height:80vh}
+.sidebar{width:200px;flex-shrink:0;padding:0 12px 0 0;border-right:1px solid var(--border2)}
+.main-content{flex:1;min-width:0;padding-left:20px}
 
 /* ── HEADER ── */
 header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:40px;gap:16px;flex-wrap:wrap}
@@ -117,9 +120,9 @@ h1 em{font-style:normal;color:var(--accent)}
 .icon-sun,.icon-moon{font-size:14px}
 
 /* ── TABS ── */
-.tabs{display:flex;gap:2px;margin-bottom:32px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:4px;width:fit-content;box-shadow:var(--shadow)}
-.tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;letter-spacing:.03em;padding:9px 22px;border-radius:9px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .25s;position:relative}
-.tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
+.tabs{display:flex;flex-direction:column;gap:3px;padding:8px 0;width:100%}
+.tab{font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;padding:10px 14px;border-radius:9px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .2s;text-align:left;width:100%}
+.tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px var(--accent-glow)}
 .tab:hover:not(.active){color:var(--text);background:var(--border)}
 
 .panel{display:none}
@@ -238,14 +241,19 @@ td:first-child{text-align:left;color:var(--muted2)}
     </button>
   </header>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('farm')">⚡ Vòng quay tích lũy</button>
-    <button class="tab" onclick="switchTab('target')">🎯 Mục tiêu ngược</button>
-    <button class="tab" onclick="switchTab('wallet')">🔗 Ví & Tài sản</button>
-    <button class="tab" onclick="switchTab('team')">👥 Team Wallet</button>
-    <button class="tab" onclick="switchTab('mvp')">🏅 MVP Status</button>
-    <button class="tab" onclick="switchTab('flow')">💸 NESO Flow</button>
+  <div class="app-layout">
+  <div class="sidebar">
+    <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:4px 14px 8px;margin-bottom:4px;border-bottom:1px solid var(--border2)">MENU</div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('farm')">⚡ Vòng quay</button>
+      <button class="tab" onclick="switchTab('target')">🎯 Mục tiêu ngược</button>
+      <button class="tab" onclick="switchTab('wallet')">🔗 Ví & Tài sản</button>
+      <button class="tab" onclick="switchTab('team')">👥 Team Wallet</button>
+      <button class="tab" onclick="switchTab('mvp')">🏅 MVP Status</button>
+      <button class="tab" onclick="switchTab('flow')">💸 NESO Flow</button>
+    </div>
   </div>
+  <div class="main-content">
 
   <!-- PANEL 1 -->
   <div id="panel-farm" class="panel active">
@@ -749,6 +757,8 @@ Ví sếp, 0x5678...efgh
     </div>
   </div>
 
+  </div><!-- end main-content -->
+  </div><!-- end app-layout -->
 </div>
 
 <script>
