@@ -733,7 +733,7 @@ Ví sếp, 0x5678...efgh
     </div>
 
     <!-- Summary stats -->
-    <div id="flow-stats" style="display:none;margin-bottom:20px"></div>
+    <div id="flow-stats" class="stats-fixed" style="display:none;margin-bottom:20px"></div>
 
     <!-- Daily table -->
     <div id="flow-table-section" style="display:none">
@@ -2779,7 +2779,7 @@ async function checkFlow() {
 
   const statsEl = document.getElementById('flow-stats');
   const tableSection = document.getElementById('flow-table-section');
-  statsEl.style.display = 'block';
+  statsEl.style.display = 'grid';
   statsEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted2)"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px"></span>Đang tải dữ liệu...</div>';
 
   try {
@@ -2837,7 +2837,9 @@ function renderFlowStats(rows) {
       ${sub?`<div class="stat-sub">${sub}</div>`:''}
     </div>`;
 
-  document.getElementById('flow-stats').innerHTML = `
+  const fsEl = document.getElementById('flow-stats');
+  if(fsEl) fsEl.style.display='grid';
+    if(fsEl) fsEl.innerHTML = `
     ${sc('var(--green)',  'Tổng vào',      f(totIn))}
     ${sc('#e84142',       'Tổng ra',        f(totOut))}
     ${sc(net>=0?'var(--green)':'#e84142', 'Net', (net>=0?'+':'')+f(net))}
