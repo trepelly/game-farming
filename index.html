@@ -101,7 +101,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
 .main-content{flex:1;min-width:0}
 
 /* ── HEADER ── */
-header{display:flex;align-items:center;justify-content:space-between;gap:16px;position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg);padding:0 28px 0 220px;border-bottom:1px solid var(--border2);backdrop-filter:blur(16px);height:60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg);padding:0 24px 0 16px;border-bottom:1px solid var(--border2);backdrop-filter:blur(16px);height:60px}
 .header-left{}
 .logo{font-size:10px;font-weight:600;letter-spacing:.22em;color:var(--muted2);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .logo-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
@@ -587,25 +587,10 @@ Ví sếp, 0x5678...efgh
         <div id="team-add-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
       </div>
 
-      <!-- Team portfolio summary -->
-      <!-- Live price ticker -->
-      <div id="price-ticker" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center">
-        <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;color:var(--muted2);font-weight:600">NXPC</span>
-          <span id="price-nxpc" style="font-size:14px;font-weight:700;color:var(--amber)">—</span>
-          <span id="change-nxpc" style="font-size:10px;font-weight:600"></span>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;color:var(--muted2);font-weight:600">NXPC/NESO</span>
-          <span id="price-neso" style="font-size:13px;font-weight:700;color:var(--green)">1 NXPC = 100,000 NESO</span>
-        </div>
-        <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;color:var(--muted2);font-weight:600">USDT/VND</span>
-          <span id="price-usdvnd" style="font-size:14px;font-weight:700;color:var(--blue)">—</span>
-        </div>
-        <div style="font-size:10px;color:var(--muted2);margin-left:4px" id="price-updated"></div>
-        <button onclick="fetchLivePrices(true)" style="background:var(--subtle);border:1px solid var(--border2);border-radius:7px;padding:5px 10px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⟳</button>
-      </div>
+
+/div>
+
+      <div class="stats-fixed" id="team-stats"></div>
 
       <!-- Team wallet table -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
@@ -657,10 +642,7 @@ Ví sếp, 0x5678...efgh
           <tfoot id="team-tfoot" style="border-top:2px solid var(--border2);position:sticky;bottom:0;z-index:2"></tfoot>
         </table>
       </div>
-      </div><!-- end table col -->
-      <div style="width:360px;flex-shrink:0"></div><!-- spacer -->
-      </div><!-- end flex layout -->
-      <div class="stats-fixed" id="team-stats" style="display:none"></div>
+      </div>
     </div>
   </div>
 
