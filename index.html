@@ -95,7 +95,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
     radial-gradient(circle at 80% 80%,#2563eb08 0%,transparent 50%);
   pointer-events:none;z-index:0;}
 
-.wrap{position:relative;z-index:1;max-width:100%;margin:0;padding:76px 24px 80px 224px}
+.wrap{position:relative;z-index:1;max-width:100%;margin:0;padding:76px 400px 80px 224px}
 .app-layout{display:block;min-height:80vh}
 .sidebar{width:200px;flex-shrink:0;padding:16px 12px 20px 16px;position:fixed;top:60px;left:0;height:calc(100vh - 60px);overflow-y:auto;z-index:50;border-right:1px solid var(--border2);background:var(--bg)}
 .main-content{flex:1;min-width:0}
@@ -152,6 +152,7 @@ h1 em{font-style:normal;color:var(--accent)}
 
 /* ── STAT CARDS ── */
 
+.stats-fixed{position:fixed;top:70px;right:20px;width:360px;display:grid;grid-template-columns:1fr 1fr;gap:8px;z-index:40;max-height:calc(100vh - 90px);overflow-y:auto}
 .stat{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);position:relative;overflow:hidden}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
@@ -638,10 +639,9 @@ Ví sếp, 0x5678...efgh
         </table>
       </div>
       </div><!-- end table col -->
-      <div style="width:190px;flex-shrink:0">
-        <div id="team-stats" style="display:flex;flex-direction:column;gap:8px;position:sticky;top:80px"></div>
-      </div>
+      <div style="width:360px;flex-shrink:0"></div><!-- spacer -->
       </div><!-- end flex layout -->
+      <div class="stats-fixed" id="team-stats"></div>
     </div>
   </div>
 
