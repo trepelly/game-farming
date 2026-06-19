@@ -95,7 +95,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
     radial-gradient(circle at 80% 80%,#2563eb08 0%,transparent 50%);
   pointer-events:none;z-index:0;}
 
-.wrap{position:relative;z-index:1;max-width:100%;margin:0;padding:76px 400px 80px 224px}
+.wrap{position:relative;z-index:1;max-width:100%;margin:0;padding:76px 24px 80px 224px}
 .app-layout{display:block;min-height:80vh}
 .sidebar{width:200px;flex-shrink:0;padding:16px 12px 20px 16px;position:fixed;top:60px;left:0;height:calc(100vh - 60px);overflow-y:auto;z-index:50;border-right:1px solid var(--border2);background:var(--bg)}
 .main-content{flex:1;min-width:0}
@@ -623,7 +623,7 @@ Ví sếp, 0x5678...efgh
             <th style="text-align:left">Địa chỉ</th>
             <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap" title="Số tuần đã giữ MVP">Tuần MVP</th>
-            <th style="color:#a78bfa;cursor:pointer;user-select:none" onclick="colSort('crystal')">Crystal <span id="sort-icon-crystal" style="opacity:.3">↕</span></th>
+
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('usdt')" style="color:var(--green)">USDT <span id="sort-icon-usdt" style="opacity:.3">↕</span></th>
@@ -641,7 +641,7 @@ Ví sếp, 0x5678...efgh
       </div><!-- end table col -->
       <div style="width:360px;flex-shrink:0"></div><!-- spacer -->
       </div><!-- end flex layout -->
-      <div class="stats-fixed" id="team-stats"></div>
+      <div class="stats-fixed" id="team-stats" style="display:none"></div>
     </div>
   </div>
 
@@ -1723,7 +1723,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','crystal'].forEach(c => {
+  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -1807,7 +1807,6 @@ function renderTeam() {
       if (teamSortCol==='neso')      return w.neso     ?? -1;
       if (teamSortCol==='avax')      return w.avax ?? -1;
       if (teamSortCol==='mvp')       return w.mvpPoints ?? -1;
-      if (teamSortCol==='crystal')    return w.crystalTotal ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
       if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
@@ -1949,24 +1948,24 @@ function renderTeam() {
       </div>
       <div class="stat-val" style="color:${accent}">${val}</div></div>`;
 
-  document.getElementById('team-stats').innerHTML = `
+  const statsEl = document.getElementById('team-stats');
+  if (statsEl) statsEl.innerHTML = `
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
-      <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
+      <span class="stat-icon">👥</span><div class="stat-label">Số ví</div>
       <div class="stat-val">${teamWallets.length}</div></div>
-    ${scTicker(A, '🍁 HENESYS', G, 'NESO', f(totNeso), nesoPrice)}
-    ${scTicker(G, '🍁 HENESYS', G, 'NXPC', fd2(totNxpc,2), nxpcPrice)}
-    ${scTicker(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2), usdvndRate?'1$='+usdvndRate+'₫':'')}
-    ${scTicker(G, '🍁 HENESYS', G, 'VND',  f(totVnd), '')}
     <div class="stat" style="border-top:2px solid var(--accent)33"><div class="stat-accent" style="background:var(--accent)"></div>
       <div style="font-size:9px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em">🏅 MVP</div>
-      <div class="stat-label">Ví đạt Bronze+</div>
+      <div class="stat-label">Bronze+</div>
       <div class="stat-val" style="color:var(--accent)">${mvpLoadedPct>0?mvpBronzePlus:'...'}</div>
-      <div class="stat-sub">${mvpLoadedPct>0?'/ '+mvpLoadedPct+' ví đã load':''}</div>
     </div>
-    ${scTicker('#e84142', '🔺 AVALANCHE', '#e84142', 'AVAX', fd2(totAvax,4), '')}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'NXPC', fd2(totNxpcAvax,2), nxpcPrice)}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'USDT', fd2(totUsdtAvax,2), '')}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'VND',  f(totVndAvax), '')}`;
+    ${scTicker(A, '🍁', G, 'NESO', f(totNeso), nesoPrice)}
+    ${scTicker(G, '🍁', G, 'NXPC', fd2(totNxpc,2), nxpcPrice)}
+    ${scTicker(G, '🍁', G, 'USDT', fd2(totUsdt,2), '')}
+    ${scTicker(G, '🍁', G, 'VND',  f(totVnd), '')}
+    ${scTicker('#e84142', '🔺', '#e84142', 'AVAX', fd2(totAvax,4), '')}
+    ${scTicker(B, '🔺', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), nxpcPrice)}
+    ${scTicker(B, '🔺', B, 'USDT(AVAX)', fd2(totUsdtAvax,2), '')}
+    ${scTicker(B, '🔺', B, 'VND(AVAX)',  f(totVndAvax), '')}`;
   setTimeout(()=>{ updateWalletCountdowns(); reapplyExpandContent(); }, 50);
 }
 
