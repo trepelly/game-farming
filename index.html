@@ -2702,9 +2702,16 @@ function reapplyExpandContent() {
     const cont = document.getElementById('flow-content-'+key);
     const btn  = document.getElementById('flow-btn-'+key);
     if (!row || !cont) return;
-    if (expandContentCache[key]) {
+    const tab = expandTabState[key] || 'mvp';
+    const cacheKey = tab+'_'+key;
+    if (expandContentCache[cacheKey]) {
       row.style.display = '';
-      cont.innerHTML = expandContentCache[key];
+      cont.innerHTML = expandContentCache[cacheKey];
+      // Restore tab button states
+      ['mvp','flow'].forEach(t => {
+        const tbtn = document.getElementById('etab-'+t+'-'+key);
+        if(tbtn) { tbtn.style.background = t===tab?'var(--accent)':'var(--subtle)'; tbtn.style.color = t===tab?'#fff':'var(--muted2)'; }
+      });
       if (btn) btn.textContent = '▲';
     }
   });
@@ -3157,29 +3164,42 @@ function setExpandTab(key, tab) {
 }
 
 async function loadExpandMvp(cont, address, key) {
+  // Check cache first
+  const cacheKey = 'mvp_'+key;
+  if (expandContentCache[cacheKey]) { cont.innerHTML = expandContentCache[cacheKey]; return; }
   cont.innerHTML = '<div style="padding:12px;color:var(--muted2);font-size:11px;text-align:center"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"></span>Loading MVP...</div>';
   try {
-    // Reuse exact same logic as checkMvp()
-    const rows13w = await fetchDailyData(address, MVP_LAUNCH);
+    const rows13w    = await fetchDailyData(address, MVP_LAUNCH);
     const weeklyRows = buildWeeklyRows(rows13w);
-    const allKeys2 = [...new Set(rows13w.map(x=>getWeekKey(x.day)))].sort().slice(-13);
-    const winRows  = rows13w.filter(r=>allKeys2.includes(getWeekKey(r.day)));
-    const calc     = calcMvpFromRows(winRows);
-    cont.innerHTML = renderMvpResult(address, weeklyRows, calc.points, address.slice(0,6)+'...'+address.slice(-4));
+    const allKeys2   = [...new Set(rows13w.map(x=>getWeekKey(x.day)))].sort().slice(-13);
+    const winRows    = rows13w.filter(r=>allKeys2.includes(getWeekKey(r.day)));
+    const calc       = calcMvpFromRows(winRows);
+    const html_      = renderMvpResult(address, weeklyRows, calc.points, address.slice(0,6)+'...'+address.slice(-4));
+    expandContentCache[cacheKey] = html_;
+    const el = document.getElementById('flow-content-'+key);
+    if(el) el.innerHTML = html_;
   } catch(e) {
-    cont.innerHTML = `<div style="color:var(--red);padding:10px;font-size:11px">Lỗi MVP: ${e.message}</div>`;
+    const el = document.getElementById('flow-content-'+key);
+    if(el) el.innerHTML = `<div style="color:var(--red);padding:10px;font-size:11px">Lỗi MVP: ${e.message}</div>`;
   }
 }
 
 async function loadExpandFlow(cont, address, key) {
+  const cacheKey = 'flow_'+key;
+  if (expandContentCache[cacheKey]) { cont.innerHTML = expandContentCache[cacheKey]; return; }
   cont.innerHTML = '<div style="padding:12px;color:var(--muted2);font-size:11px;text-align:center"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px"></span>Loading NESO Flow...</div>';
   try {
-    const url = `https://pvydmytgmlrarwbozlnl.supabase.co/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&order=day.desc`;
-    const r   = await fetch(url, {headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw'}});
+    const url  = `https://pvydmytgmlrarwbozlnl.supabase.co/rest/v1/neso_wallet_daily?select=*&wallet=eq.${address.toLowerCase()}&order=day.desc`;
+    const r    = await fetch(url, {headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw'}});
     const rows = await r.json();
-    renderFlowExpand(cont, rows);
+    const tmp  = document.createElement('div');
+    renderFlowExpand(tmp, rows);
+    expandContentCache[cacheKey] = tmp.innerHTML;
+    const el = document.getElementById('flow-content-'+key);
+    if(el) el.innerHTML = tmp.innerHTML;
   } catch(e) {
-    cont.innerHTML = `<div style="color:var(--red);padding:10px;font-size:11px">Lỗi Flow: ${e.message}</div>`;
+    const el = document.getElementById('flow-content-'+key);
+    if(el) el.innerHTML = `<div style="color:var(--red);padding:10px;font-size:11px">Lỗi Flow: ${e.message}</div>`;
   }
 }
 
