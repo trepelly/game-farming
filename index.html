@@ -2208,10 +2208,11 @@ const _patchTeamPrices = () => {
 };
 setTimeout(_patchTeamPrices, 300);
 
-// Auto fetch every 60s when team tab is visible
-setInterval(() => {
-  if(document.getElementById('panel-team')?.classList.contains('active')) fetchLivePrices();
-}, 60000);
+// Auto fetch every 60s on any tab
+setInterval(() => { fetchLivePrices(); }, 60000);
+
+// Fetch prices on page load
+if (typeof fetchLivePrices === 'function') fetchLivePrices();
 
 // Fetch on team unlock
 const _origUnlock = window.unlockTeam;
