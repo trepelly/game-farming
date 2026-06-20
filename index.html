@@ -1735,7 +1735,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp'].forEach(c => {
+  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -1819,6 +1819,7 @@ function renderTeam() {
       if (teamSortCol==='neso')      return w.neso     ?? -1;
       if (teamSortCol==='avax')      return w.avax ?? -1;
       if (teamSortCol==='mvp')       return w.mvpPoints ?? -1;
+      if (teamSortCol==='tuanmvp')    return w.mvpBronzeWeeks ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
       if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
@@ -3212,7 +3213,9 @@ function updateWalletCountdowns() {
   (window.teamWallets||teamWallets||[]).forEach(w => {
     const _el = document.getElementById('mvp-cd-' + w.address.slice(-8));
     if (!_el) return;
-    if (!w.mvpFirstWeek || !w.mvpPoints || w.mvpPoints < 30) {
+    // Only update if MVP data has been loaded (mvpPoints is set)
+    if (w.mvpPoints === undefined || w.mvpPoints === null) return; // not loaded yet, skip
+    if (!w.mvpFirstWeek || w.mvpPoints < 30) {
       _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return;
     }
     // Count weeks from first eligible week to now
