@@ -2376,7 +2376,7 @@ const _origLoadTeam = window.loadTeamWallets;
 if (_origLoadTeam) {
   window.loadTeamWallets = async function() {
     await _origLoadTeam();
-    (window.teamWallets||[]).forEach(w => { if(w.neso!=null) trackWalletChange(w); });
+    (window.teamWallets||teamWallets||[]).forEach(w => { if(w.neso!=null) trackWalletChange(w); });
   };
 }
 </script>
@@ -2936,6 +2936,7 @@ async function loadTeamMvpPoints() {
   // Use teamWallets directly by index to ensure we modify the actual objects
   const wallets = teamWallets;
   if (!wallets || !wallets.length) return;
+  window.teamWallets = teamWallets; // ensure global access
   await Promise.all(wallets.map(async (w, idx) => {
     try {
       const [rows, crystalRows] = await Promise.all([
@@ -3208,7 +3209,7 @@ function formatCd(ms) {
 
 function updateWalletCountdowns() {
   const _now = new Date();
-  (window.teamWallets||[]).forEach(w => {
+  (window.teamWallets||teamWallets||[]).forEach(w => {
     const _el = document.getElementById('mvp-cd-' + w.address.slice(-8));
     if (!_el) return;
     if (!w.mvpFirstWeek || !w.mvpPoints || w.mvpPoints < 30) {
