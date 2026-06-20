@@ -2995,19 +2995,31 @@ async function loadTeamMvpPoints() {
 }
 
 function updateMvpCell(w) {
-  // Also store in teamWallets to survive re-renders
   const tw = (window.teamWallets||[]).find(x=>x.address===w.address);
-  if(tw) { tw.mvpPoints = w.mvpPoints; tw.mvpTier = w.mvpTier; }
-  // Find the row by address in the current DOM
-  const cells = document.querySelectorAll('#team-tbody td[data-addr="' + w.address + '"]');
-  if (cells.length) {
-    const tier = w.mvpTier;
-    const pts  = w.mvpPoints;
-    cells[0].innerHTML = `<span style="color:${tier?.color||'var(--muted2)'};font-weight:600;font-size:13px">${pts}</span>`;
-    return;
+  if(tw) { tw.mvpPoints=w.mvpPoints; tw.mvpTier=w.mvpTier; tw.mvpFirstWeek=w.mvpFirstWeek; tw.mvpBronzeWeeks=w.mvpBronzeWeeks; }
+
+  // Update MVP pts cell
+  const cells = document.querySelectorAll('#team-tbody td[data-addr="'+w.address+'"]');
+  if(cells.length) {
+    const tier=w.mvpTier, pts=w.mvpPoints;
+    cells[0].innerHTML = tier&&tier.name!=='Unranked'
+      ? `<span style="color:${tier.color};font-weight:600;font-size:13px">${pts}</span>`
+      : `<span style="color:var(--muted2);font-size:12px">${pts}</span>`;
   }
-  // Fallback: re-render
-  renderTeam();
+
+  // Update Tuần MVP cell
+  const cdEl = document.getElementById('mvp-cd-'+w.address.slice(-8));
+  if(cdEl) {
+    const bw = w.mvpBronzeWeeks||0;
+    if(!w.mvpFirstWeek||!w.mvpPoints||w.mvpPoints<30) {
+      cdEl.innerHTML='<span style="color:var(--muted2)">—</span>';
+    } else {
+      const exp = new Date(w.mvpFirstWeek.getTime()+91*86400000-1000);
+      const ms  = exp-new Date();
+      const col = ms<7*86400000?'var(--amber)':'var(--accent)';
+      cdEl.innerHTML=`<span style="color:${col};font-weight:700" title="${bw} tuần Bronze+">W${bw}</span>`;
+    }
+  } else if(!cells.length) renderTeam();
 }
 
 // Toggle NESO Flow expand row
