@@ -168,6 +168,67 @@ h1 em{font-style:normal;color:var(--accent)}
 /* ── CHARTS ── */
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
 @media(max-width:600px){.charts-grid{grid-template-columns:1fr}}
+
+/* ── RESPONSIVE: Mobile & Tablet ── */
+@media(max-width:900px){
+  /* Sidebar: collapse to top bar */
+  .sidebar{
+    position:fixed;top:60px;left:0;right:0;height:auto;
+    width:100%;border-right:none;border-bottom:1px solid var(--border2);
+    background:var(--bg);z-index:50;
+    padding:6px 12px;display:flex;flex-direction:row;gap:0;
+    overflow-x:auto;overflow-y:hidden;white-space:nowrap;
+    -webkit-overflow-scrolling:touch;
+  }
+  .tabs{flex-direction:row;gap:2px;padding:0;width:auto}
+  .tab{padding:7px 12px;font-size:11px;white-space:nowrap;border-radius:8px}
+  .tab .tab-icon{width:14px;font-size:13px}
+
+  /* Wrap: account for top sidebar */
+  .wrap{padding:130px 12px 60px 12px}
+  .main-content{padding-left:0}
+
+  /* Header compact */
+  header{padding:0 12px;height:60px}
+  #hdr-nxpc,#hdr-ratio,#hdr-vnd,#hdr-updated{display:none!important}
+
+  /* Stats: 2 cols on mobile */
+  .stats-fixed{grid-template-columns:repeat(2,1fr);gap:8px}
+
+  /* Tables: horizontal scroll */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{font-size:11px;min-width:600px}
+  th,td{padding:6px 8px!important}
+
+  /* Input grids */
+  .input-grid{grid-template-columns:1fr 1fr}
+
+  /* Charts */
+  .charts-grid{grid-template-columns:1fr}
+  .chart-card{padding:12px}
+
+  /* Formula pill wrap */
+  .formula-pill{flex-wrap:wrap;font-size:10px}
+
+  /* Sections */
+  .section-label{font-size:11px}
+}
+
+@media(max-width:480px){
+  .stats-fixed{grid-template-columns:repeat(2,1fr);gap:6px}
+  .stat{padding:10px 10px}
+  .stat-val{font-size:14px!important}
+  .input-grid{grid-template-columns:1fr}
+  header h1,.header-left h1{font-size:14px}
+  .tab{padding:6px 10px;font-size:10px}
+  .tab .tab-icon{display:none}
+}
+
+@media(min-width:901px) and (max-width:1200px){
+  /* Tablet landscape */
+  .wrap{padding:76px 16px 60px 210px}
+  .stats-fixed{grid-template-columns:repeat(4,1fr)}
+}
 .chart-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
 .chart-header{margin-bottom:16px}
 .chart-title{font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
