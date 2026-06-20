@@ -3006,7 +3006,7 @@ function updateMvpCell(w) {
       const exp = new Date(w.mvpFirstWeek.getTime()+91*86400000-1000);
       const ms  = exp-new Date();
       const col = ms<7*86400000?'var(--amber)':'var(--accent)';
-      cdEl.innerHTML=`<span style="color:${col};font-weight:700" title="${bw} tuần Bronze+">W${bw}</span>`;
+      cdEl.innerHTML=`<span style="color:${col};font-weight:700" title="${bw} tuần Bronze+">${bw}</span>`;
     }
   } else if(!cells.length) renderTeam();
 }
