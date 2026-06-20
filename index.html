@@ -257,6 +257,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
       <div id="hdr-updated" style="font-size:10px;color:var(--muted2)"></div>
+      <button onclick="fetchLivePrices(true)" title="Cập nhật giá" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;font-size:12px;line-height:1;transition:all .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">⟳</button>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
       <span class="icon-sun">☀️</span>
@@ -1520,16 +1521,18 @@ function updatePortfolio() {
   const fd = n=>Math.round(n).toLocaleString('vi-VN');
   const fd2 = (n,d)=>n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
 
+  const totalAvax     = loaded.reduce((s,w)=>s+(w.avax||0),0);
   const totalNxpcAvax = loaded.reduce((s,w)=>s+(w.nxpc_avax||0),0);
   const nesoRate2 = liveNesoUsd || 0;
   const totalUsdt2 = totalNeso * nesoRate2;
   const totalVnd2  = totalUsdt2 * usdvnd;
   const totalUsdtAvax = totalNxpcAvax * (liveNxpcUsd||0);
   const totalVndAvax  = totalUsdtAvax * usdvnd;
-  const sc2 = (acc,chain,cc,lbl,val) =>
-    `<div class="stat"><div class="stat-accent" style="background:${acc}"></div>
+  const sc2 = (acc,chain,cc,lbl,val) => {
+    const lk = lbl.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
+    return `<div class="stat"><div class="stat-accent" style="background:${acc}"></div>
       <div style="font-size:9px;font-weight:700;color:${cc};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
-      <div class="stat-label">${lbl}</div><div class="stat-val" style="color:${acc}">${val}</div></div>`;
+      <div class="stat-label">${cLogo(lk)}${lbl}</div><div class="stat-val" style="color:${acc}">${val}</div></div>`;
   const scEmpty2 = () => `<div class="stat" style="background:transparent;border-color:transparent;box-shadow:none"></div>`;
   const G='var(--green)',B='var(--blue)',A='var(--amber)';
   document.getElementById('portfolio-stats').innerHTML=`
@@ -1540,11 +1543,10 @@ function updatePortfolio() {
     ${sc2(G,'🍁 HENESYS',G,'NXPC',fd2(totalNxpc,4))}
     ${sc2(G,'🍁 HENESYS',G,'USDT',fd2(totalUsdt2,2))}
     ${sc2(G,'🍁 HENESYS',G,'VND',fd(totalVnd2))}
-    ${scEmpty2()}
-    ${scEmpty2()}
-    ${sc2(B,'🔺 AVALANCHE',B,'NXPC',fd2(totalNxpcAvax,4))}
-    ${sc2(B,'🔺 AVALANCHE',B,'USDT',fd2(totalUsdtAvax,2))}
-    ${sc2(B,'🔺 AVALANCHE',B,'VND',fd(totalVndAvax))}`;
+    ${sc2('#e84142','🔺 AVALANCHE','#e84142','AVAX',fd2(totalAvax||0,4))}
+    ${sc2(B,'🔺 AVALANCHE',B,'NXPC(AVAX)',fd2(totalNxpcAvax,4))}
+    ${sc2(B,'🔺 AVALANCHE',B,'USDT(AVAX)',fd2(totalUsdtAvax,2))}
+    ${sc2(B,'🔺 AVALANCHE',B,'VND(AVAX)',fd(totalVndAvax))}`;
 
   // Pie chart
   const isDark = document.documentElement.getAttribute('data-theme')==='dark';
