@@ -3204,7 +3204,7 @@ function updateWalletCountdowns() {
     const _expiry = new Date(w.mvpFirstWeek.getTime() + 91*86400000 - 1000);
     const _msLeft = _expiry - _now;
     const _color  = _msLeft < 7*86400000 ? 'var(--amber)' : 'var(--accent)';
-    _el.innerHTML = `<span style="color:${_color};font-weight:700">W${_weeks}</span>`;
+    _el.innerHTML = `<span style="color:${_color};font-weight:700" title="Tuần ${_weeks}/13 kể từ khi đạt Bronze">W${_weeks}/13</span>`;
   });
 }
 function updateMvpCountdown_UNUSED() {
