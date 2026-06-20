@@ -1965,7 +1965,6 @@ function renderTeam() {
       <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
       <div class="stat-val">${teamWallets.length}</div></div>
     ${scTicker(A, '🍁 HENESYS', G, 'NESO', f(totNeso), nesoPrice)}
-    ${scTicker(G, '🍁 HENESYS', G, 'NXPC', fd2(totNxpc,2), nxpcPrice)}
     ${scTicker(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2), usdvndRate?'1$='+usdvndRate+'₫':'')}
     ${scTicker(G, '🍁 HENESYS', G, 'VND',  f(totVnd), '')}
     <div class="stat" style="border-top:2px solid var(--accent)33"><div class="stat-accent" style="background:var(--accent)"></div>
@@ -1975,7 +1974,6 @@ function renderTeam() {
       <div class="stat-sub">${mvpLoadedPct>0?'/ '+mvpLoadedPct+' đã load':''}</div>
     </div>
     ${scTicker('#e84142', '🔺 AVALANCHE', '#e84142', 'AVAX', fd2(totAvax,4), '')}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), nxpcPrice)}
     ${scTicker(B, '🔺 AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvax,2), '')}
     ${scTicker(B, '🔺 AVALANCHE', B, 'VND(AVAX)',  f(totVndAvax), '')}`;
   setTimeout(()=>{ updateWalletCountdowns(); reapplyExpandContent(); }, 50);
