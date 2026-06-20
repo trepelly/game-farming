@@ -766,6 +766,16 @@ Ví sếp, 0x5678...efgh
 </div>
 
 <script>
+// ── Global coin logos ──
+const COIN_LOGO = {
+  NESO: 'https://cdn.mmogah.com/cdn-cgi/image/format=auto,metadata=none,quality=70,width=64/images/2025-05-21-16/maplestory-n-neso.png',
+  NXPC: 'https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png',
+  USDT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
+  AVAX: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
+  VND:  'https://flagcdn.com/vn.svg',
+};
+const cLogo = (k,s=16) => COIN_LOGO[k] ? `<img src="${COIN_LOGO[k]}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px" onerror="this.style.display='none'"/>` : '';
+
 // ── Theme ──
 function toggleTheme(){
   const html=document.documentElement;
@@ -853,14 +863,7 @@ function calcFarm(){
   const peakRow=farmRows.reduce((b,r)=>r.gr>b.gr?r:b,{gr:-Infinity,w:0});
   const weeksUp=farmRows.filter(r=>r.newChars>0).length;
 
-const COIN_LOGO = {
-  NESO: 'https://cdn.mmogah.com/cdn-cgi/image/format=auto,metadata=none,quality=70,width=64/images/2025-05-21-16/maplestory-n-neso.png',
-  NXPC: 'https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png',
-  USDT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
-  AVAX: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
-  VND:  'https://flagcdn.com/vn.svg',
-};
-const cLogo = (k,s=16) => COIN_LOGO[k] ? `<img src="${COIN_LOGO[k]}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px" onerror="this.style.display='none'"/>` : '';
+
   document.getElementById('farm-stats').innerHTML=`
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
       <span class="stat-icon">👥</span><div class="stat-label">ACC cuối kỳ</div>
@@ -1939,10 +1942,7 @@ function renderTeam() {
     'VND':  'https://flagcdn.com/vn.svg',
     'AVAX': 'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
   };
-  const coinLogo = (label) => {
-    const key = Object.keys(COIN_LOGOS).find(k => label.toUpperCase().includes(k));
-    return key ? `<img src="${COIN_LOGOS[key]}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'"/>` : '';
-  };
+  const coinLogo = (label) => { const k = Object.keys(COIN_LOGO).find(k=>label.toUpperCase().includes(k)); return cLogo(k||'',18); };
   const scTicker = (accent,chain,chainColor,label,val,ticker) => {
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
     const logo = cLogo(lk, 16);
