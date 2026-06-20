@@ -2958,15 +2958,30 @@ async function loadTeamMvpPoints() {
       teamWallets[idx].mvpPoints = calc.points;
       teamWallets[idx].mvpTier   = getTier(calc.points);
       if (calc.points >= 30 && rows.length > 0) {
-        // Find first Thu-week with MVP-eligible activity
         const eligibleRows = rows.filter(r =>
           (r.out_enhancement_amount||r.out_crystal_amount||0) > 0 ||
           (r.out_nft_amount||0) > 0 || (r.out_ft_amount||0) > 0
         );
         const firstEligible = eligibleRows.length > 0 ? eligibleRows[eligibleRows.length-1] : rows[rows.length-1];
         teamWallets[idx].mvpFirstWeek = new Date(getWeekKey(firstEligible.day) + 'T00:00:00Z');
+        // Count weeks where cumulative points >= 30 (Bronze+)
+        const weekMap2 = {};
+        rows.forEach(r => {
+          const k = getWeekKey(r.day);
+          if (!weekMap2[k]) weekMap2[k] = {e:0,nft:0,ft:0};
+          weekMap2[k].e   += r.out_enhancement_amount||0;
+          weekMap2[k].nft += r.out_nft_amount||0;
+          weekMap2[k].ft  += r.out_ft_amount||0;
+        });
+        let cum2 = 0, bronzeWeeks = 0;
+        Object.keys(weekMap2).sort().slice(-13).forEach(k => {
+          cum2 += Math.floor((weekMap2[k].e + (weekMap2[k].nft+weekMap2[k].ft)*0.05)/100000);
+          if (cum2 >= 30) bronzeWeeks++;
+        });
+        teamWallets[idx].mvpBronzeWeeks = bronzeWeeks;
       } else {
-        teamWallets[idx].mvpFirstWeek = null;
+        teamWallets[idx].mvpFirstWeek   = null;
+        teamWallets[idx].mvpBronzeWeeks = 0;
       }
     } catch(e) {
       console.warn('MVP load error for', w.address, e.message);
@@ -3199,12 +3214,11 @@ function updateWalletCountdowns() {
       _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return;
     }
     // Count weeks from first eligible week to now
-    const _msHeld = _now - w.mvpFirstWeek;
-    const _weeks  = Math.max(1, Math.min(13, Math.ceil(_msHeld / (7*86400000))));
+    const _bw     = w.mvpBronzeWeeks || 0;
     const _expiry = new Date(w.mvpFirstWeek.getTime() + 91*86400000 - 1000);
     const _msLeft = _expiry - _now;
     const _color  = _msLeft < 7*86400000 ? 'var(--amber)' : 'var(--accent)';
-    _el.innerHTML = `<span style="color:${_color};font-weight:700" title="Tuần ${_weeks}/13 kể từ khi đạt Bronze">W${_weeks}/13</span>`;
+    _el.innerHTML = `<span style="color:${_color};font-weight:700" title="${_bw} tuần có rank Bronze+ trong 13 tuần">W${_bw}</span>`;
   });
 }
 function updateMvpCountdown_UNUSED() {
