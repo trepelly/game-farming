@@ -2189,34 +2189,7 @@ const _patchTeamPrices = () => {
     const fd2 = (n,d) => n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
     const f   = n => Math.round(n).toLocaleString('vi-VN');
     // Append live price cards to stats
-    const statsEl = document.getElementById('team-stats');
-    if(statsEl && liveNxpcUsd) {
-      // Add live USDT stat card after existing ones
-      const existingLive = document.getElementById('team-stat-live');
-      if(existingLive) existingLive.remove();
-      const div = document.createElement('div');
-      div.id = 'team-stat-live';
-      div.className = 'stat';
-      div.innerHTML = `<div class="stat-accent" style="background:#f7931a"></div>
-        <span class="stat-icon">📈</span>
-        <div class="stat-label">NXPC × Giá thị trường</div>
-        <div class="stat-val" style="color:#f7931a;font-size:16px">$${fd2(totNxpc*liveNxpcUsd,2)}</div>
-        <div class="stat-sub" style="color:var(--muted2)">≈ ${f(totNxpc*liveNxpcUsd*usdvnd)} VND</div>
-        <div class="stat-sub" style="color:var(--muted2);font-size:9px">@$${liveNxpcUsd.toFixed(4)}/NXPC</div>`;
-      statsEl.appendChild(div);
 
-      if(liveNesoUsd) {
-        const div2 = document.createElement('div');
-        div2.className = 'stat';
-        div2.innerHTML = `<div class="stat-accent" style="background:#10b981"></div>
-          <span class="stat-icon">🪙</span>
-          <div class="stat-label">NESO × Giá thị trường</div>
-          <div class="stat-val" style="color:var(--green);font-size:16px">$${fd2(totNeso*liveNesoUsd,2)}</div>
-          <div class="stat-sub" style="color:var(--muted2)">≈ ${f(totNeso*liveNesoUsd*usdvnd)} VND</div>
-          <div class="stat-sub" style="color:var(--muted2);font-size:9px">@$${liveNesoUsd.toFixed(8)}/NESO</div>`;
-        statsEl.appendChild(div2);
-      }
-    }
   };
 };
 setTimeout(_patchTeamPrices, 300);
