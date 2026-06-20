@@ -1869,7 +1869,7 @@ function renderTeam() {
           ? `<span style="color:${w.mvpTier?.color||'var(--muted2)'};font-weight:600;font-size:13px">${w.mvpPoints}</span>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
-      <td style="text-align:center;font-size:12px;font-weight:600" id="mvp-cd-${w.address.slice(-8)}">—</td>
+      <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -1964,8 +1964,7 @@ function renderTeam() {
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
       <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
       <div class="stat-val">${teamWallets.length}</div></div>
-    ${scTicker(A, '🍁 HENESYS', G, 'NESO', f(totNeso), nesoPrice)}
-    ${scTicker(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2), usdvndRate?'1$='+usdvndRate+'₫':'')}
+    ${scTicker(A, '🍁 HENESYS', G, 'NESO', f(totNeso), '')}
     ${scTicker(G, '🍁 HENESYS', G, 'VND',  f(totVnd), '')}
     <div class="stat" style="border-top:2px solid var(--accent)33"><div class="stat-accent" style="background:var(--accent)"></div>
       <div style="font-size:9px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em">🏅 MVP</div>
@@ -1974,7 +1973,7 @@ function renderTeam() {
       <div class="stat-sub">${mvpLoadedPct>0?'/ '+mvpLoadedPct+' đã load':''}</div>
     </div>
     ${scTicker('#e84142', '🔺 AVALANCHE', '#e84142', 'AVAX', fd2(totAvax,4), '')}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvax,2), '')}
+    
     ${scTicker(B, '🔺 AVALANCHE', B, 'VND(AVAX)',  f(totVndAvax), '')}`;
   setTimeout(()=>{ updateWalletCountdowns(); reapplyExpandContent(); }, 50);
 }
