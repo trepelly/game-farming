@@ -3196,7 +3196,7 @@ function updateWalletCountdowns() {
     const _expiry = new Date(w.mvpFirstWeek.getTime() + 91*86400000 - 1000);
     const _msLeft = _expiry - _now;
     const _color  = _msLeft < 7*86400000 ? 'var(--amber)' : 'var(--accent)';
-    _el.innerHTML = `<span style="color:${_color};font-weight:700" title="${_bw} tuần có rank Bronze+ trong 13 tuần">W${_bw}</span>`;
+    _el.innerHTML = `<span style="color:${_color};font-weight:700">${_bw}</span>`;
   });
 }
 function updateMvpCountdown_UNUSED() {
