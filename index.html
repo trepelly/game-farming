@@ -2964,9 +2964,9 @@ async function loadTeamMvpPoints() {
         );
         const firstEligible = eligibleRows.length > 0 ? eligibleRows[eligibleRows.length-1] : rows[rows.length-1];
         teamWallets[idx].mvpFirstWeek = new Date(getWeekKey(firstEligible.day) + 'T00:00:00Z');
-        // Count weeks where cumulative points >= 30 (Bronze+)
+        // Count weeks with Bronze+ cumulative in 13W window
         const weekMap2 = {};
-        rows.forEach(r => {
+        winRows.forEach(r => {
           const k = getWeekKey(r.day);
           if (!weekMap2[k]) weekMap2[k] = {e:0,nft:0,ft:0};
           weekMap2[k].e   += r.out_enhancement_amount||0;
@@ -2974,7 +2974,7 @@ async function loadTeamMvpPoints() {
           weekMap2[k].ft  += r.out_ft_amount||0;
         });
         let cum2 = 0, bronzeWeeks = 0;
-        Object.keys(weekMap2).sort().slice(-13).forEach(k => {
+        Object.keys(weekMap2).sort().forEach(k => {
           cum2 += Math.floor((weekMap2[k].e + (weekMap2[k].nft+weekMap2[k].ft)*0.05)/100000);
           if (cum2 >= 30) bronzeWeeks++;
         });
