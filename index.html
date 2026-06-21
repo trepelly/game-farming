@@ -2565,8 +2565,13 @@ function buildWeeklyRows(allRows) {
     const calc = calcMvpFromRows(weekRows);
     if (inWindow.has(key)) cumulative += calc.points;
 
-    // Sum enhancement NESO for this week
-    const weekEnhance = weekRows.reduce((s,r)=>s+(r.out_enhancement_amount||r.out_crystal_amount||0),0);
+    // Sum MVP formula value for this week: Enhancement×100% + (OutNFT+OutFT)×5%
+    const weekEnhance = weekRows.reduce((s,r)=>{
+      const enh = r.out_enhancement_amount||r.out_crystal_amount||0;
+      const nft = r.out_nft_amount||0;
+      const ft  = r.out_ft_amount||0;
+      return s + enh + (nft+ft)*0.05;
+    },0);
 
     const weekStart = new Date(key + 'T00:00:00Z');
     const weekEnd   = new Date(weekStart);
@@ -2635,7 +2640,7 @@ function renderMvpResult(address, rows, totalPts, label) {
             <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Week</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Period Start (Thu UTC)</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Period End (Wed UTC)</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Enhance NESO</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Giá trị MVP/tuần</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Weekly Points</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">13W Cumulative</th>
             <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">MVP Tier</th>
