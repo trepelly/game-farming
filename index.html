@@ -686,6 +686,7 @@ Ví sếp, 0x5678...efgh
             <th style="text-align:left">Địa chỉ</th>
             <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần có rank Bronze+">Tuần MVP <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
+            <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
 
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
@@ -1796,7 +1797,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp'].forEach(c => {
+  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp','mvpweek'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -1881,6 +1882,7 @@ function renderTeam() {
       if (teamSortCol==='avax')      return w.avax ?? -1;
       if (teamSortCol==='mvp')       return w.mvpPoints ?? -1;
       if (teamSortCol==='tuanmvp')    return w.mvpBronzeWeeks ?? -1;
+      if (teamSortCol==='mvpweek')    return w.mvpWeekValue ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
       if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
@@ -1933,6 +1935,7 @@ function renderTeam() {
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
+      <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}"><span style="color:var(--muted2);font-size:10px">...</span></td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -3024,9 +3027,16 @@ async function loadTeamMvpPoints() {
         const wRows2 = buildWeeklyRows(rows);
         const bronzeWeeks = wRows2.filter(r => r.inWindow && r.tier && r.tier.name !== 'Unranked').length;
         teamWallets[idx].mvpBronzeWeeks = bronzeWeeks;
+        // Current week MVP value chi
+        const curWeek = wRows2.find(r => r.isCurrentWeek);
+        teamWallets[idx].mvpWeekValue = curWeek ? curWeek.enhance : 0;
       } else {
         teamWallets[idx].mvpFirstWeek   = null;
         teamWallets[idx].mvpBronzeWeeks = 0;
+        // Still calc current week value even if not Bronze yet
+        const wRows3 = buildWeeklyRows(rows);
+        const curW = wRows3.find(r => r.isCurrentWeek);
+        teamWallets[idx].mvpWeekValue = curW ? curW.enhance : 0;
       }
     } catch(e) {
       console.warn('MVP load error for', w.address, e.message);
@@ -3050,6 +3060,19 @@ function updateMvpCell(w) {
     cells[0].innerHTML = tier&&tier.name!=='Unranked'
       ? `<span style="color:${tier.color};font-weight:600;font-size:13px">${pts}</span>`
       : `<span style="color:var(--muted2);font-size:12px">${pts}</span>`;
+  }
+
+  // Update Chi tuần này cell
+  const wkEl = document.getElementById('mvp-week-'+w.address.slice(-8));
+  if(wkEl) {
+    const v = w.mvpWeekValue || 0;
+    const enough = v >= 230000;
+    const f230 = n => Math.round(n).toLocaleString('vi-VN');
+    if(w.mvpPoints==null) {
+      wkEl.innerHTML = '<span style="color:var(--muted2);font-size:10px">...</span>';
+    } else {
+      wkEl.innerHTML = `<span style="color:${enough?'var(--green)':'var(--amber)'};font-weight:600">${f230(v)}</span><div style="font-size:9px;color:var(--muted2)">${enough?'✓ đủ':'cần '+f230(Math.max(0,230000-v))}</div>`;
+    }
   }
 
   // Update Tuần MVP cell
