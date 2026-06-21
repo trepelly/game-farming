@@ -1919,6 +1919,8 @@ function renderTeam() {
           <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
             style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
           <span style="font-weight:600">${w.label||'—'}</span>
+          <span onclick="navigator.clipboard.writeText('${w.label||''}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)"
+            style="cursor:pointer;font-size:10px;color:var(--muted2);margin-left:4px;user-select:none" title="Copy tên">⎘</span>
         </div>
       </td>
       <td style="text-align:left">${short(w.address)}
