@@ -2565,10 +2565,17 @@ function buildWeeklyRows(allRows) {
     const calc = calcMvpFromRows(weekRows);
     if (inWindow.has(key)) cumulative += calc.points;
 
+    // Sum enhancement NESO for this week
+    const weekEnhance = weekRows.reduce((s,r)=>s+(r.out_enhancement_amount||r.out_crystal_amount||0),0);
+
     const weekStart = new Date(key + 'T00:00:00Z');
     const weekEnd   = new Date(weekStart);
     weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
     weekEnd.setUTCHours(23,59,59,0);
+
+    // Is this the current week?
+    const nowUtc = new Date();
+    const isCurrentWeek = nowUtc >= weekStart && nowUtc <= weekEnd;
 
     rows.push({
       weekNum:          i + 1,
@@ -2578,6 +2585,8 @@ function buildWeeklyRows(allRows) {
       cumulativePoints: inWindow.has(key) ? cumulative : 0,
       tier:             getTier(inWindow.has(key) ? cumulative : 0),
       inWindow:         inWindow.has(key),
+      enhance:          weekEnhance,
+      isCurrentWeek:    isCurrentWeek,
     });
   });
   return rows;
@@ -2626,16 +2635,20 @@ function renderMvpResult(address, rows, totalPts, label) {
             <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Week</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Period Start (Thu UTC)</th>
             <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Period End (Wed UTC)</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Enhance NESO</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Weekly Points</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">13W Cumulative</th>
             <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">MVP Tier</th>
           </tr></thead>
           <tbody>
             ${rows.map(r=>`
-            <tr style="border-bottom:1px solid var(--border);opacity:${r.inWindow?'1':'0.4'}">
+            <tr style="border-bottom:1px solid var(--border);opacity:${r.inWindow?'1':'0.4'};${r.isCurrentWeek?'background:var(--accent-glow)':''}">
               <td style="padding:7px 10px;text-align:center;color:var(--muted2)">${r.weekNum}</td>
               <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodStart)}</td>
               <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodEnd)}</td>
+              <td style="padding:7px 10px;text-align:right;font-weight:600">
+                ${r.inWindow ? `<span style="color:${r.enhance>=230000?'var(--green)':r.isCurrentWeek?'var(--amber)':'var(--muted2)'}">${f(r.enhance)}</span>${r.isCurrentWeek?`<div style="font-size:9px;color:var(--muted2)">${r.enhance>=230000?'✓ đủ 230k':'cần '+f(Math.max(0,230000-r.enhance))+' nữa'}</div>`:''}` : '<span style="color:var(--muted2)">—</span>'}
+              </td>
               <td style="padding:7px 10px;text-align:right;color:${r.weeklyPoints>0?'var(--green)':'var(--muted2)'}">${f(r.weeklyPoints)}</td>
               <td style="padding:7px 10px;text-align:right;font-weight:600">${f(r.cumulativePoints)}</td>
               <td style="padding:7px 10px;text-align:center;color:${r.tier.color}">${r.tier.icon} ${r.tier.name}</td>
