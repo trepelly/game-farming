@@ -1935,7 +1935,7 @@ function renderTeam() {
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
-      <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}"><span style="color:var(--muted2);font-size:10px">...</span></td>
+      <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -3058,6 +3058,8 @@ async function loadTeamMvpPoints() {
     setTimeout(updateWalletCountdowns,50);
   }));
   renderTeam();
+  // Re-apply all MVP cells after final render
+  teamWallets.forEach(w => updateMvpCell(w));
 }
 
 function updateMvpCell(w) {
