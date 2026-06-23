@@ -1,37 +1,47 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MSU v12</title>
+<html><head><meta charset="UTF-8"><title>Power Crystal v30</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 MSU Items v12</h2>
+<body><h2>🔍 Power Crystal via MSU API</h2>
 <pre id="out">Testing...\n</pre>
 <script>
-const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
+const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-const apiUrl = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
+// Try MSU navigator currency/enhancement endpoints
+const tests = [
+  `https://msu.io/navigator/api/bcbackend/next-meso/balance/${addr}`,
+  `https://msu.io/navigator/api/navigator/inventory/${addr}/summary-v2`,
+  `https://msu.io/navigator/api/navigator/currencies/${addr}`,
+  `https://msu.io/navigator/api/bcbackend/enhancement-currency/balance/${addr}`,
+  `https://msu.io/navigator/api/bcbackend/currency/balance/${addr}`,
+];
 
 async function run() {
-  const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
-  try {
-    const r = await fetch(proxyUrl);
-    const j = await r.json();
-    log('totalCount: ' + (j.paginationResult?.totalCount), 'ok');
-    log('items: ' + j.items.length + '\n', 'ok');
-
-    log('── First item FULL ──');
-    log(JSON.stringify(j.items[0], null, 2).slice(0,1800), 'ok');
-
-    log('\n── All items: category + location indicator ──');
-    j.items.forEach((it,i) => {
-      log(`${i+1}. ${it.category?.label||'?'}`, 'ok');
-      // Dump keys that might indicate location
-      const loc = {};
-      Object.keys(it).forEach(k=>{ if(/loc|equip|char|place|wallet|owner/i.test(k)) loc[k]=it[k]; });
-      if(Object.keys(loc).length) log('   ' + JSON.stringify(loc).slice(0,300));
-    });
-  } catch(e) { log('Error: '+e.message,'err'); }
+  for (const url of tests) {
+    log('\n🔍 ' + url.replace('https://msu.io/navigator/api',''));
+    try {
+      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+      const r = await fetch(proxyUrl);
+      log('   HTTP ' + r.status, r.ok?'ok':'err');
+      const text = await r.text();
+      if(r.ok && text.length < 2000) {
+        log('   ' + text.replace(/</g,'&lt;'), 'ok');
+      } else {
+        // search for crystal/flame
+        const hasCrystal = text.toLowerCase().includes('crystal');
+        const hasFlame = text.toLowerCase().includes('flame');
+        log('   len:'+text.length+' crystal:'+hasCrystal+' flame:'+hasFlame);
+        if(hasCrystal) {
+          const i = text.toLowerCase().indexOf('crystal');
+          log('   ' + text.slice(i-50,i+150).replace(/</g,'&lt;'), 'ok');
+        }
+      }
+    } catch(e) { log('   X '+e.message,'err'); }
+    await new Promise(r=>setTimeout(r,200));
+  }
   log('\nDone');
 }
 run();
