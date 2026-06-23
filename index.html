@@ -3060,16 +3060,28 @@ async function loadTeamNftCounts() {
       continue;
     }
 
+    const safeFetchJson = async (url) => {
+      for (let a=0; a<3; a++) {
+        try {
+          const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
+          const t = await r.text();
+          if (t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,500)); continue; }
+          return JSON.parse(t);
+        } catch(e) { await new Promise(rs=>setTimeout(rs,500)); }
+      }
+      return null;
+    };
     try {
       // Get FT items list (Exchange Currency only)
       let ftItems = [], ftPage = 1, ftTot = 0;
       do {
         const ftUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${ftPage}&paginationParam.pageSize=30`;
-        const ftR = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(ftUrl)}`);
-        const ftJ = await ftR.json();
+        const ftJ = await safeFetchJson(ftUrl);
+        if (!ftJ) break;
         ftTot = ftJ.paginationResult?.totalCount || 0;
         ftItems = ftItems.concat(ftJ.items || []);
         ftPage++;
+        await new Promise(rs=>setTimeout(rs,200));
       } while (ftItems.length < ftTot && ftPage <= 5);
       // Exchange Currency - separate Red Florin and Blue Florin
       const exchItems = ftItems.filter(it => it.category?.tier1?.label === 'Exchange Currency');
@@ -3087,12 +3099,12 @@ async function loadTeamNftCounts() {
       let allItems = [], page = 1, total = 0;
       do {
         const apiUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
-        const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
-        const r = await fetch(proxyUrl);
-        const j = await r.json();
+        const j = await safeFetchJson(apiUrl);
+        if (!j) break;
         total = j.paginationResult?.totalCount || 0;
         allItems = allItems.concat(j.items || []);
         page++;
+        await new Promise(rs=>setTimeout(rs,200));
       } while (allItems.length < total && page <= 5);
 
       // Classify NFT: in character vs in wallet
