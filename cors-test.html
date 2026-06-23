@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>FT detail v33</title>
+<html><head><meta charset="UTF-8"><title>Char images v40</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 FT Items Detail</h2>
+<body><h2>🔍 Character Images</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
@@ -11,21 +11,24 @@ const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
 async function run() {
-  const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
+  // characters-v2 endpoint seen earlier
+  const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/characters-v2?size=28`;
   try {
     const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
     const r = await fetch(proxyUrl);
     const j = await r.json();
-    log('totalCount: ' + (j.paginationResult?.totalCount), 'ok');
-    log('items: ' + (j.items?.length||0) + '\n', 'ok');
-
-    (j.items||[]).forEach((it,i) => {
-      const cat = it.category?.label || '?';
-      const name = it.ftItem?.name || it.item?.name || '?';
-      const amount = it.ftItem?.amount || it.ftItem?.quantity || it.amount || '?';
-      log(`${i+1}. [${cat}]`, 'ok');
-      log('   name: ' + name);
-      log('   FULL: ' + JSON.stringify(it).slice(0,500).replace(/</g,'&lt;'));
+    log('keys: ' + Object.keys(j).join(', '), 'ok');
+    const chars = j.characters || j.items || [];
+    log('count: ' + chars.length + '\n', 'ok');
+    if (chars[0]) {
+      log('── First character FULL ──');
+      log(JSON.stringify(chars[0], null, 2).slice(0,1200), 'ok');
+    }
+    log('\n── All char names + image ──');
+    chars.forEach((c,i) => {
+      const name = c.name || c.character?.name || c.nickname || '?';
+      const img = c.imageUrl || c.image || c.character?.imageUrl || '?';
+      log(`${i+1}. ${name} | img: ${img}`, 'ok');
     });
   } catch(e) { log('Error: '+e.message,'err'); }
   log('\nDone');
