@@ -687,6 +687,7 @@ Ví sếp, 0x5678...efgh
             <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần có rank Bronze+">Tuần MVP <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
+            <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Số NFT items đang giữ">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
 
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
@@ -1769,6 +1770,7 @@ async function loadTeamWallets() {
     renderTeam();
     // Load MVP points after balances (non-blocking)
     loadTeamMvpPoints().catch(()=>{});
+    loadTeamNftCounts().catch(()=>{});
   } catch(e) {
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
@@ -1797,7 +1799,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp','mvpweek'].forEach(c => {
+  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp','mvpweek','nft'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -1883,6 +1885,7 @@ function renderTeam() {
       if (teamSortCol==='mvp')       return w.mvpPoints ?? -1;
       if (teamSortCol==='tuanmvp')    return w.mvpBronzeWeeks ?? -1;
       if (teamSortCol==='mvpweek')    return w.mvpWeekValue ?? -1;
+      if (teamSortCol==='nft')        return w.nftCount ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
       if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
@@ -1936,6 +1939,7 @@ function renderTeam() {
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
+      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -1975,6 +1979,7 @@ function renderTeam() {
     <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="padding:10px 14px"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
+    <td style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
@@ -2988,6 +2993,32 @@ function renderFlowTable(rows) {
 // ── TEAM MVP + FLOW EXPAND ──
 
 // MVP points loaded directly inside loadTeamWallets
+
+async function loadTeamNftCounts() {
+  const wallets = teamWallets;
+  if (!wallets || !wallets.length) return;
+  window.teamWallets = teamWallets;
+  await Promise.all(wallets.map(async (w, idx) => {
+    try {
+      const apiUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/summary-v2`;
+      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
+      const r = await fetch(proxyUrl);
+      const j = await r.json();
+      const s = j.msuStatistics?.ownedSummary || {};
+      teamWallets[idx].nftCount  = s.totalNumNftItems ?? null;
+      teamWallets[idx].ftCount   = s.totalNumFtItems ?? null;
+      teamWallets[idx].charCount = s.totalNumCharacters ?? null;
+    } catch(e) {
+      teamWallets[idx].nftCount = null;
+    }
+    // Update cell
+    const el = document.getElementById('nft-' + w.address.slice(-8));
+    if (el) {
+      const n = teamWallets[idx].nftCount;
+      el.innerHTML = n!=null ? `<span style="color:#a78bfa;font-weight:600">${n}</span>` : '<span style="color:var(--muted2)">—</span>';
+    }
+  }));
+}
 
 function calcCurrentWeekMvp(rows) {
   // Get current MVP week key (this Thursday)
