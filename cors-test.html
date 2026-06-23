@@ -1,42 +1,55 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MSU Navigator Test</title>
+<html><head><meta charset="UTF-8"><title>MSU Items Parse</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 MSU Navigator NFT Count</h2>
+<body><h2>🔍 MSU Items Parse</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-// MSU has an open API - try known endpoints
-const tests = [
-  ['msu api items', `https://msu.io/api/navigator/owner/${addr}?tab=items&page=1`],
-  ['msu api v1', `https://api.msu.io/navigator/owner/${addr}/items`],
-  ['msu marketplace', `https://msu.io/marketplace/api/v1/wallet/${addr}/items`],
-  ['proxy navigator', `https://corsproxy.io/?url=${encodeURIComponent('https://msu.io/navigator/owner/'+addr+'?tab=items&page=1')}`],
-];
-
 async function run() {
-  log('Wallet: ' + addr + '\n');
-  for (const [name, url] of tests) {
-    log('\n🔍 ' + name);
-    try {
-      const r = await fetch(url, {headers:{'Accept':'application/json'}});
-      log('   HTTP ' + r.status, r.ok?'ok':'err');
-      const text = await r.text();
-      log('   Length: ' + text.length);
-      // Look for totalCount or item count
-      const tc = text.match(/"totalCount":\s*(\d+)/);
-      const ic = text.match(/"itemCount":\s*(\d+)/);
-      const items = text.match(/"items":\s*\[/);
-      if (tc) log('   ✓ totalCount: ' + tc[1], 'ok');
-      if (ic) log('   ✓ itemCount: ' + ic[1], 'ok');
-      if (items) log('   ✓ has items array', 'ok');
-      log('   Preview: ' + text.slice(0,250).replace(/</g,'&lt;'));
-    } catch(e) { log('   X ' + e.message, 'err'); }
-  }
+  // Try the actual API that navigator page calls
+  // MSU navigator likely uses a GraphQL or REST API
+  const apiTests = [
+    `https://msu.io/marketplace/api/marketplace/items?walletAddress=${addr}`,
+    `https://msu.io/api/items?owner=${addr}`,
+    `https://msu.io/navigator/api/owner/${addr}/items`,
+  ];
+
+  // First parse the HTML we already can get
+  const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://msu.io/navigator/owner/'+addr+'?tab=items&page=1')}`;
+  log('Fetching navigator HTML...\n');
+  try {
+    const r = await fetch(proxyUrl);
+    const html = await r.text();
+    log('HTML: ' + html.length + ' chars', 'ok');
+
+    // Search for count/total patterns
+    ['totalCount','itemCount','total','count','pageSize','totalElements'].forEach(key => {
+      const re = new RegExp('"'+key+'"\\s*:\\s*(\\d+)', 'g');
+      const matches = [...html.matchAll(re)];
+      if (matches.length) {
+        log(`\n${key}: ` + matches.map(m=>m[1]).slice(0,10).join(', '), 'ok');
+      }
+    });
+
+    // Look for API endpoints embedded in JS
+    log('\n── API endpoints in HTML ──');
+    const apiUrls = [...html.matchAll(/https?:\/\/[^"'\s]*api[^"'\s]*/g)].map(m=>m[0]);
+    const unique = [...new Set(apiUrls)].slice(0,15);
+    unique.forEach(u => log('  ' + u.replace(/</g,'&lt;')));
+
+    // Look for item token IDs (ERC721 tokenIds are long numbers)
+    log('\n── Token IDs found ──');
+    const tokenIds = [...html.matchAll(/"tokenId":\s*"?(\d{15,})"?/g)].map(m=>m[1]);
+    log('  Count: ' + tokenIds.length, 'ok');
+    if(tokenIds.length) log('  Sample: ' + tokenIds.slice(0,3).join(', '));
+
+  } catch(e) { log('Error: '+e.message, 'err'); }
+
   log('\nDone');
 }
 run();
