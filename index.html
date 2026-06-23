@@ -3300,7 +3300,19 @@ async function toggleFlowExpand(address) {
 
 }
 
-const expandTabCache = {};
+const expandTabCache = {}; window.expandTabCache = expandTabCache;
+
+async function retryItemsTab(address, type) {
+  const w = (window.teamWallets||[]).find(x=>x.address===address);
+  if (w) { if(type==='nft') w.nftItemsFull=null; else w.ftItemsFull=null; }
+  const key = address.slice(-8);
+  const cKey = type + '_' + address;
+  if (window.expandTabCache) delete window.expandTabCache[cKey];
+  const content = document.getElementById('flow-content-' + key);
+  if (content) content.innerHTML = '<div style="padding:12px;color:var(--muted2);font-size:11px">⏳ Đang tải lại...</div>';
+  const result = await renderItemsTab(address, type);
+  if (content) content.innerHTML = result;
+}
 
 function updateWalletItemColumns(w, type, items) {
   const key = w.address.slice(-8);
@@ -3341,18 +3353,24 @@ async function renderItemsTab(address, type) {
     // Fetch fresh with safe JSON parse + retry
     const reqType = type==='nft' ? 'RequestType_NftItem' : 'RequestType_FtItem';
     let all = [], page = 1, total = 0;
+    const proxies = [
+      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    ];
     const safeFetch = async (url) => {
-      for (let attempt=0; attempt<3; attempt++) {
+      for (let attempt=0; attempt<5; attempt++) {
+        const proxy = proxies[attempt % proxies.length];
         try {
-          const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
+          const r = await fetch(proxy(url));
           const text = await r.text();
-          if (text.trim().startsWith('<')) { // HTML error page
-            await new Promise(rs=>setTimeout(rs,500));
+          if (!text || text.trim().startsWith('<')) {
+            await new Promise(rs=>setTimeout(rs, 600 + attempt*300));
             continue;
           }
           return JSON.parse(text);
         } catch(e) {
-          await new Promise(rs=>setTimeout(rs,500));
+          await new Promise(rs=>setTimeout(rs, 600 + attempt*300));
         }
       }
       return null;
@@ -3372,7 +3390,7 @@ async function renderItemsTab(address, type) {
       return `<div style="color:var(--red);padding:12px;font-size:11px">Lỗi tải items: ${e.message}</div>`;
     }
     if (!items || !items.length) {
-      return '<div style="color:var(--amber);padding:12px;font-size:11px">Không tải được (proxy bận). Thử lại sau vài giây hoặc bấm 🎒 Tải NFT trước.</div>';
+      return `<div style="color:var(--amber);padding:12px;font-size:11px">⚠️ Proxy đang bận. <button onclick="retryItemsTab('${address}','${type}')" style="background:var(--accent);border:none;border-radius:6px;padding:4px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;margin-left:6px">🔄 Thử lại</button></div>`;
     }
     // Store back so the other tab + future opens reuse it
     if (w) {
