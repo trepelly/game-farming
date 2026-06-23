@@ -1,40 +1,30 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Crystal v31</title>
+<html><head><meta charset="UTF-8"><title>FT items v32</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 Power Crystal endpoint hunt</h2>
+<body><h2>🔍 FT Items Test</h2>
 <pre id="out">Testing...\n</pre>
 <script>
-const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
+const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-const base = 'https://msu.io/navigator/api/bcbackend';
-const tests = [
-  `${base}/power-crystal/balance/${addr}`,
-  `${base}/crystal/balance/${addr}`,
-  `${base}/next-crystal/balance/${addr}`,
-  `${base}/enhancement/balance/${addr}`,
-  `${base}/flame/balance/${addr}`,
-  `https://msu.io/navigator/api/navigator/inventory/${addr}/currencies-v2`,
-  `https://msu.io/navigator/api/navigator/inventory/${addr}/enhancement-v2`,
-  `https://msu.io/navigator/api/navigator/inventory/${addr}/currency`,
-  `https://msu.io/navigator/api/bcbackend/erc1155/balance/${addr}`,
-];
-
 async function run() {
-  for (const url of tests) {
-    log('\n🔍 ' + url.replace('https://msu.io/navigator/api',''));
-    try {
-      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-      const r = await fetch(proxyUrl);
-      log('   HTTP ' + r.status, r.ok?'ok':'err');
-      const text = await r.text();
-      if(r.ok) log('   ' + text.slice(0,400).replace(/</g,'&lt;'), 'ok');
-    } catch(e) { log('   X '+e.message,'err'); }
-    await new Promise(r=>setTimeout(r,250));
-  }
+  // FT items endpoint
+  const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
+  log('Fetching FT items...\n');
+  try {
+    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+    const r = await fetch(proxyUrl);
+    const j = await r.json();
+    log('totalCount: ' + (j.paginationResult?.totalCount), 'ok');
+    log('items: ' + (j.items?.length||0), 'ok');
+    if (j.items && j.items[0]) {
+      log('\n── First FT item ──');
+      log(JSON.stringify(j.items[0], null, 2).slice(0,1000), 'ok');
+    }
+  } catch(e) { log('Error: '+e.message,'err'); }
   log('\nDone');
 }
 run();
