@@ -3277,22 +3277,41 @@ async function renderItemsTab(address, type) {
   let items = type==='nft' ? w?.nftItemsFull : w?.ftItemsFull;
 
   if (!items || !items.length) {
-    // Fetch fresh
+    // Fetch fresh with safe JSON parse + retry
     const reqType = type==='nft' ? 'RequestType_NftItem' : 'RequestType_FtItem';
     let all = [], page = 1, total = 0;
+    const safeFetch = async (url) => {
+      for (let attempt=0; attempt<3; attempt++) {
+        try {
+          const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
+          const text = await r.text();
+          if (text.trim().startsWith('<')) { // HTML error page
+            await new Promise(rs=>setTimeout(rs,500));
+            continue;
+          }
+          return JSON.parse(text);
+        } catch(e) {
+          await new Promise(rs=>setTimeout(rs,500));
+        }
+      }
+      return null;
+    };
     try {
       do {
         const url = `https://msu.io/navigator/api/navigator/inventory/${address}/items?requestType=${reqType}&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
-        const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
-        const j = await r.json();
+        const j = await safeFetch(url);
+        if (!j) break;
         total = j.paginationResult?.totalCount || 0;
         all = all.concat(j.items || []);
         page++;
-        await new Promise(rs=>setTimeout(rs,150));
+        await new Promise(rs=>setTimeout(rs,300));
       } while (all.length < total && page <= 5);
       items = all;
     } catch(e) {
-      return `<div style="color:var(--red);padding:12px;font-size:11px">Lỗi tải items: ${e.message}. Bấm 🎒 Tải NFT trước.</div>`;
+      return `<div style="color:var(--red);padding:12px;font-size:11px">Lỗi tải items: ${e.message}</div>`;
+    }
+    if (!items || !items.length) {
+      return '<div style="color:var(--amber);padding:12px;font-size:11px">Không tải được (proxy bận). Thử lại sau vài giây hoặc bấm 🎒 Tải NFT trước.</div>';
     }
   }
 
