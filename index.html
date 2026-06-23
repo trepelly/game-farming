@@ -3289,6 +3289,16 @@ async function toggleFlowExpand(address) {
     return;
   }
 
+  // Close any other open expand row first (only 1 open at a time)
+  document.querySelectorAll('[id^="flow-expand-"]').forEach(r => {
+    if (r.id !== 'flow-expand-' + key && r.style.display !== 'none') {
+      r.style.display = 'none';
+      const otherKey = r.id.replace('flow-expand-', '');
+      const otherBtn = document.getElementById('flow-btn-' + otherKey);
+      if (otherBtn) otherBtn.textContent = '▼';
+    }
+  });
+
   row.style.display = '';
   if(btn) btn.textContent = '▲';
 
