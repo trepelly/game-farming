@@ -1,64 +1,60 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Maplen Parse Test</title>
+<html><head><meta charset="UTF-8"><title>Maplen RSC Deep</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 Maplen Parse Enhancement Currency</h2>
+<body><h2>🔍 Maplen RSC Deep Parse</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-const targetUrl = `https://maplen.gg/assets?address=${addr}`;
-const proxyUrl  = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://maplen.gg/assets?address='+addr)}`;
 
 async function run() {
-  log('Fetching ' + addr + ' ...\n');
   try {
     const r = await fetch(proxyUrl);
     const html = await r.text();
-    log('HTML length: ' + html.length, 'ok');
+    log('HTML length: ' + html.length + '\n', 'ok');
 
-    // Next.js apps embed data in __NEXT_DATA__ script or RSC payload
-    // Look for the JSON data
-    const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s);
-    if (nextDataMatch) {
-      log('\n✓ Found __NEXT_DATA__', 'ok');
-      try {
-        const data = JSON.parse(nextDataMatch[1]);
-        log(JSON.stringify(data, null, 2).slice(0, 2000), 'ok');
-      } catch(e) { log('Parse error: '+e.message, 'err'); }
-    } else {
-      log('\n✗ No __NEXT_DATA__ (app router RSC)', 'err');
-    }
+    // The value appears AFTER the image label in a sibling span
+    // Pattern: power_crystal.png ... "children":[label, VALUE]
+    // Find "Power Crystal" then look for the next "children":"NUMBER" or text value
 
-    // Search for currency values - look for patterns like "Power Crystal" followed by numbers
-    log('\n── Searching currency values ──');
-    const currencies = ['Power Crystal', 'Powerful Flame Points', 'Eternal Flame Points', 'Black Flame Points', 'NXPC', 'NESO'];
-    currencies.forEach(cur => {
-      const idx = html.indexOf(cur);
-      if (idx !== -1) {
-        // Look for numbers in nearby text (within 500 chars after)
-        const chunk = html.slice(idx, idx+800);
-        // Find number patterns
-        const nums = chunk.match(/[\d,]+\.?\d*/g);
-        log(`\n${cur}:`, 'ok');
-        log('  nearby nums: ' + (nums ? nums.slice(0,5).join(', ') : 'none'));
-      }
+    const currencies = [
+      ['Power Crystal', 'power_crystal'],
+      ['Powerful Flame Points', 'powerful_flame'],
+      ['Eternal Flame Points', 'eternal_flame'],
+      ['Black Flame Points', 'black_flame'],
+    ];
+
+    currencies.forEach(([name, imgKey]) => {
+      // Find the image reference
+      const imgIdx = html.indexOf(imgKey);
+      if (imgIdx === -1) { log(`${name}: img not found`, 'err'); return; }
+
+      // After the image, the value is usually in next 1000 chars
+      const chunk = html.slice(imgIdx, imgIdx + 1500);
+      // Look for "children":"123,456.789" or "children":["123,456"]
+      const valMatches = chunk.match(/"children":\[?"?([\d,]+\.?\d*)"?\]?/g);
+      log(`\n${name}:`, 'ok');
+      log('  matches: ' + (valMatches ? valMatches.slice(0,8).join(' | ') : 'none'));
+
+      // Also try: find decimal numbers (currency format) in chunk
+      const decimals = chunk.match(/[\d]{1,3}(?:,\d{3})*(?:\.\d+)?/g);
+      const bigNums = decimals ? decimals.filter(n => {
+        const v = parseFloat(n.replace(/,/g,''));
+        return v > 10; // skip small numbers like sizes
+      }) : [];
+      log('  big nums: ' + bigNums.slice(0,6).join(', '), 'ok');
     });
 
-    // Look for RSC streaming data (self.__next_f)
-    log('\n── RSC payload search ──');
-    const rscMatches = html.match(/self\.__next_f\.push\(\[1,"(.*?)"\]\)/gs);
-    if (rscMatches) {
-      log('Found ' + rscMatches.length + ' RSC chunks', 'ok');
-      // Search chunks for crystal value
-      const allRsc = rscMatches.join('');
-      const crystalIdx = allRsc.indexOf('crystal');
-      if (crystalIdx !== -1) {
-        log('Crystal in RSC: ' + allRsc.slice(crystalIdx-50, crystalIdx+200).replace(/</g,'&lt;'), 'ok');
-      }
+    // Dump a clean chunk around Power Crystal value
+    log('\n── Raw chunk after power_crystal.png ──');
+    const pcIdx = html.indexOf('power_crystal.png');
+    if (pcIdx !== -1) {
+      log(html.slice(pcIdx, pcIdx+600).replace(/</g,'&lt;').replace(/\\"/g,'"'));
     }
 
   } catch(e) { log('Error: '+e.message, 'err'); }
