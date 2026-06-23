@@ -1,59 +1,47 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MSU Items Location</title>
+<html><head><meta charset="UTF-8"><title>MSU Items Location v4</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 MSU Items by Location</h2>
+<body><h2>🔍 MSU Items Location v4 (with delay)</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
 async function fetchItems(location) {
   const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=${location}&paginationParam.pageNo=1&paginationParam.pageSize=100`;
   const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
   const r = await fetch(proxyUrl);
-  return await r.json();
+  const text = await r.text();
+  try { return JSON.parse(text); } catch(e){ log('   parse fail: '+text.slice(0,100),'err'); return null; }
 }
 
 async function run() {
-  // Try different location values
-  const locations = ['Location_All', 'Location_Wallet', 'Location_Character', 'Location_Inventory'];
-  for (const loc of locations) {
-    log('\n🔍 location=' + loc);
-    try {
-      const j = await fetchItems(loc);
-      const count = j.paginationResult?.totalCount ?? '?';
-      log('   totalCount: ' + count, 'ok');
-      // Show item location field if exists
-      if (j.items && j.items[0]) {
-        const item = j.items[0];
-        log('   item keys: ' + Object.keys(item).join(', '));
-        // Look for location-related field
-        ['location','place','equipped','characterName','inWallet'].forEach(k => {
-          if (item[k] !== undefined) log('   item.'+k+' = '+JSON.stringify(item[k]), 'ok');
-        });
-        // Show full first item structure (location related)
-        log('   item.tokenInfo: ' + JSON.stringify(item.tokenInfo||{}).slice(0,200));
-      }
-    } catch(e) { log('   X ' + e.message, 'err'); }
+  // Just dump ALL items with full structure first
+  log('Fetching Location_All items...\n');
+  const j = await fetchItems('Location_All');
+  if (!j) { log('Failed','err'); return; }
+
+  log('totalCount: ' + (j.paginationResult?.totalCount ?? '?'), 'ok');
+  log('items length: ' + (j.items?.length||0), 'ok');
+
+  if (j.items && j.items[0]) {
+    log('\n── First item FULL structure ──');
+    log(JSON.stringify(j.items[0], null, 2).slice(0, 1500), 'ok');
   }
 
-  // Also dump full items list to find location grouping
-  log('\n── Full Location_All items ──');
-  try {
-    const j = await fetchItems('Location_All');
-    (j.items||[]).forEach((it,i) => {
-      const cat = it.category?.label || '?';
-      // find any field that indicates location
-      const locFields = {};
-      Object.keys(it).forEach(k => {
-        if(/loc|place|equip|char|wallet/i.test(k)) locFields[k]=it[k];
-      });
-      log(`  ${i+1}. ${cat} | ${JSON.stringify(locFields)}`, 'ok');
-    });
-  } catch(e) { log('Error: '+e.message,'err'); }
+  // List all items with their category + any location/equipped info
+  log('\n── All items summary ──');
+  (j.items||[]).forEach((it,i) => {
+    const cat = it.category?.label || '?';
+    const name = it.item?.name || it.nftItem?.name || '?';
+    log(`${i+1}. [${cat}] ${name}`, 'ok');
+    // Dump all top-level keys to find location indicator
+    log('   keys: ' + Object.keys(it).join(', '));
+  });
 
   log('\nDone');
 }
