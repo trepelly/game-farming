@@ -3298,34 +3298,52 @@ async function renderItemsTab(address, type) {
 
   if (!items.length) return '<div style="padding:12px;color:var(--muted2);font-size:11px">Không có items</div>';
 
-  // Group by category tier1
+  // Group: NFT by character/wallet, FT by category
   const groups = {};
+  const order = [];
   items.forEach(it => {
-    const g = it.category?.tier1?.label || 'Khác';
-    if (!groups[g]) groups[g] = [];
+    const obj = type==='nft' ? it.nftItem : it.ftItem;
+    let g;
+    if (type==='nft') {
+      g = obj?.ownedCharacter ? ('👤 ' + obj.ownedCharacter) : '🎒 Trên ví';
+    } else {
+      g = it.category?.tier1?.label || 'Khác';
+    }
+    if (!groups[g]) { groups[g] = []; order.push(g); }
     groups[g].push(it);
   });
 
+  // Sort: "Trên ví" first, then characters alphabetically (for NFT)
+  let sortedKeys;
+  if (type==='nft') {
+    sortedKeys = order.sort((a,b) => {
+      if (a.includes('Trên ví')) return -1;
+      if (b.includes('Trên ví')) return 1;
+      return a.localeCompare(b);
+    });
+  } else {
+    sortedKeys = order.sort();
+  }
+
   let h = '<div style="padding:8px 4px">';
-  Object.keys(groups).sort().forEach(g => {
-    h += `<div style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">${g} (${groups[g].length})</div>
+  sortedKeys.forEach(g => {
+    const accent = g.includes('Trên ví') ? '#a78bfa' : 'var(--accent)';
+    h += `<div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:${accent};margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border2)">${g} <span style="color:var(--muted2);font-weight:400;font-size:10px">(${groups[g].length} items)</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">`;
     groups[g].forEach(it => {
       const obj = type==='nft' ? it.nftItem : it.ftItem;
       const name = obj?.name || '?';
       const img  = obj?.imageUrl || '';
-      const char = obj?.ownedCharacter;
+      const cat  = it.category?.tier3?.label || it.category?.tier1?.label || '';
       const qty  = type==='ft' ? ((obj?.ownedOnchainQuantity||0)+(obj?.ownedOffchainQuantity||0)) : null;
       const sf   = obj?.starforce;
       h += `<div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;min-width:180px">
-        ${img?`<img src="${img}" style="width:32px;height:32px;border-radius:6px;object-fit:contain;background:var(--bg)" onerror="this.style.display='none'"/>`:''}
+        ${img?`<img src="${img}" style="width:34px;height:34px;border-radius:6px;object-fit:contain;background:var(--bg)" onerror="this.style.display='none'"/>`:''}
         <div style="flex:1;min-width:0">
           <div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
           <div style="font-size:9px;color:var(--muted2)">
-            ${qty!=null?`SL: <b style="color:#06b6d4">${qty.toLocaleString('vi-VN')}</b>`:''}
-            ${sf?`⭐${sf} `:''}
-            ${char?`👤 ${char}`:(type==='nft'?'🎒 trên ví':'')}
+            ${cat?cat+' ':''}${sf?`· ⭐${sf}`:''}${qty!=null?`· <b style="color:#06b6d4">SL ${qty.toLocaleString('vi-VN')}</b>`:''}
           </div>
         </div>
       </div>`;
