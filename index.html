@@ -687,7 +687,7 @@ Ví sếp, 0x5678...efgh
             <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần có rank Bronze+">Tuần MVP <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
-            <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Số NFT items đang giữ">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
+            <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="NFT items (ví / nhân vật)">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
 
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
@@ -1939,7 +1939,7 @@ function renderTeam() {
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
-      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
+      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span><div style="font-size:9px;color:var(--muted2)">${w.nftInWallet||0} ví · ${w.nftInCharacter||0} char</div>`:'<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -2998,26 +2998,42 @@ async function loadTeamNftCounts() {
   const wallets = teamWallets;
   if (!wallets || !wallets.length) return;
   window.teamWallets = teamWallets;
-  await Promise.all(wallets.map(async (w, idx) => {
+  // Sequential to avoid proxy rate limit
+  for (let idx = 0; idx < wallets.length; idx++) {
+    const w = wallets[idx];
     try {
-      const apiUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/summary-v2`;
-      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
-      const r = await fetch(proxyUrl);
-      const j = await r.json();
-      const s = j.msuStatistics?.ownedSummary || {};
-      teamWallets[idx].nftCount  = s.totalNumNftItems ?? null;
-      teamWallets[idx].ftCount   = s.totalNumFtItems ?? null;
-      teamWallets[idx].charCount = s.totalNumCharacters ?? null;
+      // Get items list (max 30/page, paginate if needed)
+      let allItems = [], page = 1, total = 0;
+      do {
+        const apiUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
+        const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
+        const r = await fetch(proxyUrl);
+        const j = await r.json();
+        total = j.paginationResult?.totalCount || 0;
+        allItems = allItems.concat(j.items || []);
+        page++;
+      } while (allItems.length < total && page <= 5);
+
+      // Classify: in character (has ownedCharacter) vs in wallet (no ownedCharacter)
+      const inChar = allItems.filter(it => it.nftItem?.ownedCharacter).length;
+      const inWallet = allItems.length - inChar;
+
+      teamWallets[idx].nftCount       = allItems.length;
+      teamWallets[idx].nftInWallet    = inWallet;
+      teamWallets[idx].nftInCharacter = inChar;
     } catch(e) {
       teamWallets[idx].nftCount = null;
     }
-    // Update cell
-    const el = document.getElementById('nft-' + w.address.slice(-8));
-    if (el) {
+    // Update cells
+    const elAll = document.getElementById('nft-' + w.address.slice(-8));
+    if (elAll) {
       const n = teamWallets[idx].nftCount;
-      el.innerHTML = n!=null ? `<span style="color:#a78bfa;font-weight:600">${n}</span>` : '<span style="color:var(--muted2)">—</span>';
+      elAll.innerHTML = n!=null
+        ? `<span style="color:#a78bfa;font-weight:600">${n}</span><div style="font-size:9px;color:var(--muted2)">${teamWallets[idx].nftInWallet} ví · ${teamWallets[idx].nftInCharacter} char</div>`
+        : '<span style="color:var(--muted2)">—</span>';
     }
-  }));
+    await new Promise(r=>setTimeout(r,150)); // throttle
+  }
 }
 
 function calcCurrentWeekMvp(rows) {
