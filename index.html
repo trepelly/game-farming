@@ -3313,6 +3313,11 @@ async function renderItemsTab(address, type) {
     if (!items || !items.length) {
       return '<div style="color:var(--amber);padding:12px;font-size:11px">Không tải được (proxy bận). Thử lại sau vài giây hoặc bấm 🎒 Tải NFT trước.</div>';
     }
+    // Store back so the other tab + future opens reuse it
+    if (w) {
+      if (type==='nft') w.nftItemsFull = items;
+      else w.ftItemsFull = items;
+    }
   }
 
   if (!items.length) return '<div style="padding:12px;color:var(--muted2);font-size:11px">Không có items</div>';
