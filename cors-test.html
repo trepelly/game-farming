@@ -1,63 +1,42 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Maplen RSC Deep</title>
+<html><head><meta charset="UTF-8"><title>MSU Navigator Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 Maplen RSC Deep Parse</h2>
+<body><h2>🔍 MSU Navigator NFT Count</h2>
 <pre id="out">Testing...\n</pre>
 <script>
-const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
+const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://maplen.gg/assets?address='+addr)}`;
+// MSU has an open API - try known endpoints
+const tests = [
+  ['msu api items', `https://msu.io/api/navigator/owner/${addr}?tab=items&page=1`],
+  ['msu api v1', `https://api.msu.io/navigator/owner/${addr}/items`],
+  ['msu marketplace', `https://msu.io/marketplace/api/v1/wallet/${addr}/items`],
+  ['proxy navigator', `https://corsproxy.io/?url=${encodeURIComponent('https://msu.io/navigator/owner/'+addr+'?tab=items&page=1')}`],
+];
 
 async function run() {
-  try {
-    const r = await fetch(proxyUrl);
-    const html = await r.text();
-    log('HTML length: ' + html.length + '\n', 'ok');
-
-    // The value appears AFTER the image label in a sibling span
-    // Pattern: power_crystal.png ... "children":[label, VALUE]
-    // Find "Power Crystal" then look for the next "children":"NUMBER" or text value
-
-    const currencies = [
-      ['Power Crystal', 'power_crystal'],
-      ['Powerful Flame Points', 'powerful_flame'],
-      ['Eternal Flame Points', 'eternal_flame'],
-      ['Black Flame Points', 'black_flame'],
-    ];
-
-    currencies.forEach(([name, imgKey]) => {
-      // Find the image reference
-      const imgIdx = html.indexOf(imgKey);
-      if (imgIdx === -1) { log(`${name}: img not found`, 'err'); return; }
-
-      // After the image, the value is usually in next 1000 chars
-      const chunk = html.slice(imgIdx, imgIdx + 1500);
-      // Look for "children":"123,456.789" or "children":["123,456"]
-      const valMatches = chunk.match(/"children":\[?"?([\d,]+\.?\d*)"?\]?/g);
-      log(`\n${name}:`, 'ok');
-      log('  matches: ' + (valMatches ? valMatches.slice(0,8).join(' | ') : 'none'));
-
-      // Also try: find decimal numbers (currency format) in chunk
-      const decimals = chunk.match(/[\d]{1,3}(?:,\d{3})*(?:\.\d+)?/g);
-      const bigNums = decimals ? decimals.filter(n => {
-        const v = parseFloat(n.replace(/,/g,''));
-        return v > 10; // skip small numbers like sizes
-      }) : [];
-      log('  big nums: ' + bigNums.slice(0,6).join(', '), 'ok');
-    });
-
-    // Dump a clean chunk around Power Crystal value
-    log('\n── Raw chunk after power_crystal.png ──');
-    const pcIdx = html.indexOf('power_crystal.png');
-    if (pcIdx !== -1) {
-      log(html.slice(pcIdx, pcIdx+600).replace(/</g,'&lt;').replace(/\\"/g,'"'));
-    }
-
-  } catch(e) { log('Error: '+e.message, 'err'); }
+  log('Wallet: ' + addr + '\n');
+  for (const [name, url] of tests) {
+    log('\n🔍 ' + name);
+    try {
+      const r = await fetch(url, {headers:{'Accept':'application/json'}});
+      log('   HTTP ' + r.status, r.ok?'ok':'err');
+      const text = await r.text();
+      log('   Length: ' + text.length);
+      // Look for totalCount or item count
+      const tc = text.match(/"totalCount":\s*(\d+)/);
+      const ic = text.match(/"itemCount":\s*(\d+)/);
+      const items = text.match(/"items":\s*\[/);
+      if (tc) log('   ✓ totalCount: ' + tc[1], 'ok');
+      if (ic) log('   ✓ itemCount: ' + ic[1], 'ok');
+      if (items) log('   ✓ has items array', 'ok');
+      log('   Preview: ' + text.slice(0,250).replace(/</g,'&lt;'));
+    } catch(e) { log('   X ' + e.message, 'err'); }
+  }
   log('\nDone');
 }
 run();
