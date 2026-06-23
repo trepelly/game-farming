@@ -3325,16 +3325,27 @@ async function renderItemsTab(address, type) {
     sortedKeys = order.sort();
   }
 
+  // Count characters (groups that are not "Trên ví")
+  const charCount = sortedKeys.filter(g => !g.includes('Trên ví')).length;
+  const walletCount = groups['🎒 Trên ví'] ? groups['🎒 Trên ví'].length : 0;
+
   let h = '<div style="padding:8px 4px">';
+  // Info note
+  if (type==='nft') {
+    h += `<div style="font-size:11px;color:var(--muted2);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border2)">
+      📊 Tổng <b style="color:var(--text)">${items.length}</b> NFT items · <b style="color:#a78bfa">${walletCount}</b> trên ví · <b style="color:var(--accent)">${charCount}</b> nhân vật đang trang bị
+    </div>`;
+  }
+  // Horizontal columns layout
+  h += '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px">';
   sortedKeys.forEach(g => {
     const accent = g.includes('Trên ví') ? '#a78bfa' : 'var(--accent)';
-    // Extract character name for copy (remove emoji prefix)
     const charName = g.replace(/^[👤🎒]\s*/, '');
     const copyBtn = !g.includes('Trên ví')
       ? `<span onclick="navigator.clipboard.writeText('${charName}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)" style="cursor:pointer;font-size:11px;color:var(--muted2);margin-left:6px;user-select:none" title="Copy tên nhân vật">⎘</span>`
       : '';
-    h += `<div style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:${accent};margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border2)">${g} <span style="color:var(--muted2);font-weight:400;font-size:10px">(${groups[g].length} items)</span>${copyBtn}</div>
+    h += `<div style="flex:0 0 240px;min-width:240px">
+      <div style="font-size:12px;font-weight:700;color:${accent};margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid ${accent}33;position:sticky;top:0;background:var(--bg)">${g} <span style="color:var(--muted2);font-weight:400;font-size:10px">(${groups[g].length})</span>${copyBtn}</div>
       <div style="display:flex;flex-direction:column;gap:4px">`;
     groups[g].forEach(it => {
       const obj = type==='nft' ? it.nftItem : it.ftItem;
@@ -3343,19 +3354,17 @@ async function renderItemsTab(address, type) {
       const cat  = it.category?.tier3?.label || it.category?.tier1?.label || '';
       const qty  = type==='ft' ? ((obj?.ownedOnchainQuantity||0)+(obj?.ownedOffchainQuantity||0)) : null;
       const sf   = obj?.starforce;
-      h += `<div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
-        ${img?`<img src="${img}" style="width:32px;height:32px;border-radius:6px;object-fit:contain;background:var(--bg);flex-shrink:0" onerror="this.style.display='none'"/>`:''}
+      h += `<div style="display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 10px">
+        ${img?`<img src="${img}" style="width:30px;height:30px;border-radius:6px;object-fit:contain;background:var(--bg);flex-shrink:0" onerror="this.style.display='none'"/>`:''}
         <div style="flex:1;min-width:0">
-          <span style="font-size:12px;font-weight:600;color:var(--text)">${name}</span>
-        </div>
-        <div style="font-size:10px;color:var(--muted2);text-align:right;flex-shrink:0">
-          ${cat?`<span>${cat}</span>`:''}${sf?` <span style="color:var(--amber)">⭐${sf}</span>`:''}${qty!=null?` <b style="color:#06b6d4">SL ${qty.toLocaleString('vi-VN')}</b>`:''}
+          <div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+          <div style="font-size:9px;color:var(--muted2)">${cat?cat:''}${sf?` ⭐${sf}`:''}${qty!=null?` <b style="color:#06b6d4">SL ${qty.toLocaleString('vi-VN')}</b>`:''}</div>
         </div>
       </div>`;
     });
     h += '</div></div>';
   });
-  h += '</div>';
+  h += '</div></div>';
   return h;
 }
 
