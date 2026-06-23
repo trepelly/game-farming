@@ -1,51 +1,60 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MSU Items API</title>
+<html><head><meta charset="UTF-8"><title>MSU Items Location</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 MSU Items API Test</h2>
+<body><h2>🔍 MSU Items by Location</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-const itemsUrl   = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
-const summaryUrl = `https://msu.io/navigator/api/navigator/inventory/${addr}/summary-v2`;
-
-async function tryFetch(label, url, direct) {
-  log('\n🔍 ' + label + (direct?' (direct)':' (proxy)'));
-  const fetchUrl = direct ? url : `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-  try {
-    const r = await fetch(fetchUrl);
-    log('   HTTP ' + r.status, r.ok?'ok':'err');
-    const text = await r.text();
-    log('   Length: ' + text.length);
-    try {
-      const j = JSON.parse(text);
-      // totalCount
-      const findCount = (o, path='') => {
-        if(typeof o!=='object'||!o) return;
-        for(const k in o) {
-          if(/count|total|size/i.test(k) && typeof o[k]==='number') log('   ✓ '+path+k+' = '+o[k], 'ok');
-          if(typeof o[k]==='object') findCount(o[k], path+k+'.');
-        }
-      };
-      findCount(j);
-      log('   JSON keys: ' + Object.keys(j).join(', '), 'ok');
-      log('   Preview: ' + JSON.stringify(j).slice(0,400));
-    } catch(e) {
-      log('   Not JSON: ' + text.slice(0,150).replace(/</g,'&lt;'));
-    }
-  } catch(e) { log('   X ' + e.message, 'err'); }
+async function fetchItems(location) {
+  const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=${location}&paginationParam.pageNo=1&paginationParam.pageSize=100`;
+  const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+  const r = await fetch(proxyUrl);
+  return await r.json();
 }
 
 async function run() {
-  log('Wallet: ' + addr);
-  await tryFetch('Items DIRECT', itemsUrl, true);
-  await tryFetch('Items PROXY', itemsUrl, false);
-  await tryFetch('Summary DIRECT', summaryUrl, true);
-  await tryFetch('Summary PROXY', summaryUrl, false);
+  // Try different location values
+  const locations = ['Location_All', 'Location_Wallet', 'Location_Character', 'Location_Inventory'];
+  for (const loc of locations) {
+    log('\n🔍 location=' + loc);
+    try {
+      const j = await fetchItems(loc);
+      const count = j.paginationResult?.totalCount ?? '?';
+      log('   totalCount: ' + count, 'ok');
+      // Show item location field if exists
+      if (j.items && j.items[0]) {
+        const item = j.items[0];
+        log('   item keys: ' + Object.keys(item).join(', '));
+        // Look for location-related field
+        ['location','place','equipped','characterName','inWallet'].forEach(k => {
+          if (item[k] !== undefined) log('   item.'+k+' = '+JSON.stringify(item[k]), 'ok');
+        });
+        // Show full first item structure (location related)
+        log('   item.tokenInfo: ' + JSON.stringify(item.tokenInfo||{}).slice(0,200));
+      }
+    } catch(e) { log('   X ' + e.message, 'err'); }
+  }
+
+  // Also dump full items list to find location grouping
+  log('\n── Full Location_All items ──');
+  try {
+    const j = await fetchItems('Location_All');
+    (j.items||[]).forEach((it,i) => {
+      const cat = it.category?.label || '?';
+      // find any field that indicates location
+      const locFields = {};
+      Object.keys(it).forEach(k => {
+        if(/loc|place|equip|char|wallet/i.test(k)) locFields[k]=it[k];
+      });
+      log(`  ${i+1}. ${cat} | ${JSON.stringify(locFields)}`, 'ok');
+    });
+  } catch(e) { log('Error: '+e.message,'err'); }
+
   log('\nDone');
 }
 run();
