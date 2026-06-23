@@ -1,27 +1,36 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MSU v11</title>
+<html><head><meta charset="UTF-8"><title>MSU v12</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 MSU Items v11</h2>
+<body><h2>🔍 MSU Items v12</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-const apiUrl = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=100`;
+const apiUrl = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
 
 async function run() {
-  log('Fetching items (raw text dump)...\n');
   const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
   try {
     const r = await fetch(proxyUrl);
-    log('HTTP ' + r.status, r.ok?'ok':'err');
-    const text = await r.text();
-    log('Length: ' + text.length, 'ok');
-    log('\n── RAW RESPONSE ──');
-    log(text.slice(0, 3000).replace(/</g,'&lt;'));
+    const j = await r.json();
+    log('totalCount: ' + (j.paginationResult?.totalCount), 'ok');
+    log('items: ' + j.items.length + '\n', 'ok');
+
+    log('── First item FULL ──');
+    log(JSON.stringify(j.items[0], null, 2).slice(0,1800), 'ok');
+
+    log('\n── All items: category + location indicator ──');
+    j.items.forEach((it,i) => {
+      log(`${i+1}. ${it.category?.label||'?'}`, 'ok');
+      // Dump keys that might indicate location
+      const loc = {};
+      Object.keys(it).forEach(k=>{ if(/loc|equip|char|place|wallet|owner/i.test(k)) loc[k]=it[k]; });
+      if(Object.keys(loc).length) log('   ' + JSON.stringify(loc).slice(0,300));
+    });
   } catch(e) { log('Error: '+e.message,'err'); }
   log('\nDone');
 }
