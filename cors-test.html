@@ -1,50 +1,67 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Maplen Proxy Test</title>
+<html><head><meta charset="UTF-8"><title>Maplen Extract Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 Maplen.gg via Proxy Test</h2>
+<body><h2>🔍 Maplen Extract Power Crystal</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-const targetUrl = `https://maplen.gg/assets?address=${addr}&tab=items`;
-
-const proxies = [
-  ['allorigins', `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`],
-  ['corsproxy.io', `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`],
-  ['codetabs', `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`],
-];
-
-// Also try maplen API endpoints via proxy
-const apiUrl = `https://maplen.gg/api/assets/${addr}`;
-const apiProxies = [
-  ['allorigins-api', `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`],
-];
+const targetUrl = `https://maplen.gg/assets?address=${addr}`;
+const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
 
 async function run() {
-  log('Target: ' + targetUrl + '\n');
-  for (const [name, url] of [...proxies, ...apiProxies]) {
-    log('\n🔍 ' + name);
-    try {
-      const r = await fetch(url);
-      log('   HTTP ' + r.status, r.ok?'ok':'err');
-      const text = await r.text();
-      // Look for Power Crystal in the HTML/JSON
-      const hasCrystal = text.includes('Power Crystal') || text.includes('crystal');
-      const hasFlame = text.includes('Flame Points') || text.includes('flame');
-      log('   Length: ' + text.length + ' | Crystal: ' + hasCrystal + ' | Flame: ' + hasFlame, hasCrystal?'ok':'');
-      // Try to extract numbers near "Power Crystal"
-      if (hasCrystal) {
-        const idx = text.indexOf('Power Crystal');
-        log('   Context: ' + text.slice(idx, idx+200).replace(/</g,'&lt;'), 'ok');
+  log('Fetching ' + addr + ' via corsproxy.io...\n');
+  try {
+    const r = await fetch(proxyUrl);
+    const html = await r.text();
+    log('HTML length: ' + html.length, 'ok');
+
+    // 1. Try __NEXT_DATA__
+    const nextMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>(.*?)<\/script>/s);
+    if (nextMatch) {
+      log('\n✓ Found __NEXT_DATA__', 'ok');
+      try {
+        const data = JSON.parse(nextMatch[1]);
+        log('Keys: ' + JSON.stringify(Object.keys(data)));
+        log('Preview: ' + JSON.stringify(data).slice(0,500), 'ok');
+      } catch(e) { log('Parse error: '+e.message, 'err'); }
+    } else {
+      log('\n✗ No __NEXT_DATA__ (newer Next.js uses streaming)', 'err');
+    }
+
+    // 2. Look for self.__next_f push data (Next.js 13+ streaming)
+    const fPushes = html.match(/self\.__next_f\.push\(\[1,"(.*?)"\]\)/gs);
+    if (fPushes) {
+      log('\n✓ Found ' + fPushes.length + ' __next_f pushes', 'ok');
+    }
+
+    // 3. Search for Power Crystal value patterns
+    log('\n🔍 Searching for currency values...');
+    ['Power Crystal','Powerful Flame','Eternal Flame','Black Flame'].forEach(name => {
+      const idx = html.indexOf(name);
+      if (idx !== -1) {
+        // Look for numbers near this name (within 500 chars)
+        const ctx = html.slice(Math.max(0,idx-100), idx+400);
+        const nums = ctx.match(/[\d,]+\.?\d*/g);
+        log(`  ${name}: nearby nums = ${nums ? nums.slice(0,8).join(', ') : 'none'}`, 'ok');
       }
-      // Show first 300 chars
-      log('   Preview: ' + text.slice(0,300).replace(/</g,'&lt;'));
-    } catch(e) { log('   X ' + e.message, 'err'); }
-  }
+    });
+
+    // 4. Look for NESO/NXPC balance pattern
+    log('\n🔍 NESO/NXPC:');
+    ['NESO','NXPC','Nesolet'].forEach(name => {
+      const idx = html.indexOf('"'+name+'"');
+      if (idx !== -1) {
+        const ctx = html.slice(idx, idx+200);
+        log(`  ${name}: ${ctx.replace(/</g,'&lt;').slice(0,150)}`, 'ok');
+      }
+    });
+
+  } catch(e) { log('Error: '+e.message, 'err'); }
   log('\nDone');
 }
 run();
