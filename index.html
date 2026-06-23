@@ -3067,14 +3067,25 @@ async function loadTeamNftCounts() {
       continue;
     }
 
+    const _proxies = [
+      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `https://api.codetabs.com/v1/proxy?quest=${u}`,
+      u => `https://thingproxy.freeboard.io/fetch/${u}`,
+      u => `https://proxy.cors.sh/${u}`,
+    ];
     const safeFetchJson = async (url) => {
-      for (let a=0; a<3; a++) {
-        try {
-          const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(url)}`);
-          const t = await r.text();
-          if (t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,500)); continue; }
-          return JSON.parse(t);
-        } catch(e) { await new Promise(rs=>setTimeout(rs,500)); }
+      for (let round=0; round<2; round++) {
+        for (let pi=0; pi<_proxies.length; pi++) {
+          try {
+            const r = await fetch(_proxies[pi](url));
+            if (!r.ok) { await new Promise(rs=>setTimeout(rs,300)); continue; }
+            const t = await r.text();
+            if (!t || t.trim().startsWith('<') || t.trim().startsWith('Error')) { await new Promise(rs=>setTimeout(rs,300)); continue; }
+            return JSON.parse(t);
+          } catch(e) { await new Promise(rs=>setTimeout(rs,300)); }
+        }
+        await new Promise(rs=>setTimeout(rs,800));
       }
       return null;
     };
@@ -3366,22 +3377,30 @@ async function renderItemsTab(address, type) {
     const proxies = [
       u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
       u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `https://api.codetabs.com/v1/proxy?quest=${u}`,
       u => `https://thingproxy.freeboard.io/fetch/${u}`,
+      u => `https://proxy.cors.sh/${u}`,
     ];
     const safeFetch = async (url) => {
-      for (let attempt=0; attempt<5; attempt++) {
-        const proxy = proxies[attempt % proxies.length];
-        try {
-          const r = await fetch(proxy(url));
-          const text = await r.text();
-          if (!text || text.trim().startsWith('<')) {
-            await new Promise(rs=>setTimeout(rs, 600 + attempt*300));
-            continue;
+      // Try each proxy in order, 2 rounds = up to 10 attempts
+      for (let round=0; round<2; round++) {
+        for (let pi=0; pi<proxies.length; pi++) {
+          try {
+            const r = await fetch(proxies[pi](url));
+            if (!r.ok) { await new Promise(rs=>setTimeout(rs,300)); continue; }
+            const text = await r.text();
+            if (!text || text.trim().startsWith('<') || text.trim().startsWith('Error')) {
+              await new Promise(rs=>setTimeout(rs,300));
+              continue;
+            }
+            const j = JSON.parse(text);
+            if (j && (j.items !== undefined || j.paginationResult || j.characters)) return j;
+            return j;
+          } catch(e) {
+            await new Promise(rs=>setTimeout(rs,300));
           }
-          return JSON.parse(text);
-        } catch(e) {
-          await new Promise(rs=>setTimeout(rs, 600 + attempt*300));
         }
+        await new Promise(rs=>setTimeout(rs, 800));
       }
       return null;
     };
