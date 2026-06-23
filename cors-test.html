@@ -1,68 +1,50 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>NFT Items Test</title>
+<html><head><meta charset="UTF-8"><title>Maplen Proxy Test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
-pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-all}
+pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 NFT Items Test</h2>
+<body><h2>🔍 Maplen.gg via Proxy Test</h2>
 <pre id="out">Testing...\n</pre>
 <script>
-const addr = '0xD3eb24B3231171615C94905c5066b78AA6a42829';
-const RPC  = 'https://henesys-rpc.msu.io';
+const addr = '0x015D115aEe484b66753F3485921f0F868Cd3cC0b';
 const out  = document.getElementById('out');
-const log  = (msg,cls='') => { out.innerHTML += (cls?`<span class="${cls}">${msg}</span>`:msg)+'\n'; };
+const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-// ERC721 balanceOf(address) = 0x70a08231
-// ERC1155 balanceOfBatch
-// Try known NFT contracts from maplen.gg
-const contracts = [
-  ['Characters ERC721', '0x9f2df0fed2c77648de5860a4cc508cd0818c85b8'],
-  ['Items ERC721', '0x495f947276749ce646f68ac8c248420045cb7b5e'],
-  ['Equipment', '0x2953399124f0cbb46d2cbacd8a89cf0599974963'],
+const targetUrl = `https://maplen.gg/assets?address=${addr}&tab=items`;
+
+const proxies = [
+  ['allorigins', `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`],
+  ['corsproxy.io', `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`],
+  ['codetabs', `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`],
 ];
 
-async function rpcCall(method, params) {
-  const r = await fetch(RPC, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
-  });
-  return (await r.json()).result;
-}
-
-async function getERC721Balance(contract) {
-  // balanceOf(address) - 0x70a08231 + padded address
-  const data = '0x70a08231' + addr.slice(2).toLowerCase().padStart(64,'0');
-  const res = await rpcCall('eth_call', [{to:contract, data}, 'latest']);
-  return res ? parseInt(res, 16) : 0;
-}
+// Also try maplen API endpoints via proxy
+const apiUrl = `https://maplen.gg/api/assets/${addr}`;
+const apiProxies = [
+  ['allorigins-api', `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`],
+];
 
 async function run() {
-  log('Wallet: ' + addr);
-  log('RPC: ' + RPC + '\n');
-
-  // Try eth_getLogs for Transfer events TO this address
-  log('Scanning ERC721 Transfer events to wallet...');
-  const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-  const toTopic = '0x' + '0'.repeat(24) + addr.slice(2).toLowerCase();
-
-  try {
-    const logs = await rpcCall('eth_getLogs', [{
-      topics: [TRANSFER_TOPIC, null, toTopic],
-      fromBlock: 'earliest',
-      toBlock: 'latest'
-    }]);
-    log(`Total Transfer IN logs: ${logs?.length || 0}`, 'ok');
-
-    // Count unique contracts
-    const contracts = {};
-    (logs||[]).forEach(l => {
-      contracts[l.address] = (contracts[l.address]||0)+1;
-    });
-    log('\nContracts with transfers IN:');
-    Object.entries(contracts).sort((a,b)=>b[1]-a[1]).forEach(([c,n]) => {
-      log(`  ${c}: ${n} transfers`, 'ok');
-    });
-  } catch(e) { log('Error: '+e.message,'err'); }
-
+  log('Target: ' + targetUrl + '\n');
+  for (const [name, url] of [...proxies, ...apiProxies]) {
+    log('\n🔍 ' + name);
+    try {
+      const r = await fetch(url);
+      log('   HTTP ' + r.status, r.ok?'ok':'err');
+      const text = await r.text();
+      // Look for Power Crystal in the HTML/JSON
+      const hasCrystal = text.includes('Power Crystal') || text.includes('crystal');
+      const hasFlame = text.includes('Flame Points') || text.includes('flame');
+      log('   Length: ' + text.length + ' | Crystal: ' + hasCrystal + ' | Flame: ' + hasFlame, hasCrystal?'ok':'');
+      // Try to extract numbers near "Power Crystal"
+      if (hasCrystal) {
+        const idx = text.indexOf('Power Crystal');
+        log('   Context: ' + text.slice(idx, idx+200).replace(/</g,'&lt;'), 'ok');
+      }
+      // Show first 300 chars
+      log('   Preview: ' + text.slice(0,300).replace(/</g,'&lt;'));
+    } catch(e) { log('   X ' + e.message, 'err'); }
+  }
   log('\nDone');
 }
 run();
