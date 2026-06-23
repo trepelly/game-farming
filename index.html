@@ -841,6 +841,10 @@ const COIN_LOGO = {
 };
 const cLogo = (k,s=16) => COIN_LOGO[k] ? `<img src="${COIN_LOGO[k]}" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px" onerror="this.style.display='none'"/>` : '';
 
+// ── Cloudflare Worker proxy ──
+const PROXY_WORKER = 'https://msu-proxy.petertrepellynguyen.workers.dev';
+const msuProxy = (url) => `${PROXY_WORKER}/?url=${encodeURIComponent(url)}`;
+
 // ── Theme ──
 function toggleTheme(){
   const html=document.documentElement;
@@ -3067,25 +3071,15 @@ async function loadTeamNftCounts() {
       continue;
     }
 
-    const _proxies = [
-      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      u => `https://api.codetabs.com/v1/proxy?quest=${u}`,
-      u => `https://thingproxy.freeboard.io/fetch/${u}`,
-      u => `https://proxy.cors.sh/${u}`,
-    ];
     const safeFetchJson = async (url) => {
-      for (let round=0; round<2; round++) {
-        for (let pi=0; pi<_proxies.length; pi++) {
-          try {
-            const r = await fetch(_proxies[pi](url));
-            if (!r.ok) { await new Promise(rs=>setTimeout(rs,300)); continue; }
-            const t = await r.text();
-            if (!t || t.trim().startsWith('<') || t.trim().startsWith('Error')) { await new Promise(rs=>setTimeout(rs,300)); continue; }
-            return JSON.parse(t);
-          } catch(e) { await new Promise(rs=>setTimeout(rs,300)); }
-        }
-        await new Promise(rs=>setTimeout(rs,800));
+      for (let attempt=0; attempt<3; attempt++) {
+        try {
+          const r = await fetch(msuProxy(url));
+          if (!r.ok) { await new Promise(rs=>setTimeout(rs,400)); continue; }
+          const t = await r.text();
+          if (!t || t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,400)); continue; }
+          return JSON.parse(t);
+        } catch(e) { await new Promise(rs=>setTimeout(rs,400)); }
       }
       return null;
     };
@@ -3374,33 +3368,15 @@ async function renderItemsTab(address, type) {
     // Fetch fresh with safe JSON parse + retry
     const reqType = type==='nft' ? 'RequestType_NftItem' : 'RequestType_FtItem';
     let all = [], page = 1, total = 0;
-    const proxies = [
-      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      u => `https://api.codetabs.com/v1/proxy?quest=${u}`,
-      u => `https://thingproxy.freeboard.io/fetch/${u}`,
-      u => `https://proxy.cors.sh/${u}`,
-    ];
     const safeFetch = async (url) => {
-      // Try each proxy in order, 2 rounds = up to 10 attempts
-      for (let round=0; round<2; round++) {
-        for (let pi=0; pi<proxies.length; pi++) {
-          try {
-            const r = await fetch(proxies[pi](url));
-            if (!r.ok) { await new Promise(rs=>setTimeout(rs,300)); continue; }
-            const text = await r.text();
-            if (!text || text.trim().startsWith('<') || text.trim().startsWith('Error')) {
-              await new Promise(rs=>setTimeout(rs,300));
-              continue;
-            }
-            const j = JSON.parse(text);
-            if (j && (j.items !== undefined || j.paginationResult || j.characters)) return j;
-            return j;
-          } catch(e) {
-            await new Promise(rs=>setTimeout(rs,300));
-          }
-        }
-        await new Promise(rs=>setTimeout(rs, 800));
+      for (let attempt=0; attempt<3; attempt++) {
+        try {
+          const r = await fetch(msuProxy(url));
+          if (!r.ok) { await new Promise(rs=>setTimeout(rs,400)); continue; }
+          const text = await r.text();
+          if (!text || text.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,400)); continue; }
+          return JSON.parse(text);
+        } catch(e) { await new Promise(rs=>setTimeout(rs,400)); }
       }
       return null;
     };
@@ -3468,7 +3444,7 @@ async function renderItemsTab(address, type) {
   if (type==='nft' && charCount > 0 && Object.keys(charImages).length === 0) {
     try {
       const charUrl = `https://msu.io/navigator/api/navigator/inventory/${address}/characters-v2?size=28`;
-      const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(charUrl)}`);
+      const r = await fetch(msuProxy(charUrl));
       const t = await r.text();
       if (!t.trim().startsWith('<')) {
         const cj = JSON.parse(t);
