@@ -1,55 +1,51 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MSU Items Parse</title>
+<html><head><meta charset="UTF-8"><title>MSU Items API</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
 .ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 MSU Items Parse</h2>
+<body><h2>🔍 MSU Items API Test</h2>
 <pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const out  = document.getElementById('out');
 const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
 
-async function run() {
-  // Try the actual API that navigator page calls
-  // MSU navigator likely uses a GraphQL or REST API
-  const apiTests = [
-    `https://msu.io/marketplace/api/marketplace/items?walletAddress=${addr}`,
-    `https://msu.io/api/items?owner=${addr}`,
-    `https://msu.io/navigator/api/owner/${addr}/items`,
-  ];
+const itemsUrl   = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
+const summaryUrl = `https://msu.io/navigator/api/navigator/inventory/${addr}/summary-v2`;
 
-  // First parse the HTML we already can get
-  const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://msu.io/navigator/owner/'+addr+'?tab=items&page=1')}`;
-  log('Fetching navigator HTML...\n');
+async function tryFetch(label, url, direct) {
+  log('\n🔍 ' + label + (direct?' (direct)':' (proxy)'));
+  const fetchUrl = direct ? url : `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
   try {
-    const r = await fetch(proxyUrl);
-    const html = await r.text();
-    log('HTML: ' + html.length + ' chars', 'ok');
+    const r = await fetch(fetchUrl);
+    log('   HTTP ' + r.status, r.ok?'ok':'err');
+    const text = await r.text();
+    log('   Length: ' + text.length);
+    try {
+      const j = JSON.parse(text);
+      // totalCount
+      const findCount = (o, path='') => {
+        if(typeof o!=='object'||!o) return;
+        for(const k in o) {
+          if(/count|total|size/i.test(k) && typeof o[k]==='number') log('   ✓ '+path+k+' = '+o[k], 'ok');
+          if(typeof o[k]==='object') findCount(o[k], path+k+'.');
+        }
+      };
+      findCount(j);
+      log('   JSON keys: ' + Object.keys(j).join(', '), 'ok');
+      log('   Preview: ' + JSON.stringify(j).slice(0,400));
+    } catch(e) {
+      log('   Not JSON: ' + text.slice(0,150).replace(/</g,'&lt;'));
+    }
+  } catch(e) { log('   X ' + e.message, 'err'); }
+}
 
-    // Search for count/total patterns
-    ['totalCount','itemCount','total','count','pageSize','totalElements'].forEach(key => {
-      const re = new RegExp('"'+key+'"\\s*:\\s*(\\d+)', 'g');
-      const matches = [...html.matchAll(re)];
-      if (matches.length) {
-        log(`\n${key}: ` + matches.map(m=>m[1]).slice(0,10).join(', '), 'ok');
-      }
-    });
-
-    // Look for API endpoints embedded in JS
-    log('\n── API endpoints in HTML ──');
-    const apiUrls = [...html.matchAll(/https?:\/\/[^"'\s]*api[^"'\s]*/g)].map(m=>m[0]);
-    const unique = [...new Set(apiUrls)].slice(0,15);
-    unique.forEach(u => log('  ' + u.replace(/</g,'&lt;')));
-
-    // Look for item token IDs (ERC721 tokenIds are long numbers)
-    log('\n── Token IDs found ──');
-    const tokenIds = [...html.matchAll(/"tokenId":\s*"?(\d{15,})"?/g)].map(m=>m[1]);
-    log('  Count: ' + tokenIds.length, 'ok');
-    if(tokenIds.length) log('  Sample: ' + tokenIds.slice(0,3).join(', '));
-
-  } catch(e) { log('Error: '+e.message, 'err'); }
-
+async function run() {
+  log('Wallet: ' + addr);
+  await tryFetch('Items DIRECT', itemsUrl, true);
+  await tryFetch('Items PROXY', itemsUrl, false);
+  await tryFetch('Summary DIRECT', summaryUrl, true);
+  await tryFetch('Summary PROXY', summaryUrl, false);
   log('\nDone');
 }
 run();
