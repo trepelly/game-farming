@@ -594,6 +594,7 @@ Ví sếp, 0x5678...efgh
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
+          <button id="load-nft-btn" onclick="loadNftManual()" style="background:#a78bfa22;border:1px solid #a78bfa44;border-radius:8px;padding:8px 14px;color:#a78bfa;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🎒 Tải NFT</button>
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
             <span style="font-size:10px;color:var(--muted2)">Tự động:</span>
             <select id="auto-refresh-select" onchange="setAutoRefresh(+this.value)" style="background:transparent;border:none;color:var(--text);font-family:inherit;font-size:11px;font-weight:600;outline:none;cursor:pointer">
@@ -1770,7 +1771,6 @@ async function loadTeamWallets() {
     renderTeam();
     // Load MVP points after balances (non-blocking)
     loadTeamMvpPoints().catch(()=>{});
-    loadTeamNftCounts().catch(()=>{});
   } catch(e) {
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
@@ -2994,13 +2994,53 @@ function renderFlowTable(rows) {
 
 // MVP points loaded directly inside loadTeamWallets
 
+const NFT_CACHE_KEY = 'msu_nft_cache_v1';
+const NFT_CACHE_TTL = 3600000; // 1 hour
+
+function loadNftCache() {
+  try { return JSON.parse(localStorage.getItem(NFT_CACHE_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveNftCache(cache) {
+  try { localStorage.setItem(NFT_CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
+}
+
+async function loadNftManual() {
+  const btn = document.getElementById('load-nft-btn');
+  if (btn) { btn.textContent = '⏳ Đang tải NFT...'; btn.disabled = true; }
+  try {
+    await loadTeamNftCounts();
+    if (btn) btn.textContent = '✓ Đã tải NFT';
+  } catch(e) {
+    if (btn) btn.textContent = '🎒 Tải NFT';
+  }
+  setTimeout(()=>{ if(btn){ btn.textContent='🎒 Tải lại NFT'; btn.disabled=false; } }, 2000);
+}
+
 async function loadTeamNftCounts() {
   const wallets = teamWallets;
   if (!wallets || !wallets.length) return;
   window.teamWallets = teamWallets;
   // Sequential to avoid proxy rate limit
+  const cache = loadNftCache();
+  const now = Date.now();
+  let loadedCount = 0;
+
   for (let idx = 0; idx < wallets.length; idx++) {
     const w = wallets[idx];
+    const addrLower = w.address.toLowerCase();
+
+    // Check cache first
+    const cached = cache[addrLower];
+    if (cached && (now - cached.ts) < NFT_CACHE_TTL) {
+      teamWallets[idx].nftCount       = cached.total;
+      teamWallets[idx].nftInWallet    = cached.wallet;
+      teamWallets[idx].nftInCharacter = cached.char;
+      const elC = document.getElementById('nft-' + w.address.slice(-8));
+      if (elC) elC.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span><div style="font-size:9px;color:var(--muted2)">${cached.wallet} ví · ${cached.char} char</div>`;
+      continue;
+    }
+
     try {
       // Get items list (max 30/page, paginate if needed)
       let allItems = [], page = 1, total = 0;
@@ -3021,6 +3061,10 @@ async function loadTeamNftCounts() {
       teamWallets[idx].nftCount       = allItems.length;
       teamWallets[idx].nftInWallet    = inWallet;
       teamWallets[idx].nftInCharacter = inChar;
+      // Save to cache
+      cache[addrLower] = { total: allItems.length, wallet: inWallet, char: inChar, ts: Date.now() };
+      saveNftCache(cache);
+      loadedCount++;
     } catch(e) {
       teamWallets[idx].nftCount = null;
     }
