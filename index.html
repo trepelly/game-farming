@@ -594,7 +594,6 @@ Ví sếp, 0x5678...efgh
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">⟳ Làm mới</button>
-          <button id="load-nft-btn" onclick="loadNftManual()" style="background:#a78bfa22;border:1px solid #a78bfa44;border-radius:8px;padding:8px 14px;color:#a78bfa;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🎒 Tải NFT</button>
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
             <span style="font-size:10px;color:var(--muted2)">Tự động:</span>
             <select id="auto-refresh-select" onchange="setAutoRefresh(+this.value)" style="background:transparent;border:none;color:var(--text);font-family:inherit;font-size:11px;font-weight:600;outline:none;cursor:pointer">
@@ -1845,6 +1844,19 @@ function renderTeam() {
   document.getElementById('team-loading').style.display    = 'none';
   document.getElementById('team-table-wrap').style.display = 'block';
 
+  // Restore NFT/FT counts from cache (1h TTL) so refresh stays in sync
+  try {
+    const cache = loadNftCache();
+    const now = Date.now();
+    teamWallets.forEach(w => {
+      const c = cache[w.address.toLowerCase()];
+      if (c && (now - c.ts) < NFT_CACHE_TTL) {
+        if (c.wallet != null) { w.nftInWallet=c.wallet; w.nftCount=c.total; w.nftInCharacter=c.char; }
+        if (c.red != null) w.redFlorin = c.red;
+      }
+    });
+  } catch(e) {}
+
   const nxpcRate = liveNxpcUsd || 0;
   const usdvnd   = liveUsdVnd  || 0;
   const nesoRate = liveNesoUsd || (nxpcRate/100000);
@@ -1941,8 +1953,8 @@ function renderTeam() {
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
-      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftInWallet!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${w.nftCount||0} · ${w.nftInCharacter||0} char</div>`:'<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
-      <td style="text-align:right;color:#ef4444;font-weight:600" id="red-${w.address.slice(-8)}">${w.redFlorin!=null?`<span style="color:#ef4444;font-weight:600">${w.redFlorin.toLocaleString('vi-VN')}</span>`:'<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
+      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftInWallet!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${w.nftCount||0} · ${w.nftInCharacter||0} char</div>`:'<span style="color:var(--muted2);font-size:9px" title="Mở ▼ tab NFT Items để tải">–</span>'}</td>
+      <td style="text-align:right;color:#ef4444;font-weight:600" id="red-${w.address.slice(-8)}">${w.redFlorin!=null?`<span style="color:#ef4444;font-weight:600">${w.redFlorin.toLocaleString('vi-VN')}</span>`:'<span style="color:var(--muted2);font-size:9px" title="Mở ▼ tab FT Items để tải">–</span>'}</td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -3290,6 +3302,36 @@ async function toggleFlowExpand(address) {
 
 const expandTabCache = {};
 
+function updateWalletItemColumns(w, type, items) {
+  const key = w.address.slice(-8);
+  if (type==='nft') {
+    const inChar = items.filter(it => it.nftItem?.ownedCharacter).length;
+    const inWallet = items.length - inChar;
+    w.nftCount = items.length;
+    w.nftInWallet = inWallet;
+    w.nftInCharacter = inChar;
+    const el = document.getElementById('nft-' + key);
+    if (el) el.innerHTML = `<span style="color:#a78bfa;font-weight:600">${inWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${items.length} · ${inChar} char</div>`;
+  } else {
+    const exch = items.filter(it => it.category?.tier1?.label === 'Exchange Currency');
+    const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
+    const red = exch.filter(it => /red florin/i.test(it.ftItem?.name||'')).reduce((s,it)=>s+qtyOf(it),0);
+    w.redFlorin = red;
+    const el = document.getElementById('red-' + key);
+    if (el) el.innerHTML = `<span style="color:#ef4444;font-weight:600">${red.toLocaleString('vi-VN')}</span>`;
+  }
+  // Persist to cache
+  try {
+    const cache = loadNftCache();
+    const a = w.address.toLowerCase();
+    cache[a] = cache[a] || {};
+    if (type==='nft') { cache[a].total=w.nftCount; cache[a].wallet=w.nftInWallet; cache[a].char=w.nftInCharacter; }
+    else { cache[a].red=w.redFlorin; }
+    cache[a].ts = Date.now();
+    saveNftCache(cache);
+  } catch(e) {}
+}
+
 async function renderItemsTab(address, type) {
   // Use cached items if available, else fetch
   const w = (window.teamWallets||[]).find(x=>x.address===address);
@@ -3336,6 +3378,8 @@ async function renderItemsTab(address, type) {
     if (w) {
       if (type==='nft') w.nftItemsFull = items;
       else w.ftItemsFull = items;
+      // Update derived counts + sync table columns
+      updateWalletItemColumns(w, type, items);
     }
   }
 
