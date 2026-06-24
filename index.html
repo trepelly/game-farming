@@ -172,12 +172,14 @@ h1 em{font-style:normal;color:var(--accent)}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
 .team-row{transition:background .2s ease}
 tr.row-expanded > td{
-  background:var(--accent-glow) !important;
-  box-shadow:inset 3px 0 0 var(--accent);
+  background:var(--card2) !important;
+  position:relative;
 }
-tr.row-expanded > td:first-child{position:relative}
 body.has-expanded tbody tr.team-row:not(.row-expanded) > td{
-  opacity:.45;transition:opacity .2s ease;
+  opacity:.35;transition:opacity .2s ease;
+}
+body.has-expanded tbody tr.row-expanded > td{
+  opacity:1 !important;
 }
 .alpha-btn{
   min-width:26px;height:26px;padding:0 6px;
