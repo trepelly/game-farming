@@ -3339,14 +3339,15 @@ async function loadAllNftParallel() {
 
   // Helper: fetch via worker with retry
   const fetchJson = async (url) => {
-    for (let a=0; a<3; a++) {
+    for (let a=0; a<5; a++) {
       try {
         const r = await fetch(msuProxy(url));
-        if (!r.ok) { await new Promise(rs=>setTimeout(rs,300)); continue; }
+        if (r.status === 429) { await new Promise(rs=>setTimeout(rs, 1000 + a*800)); continue; }
+        if (!r.ok) { await new Promise(rs=>setTimeout(rs,400)); continue; }
         const t = await r.text();
-        if (!t || t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,300)); continue; }
+        if (!t || t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs, 800 + a*500)); continue; }
         return JSON.parse(t);
-      } catch(e) { await new Promise(rs=>setTimeout(rs,300)); }
+      } catch(e) { await new Promise(rs=>setTimeout(rs,500)); }
     }
     return null;
   };
@@ -3409,8 +3410,17 @@ async function loadAllNftParallel() {
     }
   };
 
-  // Run ALL wallets in parallel (worker handles concurrency)
-  await Promise.all(wallets.map((w,idx) => processWallet(w, idx)));
+  // Run with limited concurrency (3 at a time) to avoid 429 from MSU
+  const CONCURRENCY = 3;
+  let cursor = 0;
+  async function worker() {
+    while (cursor < wallets.length) {
+      const idx = cursor++;
+      await processWallet(wallets[idx], idx);
+      await new Promise(r=>setTimeout(r, 200)); // small gap
+    }
+  }
+  await Promise.all(Array.from({length: CONCURRENCY}, () => worker()));
 }
 
 function renderNftRedCells(w, idx) {
