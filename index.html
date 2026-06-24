@@ -3501,11 +3501,13 @@ async function renderItemsTab(address, type) {
   // Group: NFT by character/wallet, FT by category
   const groups = {};
   const order = [];
+  const groupCharName = {}; // map group label -> raw character name
   items.forEach(it => {
     const obj = type==='nft' ? it.nftItem : it.ftItem;
     let g;
     if (type==='nft') {
-      g = obj?.ownedCharacter ? ('👤 ' + obj.ownedCharacter) : '🎒 Trên ví';
+      if (obj?.ownedCharacter) { g = '👤 ' + obj.ownedCharacter; groupCharName[g] = obj.ownedCharacter; }
+      else g = '🎒 Trên ví';
     } else {
       g = it.category?.tier1?.label || 'Khác';
     }
@@ -3562,7 +3564,7 @@ async function renderItemsTab(address, type) {
   h += '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px">';
   sortedKeys.forEach(g => {
     const accent = g.includes('Trên ví') ? '#a78bfa' : 'var(--accent)';
-    const charName = g.replace(/^[👤🎒]\s*/, '');
+    const charName = groupCharName[g] || g.replace(/^.. /, '');
     const copyBtn = !g.includes('Trên ví')
       ? `<span onclick="navigator.clipboard.writeText('${charName}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)" style="cursor:pointer;font-size:11px;color:var(--muted2);margin-left:6px;user-select:none" title="Copy tên nhân vật">⎘</span>`
       : '';
