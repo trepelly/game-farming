@@ -170,6 +170,15 @@ h1 em{font-style:normal;color:var(--accent)}
 
 /* ── CHARTS ── */
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+.team-row{transition:background .2s ease}
+tr.row-expanded > td{
+  background:var(--accent-glow) !important;
+  box-shadow:inset 3px 0 0 var(--accent);
+}
+tr.row-expanded > td:first-child{position:relative}
+body.has-expanded tbody tr.team-row:not(.row-expanded) > td{
+  opacity:.45;transition:opacity .2s ease;
+}
 .alpha-btn{
   min-width:26px;height:26px;padding:0 6px;
   background:var(--surface);border:1px solid var(--border2);
@@ -1966,7 +1975,7 @@ function renderTeam() {
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px">${a.slice(0,6)}...${a.slice(-4)}</span>`;
-    return `<tr>
+    return `<tr id="flow-main-${w.address.slice(-8)}" class="team-row">
       <td style="text-align:center;color:var(--muted2);font-size:12px;font-weight:600">${i+1}</td>
       <td style="text-align:left">
         <div style="display:flex;align-items:center;gap:6px">
@@ -3316,10 +3325,14 @@ async function toggleFlowExpand(address) {
   const cont = document.getElementById('flow-content-' + key);
   if (!row) return;
 
+  const mainRow = document.getElementById('flow-main-' + key);
+
   const isOpen = row.style.display !== 'none';
   if (isOpen) {
     row.style.display = 'none';
     if(btn) btn.textContent = '▼';
+    if(mainRow) mainRow.classList.remove('row-expanded');
+    document.body.classList.remove('has-expanded');
     return;
   }
 
@@ -3330,11 +3343,15 @@ async function toggleFlowExpand(address) {
       const otherKey = r.id.replace('flow-expand-', '');
       const otherBtn = document.getElementById('flow-btn-' + otherKey);
       if (otherBtn) otherBtn.textContent = '▼';
+      const otherMain = document.getElementById('flow-main-' + otherKey);
+      if (otherMain) otherMain.classList.remove('row-expanded');
     }
   });
 
   row.style.display = '';
   if(btn) btn.textContent = '▲';
+  if(mainRow) mainRow.classList.add('row-expanded');
+  document.body.classList.add('has-expanded');
 
   // Default tab = flow
   switchExpandTab(address, 'flow');
