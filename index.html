@@ -688,7 +688,6 @@ Ví sếp, 0x5678...efgh
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần có rank Bronze+">Tuần MVP <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
             <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="NFT items trên ví">NFT ví <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
-            <th style="color:#ef4444;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('red')" title="Red Florin">🔴 Red <span id="sort-icon-red" style="opacity:.3">↕</span></th>
 
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
@@ -1804,7 +1803,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp','mvpweek','nft','red'].forEach(c => {
+  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp','mvpweek','nft'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -1904,7 +1903,6 @@ function renderTeam() {
       if (teamSortCol==='tuanmvp')    return w.mvpBronzeWeeks ?? -1;
       if (teamSortCol==='mvpweek')    return w.mvpWeekValue ?? -1;
       if (teamSortCol==='nft')        return w.nftInWallet ?? -1;
-      if (teamSortCol==='red')        return w.redFlorin ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
       if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
@@ -1958,8 +1956,7 @@ function renderTeam() {
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
-      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftInWallet!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${w.nftCount||0} · ${w.nftInCharacter||0} char</div>`:'<span style="color:var(--muted2);font-size:9px" title="Mở ▼ tab NFT Items để tải">–</span>'}</td>
-      <td style="text-align:right;color:#ef4444;font-weight:600" id="red-${w.address.slice(-8)}">${w.redFlorin!=null?`<span style="color:#ef4444;font-weight:600">${w.redFlorin.toLocaleString('vi-VN')}</span>`:'<span style="color:var(--muted2);font-size:9px" title="Mở ▼ tab FT Items để tải">–</span>'}</td>
+      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftInWallet!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">${w.nftInCharacter||0} char</div>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -2004,7 +2001,6 @@ function renderTeam() {
     <td style="padding:10px 14px"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
     <td style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftInWallet||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#ef4444;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.redFlorin||0),0).toLocaleString('vi-VN')}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
@@ -3357,54 +3353,43 @@ async function loadAllNftParallel() {
     const addrLower = w.address.toLowerCase();
     // Use cache if fresh
     const cached = cache[addrLower];
-    if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.red != null) {
-      teamWallets[idx].redFlorin = cached.red;
-      if (cached.total != null) teamWallets[idx].nftCount = cached.total;
-      if (cached.wallet != null) { teamWallets[idx].nftInWallet=cached.wallet; teamWallets[idx].nftInCharacter=cached.char; }
-      const key = w.address.slice(-8);
-      const elRed = document.getElementById('red-' + key);
-      if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${cached.red.toLocaleString('vi-VN')}</span>`;
-      const elNft = document.getElementById('nft-' + key);
-      if (elNft && cached.total != null) {
-        if (cached.wallet != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.wallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${cached.total} · ${cached.char} char</div>`;
-        else elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span><div style="font-size:9px;color:var(--muted2)">mở ▼ xem chi tiết</div>`;
-      }
+    if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.wallet != null) {
+      teamWallets[idx].nftCount = cached.total;
+      teamWallets[idx].nftInWallet = cached.wallet;
+      teamWallets[idx].nftInCharacter = cached.char;
+      const elNft = document.getElementById('nft-' + w.address.slice(-8));
+      if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.wallet}</span><div style="font-size:9px;color:var(--muted2)">${cached.char} char</div>`;
       return;
     }
     try {
       const key = w.address.slice(-8);
-      // Fetch summary (NFT total) + FT items (Red Florin) in parallel
-      const sumUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/summary-v2`;
-      const ftUrl  = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
-      const [sumJ, ftJ] = await Promise.all([fetchJson(sumUrl), fetchJson(ftUrl)]);
+      // Fetch NFT items (paginate) for in-wallet count
+      let nftItems = [], page = 1, total = 0, nftOk = false;
+      do {
+        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
+        const j = await fetchJson(url);
+        if (!j) break;
+        nftOk = true;
+        total = j.paginationResult?.totalCount || 0;
+        nftItems = nftItems.concat(j.items || []);
+        page++;
+      } while (nftItems.length < total && page <= 5);
 
-      // NFT total from summary
-      if (sumJ) {
-        const nftTot = sumJ.msuStatistics?.ownedSummary?.totalNumNftItems ?? null;
-        teamWallets[idx].nftCount = nftTot;
+      if (nftOk) {
+        const inChar = nftItems.filter(it => it.nftItem?.ownedCharacter).length;
+        const inWallet = nftItems.length - inChar;
+        teamWallets[idx].nftCount = nftItems.length;
+        teamWallets[idx].nftInWallet = inWallet;
+        teamWallets[idx].nftInCharacter = inChar;
+        teamWallets[idx].nftItemsFull = nftItems;
         const elNft = document.getElementById('nft-' + key);
-        if (elNft && nftTot != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${nftTot}</span><div style="font-size:9px;color:var(--muted2)">mở ▼ xem chi tiết</div>`;
+        if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${inWallet}</span><div style="font-size:9px;color:var(--muted2)">${inChar} char</div>`;
       }
-
-      // Red Florin from FT items
-      let ftOk = false, red = 0, ftItems = [];
-      if (ftJ) {
-        ftOk = true;
-        ftItems = ftJ.items || [];
-        const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
-        red = ftItems.filter(it => it.category?.tier1?.label==='Exchange Currency' && /red florin/i.test(it.ftItem?.name||'')).reduce((s,it)=>s+qtyOf(it),0);
-        teamWallets[idx].redFlorin = red;
-        teamWallets[idx].ftItemsFull = ftItems;
-        const elRed = document.getElementById('red-' + key);
-        if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${red.toLocaleString('vi-VN')}</span>`;
+      // Cache nft counts
+      if (nftOk) {
+        cache[addrLower] = { total: teamWallets[idx].nftCount, wallet: teamWallets[idx].nftInWallet, char: teamWallets[idx].nftInCharacter, ts: Date.now() };
+        saveNftCache(cache);
       }
-      // Cache red + nft total
-      const cacheEntry = cache[addrLower] || {};
-      if (ftOk) cacheEntry.red = red;
-      if (teamWallets[idx].nftCount != null) cacheEntry.total = teamWallets[idx].nftCount;
-      cacheEntry.ts = Date.now();
-      cache[addrLower] = cacheEntry;
-      saveNftCache(cache);
     } catch(e) {
       console.warn('NFT load fail', w.address, e.message);
     }
@@ -3422,7 +3407,7 @@ async function loadAllNftParallel() {
   await Promise.all(Array.from({length: CONCURRENCY}, () => runner()));
 
   // Retry pass: wallets whose redFlorin still null (FT fetch failed earlier)
-  const missing = wallets.map((w,i)=>({w,i})).filter(({w}) => w.redFlorin == null);
+  const missing = wallets.map((w,i)=>({w,i})).filter(({w}) => w.nftInWallet == null);
   if (missing.length) {
     await new Promise(r=>setTimeout(r, 1500)); // cool down
     for (const {w, i} of missing) {
