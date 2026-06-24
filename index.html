@@ -687,7 +687,7 @@ Ví sếp, 0x5678...efgh
             <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần có rank Bronze+">Tuần MVP <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
-            <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="NFT items trên ví">NFT ví <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
+            <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
 
             <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
@@ -1902,7 +1902,7 @@ function renderTeam() {
       if (teamSortCol==='mvp')       return w.mvpPoints ?? -1;
       if (teamSortCol==='tuanmvp')    return w.mvpBronzeWeeks ?? -1;
       if (teamSortCol==='mvpweek')    return w.mvpWeekValue ?? -1;
-      if (teamSortCol==='nft')        return w.nftInWallet ?? -1;
+      if (teamSortCol==='nft')        return w.nftCount ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
       if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
@@ -1956,7 +1956,7 @@ function renderTeam() {
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
-      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftInWallet!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">${w.nftInCharacter||0} char</div>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
+      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
 
       <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
       <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
@@ -2000,7 +2000,7 @@ function renderTeam() {
     <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="padding:10px 14px"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
-    <td style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftInWallet||0),0)}</td>
+    <td style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
@@ -3353,41 +3353,32 @@ async function loadAllNftParallel() {
     const addrLower = w.address.toLowerCase();
     // Use cache if fresh
     const cached = cache[addrLower];
-    if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.wallet != null) {
+    if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.total != null) {
       teamWallets[idx].nftCount = cached.total;
-      teamWallets[idx].nftInWallet = cached.wallet;
-      teamWallets[idx].nftInCharacter = cached.char;
+      if (cached.wallet != null) { teamWallets[idx].nftInWallet=cached.wallet; teamWallets[idx].nftInCharacter=cached.char; }
       const elNft = document.getElementById('nft-' + w.address.slice(-8));
-      if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.wallet}</span><div style="font-size:9px;color:var(--muted2)">${cached.char} char</div>`;
+      if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span>`;
       return;
     }
     try {
       const key = w.address.slice(-8);
-      // Fetch NFT items (paginate) for in-wallet count
-      let nftItems = [], page = 1, total = 0, nftOk = false;
-      do {
-        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
-        const j = await fetchJson(url);
-        if (!j) break;
+      // Fetch summary only - NFT total (1 request, fast like NXPC)
+      const sumUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/summary-v2`;
+      const sumJ = await fetchJson(sumUrl);
+      let nftOk = false;
+      if (sumJ) {
         nftOk = true;
-        total = j.paginationResult?.totalCount || 0;
-        nftItems = nftItems.concat(j.items || []);
-        page++;
-      } while (nftItems.length < total && page <= 5);
-
-      if (nftOk) {
-        const inChar = nftItems.filter(it => it.nftItem?.ownedCharacter).length;
-        const inWallet = nftItems.length - inChar;
-        teamWallets[idx].nftCount = nftItems.length;
-        teamWallets[idx].nftInWallet = inWallet;
-        teamWallets[idx].nftInCharacter = inChar;
-        teamWallets[idx].nftItemsFull = nftItems;
+        const nftTot = sumJ.msuStatistics?.ownedSummary?.totalNumNftItems ?? 0;
+        teamWallets[idx].nftCount = nftTot;
         const elNft = document.getElementById('nft-' + key);
-        if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${inWallet}</span><div style="font-size:9px;color:var(--muted2)">${inChar} char</div>`;
+        if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${nftTot}</span>`;
       }
-      // Cache nft counts
+      // Cache nft total
       if (nftOk) {
-        cache[addrLower] = { total: teamWallets[idx].nftCount, wallet: teamWallets[idx].nftInWallet, char: teamWallets[idx].nftInCharacter, ts: Date.now() };
+        const ce = cache[addrLower] || {};
+        ce.total = teamWallets[idx].nftCount;
+        ce.ts = Date.now();
+        cache[addrLower] = ce;
         saveNftCache(cache);
       }
     } catch(e) {
@@ -3407,7 +3398,7 @@ async function loadAllNftParallel() {
   await Promise.all(Array.from({length: CONCURRENCY}, () => runner()));
 
   // Retry pass: wallets whose redFlorin still null (FT fetch failed earlier)
-  const missing = wallets.map((w,i)=>({w,i})).filter(({w}) => w.nftInWallet == null);
+  const missing = wallets.map((w,i)=>({w,i})).filter(({w}) => w.nftCount == null);
   if (missing.length) {
     await new Promise(r=>setTimeout(r, 1500)); // cool down
     for (const {w, i} of missing) {
