@@ -3366,19 +3366,7 @@ async function loadAllNftParallel() {
       return;
     }
     try {
-      // NFT items (paginate)
-      let nftItems = [], page = 1, total = 0;
-      do {
-        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
-        const j = await fetchJson(url);
-        if (!j) break;
-        total = j.paginationResult?.totalCount || 0;
-        nftItems = nftItems.concat(j.items || []);
-        page++;
-      } while (nftItems.length < total && page <= 5);
-
-      await new Promise(r=>setTimeout(r,100));
-      // FT items
+      // ── FT items FIRST (lighter, render Red Florin ASAP) ──
       let ftItems = [], fp = 1, ft = 0, ftOk = false;
       do {
         const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${fp}&paginationParam.pageSize=30`;
@@ -3390,21 +3378,36 @@ async function loadAllNftParallel() {
         fp++;
       } while (ftItems.length < ft && fp <= 5);
 
+      const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
+      const red = ftItems.filter(it => it.category?.tier1?.label==='Exchange Currency' && /red florin/i.test(it.ftItem?.name||'')).reduce((s,it)=>s+qtyOf(it),0);
+      if (ftOk) {
+        teamWallets[idx].redFlorin = red;
+        teamWallets[idx].ftItemsFull = ftItems;
+        // Render Red Florin immediately
+        const elRed = document.getElementById('red-' + w.address.slice(-8));
+        if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${red.toLocaleString('vi-VN')}</span>`;
+      }
+
+      await new Promise(r=>setTimeout(r,100));
+      // ── NFT items ──
+      let nftItems = [], page = 1, total = 0;
+      do {
+        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
+        const j = await fetchJson(url);
+        if (!j) break;
+        total = j.paginationResult?.totalCount || 0;
+        nftItems = nftItems.concat(j.items || []);
+        page++;
+      } while (nftItems.length < total && page <= 5);
+
       // Classify NFT
       const inChar = nftItems.filter(it => it.nftItem?.ownedCharacter).length;
       const inWallet = nftItems.length - inChar;
-      // Red Florin
-      const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
-      const red = ftItems.filter(it => it.category?.tier1?.label==='Exchange Currency' && /red florin/i.test(it.ftItem?.name||'')).reduce((s,it)=>s+qtyOf(it),0);
 
       teamWallets[idx].nftCount = nftItems.length;
       teamWallets[idx].nftInWallet = inWallet;
       teamWallets[idx].nftInCharacter = inChar;
       teamWallets[idx].nftItemsFull = nftItems;
-      if (ftOk) {
-        teamWallets[idx].redFlorin = red;
-        teamWallets[idx].ftItemsFull = ftItems;
-      }
       // Cache: only include red if FT succeeded
       const cacheEntry = { total: nftItems.length, wallet: inWallet, char: inChar, ts: Date.now() };
       if (ftOk) cacheEntry.red = red;
