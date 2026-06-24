@@ -1,53 +1,40 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Worker Test</title>
+<html><head><meta charset="UTF-8"><title>Rate test</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
-pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
-.ok{color:#34d399}.err{color:#f87171}h2{color:#a78bfa}</style></head>
-<body><h2>🔍 Cloudflare Worker Test</h2>
-<pre id="out">Testing...\n</pre>
+pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap}
+.ok{color:#34d399}.err{color:#f87171}</style></head>
+<body><h2>Rate limit test</h2><pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const WORKER = 'https://msu-proxy.petertrepellynguyen.workers.dev';
-const out  = document.getElementById('out');
-const log  = (m,c='') => { out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n'; };
+const out = document.getElementById('out');
+const log = (m,c='') => out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n';
 
 async function run() {
-  log('Worker: ' + WORKER + '\n');
+  const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/summary-v2`;
 
-  // Test 1: summary
-  const sumUrl = `https://msu.io/navigator/api/navigator/inventory/${addr}/summary-v2`;
-  log('🔍 Summary');
-  try {
-    const r = await fetch(`${WORKER}/?url=${encodeURIComponent(sumUrl)}`);
-    log('   HTTP ' + r.status, r.ok?'ok':'err');
-    const j = await r.json();
-    log('   NFT: ' + j.msuStatistics?.ownedSummary?.totalNumNftItems, 'ok');
-    log('   FT: ' + j.msuStatistics?.ownedSummary?.totalNumFtItems, 'ok');
-  } catch(e) { log('   X '+e.message,'err'); }
-
-  // Test 2: items
-  const itemsUrl = `https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
-  log('\n🔍 NFT Items');
-  try {
-    const r = await fetch(`${WORKER}/?url=${encodeURIComponent(itemsUrl)}`);
-    log('   HTTP ' + r.status, r.ok?'ok':'err');
-    const j = await r.json();
-    log('   totalCount: ' + j.paginationResult?.totalCount, 'ok');
-    log('   items: ' + j.items?.length, 'ok');
-  } catch(e) { log('   X '+e.message,'err'); }
-
-  // Test 3: speed test - 5 rapid calls
-  log('\n🔍 Speed test (5 rapid calls)');
-  const t0 = Date.now();
-  let ok = 0;
-  for(let i=0;i<5;i++){
-    try {
-      const r = await fetch(`${WORKER}/?url=${encodeURIComponent(sumUrl)}`);
-      if(r.ok) ok++;
-    } catch(e){}
+  // Test sequential: how many succeed before 429?
+  log('── Sequential (no delay) ──');
+  let ok=0, fail=0;
+  for(let i=0;i<10;i++){
+    const r = await fetch(`${WORKER}/?url=${encodeURIComponent(url)}`);
+    if(r.status===429){ log(`  #${i+1}: 429 ❌`,'err'); fail++; }
+    else if(r.ok){ log(`  #${i+1}: OK ✓`,'ok'); ok++; }
+    else log(`  #${i+1}: ${r.status}`);
   }
-  log('   ' + ok + '/5 thành công trong ' + (Date.now()-t0) + 'ms', ok===5?'ok':'err');
+  log(`\n  → ${ok} OK, ${fail} blocked\n`);
 
+  // Wait then test with delay
+  await new Promise(r=>setTimeout(r,3000));
+  log('── With 500ms delay ──');
+  ok=0; fail=0;
+  for(let i=0;i<8;i++){
+    const r = await fetch(`${WORKER}/?url=${encodeURIComponent(url)}`);
+    if(r.status===429){ log(`  #${i+1}: 429 ❌`,'err'); fail++; }
+    else if(r.ok){ log(`  #${i+1}: OK ✓`,'ok'); ok++; }
+    await new Promise(rs=>setTimeout(rs,500));
+  }
+  log(`\n  → ${ok} OK, ${fail} blocked`);
   log('\nDone');
 }
 run();
