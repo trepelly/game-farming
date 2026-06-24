@@ -3359,36 +3359,49 @@ async function loadAllNftParallel() {
     const cached = cache[addrLower];
     if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.red != null) {
       teamWallets[idx].redFlorin = cached.red;
-      // restore nft counts too if present
-      if (cached.wallet != null) { teamWallets[idx].nftCount=cached.total; teamWallets[idx].nftInWallet=cached.wallet; teamWallets[idx].nftInCharacter=cached.char; }
-      const elRed = document.getElementById('red-' + w.address.slice(-8));
+      if (cached.total != null) teamWallets[idx].nftCount = cached.total;
+      if (cached.wallet != null) { teamWallets[idx].nftInWallet=cached.wallet; teamWallets[idx].nftInCharacter=cached.char; }
+      const key = w.address.slice(-8);
+      const elRed = document.getElementById('red-' + key);
       if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${cached.red.toLocaleString('vi-VN')}</span>`;
+      const elNft = document.getElementById('nft-' + key);
+      if (elNft && cached.total != null) {
+        if (cached.wallet != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.wallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${cached.total} · ${cached.char} char</div>`;
+        else elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span><div style="font-size:9px;color:var(--muted2)">mở ▼ xem chi tiết</div>`;
+      }
       return;
     }
     try {
-      // ── ONLY FT items (for Red Florin) - NFT lazy-loaded on expand ──
-      let ftItems = [], fp = 1, ft = 0, ftOk = false;
-      do {
-        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${fp}&paginationParam.pageSize=30`;
-        const j = await fetchJson(url);
-        if (!j) break;
-        ftOk = true;
-        ft = j.paginationResult?.totalCount || 0;
-        ftItems = ftItems.concat(j.items || []);
-        fp++;
-      } while (ftItems.length < ft && fp <= 5);
+      const key = w.address.slice(-8);
+      // Fetch summary (NFT total) + FT items (Red Florin) in parallel
+      const sumUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/summary-v2`;
+      const ftUrl  = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=1&paginationParam.pageSize=30`;
+      const [sumJ, ftJ] = await Promise.all([fetchJson(sumUrl), fetchJson(ftUrl)]);
 
-      const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
-      const red = ftItems.filter(it => it.category?.tier1?.label==='Exchange Currency' && /red florin/i.test(it.ftItem?.name||'')).reduce((s,it)=>s+qtyOf(it),0);
-      if (ftOk) {
+      // NFT total from summary
+      if (sumJ) {
+        const nftTot = sumJ.msuStatistics?.ownedSummary?.totalNumNftItems ?? null;
+        teamWallets[idx].nftCount = nftTot;
+        const elNft = document.getElementById('nft-' + key);
+        if (elNft && nftTot != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${nftTot}</span><div style="font-size:9px;color:var(--muted2)">mở ▼ xem chi tiết</div>`;
+      }
+
+      // Red Florin from FT items
+      let ftOk = false, red = 0, ftItems = [];
+      if (ftJ) {
+        ftOk = true;
+        ftItems = ftJ.items || [];
+        const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
+        red = ftItems.filter(it => it.category?.tier1?.label==='Exchange Currency' && /red florin/i.test(it.ftItem?.name||'')).reduce((s,it)=>s+qtyOf(it),0);
         teamWallets[idx].redFlorin = red;
         teamWallets[idx].ftItemsFull = ftItems;
-        const elRed = document.getElementById('red-' + w.address.slice(-8));
+        const elRed = document.getElementById('red-' + key);
         if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${red.toLocaleString('vi-VN')}</span>`;
       }
-      // Cache red florin only (NFT loaded separately on expand)
+      // Cache red + nft total
       const cacheEntry = cache[addrLower] || {};
       if (ftOk) cacheEntry.red = red;
+      if (teamWallets[idx].nftCount != null) cacheEntry.total = teamWallets[idx].nftCount;
       cacheEntry.ts = Date.now();
       cache[addrLower] = cacheEntry;
       saveNftCache(cache);
