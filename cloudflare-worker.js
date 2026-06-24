@@ -51,6 +51,7 @@ export default {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         },
         body: request.method === 'POST' ? await request.text() : undefined,
+        cf: { cacheTtl: 600, cacheEverything: true },
       });
 
       const body = await resp.text();
@@ -59,7 +60,7 @@ export default {
         headers: {
           'Content-Type': resp.headers.get('Content-Type') || 'application/json',
           'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, max-age=300',
+          'Cache-Control': 'public, max-age=600',
         },
       });
     } catch (e) {

@@ -3377,6 +3377,7 @@ async function loadAllNftParallel() {
         page++;
       } while (nftItems.length < total && page <= 5);
 
+      await new Promise(r=>setTimeout(r,100));
       // FT items
       let ftItems = [], fp = 1, ft = 0;
       do {
@@ -3410,17 +3411,16 @@ async function loadAllNftParallel() {
     }
   };
 
-  // Run with limited concurrency (3 at a time) to avoid 429 from MSU
-  const CONCURRENCY = 3;
+  // Run with limited concurrency to avoid 429 from MSU
+  const CONCURRENCY = 4;
   let cursor = 0;
-  async function worker() {
+  async function runner() {
     while (cursor < wallets.length) {
       const idx = cursor++;
       await processWallet(wallets[idx], idx);
-      await new Promise(r=>setTimeout(r, 200)); // small gap
     }
   }
-  await Promise.all(Array.from({length: CONCURRENCY}, () => worker()));
+  await Promise.all(Array.from({length: CONCURRENCY}, () => runner()));
 }
 
 function renderNftRedCells(w, idx) {
