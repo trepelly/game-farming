@@ -43,18 +43,29 @@ export default {
       });
     }
 
-    try {
-      const resp = await fetch(target, {
-        method: request.method,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        body: request.method === 'POST' ? await request.text() : undefined,
-        cf: { cacheTtl: 600, cacheEverything: true },
-      });
+    const fetchHeaders = {
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://msu.io/',
+      'Origin': 'https://msu.io',
+    };
 
-      const body = await resp.text();
+    try {
+      let resp, body, attempt = 0;
+      // Server-side retry on 429 (up to 4 times with backoff)
+      while (attempt < 4) {
+        resp = await fetch(target, {
+          method: request.method,
+          headers: fetchHeaders,
+          body: request.method === 'POST' ? await request.clone().text() : undefined,
+          cf: { cacheTtl: 600, cacheEverything: true },
+        });
+        if (resp.status !== 429) break;
+        attempt++;
+        await new Promise(r => setTimeout(r, 400 * attempt));
+      }
+      body = await resp.text();
       return new Response(body, {
         status: resp.status,
         headers: {
