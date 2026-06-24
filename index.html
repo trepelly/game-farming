@@ -1773,8 +1773,9 @@ async function loadTeamWallets() {
       } catch(e) { w.nxpc = null; w.neso = null; w.avax = null; w.nxpc_avax = null; w.err = e.message; }
     }));
     renderTeam();
-    // Load MVP points after balances (non-blocking)
+    // Load MVP points + NFT/FT counts in parallel (non-blocking)
     loadTeamMvpPoints().catch(()=>{});
+    loadAllNftParallel().catch(()=>{});
   } catch(e) {
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
@@ -3327,6 +3328,97 @@ async function retryItemsTab(address, type) {
   if (content) content.innerHTML = '<div style="padding:12px;color:var(--muted2);font-size:11px">⏳ Đang tải lại...</div>';
   const result = await renderItemsTab(address, type);
   if (content) content.innerHTML = result;
+}
+
+async function loadAllNftParallel() {
+  const wallets = teamWallets;
+  if (!wallets || !wallets.length) return;
+  window.teamWallets = teamWallets;
+  const cache = loadNftCache();
+  const now = Date.now();
+
+  // Helper: fetch via worker with retry
+  const fetchJson = async (url) => {
+    for (let a=0; a<3; a++) {
+      try {
+        const r = await fetch(msuProxy(url));
+        if (!r.ok) { await new Promise(rs=>setTimeout(rs,300)); continue; }
+        const t = await r.text();
+        if (!t || t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,300)); continue; }
+        return JSON.parse(t);
+      } catch(e) { await new Promise(rs=>setTimeout(rs,300)); }
+    }
+    return null;
+  };
+
+  // Process one wallet: fetch NFT items + FT items
+  const processWallet = async (w, idx) => {
+    const addrLower = w.address.toLowerCase();
+    // Use cache if fresh
+    const cached = cache[addrLower];
+    if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.wallet != null && cached.red != null) {
+      teamWallets[idx].nftCount = cached.total;
+      teamWallets[idx].nftInWallet = cached.wallet;
+      teamWallets[idx].nftInCharacter = cached.char;
+      teamWallets[idx].redFlorin = cached.red;
+      renderNftRedCells(w, idx);
+      return;
+    }
+    try {
+      // NFT items (paginate)
+      let nftItems = [], page = 1, total = 0;
+      do {
+        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
+        const j = await fetchJson(url);
+        if (!j) break;
+        total = j.paginationResult?.totalCount || 0;
+        nftItems = nftItems.concat(j.items || []);
+        page++;
+      } while (nftItems.length < total && page <= 5);
+
+      // FT items
+      let ftItems = [], fp = 1, ft = 0;
+      do {
+        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${fp}&paginationParam.pageSize=30`;
+        const j = await fetchJson(url);
+        if (!j) break;
+        ft = j.paginationResult?.totalCount || 0;
+        ftItems = ftItems.concat(j.items || []);
+        fp++;
+      } while (ftItems.length < ft && fp <= 5);
+
+      // Classify NFT
+      const inChar = nftItems.filter(it => it.nftItem?.ownedCharacter).length;
+      const inWallet = nftItems.length - inChar;
+      // Red Florin
+      const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
+      const red = ftItems.filter(it => it.category?.tier1?.label==='Exchange Currency' && /red florin/i.test(it.ftItem?.name||'')).reduce((s,it)=>s+qtyOf(it),0);
+
+      teamWallets[idx].nftCount = nftItems.length;
+      teamWallets[idx].nftInWallet = inWallet;
+      teamWallets[idx].nftInCharacter = inChar;
+      teamWallets[idx].redFlorin = red;
+      teamWallets[idx].nftItemsFull = nftItems;
+      teamWallets[idx].ftItemsFull = ftItems;
+
+      cache[addrLower] = { total: nftItems.length, wallet: inWallet, char: inChar, red, ts: Date.now() };
+      saveNftCache(cache);
+      renderNftRedCells(w, idx);
+    } catch(e) {
+      console.warn('NFT load fail', w.address, e.message);
+    }
+  };
+
+  // Run ALL wallets in parallel (worker handles concurrency)
+  await Promise.all(wallets.map((w,idx) => processWallet(w, idx)));
+}
+
+function renderNftRedCells(w, idx) {
+  const key = w.address.slice(-8);
+  const elNft = document.getElementById('nft-' + key);
+  if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${w.nftCount} · ${w.nftInCharacter} char</div>`;
+  const elRed = document.getElementById('red-' + key);
+  if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${(w.redFlorin||0).toLocaleString('vi-VN')}</span>`;
 }
 
 function updateWalletItemColumns(w, type, items) {
