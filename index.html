@@ -3379,11 +3379,12 @@ async function loadAllNftParallel() {
 
       await new Promise(r=>setTimeout(r,100));
       // FT items
-      let ftItems = [], fp = 1, ft = 0;
+      let ftItems = [], fp = 1, ft = 0, ftOk = false;
       do {
         const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${fp}&paginationParam.pageSize=30`;
         const j = await fetchJson(url);
         if (!j) break;
+        ftOk = true;
         ft = j.paginationResult?.totalCount || 0;
         ftItems = ftItems.concat(j.items || []);
         fp++;
@@ -3399,11 +3400,16 @@ async function loadAllNftParallel() {
       teamWallets[idx].nftCount = nftItems.length;
       teamWallets[idx].nftInWallet = inWallet;
       teamWallets[idx].nftInCharacter = inChar;
-      teamWallets[idx].redFlorin = red;
       teamWallets[idx].nftItemsFull = nftItems;
-      teamWallets[idx].ftItemsFull = ftItems;
-
-      cache[addrLower] = { total: nftItems.length, wallet: inWallet, char: inChar, red, ts: Date.now() };
+      if (ftOk) {
+        teamWallets[idx].redFlorin = red;
+        teamWallets[idx].ftItemsFull = ftItems;
+      }
+      // Cache: only include red if FT succeeded
+      const cacheEntry = { total: nftItems.length, wallet: inWallet, char: inChar, ts: Date.now() };
+      if (ftOk) cacheEntry.red = red;
+      else if (cache[addrLower]?.red != null) cacheEntry.red = cache[addrLower].red; // keep old
+      cache[addrLower] = cacheEntry;
       saveNftCache(cache);
       renderNftRedCells(w, idx);
     } catch(e) {
@@ -3421,14 +3427,27 @@ async function loadAllNftParallel() {
     }
   }
   await Promise.all(Array.from({length: CONCURRENCY}, () => runner()));
+
+  // Retry pass: wallets whose redFlorin still null (FT fetch failed earlier)
+  const missing = wallets.map((w,i)=>({w,i})).filter(({w}) => w.redFlorin == null);
+  if (missing.length) {
+    await new Promise(r=>setTimeout(r, 1500)); // cool down
+    for (const {w, i} of missing) {
+      await processWallet(w, i);
+      await new Promise(r=>setTimeout(r, 300));
+    }
+  }
 }
 
 function renderNftRedCells(w, idx) {
   const key = w.address.slice(-8);
   const elNft = document.getElementById('nft-' + key);
-  if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${w.nftCount} · ${w.nftInCharacter} char</div>`;
+  if (elNft && w.nftInWallet != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${w.nftCount} · ${w.nftInCharacter} char</div>`;
   const elRed = document.getElementById('red-' + key);
-  if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${(w.redFlorin||0).toLocaleString('vi-VN')}</span>`;
+  if (elRed) {
+    if (w.redFlorin != null) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${w.redFlorin.toLocaleString('vi-VN')}</span>`;
+    else elRed.innerHTML = '<span style="color:var(--muted2);font-size:9px">⏳</span>';
+  }
 }
 
 function updateWalletItemColumns(w, type, items) {
