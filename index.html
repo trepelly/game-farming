@@ -97,7 +97,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
 
 .wrap{position:relative;z-index:1;max-width:100%;margin:0;padding:76px 24px 80px 224px}
 .app-layout{display:block;min-height:80vh}
-.sidebar{width:200px;flex-shrink:0;padding:16px 12px 20px 16px;position:fixed;top:60px;left:0;height:calc(100vh - 60px);overflow-y:auto;z-index:50;border-right:1px solid var(--border2);background:var(--bg)}
+.sidebar{width:200px;flex-shrink:0;padding:16px 12px 20px 16px;position:fixed;top:60px;left:0;height:calc(100vh - 60px);overflow-y:auto;z-index:50;border-right:1px solid var(--border2);background:var(--bg);transition:transform .25s ease,width .25s ease}
+body.sidebar-collapsed .sidebar{transform:translateX(-100%)}
+body.sidebar-collapsed .wrap{padding-left:24px !important}
+.wrap{transition:padding-left .25s ease}
 .main-content{flex:1;min-width:0}
 
 /* ── HEADER ── */
@@ -293,6 +296,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 <div class="wrap">
   <header>
     <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="toggleSidebar()" id="sidebar-toggle-btn" title="Ẩn/hiện menu" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;width:32px;height:32px;color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0">☰</button>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)"></span>
         <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--muted2);text-transform:uppercase">Game Farming</span>
@@ -843,6 +847,19 @@ const cLogo = (k,s=16) => COIN_LOGO[k] ? `<img src="${COIN_LOGO[k]}" style="widt
 // ── Cloudflare Worker proxy ──
 const PROXY_WORKER = 'https://msu-proxy.petertrepellynguyen.workers.dev';
 const msuProxy = (url) => `${PROXY_WORKER}/?url=${encodeURIComponent(url)}`;
+
+// ── Sidebar toggle ──
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-collapsed');
+  const collapsed = document.body.classList.contains('sidebar-collapsed');
+  try { localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+// Restore sidebar state
+try {
+  if (localStorage.getItem('sidebar_collapsed') === '1') {
+    document.body.classList.add('sidebar-collapsed');
+  }
+} catch(e) {}
 
 // ── Theme ──
 function toggleTheme(){
