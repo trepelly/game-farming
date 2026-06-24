@@ -3357,16 +3357,16 @@ async function loadAllNftParallel() {
     const addrLower = w.address.toLowerCase();
     // Use cache if fresh
     const cached = cache[addrLower];
-    if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.wallet != null && cached.red != null) {
-      teamWallets[idx].nftCount = cached.total;
-      teamWallets[idx].nftInWallet = cached.wallet;
-      teamWallets[idx].nftInCharacter = cached.char;
+    if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.red != null) {
       teamWallets[idx].redFlorin = cached.red;
-      renderNftRedCells(w, idx);
+      // restore nft counts too if present
+      if (cached.wallet != null) { teamWallets[idx].nftCount=cached.total; teamWallets[idx].nftInWallet=cached.wallet; teamWallets[idx].nftInCharacter=cached.char; }
+      const elRed = document.getElementById('red-' + w.address.slice(-8));
+      if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${cached.red.toLocaleString('vi-VN')}</span>`;
       return;
     }
     try {
-      // ── FT items FIRST (lighter, render Red Florin ASAP) ──
+      // ── ONLY FT items (for Red Florin) - NFT lazy-loaded on expand ──
       let ftItems = [], fp = 1, ft = 0, ftOk = false;
       do {
         const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${fp}&paginationParam.pageSize=30`;
@@ -3383,38 +3383,15 @@ async function loadAllNftParallel() {
       if (ftOk) {
         teamWallets[idx].redFlorin = red;
         teamWallets[idx].ftItemsFull = ftItems;
-        // Render Red Florin immediately
         const elRed = document.getElementById('red-' + w.address.slice(-8));
         if (elRed) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${red.toLocaleString('vi-VN')}</span>`;
       }
-
-      await new Promise(r=>setTimeout(r,100));
-      // ── NFT items ──
-      let nftItems = [], page = 1, total = 0;
-      do {
-        const url = `https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
-        const j = await fetchJson(url);
-        if (!j) break;
-        total = j.paginationResult?.totalCount || 0;
-        nftItems = nftItems.concat(j.items || []);
-        page++;
-      } while (nftItems.length < total && page <= 5);
-
-      // Classify NFT
-      const inChar = nftItems.filter(it => it.nftItem?.ownedCharacter).length;
-      const inWallet = nftItems.length - inChar;
-
-      teamWallets[idx].nftCount = nftItems.length;
-      teamWallets[idx].nftInWallet = inWallet;
-      teamWallets[idx].nftInCharacter = inChar;
-      teamWallets[idx].nftItemsFull = nftItems;
-      // Cache: only include red if FT succeeded
-      const cacheEntry = { total: nftItems.length, wallet: inWallet, char: inChar, ts: Date.now() };
+      // Cache red florin only (NFT loaded separately on expand)
+      const cacheEntry = cache[addrLower] || {};
       if (ftOk) cacheEntry.red = red;
-      else if (cache[addrLower]?.red != null) cacheEntry.red = cache[addrLower].red; // keep old
+      cacheEntry.ts = Date.now();
       cache[addrLower] = cacheEntry;
       saveNftCache(cache);
-      renderNftRedCells(w, idx);
     } catch(e) {
       console.warn('NFT load fail', w.address, e.message);
     }
