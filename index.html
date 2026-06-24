@@ -171,6 +171,16 @@ h1 em{font-style:normal;color:var(--accent)}
 /* ── CHARTS ── */
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
 .team-row{transition:background .2s ease}
+.etab-btn{
+  background:var(--surface);border:1px solid var(--border2);border-bottom:none;
+  border-radius:8px 8px 0 0;padding:8px 16px;
+  color:var(--muted2);font-family:inherit;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .15s ease;margin-bottom:-1px;
+}
+.etab-btn:hover{color:var(--text);background:var(--card2);border-color:var(--accent)}
+.etab-btn.etab-active{
+  background:var(--accent);color:#fff;border-color:var(--accent);
+}
 tr.row-expanded > td{
   background:var(--card2) !important;
   position:relative;
@@ -2011,20 +2021,16 @@ function renderTeam() {
       <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(w.nxpc_avax*liveNxpcUsd*(liveUsdVnd||0)):'—'}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
-    <tr id="flow-expand-${w.address.slice(-8)}" style="display:none">
-      <td colspan="14" style="padding:0;border-bottom:1px solid var(--border2)">
-        <div style="display:flex;gap:4px;padding:8px 16px 0;background:var(--bg);border-top:1px solid var(--border);flex-wrap:wrap">
-          <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}"
-            style="background:var(--accent);border:none;border-radius:6px 6px 0 0;padding:6px 14px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">💸 NESO Flow</button>
-          <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}"
-            style="background:var(--subtle);border:none;border-radius:6px 6px 0 0;padding:6px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🏅 MVP</button>
-          <button onclick="switchExpandTab('${w.address}','nftitems')" id="etab-nftitems-${w.address.slice(-8)}"
-            style="background:var(--subtle);border:none;border-radius:6px 6px 0 0;padding:6px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🎒 NFT Items</button>
-          <button onclick="switchExpandTab('${w.address}','ftitems')" id="etab-ftitems-${w.address.slice(-8)}"
-            style="background:var(--subtle);border:none;border-radius:6px 6px 0 0;padding:6px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">💱 FT Items</button>
+    <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
+      <td colspan="14" style="padding:0;border-bottom:2px solid var(--accent)">
+        <div style="display:flex;gap:6px;padding:12px 16px 0;background:var(--card2);flex-wrap:wrap">
+          <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
+          <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
+          <button onclick="switchExpandTab('${w.address}','nftitems')" id="etab-nftitems-${w.address.slice(-8)}" class="etab-btn">🎒 NFT Items</button>
+          <button onclick="switchExpandTab('${w.address}','ftitems')" id="etab-ftitems-${w.address.slice(-8)}" class="etab-btn">💱 FT Items</button>
         </div>
         <div id="flow-content-${w.address.slice(-8)}"
-          style="padding:14px 20px;background:var(--bg);box-shadow:inset 0 2px 8px #00000040;max-height:480px;overflow-x:auto;overflow-y:auto">
+          style="padding:16px 20px;background:var(--card2);max-height:480px;overflow-x:auto;overflow-y:auto">
         </div>
       </td>
     </tr>`;
@@ -3660,10 +3666,10 @@ async function switchExpandTab(address, tab) {
   const cont = document.getElementById('flow-content-' + key);
   if (!cont) return;
 
-  // Update tab button styles
+  // Update tab button styles via class
   ['flow','mvp','nftitems','ftitems'].forEach(t => {
     const b = document.getElementById('etab-'+t+'-'+key);
-    if(b) { b.style.background = t===tab?'var(--accent)':'var(--subtle)'; b.style.color = t===tab?'#fff':'var(--muted2)'; }
+    if(b) b.classList.toggle('etab-active', t===tab);
   });
 
   // Check cache
