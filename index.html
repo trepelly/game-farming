@@ -170,6 +170,22 @@ h1 em{font-style:normal;color:var(--accent)}
 
 /* ── CHARTS ── */
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+.alpha-btn{
+  min-width:26px;height:26px;padding:0 6px;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:6px;color:var(--muted2);
+  font-family:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s ease;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.alpha-btn:hover{
+  background:var(--card2);color:var(--text);
+  border-color:var(--accent);transform:translateY(-1px);
+}
+.alpha-btn.alpha-active{
+  background:var(--accent);color:#fff;border-color:var(--accent);
+  box-shadow:0 2px 8px var(--accent-glow);
+}
 @media(max-width:600px){.charts-grid{grid-template-columns:1fr}}
 
 /* ── RESPONSIVE: Mobile & Tablet ── */
@@ -660,22 +676,21 @@ Ví sếp, 0x5678...efgh
         <div class="section-label" style="margin-bottom:0">Danh sách ví team</div>
         <div style="font-size:11px;color:var(--muted2)" id="team-filter-count"></div>
       </div>
-      <!-- Search + filter bar -->
+      <!-- Search + alphabet filter (one row) -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center">
-        <div style="position:relative;flex:1;min-width:180px">
+        <div style="position:relative;flex:0 0 220px;min-width:180px">
           <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:13px">🔍</span>
-          <input id="team-search" type="text" placeholder="Tìm tên hoặc địa chỉ..."
+          <input id="team-search" type="text" placeholder="Tìm tên / địa chỉ..."
             oninput="renderTeam();updateSearchClear()"
-            style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 32px 9px 34px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+            style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:8px 32px 8px 34px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
           <span id="search-clear" onclick="clearTeamSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:14px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">✕</span>
         </div>
-
-      </div>
-      <!-- Alphabet filter -->
-      <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px;align-items:center">
-        <button onclick="setAlpha('all')" id="alpha-all" class="alpha-btn alpha-active">Tất cả</button>
+        <div style="width:1px;height:24px;background:var(--border2);flex-shrink:0"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;flex:1">
+        <button onclick="setAlpha('all')" id="alpha-all" class="alpha-btn alpha-active" style="min-width:auto;padding:0 10px">Tất cả</button>
         <button onclick="setAlpha('#')" id="alpha-hash" class="alpha-btn">#</button>
         <button onclick="setAlpha('A')" id="alpha-A" class="alpha-btn">A</button><button onclick="setAlpha('B')" id="alpha-B" class="alpha-btn">B</button><button onclick="setAlpha('C')" id="alpha-C" class="alpha-btn">C</button><button onclick="setAlpha('D')" id="alpha-D" class="alpha-btn">D</button><button onclick="setAlpha('E')" id="alpha-E" class="alpha-btn">E</button><button onclick="setAlpha('F')" id="alpha-F" class="alpha-btn">F</button><button onclick="setAlpha('G')" id="alpha-G" class="alpha-btn">G</button><button onclick="setAlpha('H')" id="alpha-H" class="alpha-btn">H</button><button onclick="setAlpha('I')" id="alpha-I" class="alpha-btn">I</button><button onclick="setAlpha('J')" id="alpha-J" class="alpha-btn">J</button><button onclick="setAlpha('K')" id="alpha-K" class="alpha-btn">K</button><button onclick="setAlpha('L')" id="alpha-L" class="alpha-btn">L</button><button onclick="setAlpha('M')" id="alpha-M" class="alpha-btn">M</button><button onclick="setAlpha('N')" id="alpha-N" class="alpha-btn">N</button><button onclick="setAlpha('O')" id="alpha-O" class="alpha-btn">O</button><button onclick="setAlpha('P')" id="alpha-P" class="alpha-btn">P</button><button onclick="setAlpha('Q')" id="alpha-Q" class="alpha-btn">Q</button><button onclick="setAlpha('R')" id="alpha-R" class="alpha-btn">R</button><button onclick="setAlpha('S')" id="alpha-S" class="alpha-btn">S</button><button onclick="setAlpha('T')" id="alpha-T" class="alpha-btn">T</button><button onclick="setAlpha('U')" id="alpha-U" class="alpha-btn">U</button><button onclick="setAlpha('V')" id="alpha-V" class="alpha-btn">V</button><button onclick="setAlpha('W')" id="alpha-W" class="alpha-btn">W</button><button onclick="setAlpha('X')" id="alpha-X" class="alpha-btn">X</button><button onclick="setAlpha('Y')" id="alpha-Y" class="alpha-btn">Y</button><button onclick="setAlpha('Z')" id="alpha-Z" class="alpha-btn">Z</button>
+        </div>
       </div>
 
       <div id="team-loading" style="text-align:center;padding:40px;color:var(--muted2);font-size:13px;display:none">
