@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Rate test</title>
+<html><head><meta charset="UTF-8"><title>Summary check</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
 pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px;white-space:pre-wrap}
 .ok{color:#34d399}.err{color:#f87171}</style></head>
-<body><h2>Rate limit test</h2><pre id="out">Testing...\n</pre>
+<body><h2>Summary fields check</h2><pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const WORKER = 'https://msu-proxy.petertrepellynguyen.workers.dev';
@@ -11,30 +11,12 @@ const out = document.getElementById('out');
 const log = (m,c='') => out.innerHTML += (c?`<span class="${c}">${m}</span>`:m)+'\n';
 
 async function run() {
+  // Does summary have nft-in-wallet breakdown? Does FT summary exist?
   const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/summary-v2`;
-
-  // Test sequential: how many succeed before 429?
-  log('── Sequential (no delay) ──');
-  let ok=0, fail=0;
-  for(let i=0;i<10;i++){
-    const r = await fetch(`${WORKER}/?url=${encodeURIComponent(url)}`);
-    if(r.status===429){ log(`  #${i+1}: 429 ❌`,'err'); fail++; }
-    else if(r.ok){ log(`  #${i+1}: OK ✓`,'ok'); ok++; }
-    else log(`  #${i+1}: ${r.status}`);
-  }
-  log(`\n  → ${ok} OK, ${fail} blocked\n`);
-
-  // Wait then test with delay
-  await new Promise(r=>setTimeout(r,3000));
-  log('── With 500ms delay ──');
-  ok=0; fail=0;
-  for(let i=0;i<8;i++){
-    const r = await fetch(`${WORKER}/?url=${encodeURIComponent(url)}`);
-    if(r.status===429){ log(`  #${i+1}: 429 ❌`,'err'); fail++; }
-    else if(r.ok){ log(`  #${i+1}: OK ✓`,'ok'); ok++; }
-    await new Promise(rs=>setTimeout(rs,500));
-  }
-  log(`\n  → ${ok} OK, ${fail} blocked`);
+  const r = await fetch(`${WORKER}/?url=${encodeURIComponent(url)}`);
+  const j = await r.json();
+  log('FULL summary:', 'ok');
+  log(JSON.stringify(j, null, 2));
   log('\nDone');
 }
 run();
