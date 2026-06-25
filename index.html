@@ -121,7 +121,7 @@ h1 em{font-style:normal;color:var(--accent)}
 .theme-toggle:hover{border-color:var(--border3)}
 .theme-toggle span{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--muted2)}
 .toggle-track{width:36px;height:20px;background:var(--border2);border-radius:10px;position:relative;transition:background .3s}
-[data-theme="light"] .toggle-track{background:var(--accent)}
+[data-theme="light"] .toggle-track{background:#cbd5e1}
 .toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .3s;box-shadow:0 1px 3px #0003}
 [data-theme="light"] .toggle-thumb{transform:translateX(16px)}
 .icon-sun,.icon-moon{display:inline-flex;align-items:center;color:var(--muted2)}
@@ -178,9 +178,6 @@ h1 em{font-style:normal;color:var(--accent)}
 .team-row{transition:background .2s ease}
 /* Expand content follows viewport when table scrolls */
 .flow-expand-row td > div{ }
-body.sidebar-collapsed .flow-expand-row [style*="max-width:calc(100vw - 240px)"]{
-  max-width:calc(100vw - 48px) !important;
-}
 @media(max-width:900px){
   .flow-expand-row [style*="max-width:calc(100vw - 240px)"]{
     max-width:calc(100vw - 24px) !important;
@@ -899,6 +896,14 @@ function toggleSidebar() {
   document.body.classList.toggle('sidebar-collapsed');
   const collapsed = document.body.classList.contains('sidebar-collapsed');
   try { localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  // Re-size open expand contents after layout transition
+  setTimeout(() => {
+    if (typeof sizeExpandContent === 'function') {
+      document.querySelectorAll('[id^="flow-expand-"]').forEach(r => {
+        if (r.style.display !== 'none') sizeExpandContent(r.id.replace('flow-expand-',''));
+      });
+    }
+  }, 300);
 }
 // Restore sidebar state
 try {
@@ -2041,14 +2046,14 @@ function renderTeam() {
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
       <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:#000">
-        <div style="display:flex;gap:4px;padding:12px 16px 0;background:#000;flex-wrap:wrap;border-bottom:1px solid #2a2a2a;position:sticky;left:0;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
+        <div style="display:flex;gap:4px;padding:12px 16px 0;background:#000;flex-wrap:wrap;border-bottom:1px solid #2a2a2a;position:sticky;left:0;width:100%;box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
           <button onclick="switchExpandTab('${w.address}','nftitems')" id="etab-nftitems-${w.address.slice(-8)}" class="etab-btn">🎒 NFT Items</button>
           <button onclick="switchExpandTab('${w.address}','ftitems')" id="etab-ftitems-${w.address.slice(-8)}" class="etab-btn">💱 FT Items</button>
         </div>
         <div id="flow-content-${w.address.slice(-8)}"
-          style="padding:18px 20px;background:#000;max-height:420px;overflow-x:auto;overflow-y:auto;border:1px solid #2a2a2a;border-top:none;position:sticky;left:0;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
+          style="padding:18px 20px;background:#000;max-height:420px;overflow-y:auto;border:1px solid #2a2a2a;border-top:none;position:sticky;left:0;width:100%;box-sizing:border-box">
         </div>
       </td>
     </tr>`;
@@ -3354,6 +3359,17 @@ function updateMvpCell(w) {
 // Toggle NESO Flow expand row
 const expandedFlows = {};
 const expandTabState = {};
+function sizeExpandContent(key) {
+  const wrap = document.getElementById('team-table-wrap');
+  const expandTd = document.querySelector('#flow-expand-' + key + ' > td');
+  if (!wrap || !expandTd) return;
+  const w = wrap.clientWidth;
+  expandTd.querySelectorAll(':scope > div').forEach(d => {
+    d.style.width = w + 'px';
+    d.style.maxWidth = w + 'px';
+  });
+}
+
 async function toggleFlowExpand(address) {
   const key  = address.slice(-8);
   const row  = document.getElementById('flow-expand-' + key);
@@ -3422,6 +3438,16 @@ async function toggleFlowExpand(address) {
   if(btn) btn.textContent = '▲';
   if(mainRow) mainRow.classList.add('row-expanded');
   document.body.classList.add('has-expanded');
+  sizeExpandContent(key);
+  // Re-size on window resize / sidebar toggle
+  if (!window._expandResizeHooked) {
+    window._expandResizeHooked = true;
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('[id^="flow-expand-"]').forEach(r => {
+        if (r.style.display !== 'none') sizeExpandContent(r.id.replace('flow-expand-',''));
+      });
+    });
+  }
 
   // Default tab = flow
   switchExpandTab(address, 'flow');
