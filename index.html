@@ -193,8 +193,10 @@ body.sidebar-collapsed .flow-expand-row [style*="max-width:calc(100vw - 240px)"]
   border-color:#2a2a2a;border-bottom:1px solid #000;
 }
 tr.row-expanded > td{
-  background:var(--card2) !important;
-  position:relative;
+  background:#1a1a1a !important;
+  position:sticky;
+  top:60px;
+  z-index:20;
 }
 body.has-expanded tbody tr.team-row:not(.row-expanded) > td{
   opacity:.35;transition:opacity .2s ease;
