@@ -3118,7 +3118,7 @@ async function loadTeamNftCounts() {
       teamWallets[idx].redFlorin      = cached.red;
       teamWallets[idx].blueFlorin     = cached.blue;
       const elC = document.getElementById('nft-' + w.address.slice(-8));
-      if (elC) elC.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.wallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${cached.total} · ${cached.char} char</div>`;
+      if (elC) elC.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span>`;
       const elRedC = document.getElementById('red-' + w.address.slice(-8));
       if (elRedC) elRedC.innerHTML = `<span style="color:#ef4444;font-weight:600">${(cached.red??0).toLocaleString('vi-VN')}</span>`;
 
@@ -3207,7 +3207,7 @@ async function loadTeamNftCounts() {
     if (elAll) {
       const iw = teamWallets[idx].nftInWallet;
       elAll.innerHTML = iw!=null
-        ? `<span style="color:#a78bfa;font-weight:600">${iw}</span><div style="font-size:9px;color:var(--muted2)">tổng ${teamWallets[idx].nftCount} · ${teamWallets[idx].nftInCharacter} char</div>`
+        ? `<span style="color:#a78bfa;font-weight:600">${teamWallets[idx].nftCount}</span>`
         : '<span style="color:var(--muted2)">—</span>';
     }
     const elRed = document.getElementById('red-' + w.address.slice(-8));
@@ -3476,7 +3476,7 @@ async function loadAllNftParallel() {
 function renderNftRedCells(w, idx) {
   const key = w.address.slice(-8);
   const elNft = document.getElementById('nft-' + key);
-  if (elNft && w.nftInWallet != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${w.nftInWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${w.nftCount} · ${w.nftInCharacter} char</div>`;
+  if (elNft && w.nftCount != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`;
   const elRed = document.getElementById('red-' + key);
   if (elRed) {
     if (w.redFlorin != null) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${w.redFlorin.toLocaleString('vi-VN')}</span>`;
@@ -3493,7 +3493,7 @@ function updateWalletItemColumns(w, type, items) {
     w.nftInWallet = inWallet;
     w.nftInCharacter = inChar;
     const el = document.getElementById('nft-' + key);
-    if (el) el.innerHTML = `<span style="color:#a78bfa;font-weight:600">${inWallet}</span><div style="font-size:9px;color:var(--muted2)">tổng ${items.length} · ${inChar} char</div>`;
+    if (el) el.innerHTML = `<span style="color:#a78bfa;font-weight:600">${items.length}</span>`;
   } else {
     const exch = items.filter(it => it.category?.tier1?.label === 'Exchange Currency');
     const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
