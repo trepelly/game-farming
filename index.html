@@ -552,7 +552,7 @@ Ví sếp, 0x5678...efgh
     <!-- Portfolio summary (on top) -->
     <div id="portfolio-section" style="display:none">
       <div class="section-label">Tổng hợp tất cả ví</div>
-      <div class="stats-fixed" id="portfolio-stats"></div>
+      <div class="stats-fixed team-stats-6" id="portfolio-stats"></div>
       <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow);margin-bottom:28px">
         <div class="chart-title" style="margin-bottom:4px">📊 Phân bổ NESO theo ví</div>
         <div class="chart-sub" style="margin-bottom:16px">Tỷ lệ % mỗi ví trong tổng portfolio</div>
@@ -1674,26 +1674,33 @@ function updatePortfolio() {
   const totalVnd2  = totalUsdt2 * usdvnd;
   const totalUsdtAvax = totalNxpcAvax * (liveNxpcUsd||0);
   const totalVndAvax  = totalUsdtAvax * usdvnd;
-  const sc2 = (acc,chain,cc,lbl,val) => {
-    const lk = lbl.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
-    return `<div class="stat"><div class="stat-accent" style="background:${acc}"></div>
-      <div style="font-size:9px;font-weight:700;color:${cc};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
-      <div class="stat-label">${cLogo(lk)}${lbl}</div><div class="stat-val" style="color:${acc}">${val}</div></div>`;
+  const G='var(--green)',B='var(--blue)';
+  const avaxRate = liveAvaxUsd || 0;
+  const totalAvaxUsd = totalAvax * avaxRate;
+  const totalUsdtAvaxReal = loaded.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
+  const usersSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+  // Token card with logo + USD/VND estimate inside (right-aligned numbers, left title)
+  const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
+    let sub = '';
+    if (usdVal!=null) sub += `<div style="font-size:10px;color:var(--text2);font-weight:500;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) sub += `<div style="font-size:10px;color:var(--muted2);text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
+    return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
+      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
+      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px">${cLogo(lk,16)}${label}</div>
+      <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
+      <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">${sub}</div>
+    </div>`;
   };
-  const scEmpty2 = () => `<div class="stat" style="background:transparent;border-color:transparent;box-shadow:none"></div>`;
-  const G='var(--green)',B='var(--blue)',A='var(--amber)';
   document.getElementById('portfolio-stats').innerHTML=`
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
-      <span class="stat-icon">👜</span><div class="stat-label">Tổng ví</div>
-      <div class="stat-val">${loaded.length}</div></div>
-    ${sc2(A,'🍁 HENESYS',G,'NESO',fd(totalNeso))}
-    ${sc2(G,'🍁 HENESYS',G,'NXPC',fd2(totalNxpc,4))}
-    ${sc2(G,'🍁 HENESYS',G,'USDT',fd2(totalUsdt2,2))}
-    ${sc2(G,'🍁 HENESYS',G,'VND',fd(totalVnd2))}
-    ${sc2('#e84142','🔺 AVALANCHE','#e84142','AVAX',fd2(totalAvax||0,4))}
-    ${sc2(B,'🔺 AVALANCHE',B,'NXPC(AVAX)',fd2(totalNxpcAvax,4))}
-    ${sc2(B,'🔺 AVALANCHE',B,'USDT(AVAX)',fd2(totalUsdtAvax,2))}
-    ${sc2(B,'🔺 AVALANCHE',B,'VND(AVAX)',fd(totalVndAvax))}`;
+      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px"><span class="stat-icon" style="display:inline-flex;color:var(--text)">${usersSvg}</span>Tổng ví</div>
+      <div class="stat-val" style="text-align:right">${loaded.length}</div></div>
+    ${tokenCard('🍁 HENESYS', G, 'NESO', fd(totalNeso), totalUsdt2, totalVnd2)}
+    ${tokenCard('🍁 HENESYS', G, 'NXPC', fd2(totalNxpc,2), totalNxpc*(liveNxpcUsd||0), totalNxpc*(liveNxpcUsd||0)*usdvnd)}
+    ${tokenCard('🔺 AVALANCHE', B, 'AVAX', fd2(totalAvax,4), totalAvaxUsd, totalAvaxUsd*usdvnd)}
+    ${tokenCard('🔺 AVALANCHE', B, 'NXPC(AVAX)', fd2(totalNxpcAvax,2), totalUsdtAvax, totalVndAvax)}
+    ${tokenCard('🔺 AVALANCHE', B, 'USDT(AVAX)', fd2(totalUsdtAvaxReal,2), null, totalUsdtAvaxReal*usdvnd)}`;
 
   // Pie chart
   const isDark = document.documentElement.getAttribute('data-theme')==='dark';
