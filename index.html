@@ -98,8 +98,12 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
 .wrap{position:relative;z-index:1;max-width:100%;margin:0;padding:76px 24px 80px 224px}
 .app-layout{display:block;min-height:80vh}
 .sidebar{width:200px;flex-shrink:0;padding:16px 12px 20px 16px;position:fixed;top:60px;left:0;height:calc(100vh - 60px);overflow-y:auto;z-index:50;border-right:1px solid var(--border2);background:var(--bg);transition:transform .25s ease,width .25s ease}
-body.sidebar-collapsed .sidebar{transform:translateX(-100%)}
-body.sidebar-collapsed .wrap{padding-left:24px !important}
+body.sidebar-collapsed .sidebar{width:60px;padding:16px 8px 20px 8px}
+body.sidebar-collapsed .sidebar .tab{justify-content:center;padding:10px 0;gap:0}
+body.sidebar-collapsed .sidebar .tab-text{display:none}
+body.sidebar-collapsed .sidebar .tab-icon{width:auto}
+body.sidebar-collapsed .sidebar .tab-icon svg{width:20px;height:20px}
+body.sidebar-collapsed .wrap{padding-left:84px}
 .wrap{transition:padding-left .25s ease}
 .main-content{flex:1;min-width:0}
 
@@ -124,11 +128,11 @@ h1 em{font-style:normal;color:var(--accent)}
 
 /* ── TABS ── */
 .tabs{display:flex;flex-direction:column;gap:1px;padding:4px 0;width:100%}
-.tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;letter-spacing:0;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:var(--muted2);cursor:pointer;transition:all .15s;text-align:left;width:100%;display:flex;align-items:center;gap:10px}
+.tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;letter-spacing:0;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:#e8e8f0;cursor:pointer;transition:all .15s;text-align:left;width:100%;display:flex;align-items:center;gap:10px}
 .tab .tab-icon{width:20px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:#fff}
-.tab.active{background:var(--border);color:var(--text);font-weight:600}
+.tab.active{background:var(--border);color:#fff;font-weight:600}
 .tab.active .tab-icon{filter:none}
-.tab:hover:not(.active){color:var(--text);background:var(--border)}
+.tab:hover:not(.active){color:#fff;background:var(--border)}
 
 .panel{display:none}
 .panel.active{display:block;animation:fadeUp .3s ease}
@@ -354,8 +358,6 @@ td:first-child{text-align:left;color:var(--muted2)}
         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6)"></span>
         <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:#fff;text-transform:uppercase">Game Farming</span>
       </div>
-      <div style="width:1px;height:16px;background:var(--border2)"></div>
-      <h1 style="font-size:16px;font-weight:800;margin:0;line-height:1;color:#ffffff">Farm <em style="color:var(--accent);font-style:normal">Dashboard</em></h1>
     </div>
     <!-- Header tickers -->
     <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:center;flex-wrap:nowrap">
@@ -387,12 +389,12 @@ td:first-child{text-align:left;color:var(--muted2)}
   <div class="app-layout">
   <div class="sidebar">
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('farm')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>Vòng quay</button>
-      <button class="tab" onclick="switchTab('target')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>Mục tiêu ngược</button>
-      <button class="tab" onclick="switchTab('wallet')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span>Ví & Tài sản</button>
-      <button class="tab" onclick="switchTab('mvp')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span>MVP Status</button>
-      <button class="tab" onclick="switchTab('flow')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>NESO Flow</button>
-      <button class="tab" onclick="switchTab('team')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Team Wallet</button>
+      <button class="tab active" onclick="switchTab('farm')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><span class="tab-text">Vòng quay</span></button>
+      <button class="tab" onclick="switchTab('target')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="tab-text">Mục tiêu ngược</span></button>
+      <button class="tab" onclick="switchTab('wallet')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></span><span class="tab-text">Ví & Tài sản</span></button>
+      <button class="tab" onclick="switchTab('mvp')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span><span class="tab-text">MVP Status</span></button>
+      <button class="tab" onclick="switchTab('flow')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="tab-text">NESO Flow</span></button>
+      <button class="tab" onclick="switchTab('team')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="tab-text">Team Wallet</span></button>
     </div>
   </div>
   <div class="main-content">
