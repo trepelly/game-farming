@@ -3657,7 +3657,7 @@ async function renderItemsTab(address, type) {
         ${img?`<img src="${img}" style="width:30px;height:30px;border-radius:6px;object-fit:contain;background:var(--bg);flex-shrink:0" onerror="this.style.display='none'"/>`:''}
         <div style="flex:1;min-width:0">
           <div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
-          <div style="font-size:9px;color:var(--muted2)">${cat?cat:''}${sf?` ⭐${sf}`:''}${qty!=null?` <b style="color:#06b6d4">SL ${qty.toLocaleString('vi-VN')}</b>`:''}</div>
+          <div style="font-size:9px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat?cat:''}${sf?` ⭐${sf}`:''}${qty!=null?` <b style="color:#06b6d4">SL ${qty.toLocaleString('vi-VN')}</b>`:''}</div>
         </div>
       </div>`;
     });
