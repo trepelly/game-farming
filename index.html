@@ -729,7 +729,7 @@ Ví sếp, 0x5678...efgh
         <span style="display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:10px"></span>
         Đang tải dữ liệu...
       </div>
-      <div class="table-wrap" id="team-table-wrap" style="display:none;max-height:480px;overflow-y:auto">
+      <div class="table-wrap" id="team-table-wrap" style="display:none">
         <table>
           <thead><tr>
             <th style="text-align:center">#</th>
@@ -2038,15 +2038,15 @@ function renderTeam() {
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
-      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent)">
-        <div style="display:flex;gap:4px;padding:12px 16px 0;background:#000;flex-wrap:wrap;border-bottom:1px solid #2a2a2a;position:sticky;left:0;top:110px;z-index:15;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
+      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:108px;left:0;z-index:18;background:#000">
+        <div style="display:flex;gap:4px;padding:12px 16px 0;background:#000;flex-wrap:wrap;border-bottom:1px solid #2a2a2a;position:sticky;left:0;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
           <button onclick="switchExpandTab('${w.address}','nftitems')" id="etab-nftitems-${w.address.slice(-8)}" class="etab-btn">🎒 NFT Items</button>
           <button onclick="switchExpandTab('${w.address}','ftitems')" id="etab-ftitems-${w.address.slice(-8)}" class="etab-btn">💱 FT Items</button>
         </div>
         <div id="flow-content-${w.address.slice(-8)}"
-          style="padding:18px 20px;background:#000;max-height:480px;overflow-x:auto;overflow-y:auto;border:1px solid #2a2a2a;border-top:none;position:sticky;left:0;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
+          style="padding:18px 20px;background:#000;max-height:420px;overflow-x:auto;overflow-y:auto;border:1px solid #2a2a2a;border-top:none;position:sticky;left:0;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
         </div>
       </td>
     </tr>`;
