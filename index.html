@@ -165,8 +165,8 @@ h1 em{font-style:normal;color:var(--accent)}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
 .stat-icon{font-size:18px;margin-bottom:8px;display:block}
-.stat-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;font-weight:600}
-.stat-val{font-family:'Inter',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1}
+.stat-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;font-weight:600}
+.stat-val{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1}
 .stat-sub{font-size:10px;color:var(--muted2);margin-top:5px}
 .stat-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;margin-top:6px}
 .badge-up{background:var(--green-bg);color:var(--green)}
@@ -352,24 +352,24 @@ td:first-child{text-align:left;color:var(--muted2)}
     <div style="display:flex;align-items:center;gap:10px">
       <button onclick="toggleSidebar()" id="sidebar-toggle-btn" title="Ẩn/hiện menu" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;width:32px;height:32px;color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0">☰</button>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--text);box-shadow:0 0 6px var(--accent-glow)"></span>
-        <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--text);text-transform:uppercase">Game Farming</span>
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--text);box-shadow:0 0 8px var(--accent-glow)"></span>
+        <span style="font-size:13px;font-weight:800;letter-spacing:.15em;color:var(--text);text-transform:uppercase">Game Farming</span>
       </div>
     </div>
     <!-- Header tickers -->
     <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:center;flex-wrap:nowrap">
-      <div id="hdr-nxpc" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;white-space:nowrap">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png" style="width:14px;height:14px;border-radius:50%"/>
+      <div id="hdr-nxpc" style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png" style="width:17px;height:17px;border-radius:50%"/>
         <span style="color:var(--muted2);font-weight:600">NXPC</span>
         <span id="hdr-nxpc-price" style="color:var(--green);font-weight:700;font-family:'Chakra Petch',monospace">$—</span>
-        <span id="hdr-nxpc-chg" style="font-size:10px;color:var(--muted2)"></span>
+        <span id="hdr-nxpc-chg" style="font-size:11px;color:var(--muted2)"></span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;white-space:nowrap">
+      <div style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <span style="color:var(--muted2);font-weight:600">NXPC/NESO</span>
         <span id="hdr-ratio" style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;white-space:nowrap">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:14px;height:14px;border-radius:50%"/>
+      <div style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:17px;height:17px;border-radius:50%"/>
         <span style="color:var(--muted2);font-weight:600">USDT/VND</span>
         <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
@@ -1686,8 +1686,8 @@ function updatePortfolio() {
     if (vndVal!=null) sub += `<div style="font-size:11px;color:var(--muted2);font-weight:500;text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
     return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
-      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
-      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px">${cLogo(lk,16)}${label}</div>
+      <div style="font-size:10px;font-weight:700;color:${chainColor};margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
+      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:7px;font-size:11px">${cLogo(lk,20)}${label}</div>
       <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
       <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">${sub}</div>
     </div>`;
@@ -2142,8 +2142,8 @@ function renderTeam() {
     // Token logo key (strip (AVAX) etc)
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
     return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
-      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
-      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px">${cLogo(lk,16)}${label}</div>
+      <div style="font-size:10px;font-weight:700;color:${chainColor};margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
+      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:7px;font-size:11px">${cLogo(lk,20)}${label}</div>
       <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
       <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">${sub}</div>
     </div>`;
