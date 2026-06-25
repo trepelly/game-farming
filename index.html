@@ -59,7 +59,7 @@
   --text:#0f0f1a;
   --text2:#3a3a55;
   --muted:#9090b0;
-  --muted2:#6060808;
+  --muted2:#606080;
   --accent:#7c3aed;
   --accent-glow:#7c3aed20;
   --accent2:#6d28d9;
@@ -124,12 +124,12 @@ h1 em{font-style:normal;color:var(--accent)}
 [data-theme="light"] .toggle-track{background:var(--accent)}
 .toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .3s;box-shadow:0 1px 3px #0003}
 [data-theme="light"] .toggle-thumb{transform:translateX(16px)}
-.icon-sun,.icon-moon{font-size:14px}
+.icon-sun,.icon-moon{display:inline-flex;align-items:center;color:var(--muted2)}
 
 /* ── TABS ── */
 .tabs{display:flex;flex-direction:column;gap:1px;padding:4px 0;width:100%}
-.tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;letter-spacing:0;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:#e8e8f0;cursor:pointer;transition:all .15s;text-align:left;width:100%;display:flex;align-items:center;gap:10px}
-.tab .tab-icon{width:20px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:#fff}
+.tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;letter-spacing:0;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:var(--text);cursor:pointer;transition:all .15s;text-align:left;width:100%;display:flex;align-items:center;gap:10px}
+.tab .tab-icon{width:20px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:var(--text)}
 .tab.active{background:var(--border);color:#fff;font-weight:600}
 .tab.active .tab-icon{filter:none}
 .tab:hover:not(.active){color:#fff;background:var(--border)}
@@ -355,8 +355,8 @@ td:first-child{text-align:left;color:var(--muted2)}
     <div style="display:flex;align-items:center;gap:10px">
       <button onclick="toggleSidebar()" id="sidebar-toggle-btn" title="Ẩn/hiện menu" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;width:32px;height:32px;color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0">☰</button>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6)"></span>
-        <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:#fff;text-transform:uppercase">Game Farming</span>
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--text);box-shadow:0 0 6px var(--accent-glow)"></span>
+        <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--text);text-transform:uppercase">Game Farming</span>
       </div>
     </div>
     <!-- Header tickers -->
@@ -380,9 +380,9 @@ td:first-child{text-align:left;color:var(--muted2)}
       <button onclick="fetchLivePrices(true)" title="Cập nhật giá" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;font-size:12px;line-height:1;transition:all .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">⟳</button>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-      <span class="icon-sun">☀️</span>
+      <span class="icon-sun"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></span>
       <div class="toggle-track"><div class="toggle-thumb"></div></div>
-      <span class="icon-moon">🌙</span>
+      <span class="icon-moon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
     </button>
   </header>
 
@@ -1938,7 +1938,7 @@ function renderTeam() {
   const convSub = (usdVal, vndVal) => {
     if (usdVal==null && vndVal==null) return '';
     let h = '<div style="margin-top:4px;display:flex;flex-direction:column;gap:3px">';
-    if (usdVal!=null) h += `<div style="font-size:10px;color:#e8e8f0;font-weight:500">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (usdVal!=null) h += `<div style="font-size:10px;color:var(--text2);font-weight:500">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
     if (vndVal!=null) h += `<div style="font-size:10px;color:var(--muted2);font-weight:400">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
     h += '</div>';
     return h;
@@ -2007,14 +2007,14 @@ function renderTeam() {
     const vnd  = usdt!=null   ? usdt*usdvnd            : null;
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
-    const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px;color:#e8e8f0">${a.slice(0,6)}...${a.slice(-4)}</span>`;
+    const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px;color:var(--text2)">${a.slice(0,6)}...${a.slice(-4)}</span>`;
     return `<tr id="flow-main-${w.address.slice(-8)}" class="team-row">
-      <td style="text-align:center;color:#fff;font-size:12px;font-weight:600">${i+1}</td>
+      <td style="text-align:center;color:var(--text);font-size:12px;font-weight:600">${i+1}</td>
       <td style="text-align:left">
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
             style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
-          <span style="font-weight:600;color:#fff">${w.label||'—'}</span>
+          <span style="font-weight:600;color:var(--text)">${w.label||'—'}</span>
           <span onclick="navigator.clipboard.writeText('${w.label||''}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)"
             style="cursor:pointer;font-size:10px;color:var(--muted2);margin-left:4px;user-select:none" title="Copy tên">⎘</span>
         </div>
@@ -2118,7 +2118,7 @@ function renderTeam() {
   // Token stat card with USD/VND estimate inside
   const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
     let sub = '';
-    if (usdVal!=null) sub += `<div style="font-size:10px;color:#e8e8f0;font-weight:500;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (usdVal!=null) sub += `<div style="font-size:10px;color:var(--text2);font-weight:500;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
     if (vndVal!=null) sub += `<div style="font-size:10px;color:var(--muted2);text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
     // Token logo key (strip (AVAX) etc)
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
