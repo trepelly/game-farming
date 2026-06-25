@@ -737,14 +737,11 @@ Ví sếp, 0x5678...efgh
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
             <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
 
-            <th style="cursor:pointer;user-select:none" onclick="colSort('neso')" style="color:var(--amber)">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none" onclick="colSort('nxpc')" style="color:var(--green)">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none" onclick="colSort('usdt')" style="color:var(--green)">USDT <span id="sort-icon-usdt" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none" onclick="colSort('vnd')" style="color:var(--green)">VND <span id="sort-icon-vnd" style="opacity:.3">↕</span></th>
-            <th style="color:#e84142;cursor:pointer;user-select:none;border-left:1px solid var(--border2)" onclick="colSort('avax')">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
-            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
-            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('usdt_avax')">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
-            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('vnd_avax')">VND(AVAX) <span id="sort-icon-vnd_avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--amber)" onclick="colSort('neso')" title="NESO + quy đổi USDT/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('nxpc')" title="NXPC Henesys + quy đổi">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
+            <th style="color:#e84142;cursor:pointer;user-select:none;border-left:1px solid var(--border2)" onclick="colSort('avax')" title="AVAX + quy đổi">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
+            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')" title="NXPC Avalanche + quy đổi">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
+            <th style="color:#26a17b;cursor:pointer;user-select:none" onclick="colSort('usdt_avax')" title="USDT thật trên ví Avalanche">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
             <th></th>
           </tr></thead>
           <tbody id="team-tbody"></tbody>
@@ -1171,6 +1168,7 @@ const NESO_CONTRACT  = '0x07E49Ad54FcD23F6e7B911C2068F0148d1827c08';
 const NESO_DECIMALS  = 18;
 const AVAX_RPC       = 'https://api.avax.network/ext/bc/C/rpc';
 const NXPC_AVAX_CONTRACT = '0x5E0E90E268BC247Cc850c789A0DB0d5c7621fb59';
+const USDT_AVAX_CONTRACT = '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7'; // USDt on Avalanche C-Chain (6 decimals)
 
 let wallets = JSON.parse(localStorage.getItem('wl_wallets')||'[]');
 let portfolioChart = null;
@@ -1229,19 +1227,22 @@ async function fetchBalances(address) {
       }).then(r=>r.json()).then(d=>d.result),
       4000
     );
-    const [avaxHex, nxpcAvaxHex] = await Promise.all([
+    const [avaxHex, nxpcAvaxHex, usdtAvaxHex] = await Promise.all([
       avaxPost('eth_getBalance', [address,'latest']),
-      avaxPost('eth_call', [{to:NXPC_AVAX_CONTRACT, data:calldata},'latest'])
+      avaxPost('eth_call', [{to:NXPC_AVAX_CONTRACT, data:calldata},'latest']),
+      avaxPost('eth_call', [{to:USDT_AVAX_CONTRACT, data:calldata},'latest'])
     ]);
-    avaxBal     = hexToDec(avaxHex, 18);
-    nxpcAvaxBal = hexToDec(nxpcAvaxHex, 18);
+    avaxBal      = hexToDec(avaxHex, 18);
+    nxpcAvaxBal  = hexToDec(nxpcAvaxHex, 18);
+    var usdtAvaxBal = hexToDec(usdtAvaxHex, 6); // USDT = 6 decimals
   } catch(e) { /* AVAX timeout or error - show — */ }
 
   return {
     nxpc: hexToDec(nxpcHex, 18),
     neso: hexToDec(nesoHex, 18),
     avax: avaxBal,
-    nxpc_avax: nxpcAvaxBal
+    nxpc_avax: nxpcAvaxBal,
+    usdt_avax_real: typeof usdtAvaxBal!=='undefined' ? usdtAvaxBal : null
   };
 }
 
@@ -1826,9 +1827,10 @@ async function loadTeamWallets() {
     teamWallets = data.wallets || [];
     await Promise.all(teamWallets.map(async w => {
       try {
-        const {nxpc, neso, avax, nxpc_avax} = await fetchBalances(w.address);
+        const {nxpc, neso, avax, nxpc_avax, usdt_avax_real} = await fetchBalances(w.address);
         w.nxpc = nxpc; w.neso = neso;
         w.avax = avax; w.nxpc_avax = nxpc_avax;
+        w.usdt_avax_real = usdt_avax_real;
         w.err = null;
       } catch(e) { w.nxpc = null; w.neso = null; w.avax = null; w.nxpc_avax = null; w.err = e.message; }
     }));
@@ -1864,7 +1866,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','neso','nxpc','usdt','vnd','avax','nxpc_avax','usdt_avax','vnd_avax','mvp','tuanmvp','mvpweek','nft'].forEach(c => {
+  ['label','neso','nxpc','avax','nxpc_avax','usdt_avax','mvp','tuanmvp','mvpweek','nft'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -1927,6 +1929,14 @@ function renderTeam() {
   const nesoRate = liveNesoUsd || (nxpcRate/100000);
   const fd2 = (n,d) => n==null?'—':n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const f   = n => n==null?'—':Math.round(n).toLocaleString('vi-VN');
+  // Conversion subline: ≈ $X · Yđ
+  const convSub = (usdVal, vndVal) => {
+    if (usdVal==null && vndVal==null) return '';
+    const parts = [];
+    if (usdVal!=null) parts.push('$'+usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}));
+    if (vndVal!=null) parts.push(Math.round(vndVal).toLocaleString('vi-VN')+'đ');
+    return `<div style="font-size:9px;color:var(--muted2);font-weight:400">≈ ${parts.join(' · ')}</div>`;
+  };
 
   const isAdmin = teamUser?.role === 'admin';
   const query   = (document.getElementById('team-search')?.value||'').toLowerCase().trim();
@@ -1965,10 +1975,7 @@ function renderTeam() {
       if (teamSortCol==='mvpweek')    return w.mvpWeekValue ?? -1;
       if (teamSortCol==='nft')        return w.nftCount ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
-      if (teamSortCol==='usdt_avax') return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0);
-      if (teamSortCol==='vnd_avax')  return (w.nxpc_avax ?? -1) * (liveNxpcUsd||0) * (liveUsdVnd||0);
-      if (teamSortCol==='usdt')      return w.neso != null ? w.neso*nesoRate : -1;
-      if (teamSortCol==='vnd')       return w.neso != null ? w.neso*nesoRate*usdvnd : -1;
+      if (teamSortCol==='usdt_avax') return w.usdt_avax_real ?? -1;
       return 0;
     };
     displayWallets.sort((a,b) => {
@@ -2019,18 +2026,15 @@ function renderTeam() {
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
       <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
 
-      <td style="text-align:right;color:var(--amber)">${f(w.neso)}</td>
-      <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}</td>
-      <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
-      <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
-      <td style="text-align:right;color:#e84142">${w.avax!=null?fd2(w.avax,4):'—'}</td>
-      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
-      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax*liveNxpcUsd,2):'—'}</td>
-      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(w.nxpc_avax*liveNxpcUsd*(liveUsdVnd||0)):'—'}</td>
+      <td style="text-align:right;color:var(--amber)">${f(w.neso)}${convSub(usdt, vnd)}</td>
+      <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:#e84142">${w.avax!=null?fd2(w.avax,4):'—'}${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:#26a17b">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
-      <td colspan="14" style="padding:0;border-bottom:2px solid var(--accent)">
+      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent)">
         <div style="display:flex;gap:4px;padding:12px 16px 0;background:#000;flex-wrap:wrap;border-bottom:1px solid #2a2a2a;position:sticky;left:0;top:110px;z-index:15;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
@@ -2058,14 +2062,11 @@ function renderTeam() {
     <td style="padding:10px 14px"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
     <td style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totUsdt,2)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totVnd)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(totAvax,4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totUsdtAvax,2)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${f(totVndAvax)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}${(()=>{const u=totNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(totAvax,4)}${(()=>{const u=totAvax*(liveAvaxUsd||0);return convSub(u,u*usdvnd);})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}${convSub(totUsdtAvax, totVndAvax)}</td>
+    <td style="text-align:right;padding:10px 14px;color:#26a17b">${(()=>{const t=displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);return fd2(t,2)+convSub(null,t*usdvnd);})()}</td>
     <td></td>
   </tr>`;
 
@@ -2219,6 +2220,7 @@ window.switchTab = function(t) { _origSwitchTeam(t); };
 // ── LIVE PRICE MODULE ──
 let liveNxpcUsd = null;
 let liveNesoUsd = null;
+let liveAvaxUsd = null;
 let liveUsdVnd  = null;
 
 async function fetchLivePrices(force=false) {
@@ -2227,6 +2229,7 @@ async function fetchLivePrices(force=false) {
   if (!force && cached && Date.now() - cached.ts < 60000) {
     liveNxpcUsd = cached.nxpc;
     liveNesoUsd = cached.neso;
+    liveAvaxUsd = cached.avaxUsd;
     liveUsdVnd  = cached.usdvnd;
     renderPriceTicker(cached);
     return;
@@ -2238,12 +2241,14 @@ async function fetchLivePrices(force=false) {
   try {
     // Binance API - no CORS issues, public
     // NXPC/USDT ticker
-    const [nxpcRes, usdvndRes] = await Promise.all([
+    const [nxpcRes, usdvndRes, avaxRes] = await Promise.all([
       fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=NXPCUSDT'),
       fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTVND').catch(()=>null),
+      fetch('https://api.binance.com/api/v3/ticker/price?symbol=AVAXUSDT').catch(()=>null),
     ]);
 
-    let nxpc = null, nxpcChg = 0, usdvnd = null;
+    let nxpc = null, nxpcChg = 0, usdvnd = null, avaxUsd = null;
+    if(avaxRes?.ok) { const d = await avaxRes.json(); avaxUsd = parseFloat(d.price) || null; }
 
     if(nxpcRes.ok) {
       const d = await nxpcRes.json();
@@ -2269,11 +2274,12 @@ async function fetchLivePrices(force=false) {
     const neso    = nxpc ? nxpc / 100000 : null;
     const nesoChg = nxpcChg; // NESO tracks NXPC
 
-    const data = { nxpc, nxpcChg, neso, nesoChg, usdvnd, ts: Date.now() };
+    const data = { nxpc, nxpcChg, neso, nesoChg, usdvnd, avaxUsd, ts: Date.now() };
     sessionStorage.setItem('live_prices', JSON.stringify(data));
     liveNxpcUsd = nxpc;
     liveNesoUsd = neso;
     liveUsdVnd  = usdvnd;
+    liveAvaxUsd = avaxUsd;
     renderPriceTicker(data);
     if (typeof renderTeam === 'function' && document.getElementById('team-tbody')) renderTeam();
   } catch(e) {
