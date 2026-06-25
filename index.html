@@ -1682,14 +1682,14 @@ function updatePortfolio() {
   // Token card with logo + USD/VND estimate inside (right-aligned numbers, left title)
   const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
     let sub = '';
-    if (usdVal!=null) sub += `<div style="font-size:10px;color:var(--text2);font-weight:500;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
-    if (vndVal!=null) sub += `<div style="font-size:10px;color:var(--muted2);text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    if (usdVal!=null) sub += `<div style="font-size:12px;color:var(--text2);font-weight:600;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) sub += `<div style="font-size:11px;color:var(--muted2);font-weight:500;text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
     return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
       <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
       <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px">${cLogo(lk,16)}${label}</div>
       <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
-      <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">${sub}</div>
+      <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">${sub}</div>
     </div>`;
   };
   document.getElementById('portfolio-stats').innerHTML=`
@@ -2137,15 +2137,15 @@ function renderTeam() {
   // Token stat card with USD/VND estimate inside
   const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
     let sub = '';
-    if (usdVal!=null) sub += `<div style="font-size:10px;color:var(--text2);font-weight:500;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
-    if (vndVal!=null) sub += `<div style="font-size:10px;color:var(--muted2);text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    if (usdVal!=null) sub += `<div style="font-size:12px;color:var(--text2);font-weight:600;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) sub += `<div style="font-size:11px;color:var(--muted2);font-weight:500;text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
     // Token logo key (strip (AVAX) etc)
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
     return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
       <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
       <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px">${cLogo(lk,16)}${label}</div>
       <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
-      <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">${sub}</div>
+      <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">${sub}</div>
     </div>`;
   };
   const totUsdtAvaxReal = displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
