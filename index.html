@@ -1932,9 +1932,10 @@ function renderTeam() {
   // Conversion sublines: USDT + VND both muted (secondary balance)
   const convSub = (usdVal, vndVal) => {
     if (usdVal==null && vndVal==null) return '';
-    let h = '';
-    if (usdVal!=null) h += `<div style="font-size:9px;color:var(--muted2);font-weight:400">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
-    if (vndVal!=null) h += `<div style="font-size:9px;color:var(--muted2);font-weight:400">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    let h = '<div style="margin-top:4px;display:flex;flex-direction:column;gap:3px">';
+    if (usdVal!=null) h += `<div style="font-size:10px;color:#e8e8f0;font-weight:500">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) h += `<div style="font-size:10px;color:var(--muted2);font-weight:400">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    h += '</div>';
     return h;
   };
 
@@ -2026,11 +2027,11 @@ function renderTeam() {
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
       <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
 
-      <td style="text-align:right;color:var(--green);font-weight:600">${f(w.neso)}${convSub(usdt, vnd)}</td>
-      <td style="text-align:right;color:var(--green);font-weight:600">${fd2(w.nxpc,4)}${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue);font-weight:600;border-left:1px solid var(--border2)">${w.avax!=null?fd2(w.avax,4):'—'}${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue);font-weight:600">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue);font-weight:600">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${f(w.neso)}</span>${convSub(usdt, vnd)}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${fd2(w.nxpc,4)}</span>${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;border-left:1px solid var(--border2);padding:8px 12px"><span style="font-size:13px">${w.avax!=null?fd2(w.avax,4):'—'}</span>${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</span>${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}</span>${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
