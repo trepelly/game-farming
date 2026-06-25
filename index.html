@@ -2116,21 +2116,23 @@ function renderTeam() {
   // Token stat card with USD/VND estimate inside
   const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
     let sub = '';
-    if (usdVal!=null) sub += `<div style="font-size:10px;color:#e8e8f0;font-weight:500">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
-    if (vndVal!=null) sub += `<div style="font-size:10px;color:var(--muted2)">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    if (usdVal!=null) sub += `<div style="font-size:10px;color:#e8e8f0;font-weight:500;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) sub += `<div style="font-size:10px;color:var(--muted2);text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    // Token logo key (strip (AVAX) etc)
+    const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
     return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
-      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
-      <div class="stat-label">${label}</div>
-      <div class="stat-val" style="color:${chainColor}">${amount}</div>
+      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
+      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px">${cLogo(lk,16)}${label}</div>
+      <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
       <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">${sub}</div>
     </div>`;
   };
   const totUsdtAvaxReal = displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
   if (statsEl) statsEl.innerHTML = `
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
-      <span class="stat-icon">👥</span><div class="stat-label">Số ví / Bronze+</div>
-      <div class="stat-val">${teamWallets.length} <span style="color:var(--muted2);font-size:14px">/</span> <span style="color:var(--accent)">${mvpLoadedPct>0?mvpBronzePlus:'...'}</span></div>
-      <div class="stat-sub">${mvpLoadedPct>0?mvpBronzePlus+' ví đạt Bronze+':''}</div>
+      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:5px"><span class="stat-icon">👥</span>Số ví / Bronze+</div>
+      <div class="stat-val" style="text-align:right">${teamWallets.length} <span style="color:var(--muted2);font-size:14px">/</span> <span style="color:var(--accent)">${mvpLoadedPct>0?mvpBronzePlus:'...'}</span></div>
+      <div class="stat-sub" style="text-align:right">${mvpLoadedPct>0?mvpBronzePlus+' ví Bronze+':''}</div>
     </div>
     ${tokenCard('🍁 HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd)}
     ${tokenCard('🍁 HENESYS', G, 'NXPC', fd2(totNxpc,2), totNxpc*nxpcRate, totNxpc*nxpcRate*usdvnd)}
