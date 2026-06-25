@@ -196,7 +196,7 @@ body.sidebar-collapsed .flow-expand-row [style*="max-width:calc(100vw - 240px)"]
 tr.row-expanded > td{
   background:#1a1a1a !important;
   position:sticky;
-  top:60px;
+  top:42px;
   z-index:20;
 }
 body.has-expanded tbody tr.team-row:not(.row-expanded) > td{
@@ -729,7 +729,7 @@ Ví sếp, 0x5678...efgh
         <span style="display:inline-block;width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:10px"></span>
         Đang tải dữ liệu...
       </div>
-      <div class="table-wrap" id="team-table-wrap" style="display:none">
+      <div class="table-wrap" id="team-table-wrap" style="display:none;max-height:480px;overflow-y:auto">
         <table>
           <thead><tr>
             <th style="text-align:center">#</th>
@@ -2038,7 +2038,7 @@ function renderTeam() {
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
-      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:108px;left:0;z-index:18;background:#000">
+      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:#000">
         <div style="display:flex;gap:4px;padding:12px 16px 0;background:#000;flex-wrap:wrap;border-bottom:1px solid #2a2a2a;position:sticky;left:0;width:100vw;max-width:calc(100vw - 240px);box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
