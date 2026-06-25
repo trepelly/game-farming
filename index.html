@@ -3361,16 +3361,30 @@ async function toggleFlowExpand(address) {
 
   const mainRow = document.getElementById('flow-main-' + key);
 
+  const tbody = mainRow ? mainRow.parentNode : null;
+
   const isOpen = row.style.display !== 'none';
   if (isOpen) {
     row.style.display = 'none';
     if(btn) btn.textContent = '▼';
     if(mainRow) mainRow.classList.remove('row-expanded');
     document.body.classList.remove('has-expanded');
+    // Restore original position
+    if (tbody && mainRow && mainRow._origNext !== undefined) {
+      const anchor = mainRow._origNext;
+      if (anchor && anchor.parentNode === tbody) {
+        tbody.insertBefore(mainRow, anchor);
+        tbody.insertBefore(row, anchor);
+      } else {
+        tbody.appendChild(mainRow);
+        tbody.appendChild(row);
+      }
+      mainRow._origNext = undefined;
+    }
     return;
   }
 
-  // Close any other open expand row first (only 1 open at a time)
+  // Close any other open expand row first (only 1 open at a time), restore its position
   document.querySelectorAll('[id^="flow-expand-"]').forEach(r => {
     if (r.id !== 'flow-expand-' + key && r.style.display !== 'none') {
       r.style.display = 'none';
@@ -3378,9 +3392,29 @@ async function toggleFlowExpand(address) {
       const otherBtn = document.getElementById('flow-btn-' + otherKey);
       if (otherBtn) otherBtn.textContent = '▼';
       const otherMain = document.getElementById('flow-main-' + otherKey);
-      if (otherMain) otherMain.classList.remove('row-expanded');
+      if (otherMain) {
+        otherMain.classList.remove('row-expanded');
+        // Restore position
+        if (otherMain._origNext !== undefined && tbody) {
+          const anchor = otherMain._origNext;
+          if (anchor && anchor.parentNode === tbody) {
+            tbody.insertBefore(otherMain, anchor);
+            tbody.insertBefore(r, anchor);
+          } else {
+            tbody.appendChild(otherMain); tbody.appendChild(r);
+          }
+          otherMain._origNext = undefined;
+        }
+      }
     }
   });
+
+  // Remember original position (the row after the expand row), then move to top
+  if (tbody && mainRow) {
+    mainRow._origNext = row.nextSibling;
+    tbody.insertBefore(row, tbody.firstChild);
+    tbody.insertBefore(mainRow, tbody.firstChild);
+  }
 
   row.style.display = '';
   if(btn) btn.textContent = '▲';
