@@ -156,6 +156,7 @@ h1 em{font-style:normal;color:var(--accent)}
 /* ── STAT CARDS ── */
 
 .stats-fixed{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+.team-stats-6{grid-template-columns:repeat(6,1fr) !important}
 .stat{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:transform .2s}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
@@ -247,6 +248,7 @@ body.has-expanded tbody tr.row-expanded > td{
 
   /* Stats: 2 cols on mobile */
   .stats-fixed{grid-template-columns:repeat(2,1fr);gap:8px}
+  .team-stats-6{grid-template-columns:repeat(3,1fr) !important}
 
   /* Tables: horizontal scroll */
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -281,6 +283,7 @@ body.has-expanded tbody tr.row-expanded > td{
   /* Tablet landscape */
   .wrap{padding:76px 16px 60px 210px}
   .stats-fixed{grid-template-columns:repeat(4,1fr)}
+  .team-stats-6{grid-template-columns:repeat(6,1fr) !important}
 }
 .chart-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
 .chart-header{margin-bottom:16px}
@@ -703,7 +706,7 @@ Ví sếp, 0x5678...efgh
         <div id="team-add-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
       </div>
 
-      <div class="stats-fixed" id="team-stats"></div>
+      <div class="stats-fixed team-stats-6" id="team-stats"></div>
 
       <!-- Team wallet table -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
