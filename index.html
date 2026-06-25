@@ -737,11 +737,11 @@ Ví sếp, 0x5678...efgh
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
             <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
 
-            <th style="cursor:pointer;user-select:none;color:var(--amber)" onclick="colSort('neso')" title="NESO + quy đổi USDT/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('neso')" title="NESO + quy đổi USDT/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('nxpc')" title="NXPC Henesys + quy đổi">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
-            <th style="color:#e84142;cursor:pointer;user-select:none;border-left:1px solid var(--border2)" onclick="colSort('avax')" title="AVAX + quy đổi">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
+            <th style="color:var(--blue);cursor:pointer;user-select:none;border-left:1px solid var(--border2)" onclick="colSort('avax')" title="AVAX + quy đổi">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
             <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')" title="NXPC Avalanche + quy đổi">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
-            <th style="color:#26a17b;cursor:pointer;user-select:none" onclick="colSort('usdt_avax')" title="USDT thật trên ví Avalanche">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
+            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('usdt_avax')" title="USDT thật trên ví Avalanche">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
             <th></th>
           </tr></thead>
           <tbody id="team-tbody"></tbody>
@@ -1929,12 +1929,12 @@ function renderTeam() {
   const nesoRate = liveNesoUsd || (nxpcRate/100000);
   const fd2 = (n,d) => n==null?'—':n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const f   = n => n==null?'—':Math.round(n).toLocaleString('vi-VN');
-  // Conversion sublines: USDT (green) and VND (cyan) on separate rows
+  // Conversion sublines: USDT + VND both muted (secondary balance)
   const convSub = (usdVal, vndVal) => {
     if (usdVal==null && vndVal==null) return '';
     let h = '';
-    if (usdVal!=null) h += `<div style="font-size:9px;color:#10b981;font-weight:500">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
-    if (vndVal!=null) h += `<div style="font-size:9px;color:#06b6d4;font-weight:500">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    if (usdVal!=null) h += `<div style="font-size:9px;color:var(--muted2);font-weight:400">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) h += `<div style="font-size:9px;color:var(--muted2);font-weight:400">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
     return h;
   };
 
@@ -2026,11 +2026,11 @@ function renderTeam() {
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
       <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
 
-      <td style="text-align:right;color:var(--amber)">${f(w.neso)}${convSub(usdt, vnd)}</td>
-      <td style="text-align:right;color:var(--green)">${fd2(w.nxpc,4)}${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:#e84142">${w.avax!=null?fd2(w.avax,4):'—'}${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:#26a17b">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600">${f(w.neso)}${convSub(usdt, vnd)}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600">${fd2(w.nxpc,4)}${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;border-left:1px solid var(--border2)">${w.avax!=null?fd2(w.avax,4):'—'}${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
@@ -2062,11 +2062,11 @@ function renderTeam() {
     <td style="padding:10px 14px"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
     <td style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}${(()=>{const u=totNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
-    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(totAvax,4)}${(()=>{const u=totAvax*(liveAvaxUsd||0);return convSub(u,u*usdvnd);})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue);border-left:1px solid var(--border2)">${fd2(totAvax,4)}${(()=>{const u=totAvax*(liveAvaxUsd||0);return convSub(u,u*usdvnd);})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}${convSub(totUsdtAvax, totVndAvax)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#26a17b">${(()=>{const t=displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);return fd2(t,2)+convSub(null,t*usdvnd);})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${(()=>{const t=displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);return fd2(t,2)+convSub(null,t*usdvnd);})()}</td>
     <td></td>
   </tr>`;
 
