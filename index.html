@@ -520,9 +520,15 @@ td:first-child{text-align:left;color:var(--muted2)}
 
         <!-- Single mode -->
         <div id="input-single">
-          <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">Địa chỉ ví</div>
-          <div style="display:flex;gap:8px">
-            <input id="wallet-input" type="text" placeholder="0x..." style="flex:1;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/>
+          <div style="display:grid;grid-template-columns:1fr 1.5fr auto;gap:8px;align-items:end">
+            <div>
+              <div style="font-size:10px;color:var(--muted2);margin-bottom:5px">Tên (tùy chọn)</div>
+              <input id="wallet-name-input" type="text" placeholder="VD: Ví chính" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted2);margin-bottom:5px">Địa chỉ ví</div>
+              <input id="wallet-input" type="text" placeholder="0x..." style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
+            </div>
             <button onclick="addWalletManual()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">+ Thêm</button>
           </div>
         </div>
@@ -585,14 +591,11 @@ Ví sếp, 0x5678...efgh
             <th style="text-align:center">#</th>
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="wColSort('label')">Tên <span id="wsort-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
-            <th style="cursor:pointer;user-select:none;color:var(--amber)" onclick="wColSort('neso')">NESO <span id="wsort-neso" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('nxpc')">NXPC <span id="wsort-nxpc" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('usdt')">USDT <span id="wsort-usdt" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('vnd')">VND <span id="wsort-vnd" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:#e84142;border-left:1px solid var(--border2)" onclick="wColSort('avax')">AVAX <span id="wsort-avax" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('nxpc_avax')">NXPC(AVAX) <span id="wsort-nxpc_avax" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('usdt_avax')">USDT(AVAX) <span id="wsort-usdt_avax" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('vnd_avax')">VND(AVAX) <span id="wsort-vnd_avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('neso')" title="NESO + quy đổi">NESO <span id="wsort-neso" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('nxpc')" title="NXPC Henesys + quy đổi">NXPC <span id="wsort-nxpc" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--blue);border-left:1px solid var(--border2)" onclick="wColSort('avax')" title="AVAX + quy đổi">AVAX <span id="wsort-avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('nxpc_avax')" title="NXPC Avalanche + quy đổi">NXPC(AVAX) <span id="wsort-nxpc_avax" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('usdt_avax')" title="USDT thật trên Avalanche">USDT(AVAX) <span id="wsort-usdt_avax" style="opacity:.3">↕</span></th>
             <th></th>
           </tr></thead>
           <tbody id="wallet-tbody"></tbody>
@@ -1351,7 +1354,10 @@ function addWalletManual() {
   }
   err.textContent = '';
   input.value = '';
-  addWallet(addr, 'Thủ công');
+  const nameInput = document.getElementById('wallet-name-input');
+  const customName = nameInput ? nameInput.value.trim() : '';
+  if (nameInput) nameInput.value = '';
+  addWallet(addr, 'Thủ công', customName);
 }
 
 function addWalletsBulk() {
@@ -1385,10 +1391,10 @@ function addWalletsBulk() {
   err.innerHTML = msgs.length ? msgs.join(' · ') : '';
 }
 
-function addWallet(address, source='Thủ công') {
+function addWallet(address, source='Thủ công', customName='') {
   const norm = address.toLowerCase();
   if(wallets.find(w=>w.address.toLowerCase()===norm)) return;
-  const label = `Ví ${wallets.length+1}`;
+  const label = customName || `Ví ${wallets.length+1}`;
   wallets.push({address, label, source, nxpc:null, neso:null, loading:true, error:null});
   saveWallets();
   renderWallets();
@@ -1425,8 +1431,8 @@ async function loadWalletData(address) {
   w.loading=true; w.error=null;
   renderWallets();
   try {
-    const {nxpc,neso,avax,nxpc_avax} = await fetchBalances(address);
-    w.nxpc=nxpc; w.neso=neso; w.avax=avax; w.nxpc_avax=nxpc_avax; w.loading=false;
+    const {nxpc,neso,avax,nxpc_avax,usdt_avax_real} = await fetchBalances(address);
+    w.nxpc=nxpc; w.neso=neso; w.avax=avax; w.nxpc_avax=nxpc_avax; w.usdt_avax_real=usdt_avax_real; w.loading=false;
   } catch(e) {
     w.error=e.message; w.loading=false;
   }
@@ -1445,7 +1451,7 @@ let wSortCol=null, wSortDir='desc', wAlpha='all';
 function wColSort(col) {
   if(wSortCol===col) wSortDir = wSortDir==='desc'?'asc':'desc';
   else { wSortCol=col; wSortDir='desc'; }
-  ['label','neso','nxpc','usdt','vnd','nxpc_avax','usdt_avax','vnd_avax'].forEach(c=>{
+  ['label','neso','nxpc','avax','nxpc_avax','usdt_avax'].forEach(c=>{
     const el=document.getElementById('wsort-'+c); if(!el) return;
     if(c!==wSortCol){el.textContent='↕';el.style.opacity='.3';el.style.color='';}
     else{el.textContent=wSortDir==='desc'?'↓':'↑';el.style.opacity='1';el.style.color='var(--accent)';}
@@ -1479,8 +1485,17 @@ function renderWallets() {
   const nxpcRate = liveNxpcUsd||0;
   const usdvnd   = liveUsdVnd||0;
   const nesoRate = liveNesoUsd||0;
+  const avaxRate = liveAvaxUsd||0;
   const f   = n=>Math.round(n).toLocaleString('vi-VN');
   const fd2 = (n,d)=>n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const convSub = (usdVal, vndVal) => {
+    if (usdVal==null && vndVal==null) return '';
+    let h = '<div style="margin-top:4px;display:flex;flex-direction:column;gap:3px">';
+    if (usdVal!=null) h += `<div style="font-size:10px;color:var(--text2);font-weight:500">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) h += `<div style="font-size:10px;color:var(--muted2)">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    h += '</div>';
+    return h;
+  };
   const query = (document.getElementById('wallet-search')?.value||'').toLowerCase().trim();
 
   let display = wallets.map((w,i)=>({...w,origIdx:i}));
@@ -1497,11 +1512,9 @@ function renderWallets() {
       if(wSortCol==='label') return (w.label||'').toLowerCase();
       if(wSortCol==='neso')  return w.neso??-1;
       if(wSortCol==='nxpc')  return w.nxpc??-1;
-      if(wSortCol==='usdt')  return (w.neso??0)*nesoRate;
-      if(wSortCol==='vnd')   return (w.neso??0)*nesoRate*usdvnd;
+      if(wSortCol==='avax')  return w.avax??-1;
       if(wSortCol==='nxpc_avax') return w.nxpc_avax??-1;
-      if(wSortCol==='usdt_avax') return (w.nxpc_avax??0)*nxpcRate;
-      if(wSortCol==='vnd_avax')  return (w.nxpc_avax??0)*nxpcRate*usdvnd;
+      if(wSortCol==='usdt_avax') return w.usdt_avax_real??-1;
       return 0;
     };
     display.sort((a,b)=>{
@@ -1520,11 +1533,11 @@ function renderWallets() {
     if(w.loading) return `<tr><td class="c-center"><span class="pill pill-week">${i+1}</span></td>
       <td style="text-align:left;font-weight:600">${w.label}</td>
       <td style="text-align:left">${short(w.address)}</td>
-      <td colspan="7" style="text-align:center;color:var(--muted2);font-size:11px">
+      <td colspan="5" style="text-align:center;color:var(--muted2);font-size:11px">
         <span style="display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:middle"></span>Đang tải...
       </td><td></td></tr>`;
     if(w.error) return `<tr><td class="c-center">${i+1}</td><td style="text-align:left">${w.label}</td><td>${short(w.address)}</td>
-      <td colspan="7" style="color:var(--red);font-size:11px">⚠ ${w.error}</td><td></td></tr>`;
+      <td colspan="5" style="color:var(--red);font-size:11px">⚠ ${w.error}</td><td></td></tr>`;
     return `<tr>
       <td style="text-align:center;color:var(--muted2);font-size:11px">${i+1}</td>
       <td style="text-align:left">
@@ -1535,14 +1548,11 @@ function renderWallets() {
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:5px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
         <span onclick="navigator.clipboard.writeText('${w.address}')" style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)">⎘</span>
       </td>
-      <td style="text-align:right;color:var(--amber)">${w.neso!=null?f(w.neso):'—'}</td>
-      <td style="text-align:right;color:var(--green)">${w.nxpc!=null?fd2(w.nxpc,4):'—'}</td>
-      <td style="text-align:right;color:var(--green)">${fd2(usdt,2)}</td>
-      <td style="text-align:right;color:var(--green)">${f(vnd)}</td>
-      <td style="text-align:right;color:#e84142">${w.avax!=null?fd2(w.avax,4):'—'}</td>
-      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</td>
-      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?fd2(usdtA,2):'—'}</td>
-      <td style="text-align:right;color:var(--blue)">${w.nxpc_avax!=null?f(vndA):'—'}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.neso!=null?f(w.neso):'—'}</span>${w.neso!=null?convSub(usdt, vnd):''}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.nxpc!=null?fd2(w.nxpc,4):'—'}</span>${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;border-left:1px solid var(--border2);padding:8px 12px"><span style="font-size:13px">${w.avax!=null?fd2(w.avax,4):'—'}</span>${(()=>{const u=w.avax!=null?w.avax*avaxRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</span>${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}</span>${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
       <td><button onclick="removeWallet('${w.address}')" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:5px;padding:3px 8px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button></td>
     </tr>`;
   }).join('');
@@ -1558,14 +1568,11 @@ function renderWallets() {
   const tUsdtA=tNxpcA*nxpcRate, tVndA=tUsdtA*usdvnd;
   document.getElementById('wallet-tfoot').innerHTML=`<tr style="font-weight:700;background:var(--surface)">
     <td colspan="3" style="padding:10px 14px;color:var(--muted2)">TỔNG (${display.length} ví)</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--amber)">${f(tNeso)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(tNxpc,4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(tUsdt,2)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(tVnd)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#e84142">${fd2(loaded.reduce((s,w)=>s+(w.avax||0),0),4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(tNxpcA,4)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(tUsdtA,2)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${f(tVndA)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(tNeso)}${convSub(tUsdt, tVnd)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(tNxpc,4)}${(()=>{const u=tNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue);border-left:1px solid var(--border2)">${(()=>{const ta=loaded.reduce((s,w)=>s+(w.avax||0),0);return fd2(ta,4)+convSub(ta*avaxRate, ta*avaxRate*usdvnd);})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(tNxpcA,4)}${convSub(tUsdtA, tVndA)}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--blue)">${(()=>{const tu=loaded.reduce((s,w)=>s+(w.usdt_avax_real||0),0);return fd2(tu,2)+convSub(null,tu*usdvnd);})()}</td>
     <td></td>
   </tr>`;
 }
