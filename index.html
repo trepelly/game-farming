@@ -172,14 +172,15 @@ h1 em{font-style:normal;color:var(--accent)}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
 .team-row{transition:background .2s ease}
 .etab-btn{
-  background:#111;border:1px solid #2a2a2a;border-bottom:none;
-  border-radius:8px 8px 0 0;padding:8px 16px;
-  color:#888;font-family:inherit;font-size:12px;font-weight:700;
-  cursor:pointer;transition:all .15s ease;margin-bottom:-1px;
+  background:transparent;border:1px solid transparent;border-bottom:none;
+  border-radius:8px 8px 0 0;padding:9px 18px;
+  color:#777;font-family:inherit;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .15s ease;margin-bottom:-1px;position:relative;
 }
-.etab-btn:hover{color:#fff;background:#1a1a1a;border-color:var(--accent)}
+.etab-btn:hover{color:#bbb;background:#0a0a0a}
 .etab-btn.etab-active{
-  background:var(--accent);color:#fff;border-color:var(--accent);
+  background:#000;color:#fff;
+  border-color:#2a2a2a;border-bottom:1px solid #000;
 }
 tr.row-expanded > td{
   background:var(--card2) !important;
@@ -2018,14 +2019,14 @@ function renderTeam() {
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
       <td colspan="14" style="padding:0;border-bottom:2px solid var(--accent)">
-        <div style="display:flex;gap:6px;padding:12px 16px 0;background:#000;flex-wrap:wrap">
+        <div style="display:flex;gap:4px;padding:12px 16px 0;background:#000;flex-wrap:wrap;border-bottom:1px solid #2a2a2a">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
           <button onclick="switchExpandTab('${w.address}','nftitems')" id="etab-nftitems-${w.address.slice(-8)}" class="etab-btn">🎒 NFT Items</button>
           <button onclick="switchExpandTab('${w.address}','ftitems')" id="etab-ftitems-${w.address.slice(-8)}" class="etab-btn">💱 FT Items</button>
         </div>
         <div id="flow-content-${w.address.slice(-8)}"
-          style="padding:16px 20px;background:#000;max-height:480px;overflow-x:auto;overflow-y:auto">
+          style="padding:18px 20px;background:#000;max-height:480px;overflow-x:auto;overflow-y:auto;border:1px solid #2a2a2a;border-top:none">
         </div>
       </td>
     </tr>`;
