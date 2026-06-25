@@ -3207,7 +3207,7 @@ async function loadTeamNftCounts() {
         const charMap = {};
         (charJ?.characters||[]).forEach(c => {
           const nm = c.character?.name;
-          if (nm) charMap[nm] = { img: c.character?.imageUrl||'', job: c.character?.job?.className||'', cat: c.category?.tier3?.label||'' };
+          if (nm) charMap[nm] = { img: c.character?.imageUrl||'', job: c.character?.job?.className||'', cat: c.category?.tier3?.label||'', level: c.character?.level??null, world: c.character?.worldId||'' };
         });
         teamWallets[idx].charImages = charMap;
         await new Promise(rs=>setTimeout(rs,200));
@@ -3705,6 +3705,8 @@ async function renderItemsTab(address, type) {
             img: c.character?.imageUrl || '',
             job: c.character?.job?.className || '',
             cat: c.category?.tier3?.label || c.category?.tier2?.label || '',
+            level: c.character?.level ?? null,
+            world: c.character?.worldId || '',
           };
         });
         if (w) w.charImages = charImages;
@@ -3731,11 +3733,15 @@ async function renderItemsTab(address, type) {
     const charImgUrl = charInfo ? (typeof charInfo==='string' ? charInfo : charInfo.img) : '';
     const charJob = (charInfo && typeof charInfo==='object') ? charInfo.job : '';
     const charCat = (charInfo && typeof charInfo==='object') ? charInfo.cat : '';
+    const charLevel = (charInfo && typeof charInfo==='object') ? charInfo.level : null;
+    const charWorld = (charInfo && typeof charInfo==='object') ? charInfo.world : '';
     const charImg = charImgUrl
       ? `<img src="${charImgUrl}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--bg);margin-right:8px;border:1px solid ${accent}44;flex-shrink:0" onerror="this.style.display='none'"/>`
       : '';
-    const charDetail = (charJob || charCat)
-      ? `<div style="font-size:9px;color:var(--muted2);font-weight:400;margin-top:2px">${[charCat,charJob].filter(Boolean).join(' · ')}</div>`
+    const lvlBadge = charLevel!=null ? `<span style="color:${accent};font-weight:700">Lv.${charLevel}</span>` : '';
+    const detailParts = [lvlBadge, charCat, charJob, charWorld].filter(Boolean);
+    const charDetail = detailParts.length
+      ? `<div style="font-size:9px;color:var(--muted2);font-weight:400;margin-top:2px">${detailParts.join(' · ')}</div>`
       : '';
     h += `<div style="flex:0 0 240px;min-width:240px">
       <div style="margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid ${accent}33;position:sticky;top:0;background:var(--bg);display:flex;align-items:center">${charImg}<div style="min-width:0"><div style="font-size:12px;font-weight:700;color:${accent}">${g} <span style="color:var(--muted2);font-weight:400;font-size:10px">(${groups[g].length})</span>${copyBtn}</div>${charDetail}</div></div>
