@@ -351,8 +351,8 @@ td:first-child{text-align:left;color:var(--muted2)}
     <div style="display:flex;align-items:center;gap:10px">
       <button onclick="toggleSidebar()" id="sidebar-toggle-btn" title="Ẩn/hiện menu" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;width:32px;height:32px;color:var(--text);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0">☰</button>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)"></span>
-        <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--muted2);text-transform:uppercase">Game Farming</span>
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6)"></span>
+        <span style="font-size:10px;font-weight:700;letter-spacing:.15em;color:#fff;text-transform:uppercase">Game Farming</span>
       </div>
       <div style="width:1px;height:16px;background:var(--border2)"></div>
       <h1 style="font-size:16px;font-weight:800;margin:0;line-height:1;color:#ffffff">Farm <em style="color:var(--accent);font-style:normal">Dashboard</em></h1>
@@ -2005,14 +2005,14 @@ function renderTeam() {
     const vnd  = usdt!=null   ? usdt*usdvnd            : null;
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
-    const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px">${a.slice(0,6)}...${a.slice(-4)}</span>`;
+    const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px;color:#e8e8f0">${a.slice(0,6)}...${a.slice(-4)}</span>`;
     return `<tr id="flow-main-${w.address.slice(-8)}" class="team-row">
-      <td style="text-align:center;color:var(--muted2);font-size:12px;font-weight:600">${i+1}</td>
+      <td style="text-align:center;color:#fff;font-size:12px;font-weight:600">${i+1}</td>
       <td style="text-align:left">
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
             style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
-          <span style="font-weight:600">${w.label||'—'}</span>
+          <span style="font-weight:600;color:#fff">${w.label||'—'}</span>
           <span onclick="navigator.clipboard.writeText('${w.label||''}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)"
             style="cursor:pointer;font-size:10px;color:var(--muted2);margin-left:4px;user-select:none" title="Copy tên">⎘</span>
         </div>
