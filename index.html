@@ -2110,24 +2110,30 @@ function renderTeam() {
   };
 
   const statsEl = document.getElementById('team-stats');
+  // Token stat card with USD/VND estimate inside
+  const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
+    let sub = '';
+    if (usdVal!=null) sub += `<div style="font-size:10px;color:#e8e8f0;font-weight:500">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
+    if (vndVal!=null) sub += `<div style="font-size:10px;color:var(--muted2)">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
+    return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
+      <div style="font-size:9px;font-weight:700;color:${chainColor};margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${chain}</div>
+      <div class="stat-label">${label}</div>
+      <div class="stat-val" style="color:${chainColor}">${amount}</div>
+      <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px">${sub}</div>
+    </div>`;
+  };
+  const totUsdtAvaxReal = displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
   if (statsEl) statsEl.innerHTML = `
     <div class="stat"><div class="stat-accent" style="background:var(--accent)"></div>
-      <span class="stat-icon">👥</span><div class="stat-label">Số ví team</div>
-      <div class="stat-val">${teamWallets.length}</div></div>
-    ${scTicker(A, '🍁 HENESYS', G, 'NESO', f(totNeso), nesoPrice)}
-    ${scTicker(G, '🍁 HENESYS', G, 'NXPC', fd2(totNxpc,2), nxpcPrice)}
-    ${scTicker(G, '🍁 HENESYS', G, 'USDT', fd2(totUsdt,2), usdvndRate?'1$='+usdvndRate+'₫':'')}
-    ${scTicker(G, '🍁 HENESYS', G, 'VND',  f(totVnd), '')}
-    <div class="stat" style="border-top:2px solid var(--accent)33"><div class="stat-accent" style="background:var(--accent)"></div>
-      <div style="font-size:9px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em">🏅 MVP</div>
-      <div class="stat-label">Ví đạt Bronze+</div>
-      <div class="stat-val" style="color:var(--accent)">${mvpLoadedPct>0?mvpBronzePlus:'...'}</div>
-      <div class="stat-sub">${mvpLoadedPct>0?'/ '+mvpLoadedPct+' đã load':''}</div>
+      <span class="stat-icon">👥</span><div class="stat-label">Số ví / Bronze+</div>
+      <div class="stat-val">${teamWallets.length} <span style="color:var(--muted2);font-size:14px">/</span> <span style="color:var(--accent)">${mvpLoadedPct>0?mvpBronzePlus:'...'}</span></div>
+      <div class="stat-sub">${mvpLoadedPct>0?mvpBronzePlus+' ví đạt Bronze+':''}</div>
     </div>
-    ${scTicker('#e84142', '🔺 AVALANCHE', '#e84142', 'AVAX', fd2(totAvax,4), '')}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), nxpcPrice)}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvax,2), '')}
-    ${scTicker(B, '🔺 AVALANCHE', B, 'VND(AVAX)',  f(totVndAvax), '')}`;
+    ${tokenCard('🍁 HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd)}
+    ${tokenCard('🍁 HENESYS', G, 'NXPC', fd2(totNxpc,2), totNxpc*nxpcRate, totNxpc*nxpcRate*usdvnd)}
+    ${tokenCard('🔺 AVALANCHE', B, 'AVAX', fd2(totAvax,4), totAvax*(liveAvaxUsd||0), totAvax*(liveAvaxUsd||0)*usdvnd)}
+    ${tokenCard('🔺 AVALANCHE', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), totUsdtAvax, totVndAvax)}
+    ${tokenCard('🔺 AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvaxReal,2), null, totUsdtAvaxReal*usdvnd)}`;
   setTimeout(()=>{ updateWalletCountdowns(); reapplyExpandContent(); }, 50);
 }
 
