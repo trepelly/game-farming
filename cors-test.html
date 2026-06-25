@@ -1,38 +1,20 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Char img</title>
+<html><head><meta charset="UTF-8"><title>Char detail</title>
 <style>body{font-family:monospace;background:#0d0d1a;color:#eee;padding:20px}
-img{border:2px solid #34d399;margin:8px;background:#222}
-pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:12px}</style></head>
-<body><h2>Char image load test</h2><pre id="out">Testing...\n</pre><div id="imgs"></div>
+pre{background:#1c1c32;padding:12px;border-radius:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}</style></head>
+<body><h2>Character full data (level/CP?)</h2><pre id="out">Testing...\n</pre>
 <script>
 const addr = '0x3C7854d9EdB3a60DF46343A5C0F2D418ce7AE806';
 const WORKER = 'https://msu-proxy.petertrepellynguyen.workers.dev';
 const out = document.getElementById('out');
 const log = (m) => out.innerHTML += m+'\n';
-
 async function run() {
   const url = `https://msu.io/navigator/api/navigator/inventory/${addr}/characters-v2?size=28`;
   const r = await fetch(`${WORKER}/?url=${encodeURIComponent(url)}`);
   const j = await r.json();
   const c = j.characters[0];
-  const img = c.character.imageUrl;
-  log('Image URL:');
-  log(img);
-  log('\nTrying to load directly:');
-  const el = document.createElement('img');
-  el.src = img;
-  el.style.width = '120px';
-  el.onload = () => log('✓ Direct load OK');
-  el.onerror = () => log('✗ Direct load FAILED (CORS/hotlink block)');
-  document.getElementById('imgs').appendChild(el);
-
-  log('\nTrying via worker:');
-  const el2 = document.createElement('img');
-  el2.src = `${WORKER}/?url=${encodeURIComponent(img)}`;
-  el2.style.width = '120px';
-  el2.onload = () => log('✓ Worker load OK');
-  el2.onerror = () => log('✗ Worker load FAILED');
-  document.getElementById('imgs').appendChild(el2);
+  log('Full first character object:');
+  log(JSON.stringify(c, null, 2));
 }
 run();
 </script></body></html>
