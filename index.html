@@ -2148,16 +2148,25 @@ function renderTeam() {
   const statsEl = document.getElementById('team-stats');
   // Token stat card with USD/VND estimate inside
   const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
-    let sub = '';
-    if (usdVal!=null) sub += `<div style="font-size:12px;color:var(--text2);font-weight:600;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
-    if (vndVal!=null) sub += `<div style="font-size:11px;color:var(--muted2);font-weight:500;text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
-    // Token logo key (strip (AVAX) etc)
+    // Token logo key (strip (AVAX) etc) — also used as unit beside the amount
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
-    return `<div class="stat"><div class="stat-accent" style="background:${chainColor}"></div>
-      <div style="font-size:10px;font-weight:700;color:${chainColor};margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
-      <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:7px;font-size:11px">${cLogo(lk,20)}${label}</div>
-      <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
-      <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">${sub}</div>
+    const usdStr = usdVal!=null ? '$'+usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
+    const vndStr = vndVal!=null ? Math.round(vndVal).toLocaleString('vi-VN')+'đ' : '';
+    return `<div class="stat">
+      <div class="stat-accent" style="background:${chainColor}"></div>
+      <div style="font-size:10px;font-weight:700;color:${chainColor};text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
+      <div style="display:flex;align-items:center;gap:7px;margin-top:9px">
+        ${cLogo(lk,22)}<span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.02em">${label}</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-top:13px;flex-wrap:wrap">
+        <span class="stat-val" style="color:${chainColor}">${amount}</span>
+        <span style="font-size:10px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">${lk}</span>
+      </div>
+      <div style="height:1px;background:var(--border2);margin:12px 0 9px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-size:13px;font-weight:700;color:var(--text)">${vndStr}</span>
+        <span style="font-size:11px;font-weight:500;color:var(--muted2)">${usdStr}</span>
+      </div>
     </div>`;
   };
   const totUsdtAvaxReal = displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
