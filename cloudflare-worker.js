@@ -35,7 +35,7 @@ export default {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
-    const allowed = ['msu.io', 'maplen.gg', 'api-static.msu.io', 'gamedatahub-static.msu.io'];
+    const allowed = ['msu.io', 'maplen.gg', 'api-static.msu.io', 'gamedatahub-static.msu.io', 'api-gateway.xangle.io', 'xangle.io', 'market-static.msu.io'];
     if (!allowed.some(d => targetUrl.hostname === d || targetUrl.hostname.endsWith('.' + d))) {
       return new Response(JSON.stringify({ error: 'Domain not allowed' }), {
         status: 403,
@@ -43,23 +43,38 @@ export default {
       });
     }
 
+    const isXangle = targetUrl.hostname.endsWith('xangle.io');
     const fetchHeaders = {
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9',
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Referer': 'https://msu.io/',
-      'Origin': 'https://msu.io',
+      'Referer': isXangle ? 'https://msu-explorer.xangle.io/' : 'https://msu.io/',
+      'Origin': isXangle ? 'https://msu-explorer.xangle.io' : 'https://msu.io',
     };
+    // Forward Content-Type for POST requests (needed for JSON body)
+    const reqCT = request.headers.get('Content-Type');
+    if (request.method === 'POST') {
+      fetchHeaders['Content-Type'] = reqCT || 'application/json';
+    }
+    // Xangle requires these headers - forward from request if provided, else default
+    if (isXangle) {
+      fetchHeaders['x-chain'] = request.headers.get('x-chain') || 'NEXON';
+      const sk = request.headers.get('x-secret-key');
+      if (sk) fetchHeaders['x-secret-key'] = sk;
+    }
 
     try {
+      const reqBody = request.method === 'POST' ? await request.clone().text() : undefined;
+      // Don't edge-cache POST (different bodies); cache GET only
+      const cfOpt = request.method === 'POST' ? {} : { cacheTtl: 600, cacheEverything: true };
       let resp, body, attempt = 0;
       // Server-side retry on 429 (up to 4 times with backoff)
       while (attempt < 4) {
         resp = await fetch(target, {
           method: request.method,
           headers: fetchHeaders,
-          body: request.method === 'POST' ? await request.clone().text() : undefined,
-          cf: { cacheTtl: 600, cacheEverything: true },
+          body: reqBody,
+          cf: cfOpt,
         });
         if (resp.status !== 429) break;
         attempt++;
@@ -71,7 +86,7 @@ export default {
         headers: {
           'Content-Type': resp.headers.get('Content-Type') || 'application/json',
           'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, max-age=600',
+          'Cache-Control': request.method === 'POST' ? 'no-store' : 'public, max-age=600',
         },
       });
     } catch (e) {

@@ -3510,33 +3510,27 @@ async function loadAllNftParallel() {
   // Process one wallet: fetch NFT items + FT items
   const processWallet = async (w, idx) => {
     const addrLower = w.address.toLowerCase();
+    const key = w.address.slice(-8);
     // Use cache if fresh
     const cached = cache[addrLower];
     if (cached && (now - cached.ts) < NFT_CACHE_TTL && cached.total != null) {
       teamWallets[idx].nftCount = cached.total;
       if (cached.wallet != null) { teamWallets[idx].nftInWallet=cached.wallet; teamWallets[idx].nftInCharacter=cached.char; }
-      const elNft = document.getElementById('nft-' + w.address.slice(-8));
+      const elNft = document.getElementById('nft-' + key);
       if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span>`;
       return;
     }
     try {
-      const key = w.address.slice(-8);
-      // Fetch summary only - NFT total (1 request, fast like NXPC)
+      // Fetch summary only - NFT total (1 request, fast)
       const sumUrl = `https://msu.io/navigator/api/navigator/inventory/${w.address}/summary-v2`;
       const sumJ = await fetchJson(sumUrl);
-      let nftOk = false;
       if (sumJ) {
-        nftOk = true;
         const nftTot = sumJ.msuStatistics?.ownedSummary?.totalNumNftItems ?? 0;
         teamWallets[idx].nftCount = nftTot;
         const elNft = document.getElementById('nft-' + key);
         if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${nftTot}</span>`;
-      }
-      // Cache nft total
-      if (nftOk) {
         const ce = cache[addrLower] || {};
-        ce.total = teamWallets[idx].nftCount;
-        ce.ts = Date.now();
+        ce.total = nftTot; ce.ts = Date.now();
         cache[addrLower] = ce;
         saveNftCache(cache);
       }
@@ -3556,7 +3550,7 @@ async function loadAllNftParallel() {
   }
   await Promise.all(Array.from({length: CONCURRENCY}, () => runner()));
 
-  // Retry pass: wallets whose redFlorin still null (FT fetch failed earlier)
+  // Retry pass: wallets whose nftCount still null
   const missing = wallets.map((w,i)=>({w,i})).filter(({w}) => w.nftCount == null);
   if (missing.length) {
     await new Promise(r=>setTimeout(r, 1500)); // cool down
