@@ -197,7 +197,7 @@ h1 em{font-style:normal;color:var(--accent)}
 tr.row-expanded > td{
   background:var(--card2) !important;
   position:sticky;
-  top:42px;
+  top:68px;
   z-index:20;
 }
 body.has-expanded tbody tr.team-row:not(.row-expanded) > td{
@@ -304,13 +304,17 @@ body.has-expanded tbody tr.row-expanded > td{
 .table-wrap{overflow-x:auto;border:1px solid var(--border2);border-radius:14px;box-shadow:var(--shadow);margin-bottom:32px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead tr{background:var(--surface)}
-th{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:13px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2);position:sticky;top:0;background:var(--surface);z-index:2}
+th{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);padding:12px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2);position:sticky;top:26px;background:var(--surface);z-index:2}
+.group-header-row th{position:sticky;top:0;z-index:3;font-weight:800;text-transform:uppercase}
 th:first-child{text-align:left}
 tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--card2)}
 td{padding:11px 14px;text-align:right;color:var(--text2)}
 td:first-child{text-align:left;color:var(--muted2)}
+/* Column-group dividers: subtle vertical separators between logical groups */
+th.group-start, td.group-start{border-left:1px solid var(--border2)}
+th.group-start-strong, td.group-start-strong{border-left:2px solid var(--border3)}
 .c-green{color:var(--green);font-weight:500}
 .c-blue{color:var(--blue)}
 .c-amber{color:var(--amber);font-weight:500}
@@ -733,21 +737,29 @@ Ví sếp, 0x5678...efgh
       </div>
       <div class="table-wrap" id="team-table-wrap" style="display:none;max-height:480px;overflow-y:auto">
         <table>
-          <thead><tr>
-            <th style="text-align:center">#</th>
-            <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
+          <thead>
+          <tr class="group-header-row">
+            <th colspan="3" style="background:var(--surface);border-bottom:none;padding:8px 14px 2px"></th>
+            <th colspan="3" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:var(--accent);font-size:9px;letter-spacing:.1em">★ Hiệu suất</th>
+            <th colspan="1" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:#a78bfa;font-size:9px;letter-spacing:.1em">NFT</th>
+            <th colspan="2" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:var(--green);font-size:9px;letter-spacing:.1em">🍁 Henesys</th>
+            <th colspan="3" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:var(--blue);font-size:9px;letter-spacing:.1em">🔺 Avalanche</th>
+            <th style="background:var(--surface);border-bottom:none"></th>
+          </tr>
+          <tr>
+            <th style="text-align:center;width:36px">#</th>
+            <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên ví <span id="sort-icon-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
-            <th style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
-            <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần có rank Bronze+">Tuần MVP <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
-            <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
-            <th style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
-
-            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('neso')" title="NESO + quy đổi USDT/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
-            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('nxpc')" title="NXPC Henesys + quy đổi">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
-            <th style="color:var(--blue);cursor:pointer;user-select:none;border-left:1px solid var(--border2)" onclick="colSort('avax')" title="AVAX + quy đổi">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
-            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')" title="NXPC Avalanche + quy đổi">NXPC(AVAX) <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
-            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('usdt_avax')" title="USDT thật trên ví Avalanche">USDT(AVAX) <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
-            <th></th>
+            <th class="group-start-strong" style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')" title="Tổng điểm MVP tích lũy">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
+            <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần đạt rank Bronze trở lên">Tuần <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
+            <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / mục tiêu 230k">Tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
+            <th class="group-start-strong" style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng số NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
+            <th class="group-start-strong" style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('neso')" title="NESO (Henesys) + quy đổi USD/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
+            <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('nxpc')" title="NXPC (Henesys) + quy đổi USD/VND">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
+            <th class="group-start-strong" style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('avax')" title="AVAX (Avalanche) + quy đổi USD/VND">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
+            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('nxpc_avax')" title="NXPC (Avalanche) + quy đổi USD/VND">NXPC<span style="opacity:.6">·AVAX</span> <span id="sort-icon-nxpc_avax" style="opacity:.3">↕</span></th>
+            <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('usdt_avax')" title="USDT thật trên ví Avalanche">USDT<span style="opacity:.6">·AVAX</span> <span id="sort-icon-usdt_avax" style="opacity:.3">↕</span></th>
+            <th style="width:40px"></th>
           </tr></thead>
           <tbody id="team-tbody"></tbody>
           <tfoot id="team-tfoot" style="border-top:2px solid var(--border2);position:sticky;bottom:0;z-index:2"></tfoot>
@@ -2042,24 +2054,24 @@ function renderTeam() {
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
         <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
       </td>
-      <td style="text-align:right" data-addr="${w.address}">
+      <td class="group-start-strong" style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
           ? `<span style="color:${w.mvpTier?.color||'var(--muted2)'};font-weight:600;font-size:13px">${w.mvpPoints}</span>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
-      <td style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
+      <td class="group-start-strong" style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
 
-      <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${f(w.neso)}</span>${convSub(usdt, vnd)}</td>
+      <td class="group-start-strong" style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${f(w.neso)}</span>${convSub(usdt, vnd)}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${fd2(w.nxpc,4)}</span>${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue);font-weight:600;border-left:1px solid var(--border2);padding:8px 12px"><span style="font-size:13px">${w.avax!=null?fd2(w.avax,4):'—'}</span>${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td class="group-start-strong" style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.avax!=null?fd2(w.avax,4):'—'}</span>${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
       <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</span>${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
       <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}</span>${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
-      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:var(--bg2)">
+      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:116px;left:0;z-index:18;background:var(--bg2)">
         <div style="display:flex;gap:4px;padding:12px 16px 0;background:var(--bg2);flex-wrap:wrap;border-bottom:1px solid var(--border2);position:sticky;left:0;width:100%;box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
@@ -2083,13 +2095,13 @@ function renderTeam() {
   const mvpCount   = mvpWallets.length;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
-    <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
+    <td class="group-start-strong" style="text-align:center;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="padding:10px 14px"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
-    <td style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
+    <td class="group-start-strong" style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
+    <td class="group-start-strong" style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}${(()=>{const u=totNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--blue);border-left:1px solid var(--border2)">${fd2(totAvax,4)}${(()=>{const u=totAvax*(liveAvaxUsd||0);return convSub(u,u*usdvnd);})()}</td>
+    <td class="group-start-strong" style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totAvax,4)}${(()=>{const u=totAvax*(liveAvaxUsd||0);return convSub(u,u*usdvnd);})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totNxpcAvax,4)}${convSub(totUsdtAvax, totVndAvax)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${(()=>{const t=displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);return fd2(t,2)+convSub(null,t*usdvnd);})()}</td>
     <td></td>
