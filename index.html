@@ -741,7 +741,7 @@ Ví sếp, 0x5678...efgh
           <tr class="group-header-row">
             <th colspan="3" style="background:var(--surface);border-bottom:none;padding:8px 14px 2px"></th>
             <th colspan="3" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:var(--accent);font-size:9px;letter-spacing:.1em">★ Hiệu suất</th>
-            <th colspan="1" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:#a78bfa;font-size:9px;letter-spacing:.1em">NFT</th>
+            <th colspan="1" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:#22d3ee;font-size:9px;letter-spacing:.1em">NFT</th>
             <th colspan="2" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:var(--green);font-size:9px;letter-spacing:.1em">🍁 Henesys</th>
             <th colspan="3" class="group-start-strong" style="text-align:center;background:var(--surface);border-bottom:none;padding:8px 14px 2px;color:var(--blue);font-size:9px;letter-spacing:.1em">🔺 Avalanche</th>
             <th style="background:var(--surface);border-bottom:none"></th>
@@ -753,7 +753,7 @@ Ví sếp, 0x5678...efgh
             <th class="group-start-strong" style="color:var(--accent);cursor:pointer;user-select:none" onclick="colSort('mvp')" title="Tổng điểm MVP tích lũy">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần đạt rank Bronze trở lên">Tuần <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--muted2);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / mục tiêu 230k">Tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
-            <th class="group-start-strong" style="color:#a78bfa;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng số NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
+            <th class="group-start-strong" style="color:#22d3ee;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng số NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
             <th class="group-start-strong" style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('neso')" title="NESO (Henesys) + quy đổi USD/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('nxpc')" title="NXPC (Henesys) + quy đổi USD/VND">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
             <th class="group-start-strong" style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('avax')" title="AVAX (Avalanche) + quy đổi USD/VND">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
@@ -2040,14 +2040,14 @@ function renderTeam() {
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px;color:var(--text2)">${a.slice(0,6)}...${a.slice(-4)}</span>`;
     return `<tr id="flow-main-${w.address.slice(-8)}" class="team-row">
-      <td style="text-align:center;color:var(--text);font-size:12px;font-weight:600">${i+1}</td>
+      <td style="text-align:center;color:var(--muted2);font-size:11px;font-weight:600">${i+1}</td>
       <td style="text-align:left">
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:7px">
           <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
-            style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
-          <span style="font-weight:600;color:var(--text)">${w.label||'—'}</span>
+            style="background:var(--subtle);border:1px solid var(--border2);border-radius:6px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted2)'">▼</button>
+          <span style="font-weight:600;color:var(--text);font-size:13px">${w.label||'—'}</span>
           <span onclick="navigator.clipboard.writeText('${w.label||''}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)"
-            style="cursor:pointer;font-size:10px;color:var(--muted2);margin-left:4px;user-select:none" title="Copy tên">⎘</span>
+            style="cursor:pointer;font-size:10px;color:var(--muted);user-select:none;opacity:.6" title="Copy tên">⎘</span>
         </div>
       </td>
       <td style="text-align:left">${short(w.address)}
@@ -2060,8 +2060,8 @@ function renderTeam() {
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:right;font-size:13px;font-weight:600;color:var(--accent)" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?w.mvpBronzeWeeks:(w.mvpPoints!=null?'—':'...')}</td>
-      <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
-      <td class="group-start-strong" style="text-align:right;color:#a78bfa;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
+      <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600;font-size:13px">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:${w.mvpWeekValue>=230000?'var(--green)':'var(--muted2)'};margin-top:2px">${w.mvpWeekValue>=230000?'✓ đủ 230k':'thiếu '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
+      <td class="group-start-strong" style="text-align:right;color:#22d3ee;font-weight:600" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:#22d3ee;font-weight:600;font-size:13px">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
 
       <td class="group-start-strong" style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${f(w.neso)}</span>${convSub(usdt, vnd)}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${fd2(w.nxpc,4)}</span>${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
@@ -2098,7 +2098,7 @@ function renderTeam() {
     <td class="group-start-strong" style="text-align:center;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="padding:10px 14px"></td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
-    <td class="group-start-strong" style="text-align:right;padding:10px 14px;color:#a78bfa;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
+    <td class="group-start-strong" style="text-align:right;padding:10px 14px;color:#22d3ee;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
     <td class="group-start-strong" style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}${(()=>{const u=totNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
     <td class="group-start-strong" style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totAvax,4)}${(()=>{const u=totAvax*(liveAvaxUsd||0);return convSub(u,u*usdvnd);})()}</td>
@@ -3169,7 +3169,7 @@ async function loadTeamNftCounts() {
       teamWallets[idx].redFlorin      = cached.red;
       teamWallets[idx].blueFlorin     = cached.blue;
       const elC = document.getElementById('nft-' + w.address.slice(-8));
-      if (elC) elC.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span>`;
+      if (elC) elC.innerHTML = `<span style="color:#22d3ee;font-weight:600">${cached.total}</span>`;
       const elRedC = document.getElementById('red-' + w.address.slice(-8));
       if (elRedC) elRedC.innerHTML = `<span style="color:#ef4444;font-weight:600">${(cached.red??0).toLocaleString('vi-VN')}</span>`;
 
@@ -3258,7 +3258,7 @@ async function loadTeamNftCounts() {
     if (elAll) {
       const iw = teamWallets[idx].nftInWallet;
       elAll.innerHTML = iw!=null
-        ? `<span style="color:#a78bfa;font-weight:600">${teamWallets[idx].nftCount}</span>`
+        ? `<span style="color:#22d3ee;font-weight:600">${teamWallets[idx].nftCount}</span>`
         : '<span style="color:var(--muted2)">—</span>';
     }
     const elRed = document.getElementById('red-' + w.address.slice(-8));
@@ -3529,7 +3529,7 @@ async function loadAllNftParallel() {
       teamWallets[idx].nftCount = cached.total;
       if (cached.wallet != null) { teamWallets[idx].nftInWallet=cached.wallet; teamWallets[idx].nftInCharacter=cached.char; }
       const elNft = document.getElementById('nft-' + key);
-      if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${cached.total}</span>`;
+      if (elNft) elNft.innerHTML = `<span style="color:#22d3ee;font-weight:600">${cached.total}</span>`;
       return;
     }
     try {
@@ -3540,7 +3540,7 @@ async function loadAllNftParallel() {
         const nftTot = sumJ.msuStatistics?.ownedSummary?.totalNumNftItems ?? 0;
         teamWallets[idx].nftCount = nftTot;
         const elNft = document.getElementById('nft-' + key);
-        if (elNft) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${nftTot}</span>`;
+        if (elNft) elNft.innerHTML = `<span style="color:#22d3ee;font-weight:600">${nftTot}</span>`;
         const ce = cache[addrLower] || {};
         ce.total = nftTot; ce.ts = Date.now();
         cache[addrLower] = ce;
@@ -3576,7 +3576,7 @@ async function loadAllNftParallel() {
 function renderNftRedCells(w, idx) {
   const key = w.address.slice(-8);
   const elNft = document.getElementById('nft-' + key);
-  if (elNft && w.nftCount != null) elNft.innerHTML = `<span style="color:#a78bfa;font-weight:600">${w.nftCount}</span>`;
+  if (elNft && w.nftCount != null) elNft.innerHTML = `<span style="color:#22d3ee;font-weight:600">${w.nftCount}</span>`;
   const elRed = document.getElementById('red-' + key);
   if (elRed) {
     if (w.redFlorin != null) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${w.redFlorin.toLocaleString('vi-VN')}</span>`;
@@ -3593,7 +3593,7 @@ function updateWalletItemColumns(w, type, items) {
     w.nftInWallet = inWallet;
     w.nftInCharacter = inChar;
     const el = document.getElementById('nft-' + key);
-    if (el) el.innerHTML = `<span style="color:#a78bfa;font-weight:600">${items.length}</span>`;
+    if (el) el.innerHTML = `<span style="color:#22d3ee;font-weight:600">${items.length}</span>`;
   } else {
     const exch = items.filter(it => it.category?.tier1?.label === 'Exchange Currency');
     const qtyOf = it => (it.ftItem?.ownedOnchainQuantity||0)+(it.ftItem?.ownedOffchainQuantity||0);
@@ -3724,13 +3724,13 @@ async function renderItemsTab(address, type) {
   // Info note
   if (type==='nft') {
     h += `<div style="font-size:11px;color:var(--muted2);margin-bottom:12px;padding:8px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border2)">
-      📊 Tổng <b style="color:var(--text)">${items.length}</b> NFT items · <b style="color:#a78bfa">${walletCount}</b> trên ví · <b style="color:var(--accent)">${charCount}</b> nhân vật đang trang bị
+      📊 Tổng <b style="color:var(--text)">${items.length}</b> NFT items · <b style="color:#22d3ee">${walletCount}</b> trên ví · <b style="color:var(--accent)">${charCount}</b> nhân vật đang trang bị
     </div>`;
   }
   // Horizontal columns layout
   h += '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px">';
   sortedKeys.forEach(g => {
-    const accent = g.includes('Trên ví') ? '#a78bfa' : 'var(--accent)';
+    const accent = g.includes('Trên ví') ? '#22d3ee' : 'var(--accent)';
     const charName = groupCharName[g] || g.replace(/^.. /, '');
     const copyBtn = !g.includes('Trên ví')
       ? `<span onclick="navigator.clipboard.writeText('${charName}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)" style="cursor:pointer;font-size:11px;color:var(--muted2);margin-left:6px;user-select:none" title="Copy tên nhân vật">⎘</span>`
