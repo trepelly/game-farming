@@ -164,6 +164,8 @@ h1 em{font-style:normal;color:var(--accent)}
 .stat{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:transform .2s}
 .stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .stat-ghost{background:transparent;border-color:transparent;box-shadow:none;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease,transform .2s}
+.hdr-chip{background:transparent;border:1px solid transparent;transition:background .15s ease,border-color .15s ease}
+.hdr-chip:hover{background:var(--surface);border-color:var(--border2)}
 .stat-ghost:hover{background:var(--card);border-color:var(--border2);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
 .stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
 .stat-icon{font-size:18px;margin-bottom:8px;display:block}
@@ -359,17 +361,17 @@ td:first-child{text-align:left;color:var(--muted2)}
     </div>
     <!-- Header tickers -->
     <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:center;flex-wrap:nowrap">
-      <div id="hdr-nxpc" style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
+      <div id="hdr-nxpc" class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png" style="width:17px;height:17px;border-radius:50%"/>
         <span style="color:var(--muted2);font-weight:600">NXPC</span>
         <span id="hdr-nxpc-price" style="color:var(--green);font-weight:700;font-family:'Chakra Petch',monospace">$—</span>
         <span id="hdr-nxpc-chg" style="font-size:11px;color:var(--muted2)"></span>
       </div>
-      <div style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
+      <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <span style="color:var(--muted2);font-weight:600">NXPC/NESO</span>
         <span id="hdr-ratio" style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
-      <div style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
+      <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:17px;height:17px;border-radius:50%"/>
         <span style="color:var(--muted2);font-weight:600">USDT/VND</span>
         <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
@@ -652,7 +654,7 @@ Ví sếp, 0x5678...efgh
             <b id="team-username-display" style="color:var(--accent)"></b>
           </div>
         </div>
-        <style>@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}#team-change-bar .ticker-track:hover{animation-play-state:paused}#team-change-bar{border:1px solid transparent;border-radius:10px;padding:0 12px;transition:background .15s ease,border-color .15s ease}#team-change-bar:hover{background:var(--card);border-color:var(--border2)}</style>
+        <style>@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}#team-change-bar .ticker-track:hover{animation-play-state:paused}#team-change-bar{border:none;border-radius:10px;padding:0 12px}</style>
         <div id="team-change-wrap" style="flex:1;min-width:160px;display:flex">
           <div id="team-change-bar" style="flex:1;display:flex;align-items:center;font-size:11px;color:var(--muted2);height:38px;overflow:hidden;box-sizing:border-box"></div>
         </div>
@@ -2164,7 +2166,7 @@ function renderTeam() {
     const lk = label.replace(/\(.*\)/,'').trim().toUpperCase().split(' ')[0];
     const usdStr = usdVal!=null ? '$'+usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
     const vndStr = vndVal!=null ? Math.round(vndVal).toLocaleString('vi-VN')+'đ' : '';
-    return `<div class="stat stat-ghost">
+    return `<div class="stat">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-size:10px;font-weight:700;color:${chainColor};text-transform:uppercase;letter-spacing:.1em">${chain}</span>
         ${headHtml}
