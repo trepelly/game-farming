@@ -44,12 +44,16 @@ export default {
     }
 
     const isXangle = targetUrl.hostname.endsWith('xangle.io');
+    const isP2P = targetUrl.hostname === 'p2p.binance.com';
+    let refOrigin = 'https://msu.io';
+    if (isXangle) refOrigin = 'https://msu-explorer.xangle.io';
+    else if (isP2P) refOrigin = 'https://p2p.binance.com';
     const fetchHeaders = {
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9',
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Referer': isXangle ? 'https://msu-explorer.xangle.io/' : 'https://msu.io/',
-      'Origin': isXangle ? 'https://msu-explorer.xangle.io' : 'https://msu.io',
+      'Referer': refOrigin + '/',
+      'Origin': refOrigin,
     };
     // Forward Content-Type for POST requests (needed for JSON body)
     const reqCT = request.headers.get('Content-Type');
@@ -61,6 +65,17 @@ export default {
       fetchHeaders['x-chain'] = request.headers.get('x-chain') || 'NEXON';
       const sk = request.headers.get('x-secret-key');
       if (sk) fetchHeaders['x-secret-key'] = sk;
+    }
+    // Binance P2P needs these to look like a real browser request
+    if (isP2P) {
+      fetchHeaders['clienttype'] = 'web';
+      fetchHeaders['lang'] = 'en';
+      fetchHeaders['sec-ch-ua'] = '"Chromium";v="120", "Not(A:Brand";v="24"';
+      fetchHeaders['sec-ch-ua-mobile'] = '?0';
+      fetchHeaders['sec-ch-ua-platform'] = '"Windows"';
+      fetchHeaders['sec-fetch-dest'] = 'empty';
+      fetchHeaders['sec-fetch-mode'] = 'cors';
+      fetchHeaders['sec-fetch-site'] = 'same-origin';
     }
 
     try {

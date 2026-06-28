@@ -373,7 +373,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
       <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:17px;height:17px;border-radius:50%"/>
-        <span style="color:var(--muted2);font-weight:600">USDT/VND <span style="font-size:9px;opacity:.7">P2P</span></span>
+        <span style="color:var(--muted2);font-weight:600">USDT/VND</span>
         <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
       <div id="hdr-updated" style="font-size:10px;color:var(--muted2)"></div>
@@ -2351,21 +2351,15 @@ async function fetchLivePrices(force=false) {
       nxpcChg = parseFloat(d.priceChangePercent) || 0;
     }
 
-    // USDT/VND — Binance P2P (giá BÁN, trung bình 5 lệnh đầu) via worker
+    // USDT/VND — CoinGecko (giá thị trường thực, sát P2P, không cần key)
     try {
-      const p2pUrl = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
-      const p2pRes = await fetch(msuProxy(p2pUrl), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fiat:'VND', page:1, rows:5, tradeType:'SELL', asset:'USDT', payTypes:[], publisherType:null })
-      });
-      if (p2pRes.ok) {
-        const pd = await p2pRes.json();
-        const prices = (pd.data||[]).map(d => parseFloat(d.adv?.price)).filter(p => p>0);
-        if (prices.length) usdvnd = prices.reduce((a,b)=>a+b,0) / prices.length;
+      const cgRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd');
+      if (cgRes.ok) {
+        const cg = await cgRes.json();
+        usdvnd = cg?.tether?.vnd || null;
       }
-    } catch(e) { console.warn('P2P price fail', e.message); }
-    // Fallback if P2P unavailable
+    } catch(e) { console.warn('CoinGecko price fail', e.message); }
+    // Fallback chain if CoinGecko unavailable
     if(!usdvnd && usdvndRes?.ok) {
       const d = await usdvndRes.json();
       usdvnd = parseFloat(d.price) || null;
