@@ -2570,8 +2570,9 @@ function updateChangeBar(items) {
   if (!bar) return;
   const sgn = n => (n >= 0 ? '+' : '') + Math.round(n).toLocaleString('vi-VN');
 
-  const earnChip = (lbl, v) => v == null ? '' : `<span style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)"><span style="color:var(--text);font-weight:800;font-size:10px;letter-spacing:.02em">NESO ${lbl}</span><span style="color:${v>=0?'var(--green)':'var(--red)'};font-weight:700">${v>=0?'▲':'▼'} ${sgn(v)}</span><span style="color:var(--muted2);font-size:9px">claim·NFT</span></span>`;
-  const sumChips = nesoEarned ? (earnChip('24h', nesoEarned.e24) + earnChip('7 ngày', nesoEarned.e7)) : '';
+  const earnTip = 'NESO nhận vào (claim từ game + bán NFT character + bán FT item + nhận chuyển khoản), không tính swap.';
+  const earnChip = (lbl, v, tip) => v == null ? '' : `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border);cursor:help"><span style="color:var(--text);font-weight:800;font-size:10px;letter-spacing:.02em">NESO ${lbl}</span><span style="color:${v>=0?'var(--green)':'var(--red)'};font-weight:700">${v>=0?'▲':'▼'} ${sgn(v)}</span><span style="color:var(--muted2);font-size:9px">claim+bán</span></span>`;
+  const sumChips = nesoEarned ? (earnChip('hôm nay', nesoEarned.e24, 'Trong 24h. '+earnTip) + earnChip('tuần này', nesoEarned.e7, 'Tuần game hiện tại (Thứ 5 đến nay). '+earnTip)) : '';
 
   const walletChips = (lastChangeItems||[])
     .sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff))
@@ -2597,17 +2598,22 @@ async function refreshNesoEarned() {
     if (!wallets.length || typeof fetchFlowData !== 'function') return;
     if (nesoEarned && Date.now() - nesoEarnedAt < 30000) { updateChangeBar(); return; }
     nesoEarnedAt = Date.now();
-    let e24 = 0, e7 = 0;
+    let e24 = 0, eWeek = 0;
+    // Tuần game hiện tại = tuần (Thu→Wed) chứa hôm nay
+    const todayKey = (typeof getWeekKey==='function') ? getWeekKey(new Date().toISOString().slice(0,10)) : null;
     const results = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 7)));
     results.forEach(res => {
       if (res.status !== 'fulfilled') return;
       (res.value || []).forEach((r, i) => {
+        // NESO nhận vào = tất cả trừ swap
         const earned = (r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
-        e7 += earned;
         if (i === 0) e24 += earned;   // dòng mới nhất = 24h
+        // 7 ngày = chỉ cộng các ngày thuộc tuần game hiện tại
+        if (todayKey && r.day && getWeekKey(r.day.slice(0,10)) === todayKey) eWeek += earned;
+        else if (!todayKey) eWeek += earned; // fallback nếu thiếu getWeekKey
       });
     });
-    nesoEarned = { e24, e7 };
+    nesoEarned = { e24, e7: eWeek };
     updateChangeBar();
   } catch (e) { /* bỏ qua lỗi mạng */ }
 }
