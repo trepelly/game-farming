@@ -35,7 +35,7 @@ export default {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
-    const allowed = ['msu.io', 'maplen.gg', 'api-static.msu.io', 'gamedatahub-static.msu.io', 'api-gateway.xangle.io', 'xangle.io', 'market-static.msu.io', 'p2p.binance.com'];
+    const allowed = ['msu.io', 'maplen.gg', 'api-static.msu.io', 'gamedatahub-static.msu.io', 'api-gateway.xangle.io', 'xangle.io', 'market-static.msu.io', 'p2p.binance.com', 'pricedancing.com', 'www.pricedancing.com'];
     if (!allowed.some(d => targetUrl.hostname === d || targetUrl.hostname.endsWith('.' + d))) {
       return new Response(JSON.stringify({ error: 'Domain not allowed' }), {
         status: 403,
@@ -45,9 +45,11 @@ export default {
 
     const isXangle = targetUrl.hostname.endsWith('xangle.io');
     const isP2P = targetUrl.hostname === 'p2p.binance.com';
+    const isPriceDancing = targetUrl.hostname.endsWith('pricedancing.com');
     let refOrigin = 'https://msu.io';
     if (isXangle) refOrigin = 'https://msu-explorer.xangle.io';
     else if (isP2P) refOrigin = 'https://p2p.binance.com';
+    else if (isPriceDancing) refOrigin = 'https://www.pricedancing.com';
     const fetchHeaders = {
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9',
@@ -65,6 +67,16 @@ export default {
       fetchHeaders['x-chain'] = request.headers.get('x-chain') || 'NEXON';
       const sk = request.headers.get('x-secret-key');
       if (sk) fetchHeaders['x-secret-key'] = sk;
+    }
+    // PriceDancing API needs browser-like headers + XHR marker
+    if (isPriceDancing) {
+      fetchHeaders['X-Requested-With'] = 'XMLHttpRequest';
+      fetchHeaders['sec-ch-ua'] = '"Chromium";v="120", "Not(A:Brand";v="24"';
+      fetchHeaders['sec-ch-ua-mobile'] = '?0';
+      fetchHeaders['sec-ch-ua-platform'] = '"Windows"';
+      fetchHeaders['sec-fetch-dest'] = 'empty';
+      fetchHeaders['sec-fetch-mode'] = 'cors';
+      fetchHeaders['sec-fetch-site'] = 'same-origin';
     }
     // Binance P2P needs these to look like a real browser request
     if (isP2P) {

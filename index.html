@@ -373,7 +373,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
       <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:17px;height:17px;border-radius:50%"/>
-        <span style="color:var(--muted2);font-weight:600">USDT/VND</span>
+        <span style="color:var(--muted2);font-weight:600">USDT/VND <span style="font-size:9px;opacity:.7">P2P</span></span>
         <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
       <div id="hdr-updated" style="font-size:10px;color:var(--muted2)"></div>
@@ -2351,15 +2351,18 @@ async function fetchLivePrices(force=false) {
       nxpcChg = parseFloat(d.priceChangePercent) || 0;
     }
 
-    // USDT/VND — CoinGecko (giá thị trường thực, sát P2P, không cần key)
+    // USDT/VND — CoinGecko (giá thị trường) × hệ số P2P (chợ đen VN cao hơn ~2%)
+    // Binance P2P trực tiếp chặn IP server, nên dùng CoinGecko làm nền + premium
+    const P2P_PREMIUM = 1.02; // chỉnh hệ số này nếu chênh lệch P2P thay đổi
     try {
       const cgRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd');
       if (cgRes.ok) {
         const cg = await cgRes.json();
-        usdvnd = cg?.tether?.vnd || null;
+        const base = cg?.tether?.vnd;
+        if (base) usdvnd = Math.round(base * P2P_PREMIUM);
       }
     } catch(e) { console.warn('CoinGecko price fail', e.message); }
-    // Fallback chain if CoinGecko unavailable
+    // Fallback chain
     if(!usdvnd && usdvndRes?.ok) {
       const d = await usdvndRes.json();
       usdvnd = parseFloat(d.price) || null;
@@ -2367,7 +2370,7 @@ async function fetchLivePrices(force=false) {
     if(!usdvnd) {
       try {
         const r2 = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-        if(r2.ok) { const d2 = await r2.json(); usdvnd = d2.rates?.VND || null; }
+        if(r2.ok) { const d2 = await r2.json(); usdvnd = Math.round((d2.rates?.VND||0) * P2P_PREMIUM) || null; }
       } catch {}
     }
 
