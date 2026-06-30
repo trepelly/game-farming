@@ -771,6 +771,24 @@ Ví sếp, 0x5678...efgh
           <tfoot id="team-tfoot" style="border-top:2px solid var(--border2);position:sticky;bottom:0;z-index:2"></tfoot>
         </table>
       </div>
+
+      <!-- NESO CLAIM CHART -->
+      <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">📊 NESO Claim</span>
+            <span style="font-size:10px;color:var(--muted2)">claim + bán NFT/FT (trừ swap)</span>
+          </div>
+          <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+            <button id="claim-mode-day" onclick="setClaimChartMode('day')" style="background:var(--accent);border:none;border-radius:6px;padding:6px 14px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Theo ngày</button>
+            <button id="claim-mode-week" onclick="setClaimChartMode('week')" style="background:transparent;border:none;border-radius:6px;padding:6px 14px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Theo tuần</button>
+          </div>
+        </div>
+        <div id="claim-chart-body" style="min-height:240px">
+          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu claim...</div>
+        </div>
+      </div>
+
       </div>
     </div>
   </div>
@@ -1880,6 +1898,7 @@ async function loadTeamWallets() {
     // Load MVP points + NFT/FT counts in parallel (non-blocking)
     loadTeamMvpPoints().catch(()=>{});
     loadAllNftParallel().catch(()=>{});
+    loadClaimChart().catch(()=>{});
   } catch(e) {
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
@@ -2631,6 +2650,108 @@ async function refreshNesoEarned() {
     nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets };
     updateChangeBar();
   } catch (e) { /* bỏ qua lỗi mạng */ }
+}
+
+// ── NESO Claim Chart ──
+let claimChartMode = 'day';
+let claimChartData = null; // { byDay: {date: amount}, byWeek: {weekKey: amount} }
+
+function setClaimChartMode(mode) {
+  claimChartMode = mode;
+  document.getElementById('claim-mode-day').style.background  = mode==='day'  ? 'var(--accent)' : 'transparent';
+  document.getElementById('claim-mode-day').style.color       = mode==='day'  ? '#fff' : 'var(--muted2)';
+  document.getElementById('claim-mode-week').style.background = mode==='week' ? 'var(--accent)' : 'transparent';
+  document.getElementById('claim-mode-week').style.color      = mode==='week' ? '#fff' : 'var(--muted2)';
+  renderClaimChart();
+}
+
+async function loadClaimChart() {
+  const wrap = document.getElementById('claim-chart-wrap');
+  if (!wrap) return;
+  const wallets = teamWallets || [];
+  if (!wallets.length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+
+  const earnedOf = r => (r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
+  const byDay = {}, byWeek = {};
+  try {
+    const all = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
+    all.forEach(res => {
+      if (res.status !== 'fulfilled') return;
+      (res.value||[]).forEach(r => {
+        const day = r.day ? r.day.slice(0,10) : null;
+        if (!day) return;
+        const amt = earnedOf(r);
+        byDay[day] = (byDay[day]||0) + amt;
+        const wk = (typeof getWeekKey==='function') ? getWeekKey(day) : day;
+        byWeek[wk] = (byWeek[wk]||0) + amt;
+      });
+    });
+    claimChartData = { byDay, byWeek };
+    renderClaimChart();
+  } catch(e) {
+    document.getElementById('claim-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
+  }
+}
+
+function renderClaimChart() {
+  const body = document.getElementById('claim-chart-body');
+  if (!body || !claimChartData) return;
+  const src = claimChartMode==='day' ? claimChartData.byDay : claimChartData.byWeek;
+  let keys = Object.keys(src).sort();
+  // Limit: last 30 days or last 13 weeks
+  keys = claimChartMode==='day' ? keys.slice(-30) : keys.slice(-13);
+  if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu</div>'; return; }
+
+  const vals = keys.map(k => src[k]);
+  const maxV = Math.max(...vals, 1);
+  const fmtK = n => n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n);
+  const fmtFull = n => Math.round(n).toLocaleString('vi-VN');
+
+  // Label formatter
+  const lblOf = k => {
+    if (claimChartMode==='day') return k.slice(8,10)+'/'+k.slice(5,7);
+    const d = new Date(k+'T00:00:00Z'); const e = new Date(d); e.setUTCDate(d.getUTCDate()+6);
+    const f = x => ('0'+x.getUTCDate()).slice(-2)+'/'+('0'+(x.getUTCMonth()+1)).slice(-2);
+    return f(d)+'–'+f(e);
+  };
+
+  const W = Math.max(keys.length * (claimChartMode==='day'?34:64), 320);
+  const H = 240, padB = 42, padT = 12, padL = 8, padR = 8;
+  const chartH = H - padB - padT;
+  const bw = (W - padL - padR) / keys.length;
+  const barW = bw * 0.6;
+
+  let bars = '';
+  keys.forEach((k, i) => {
+    const v = src[k];
+    const h = maxV>0 ? (v/maxV) * chartH : 0;
+    const x = padL + i*bw + (bw-barW)/2;
+    const y = padT + chartH - h;
+    const isCurrentDay = claimChartMode==='day' && k === new Date().toISOString().slice(0,10);
+    const isCurrentWk = claimChartMode==='week' && (typeof getWeekKey==='function') && k === getWeekKey(new Date().toISOString().slice(0,10));
+    const fill = (isCurrentDay||isCurrentWk) ? 'var(--accent)' : 'var(--green)';
+    const op = (isCurrentDay||isCurrentWk) ? '1' : '0.55';
+    bars += `<g>
+      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h,1)}" rx="3" fill="${fill}" opacity="${op}">
+        <title>${lblOf(k)}: ${fmtFull(v)} NESO</title>
+      </rect>
+      <text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="8" fill="var(--muted2)" font-family="monospace">${h>14?fmtK(v):''}</text>
+      <text x="${x+barW/2}" y="${H-padB+14}" text-anchor="middle" font-size="8" fill="var(--muted2)" font-family="monospace" transform="rotate(0 ${x+barW/2} ${H-padB+14})">${lblOf(k)}</text>
+    </g>`;
+  });
+
+  const total = vals.reduce((a,b)=>a+b,0);
+  const avg = total/vals.length;
+  body.innerHTML = `
+    <div style="display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap">
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">Tổng (${keys.length} ${claimChartMode==='day'?'ngày':'tuần'})</div><div style="font-size:15px;font-weight:800;color:var(--green)">${fmtFull(total)}</div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">TB / ${claimChartMode==='day'?'ngày':'tuần'}</div><div style="font-size:15px;font-weight:800;color:var(--text)">${fmtFull(avg)}</div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">Cao nhất</div><div style="font-size:15px;font-weight:800;color:var(--text)">${fmtFull(maxV)}</div></div>
+    </div>
+    <div style="overflow-x:auto;padding-bottom:4px">
+      <svg width="${W}" height="${H}" style="display:block;min-width:100%">${bars}</svg>
+    </div>`;
 }
 
 function showChangePopup(w, period, diff, pct) {
