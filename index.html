@@ -2573,8 +2573,17 @@ function updateChangeBar(items) {
   const earnTip = 'NESO nhận vào (claim từ game + bán NFT character + bán FT item + nhận chuyển khoản), không tính swap. Mốc ngày tính từ 7h sáng VN (00:00 UTC), qua 7h sáng reset.';
   const n24 = nesoEarned?.n24 || 0;
   const totalW = (window.teamWallets||[]).length || 0;
+  // Khoảng ngày tuần game hiện tại (Thứ 5 → Thứ 4)
+  let weekRange = '';
+  if (typeof getWeekKey==='function') {
+    const thu = getWeekKey(new Date().toISOString().slice(0,10));
+    const thuD = new Date(thu+'T00:00:00Z');
+    const wed = new Date(thuD); wed.setUTCDate(thuD.getUTCDate()+6);
+    const fmt = d => ('0'+d.getUTCDate()).slice(-2)+'/'+('0'+(d.getUTCMonth()+1)).slice(-2);
+    weekRange = fmt(thuD)+'–'+fmt(wed);
+  }
   const earnChip = (lbl, v, tip, sub) => v == null ? '' : `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border);cursor:help"><span style="color:var(--text);font-weight:800;font-size:10px;letter-spacing:.02em">NESO ${lbl}</span><span style="color:${v>=0?'var(--green)':'var(--red)'};font-weight:700">${v>=0?'▲':'▼'} ${sgn(v)}</span><span style="color:var(--muted2);font-size:9px">${sub}</span></span>`;
-  const sumChips = nesoEarned ? (earnChip('hôm nay', nesoEarned.e24, 'Hôm nay ('+(nesoEarned.day||'?')+', mốc 7h sáng VN). '+n24+'/'+totalW+' ví đã claim. '+earnTip, n24+'/'+totalW+' ví') + earnChip('tuần này', nesoEarned.e7, 'Tuần game hiện tại (Thứ 5 đến nay, mốc 7h sáng VN). '+earnTip, 'claim+bán')) : '';
+  const sumChips = nesoEarned ? (earnChip('hôm nay', nesoEarned.e24, 'Hôm nay ('+(nesoEarned.day||'?')+', mốc 7h sáng VN). '+n24+'/'+totalW+' ví đã claim. '+earnTip, n24+'/'+totalW+' ví') + earnChip('tuần này', nesoEarned.e7, 'Tuần game hiện tại '+(weekRange?'('+weekRange+', Thứ 5→Thứ 4) ':'')+'· reset 7h sáng Thứ 5. '+earnTip, weekRange||'claim+bán')) : '';
 
   const walletChips = (lastChangeItems||[])
     .sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff))
