@@ -2835,8 +2835,8 @@ function renderClaimChart() {
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">${trendChip}</div>
     <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
       ${stat('Tổng ('+keys.length+' '+M.unit+')', fmtFull(total), 'var(--green)', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
-      ${stat('TB / '+M.unit, fmtFull(avg), 'var(--text)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
       ${stat('Cao nhất', fmtFull(maxV), 'var(--text)', I.up, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(maxV)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(maxV)+'</div>')}
+      ${stat('TB / '+M.unit, fmtFull(avg), 'var(--text)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
       ${stat('TB ví claim', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
     </div>
     <div id="claim-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
