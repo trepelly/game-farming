@@ -2666,10 +2666,10 @@ let claimChartMode = 'day';
 let claimChartData = null;
 
 const CLAIM_MODES = {
-  day:   { limit: 30, stepW: 34, unit: 'ngày',  src: 'byDay',   cnt: 'dayCount' },
-  week:  { limit: 13, stepW: 64, unit: 'tuần',  src: 'byWeek',  cnt: 'weekCount' },
-  month: { limit: 12, stepW: 56, unit: 'tháng', src: 'byMonth', cnt: 'monthCount' },
-  year:  { limit: 6,  stepW: 80, unit: 'năm',   src: 'byYear',  cnt: 'yearCount' },
+  day:   { limit: 30, stepW: 34, unit: 'ngày',  src: 'byDay',   cnt: 'dayCount',   cl:'claimDay',   sl:'sellDay' },
+  week:  { limit: 13, stepW: 64, unit: 'tuần',  src: 'byWeek',  cnt: 'weekCount',  cl:'claimWeek',  sl:'sellWeek' },
+  month: { limit: 12, stepW: 56, unit: 'tháng', src: 'byMonth', cnt: 'monthCount', cl:'claimMonth', sl:'sellMonth' },
+  year:  { limit: 6,  stepW: 80, unit: 'năm',   src: 'byYear',  cnt: 'yearCount',  cl:'claimYear',  sl:'sellYear' },
 };
 
 function setClaimChartMode(mode) {
@@ -2688,9 +2688,15 @@ async function loadClaimChart() {
   if (!wallets.length) { wrap.style.display='none'; return; }
   wrap.style.display = 'block';
 
-  const earnedOf = r => (r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
+  // Tách nguồn: claim game (mint+crystal+transfer) vs bán NFT/FT (nft+ft)
+  const claimOf = r => (r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
+  const sellOf  = r => (r.in_nft_amount||0)+(r.in_ft_amount||0);
+  const earnedOf = r => claimOf(r) + sellOf(r);
   const byDay = {}, byWeek = {}, byMonth = {}, byYear = {};
+  const clDay={}, clWeek={}, clMonth={}, clYear={}; // claim thuần
+  const slDay={}, slWeek={}, slMonth={}, slYear={}; // bán NFT/FT
   const dW = {}, wW = {}, mW = {}, yW = {};
+  const add = (o,k,v) => o[k]=(o[k]||0)+v;
   try {
     const all = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
     all.forEach((res, wi) => {
@@ -2699,12 +2705,12 @@ async function loadClaimChart() {
       (res.value||[]).forEach(r => {
         const day = r.day ? r.day.slice(0,10) : null;
         if (!day) return;
-        const amt = earnedOf(r);
+        const amt = earnedOf(r), cl = claimOf(r), sl = sellOf(r);
         const wk = (typeof getWeekKey==='function') ? getWeekKey(day) : day;
-        const mo = day.slice(0,7);  // YYYY-MM
-        const yr = day.slice(0,4);  // YYYY
-        byDay[day]=(byDay[day]||0)+amt; byWeek[wk]=(byWeek[wk]||0)+amt;
-        byMonth[mo]=(byMonth[mo]||0)+amt; byYear[yr]=(byYear[yr]||0)+amt;
+        const mo = day.slice(0,7), yr = day.slice(0,4);
+        add(byDay,day,amt); add(byWeek,wk,amt); add(byMonth,mo,amt); add(byYear,yr,amt);
+        add(clDay,day,cl); add(clWeek,wk,cl); add(clMonth,mo,cl); add(clYear,yr,cl);
+        add(slDay,day,sl); add(slWeek,wk,sl); add(slMonth,mo,sl); add(slYear,yr,sl);
         if (amt > 0) {
           (dW[day]=dW[day]||new Set()).add(addr); (wW[wk]=wW[wk]||new Set()).add(addr);
           (mW[mo]=mW[mo]||new Set()).add(addr); (yW[yr]=yW[yr]||new Set()).add(addr);
@@ -2714,6 +2720,8 @@ async function loadClaimChart() {
     const cnt = src => { const o={}; Object.keys(src).forEach(k=>o[k]=src[k].size); return o; };
     claimChartData = {
       byDay, byWeek, byMonth, byYear,
+      claimDay:clDay, claimWeek:clWeek, claimMonth:clMonth, claimYear:clYear,
+      sellDay:slDay, sellWeek:slWeek, sellMonth:slMonth, sellYear:slYear,
       dayCount: cnt(dW), weekCount: cnt(wW), monthCount: cnt(mW), yearCount: cnt(yW),
       totalWallets: wallets.length
     };
@@ -2749,6 +2757,8 @@ function renderClaimChart() {
   const M = CLAIM_MODES[claimChartMode];
   const src = claimChartData[M.src] || {};
   const cntMap = claimChartData[M.cnt] || {};
+  const clMap = claimChartData[M.cl] || {};
+  const slMap = claimChartData[M.sl] || {};
   const totalW = claimChartData.totalWallets || 0;
   let keys = Object.keys(src).sort().slice(-M.limit);
   if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu</div>'; return; }
@@ -2803,14 +2813,22 @@ function renderClaimChart() {
   let bars = '';
   keys.forEach((k, i) => {
     const v = src[k];
-    const h = (v/yMax) * chartH;
+    const cl = clMap[k]||0, sl = slMap[k]||0;
+    const totH = (v/yMax) * chartH;
+    const clH  = (cl/yMax) * chartH;  // phần claim (dưới)
+    const slH  = (sl/yMax) * chartH;  // phần bán (trên)
     const x = padL + i*bw + (bw-barW)/2;
-    const y = padT + chartH - h;
+    const yTop = padT + chartH - totH;
     const isCur = k === ck;
-    const fill = isCur ? 'url(#claimGradCur)' : 'url(#claimGrad)';
+    // Stacked: claim ở dưới (đậm), bán ở trên (nhạt)
+    const clFill = isCur ? 'url(#claimGradCur)' : 'url(#claimGrad)';
+    const slFill = isCur ? 'var(--accent)' : 'var(--blue)';
+    const yClaim = padT + chartH - clH;
+    const ySell  = yClaim - slH;
     bars += `<g class="claim-bar" data-k="${i}" style="cursor:pointer">
-      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h,2)}" rx="4" fill="${fill}"/>
-      <text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="8.5" fill="${isCur?'var(--accent)':'var(--text2)'}" font-family="monospace" font-weight="${isCur?'700':'500'}">${h>16?fmtK(v):''}</text>
+      ${clH>0?`<rect x="${x}" y="${yClaim}" width="${barW}" height="${Math.max(clH,1)}" rx="${slH>1?0:4}" fill="${clFill}"/>`:''}
+      ${slH>0?`<rect x="${x}" y="${ySell}" width="${barW}" height="${Math.max(slH,1)}" rx="3" fill="${slFill}" opacity="0.65"/>`:''}
+      <text x="${x+barW/2}" y="${yTop-5}" text-anchor="middle" font-size="8.5" fill="${isCur?'var(--accent)':'var(--text2)'}" font-family="monospace" font-weight="${isCur?'700':'500'}">${totH>16?fmtK(v):''}</text>
       <text x="${x+barW/2}" y="${H-padB+15}" text-anchor="middle" font-size="8.5" fill="var(--muted2)" font-family="monospace">${lblOf(k)}</text>
       <text x="${x+barW/2}" y="${H-padB+27}" text-anchor="middle" font-size="7.5" fill="${isCur?'var(--accent)':'var(--muted2)'}" font-family="monospace" font-weight="700">${cntMap[k]||0} ví</text>
       <rect x="${x-bw*0.19}" y="${padT}" width="${bw}" height="${chartH}" fill="transparent" data-tip="${i}"/>
@@ -2818,6 +2836,8 @@ function renderClaimChart() {
   });
 
   const total = vals.reduce((a,b)=>a+b,0);
+  const totClaim = keys.reduce((s,k)=>s+(clMap[k]||0),0);
+  const totSell  = keys.reduce((s,k)=>s+(slMap[k]||0),0);
   const avg = total/vals.length;
   const avgW = keys.reduce((s,k)=>s+(cntMap[k]||0),0)/keys.length;
   // Trend vs previous period
@@ -2838,9 +2858,15 @@ function renderClaimChart() {
     </div>`;
 
   body.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">${trendChip}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      ${trendChip}
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block"></span>Claim game</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--blue);opacity:.65;display:inline-block"></span>Bán NFT/FT</span>
+    </div>
     <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
       ${stat('Tổng ('+keys.length+' '+M.unit+')', fmtFull(total), 'var(--green)', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
+      ${stat('Claim game', fmtFull(totClaim), 'var(--green)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+(total>0?Math.round(totClaim/total*100):0)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totClaim)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totClaim)+'</div>')}
+      ${stat('Bán NFT/FT', fmtFull(totSell), 'var(--blue)', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+(total>0?Math.round(totSell/total*100):0)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totSell)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totSell)+'</div>')}
       ${stat('Cao nhất', fmtFull(maxV), 'var(--text)', I.up, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(maxV)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(maxV)+'</div>')}
       ${stat('TB / '+M.unit, fmtFull(avg), 'var(--text)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
       ${stat('TB ví claim', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
@@ -2865,10 +2891,12 @@ function renderClaimChart() {
     const idx = +el.getAttribute('data-tip');
     const k = keys[idx], v = src[k];
     el.addEventListener('mousemove', e => {
+      const cl=clMap[k]||0, sl=slMap[k]||0;
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:var(--green);font-weight:700">${fmtFull(v)} NESO</div>
-        <div style="color:var(--text2);font-size:10px">≈ ${fmtUsd(v)}</div>
-        <div style="color:var(--muted2);font-size:10px">${fmtVnd(v)}</div>
+        <div style="color:var(--text2);font-size:10px">≈ ${fmtUsd(v)} · ${fmtVnd(v)}</div>
+        <div style="margin-top:4px;font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--green);display:inline-block"></span><span style="color:var(--muted2)">Claim:</span> <span style="color:var(--text);font-weight:600">${fmtFull(cl)}</span></div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--blue);opacity:.65;display:inline-block"></span><span style="color:var(--muted2)">Bán NFT/FT:</span> <span style="color:var(--text);font-weight:600">${fmtFull(sl)}</span></div>
         <div style="color:var(--accent);font-size:10px;margin-top:3px">${cntMap[k]||0}/${totalW} ví claim</div>`;
       tip.style.opacity = '1';
       let tx = e.clientX + 14, ty = e.clientY + 14;
