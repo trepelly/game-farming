@@ -2570,10 +2570,11 @@ function updateChangeBar(items) {
   if (!bar) return;
   const sgn = n => (n >= 0 ? '+' : '') + Math.round(n).toLocaleString('vi-VN');
 
-  const earnTip = 'NESO nhận vào (claim từ game + bán NFT character + bán FT item + nhận chuyển khoản), không tính swap. Mốc ngày tính từ 7h sáng VN (00:00 UTC).';
-  const dayStr = nesoEarned?.day ? nesoEarned.day.slice(8,10)+'/'+nesoEarned.day.slice(5,7) : '';
+  const earnTip = 'NESO nhận vào (claim từ game + bán NFT character + bán FT item + nhận chuyển khoản), không tính swap. Mốc ngày tính từ 7h sáng VN (00:00 UTC), qua 7h sáng reset.';
+  const n24 = nesoEarned?.n24 || 0;
+  const totalW = (window.teamWallets||[]).length || 0;
   const earnChip = (lbl, v, tip, sub) => v == null ? '' : `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border);cursor:help"><span style="color:var(--text);font-weight:800;font-size:10px;letter-spacing:.02em">NESO ${lbl}</span><span style="color:${v>=0?'var(--green)':'var(--red)'};font-weight:700">${v>=0?'▲':'▼'} ${sgn(v)}</span><span style="color:var(--muted2);font-size:9px">${sub}</span></span>`;
-  const sumChips = nesoEarned ? (earnChip('ngày '+dayStr, nesoEarned.e24, 'Ngày '+(nesoEarned.day||'?')+' (mốc 7h sáng VN). '+earnTip, 'claim+bán') + earnChip('tuần này', nesoEarned.e7, 'Tuần game hiện tại (Thứ 5 đến nay, mốc 7h sáng VN). '+earnTip, 'claim+bán')) : '';
+  const sumChips = nesoEarned ? (earnChip('hôm nay', nesoEarned.e24, 'Hôm nay ('+(nesoEarned.day||'?')+', mốc 7h sáng VN). '+n24+'/'+totalW+' ví đã claim. '+earnTip, n24+'/'+totalW+' ví') + earnChip('tuần này', nesoEarned.e7, 'Tuần game hiện tại (Thứ 5 đến nay, mốc 7h sáng VN). '+earnTip, 'claim+bán')) : '';
 
   const walletChips = (lastChangeItems||[])
     .sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff))
@@ -2599,21 +2600,26 @@ async function refreshNesoEarned() {
     if (!wallets.length || typeof fetchFlowData !== 'function') return;
     if (nesoEarned && Date.now() - nesoEarnedAt < 30000) { updateChangeBar(); return; }
     nesoEarnedAt = Date.now();
-    let e24 = 0, eWeek = 0, latestDay = null;
-    // Tuần game hiện tại = tuần (Thu→Wed) chứa hôm nay
-    const todayKey = (typeof getWeekKey==='function') ? getWeekKey(new Date().toISOString().slice(0,10)) : null;
+    let e24 = 0, eWeek = 0, n24wallets = 0;
+    // Hôm nay theo lịch UTC = 7h sáng VN (mốc reset). Tuần game = tuần Thu→Wed chứa hôm nay.
+    const todayUtc = new Date().toISOString().slice(0,10);
+    const todayKey = (typeof getWeekKey==='function') ? getWeekKey(todayUtc) : null;
     const earnedOf = r => (r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
     const allRows = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
     const walletRows = allRows.map(res => res.status==='fulfilled' ? (res.value||[]) : []);
-    // 1) Tìm ngày mới nhất CHUNG của toàn team (mốc 00:00 UTC = 7h sáng VN)
-    walletRows.forEach(rows => rows.forEach(r => { if (r.day && (!latestDay || r.day > latestDay)) latestDay = r.day; }));
-    // 2) Cộng NESO của ngày mới nhất đó + cộng tuần game hiện tại
-    walletRows.forEach(rows => rows.forEach(r => {
-      const earned = earnedOf(r);
-      if (r.day === latestDay) e24 += earned;
-      if (todayKey && r.day && getWeekKey(r.day.slice(0,10)) === todayKey) eWeek += earned;
-    }));
-    nesoEarned = { e24, e7: eWeek, day: latestDay };
+    walletRows.forEach(rows => {
+      let walletHasToday = false;
+      rows.forEach(r => {
+        const earned = earnedOf(r);
+        const day = r.day ? r.day.slice(0,10) : null;
+        // Hôm nay = chỉ cộng ví có data đúng ngày hôm nay (UTC/7h VN). Ví chưa claim → góp 0.
+        if (day === todayUtc) { e24 += earned; walletHasToday = true; }
+        // Tuần game hiện tại
+        if (todayKey && day && getWeekKey(day) === todayKey) eWeek += earned;
+      });
+      if (walletHasToday) n24wallets++;
+    });
+    nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets };
     updateChangeBar();
   } catch (e) { /* bỏ qua lỗi mạng */ }
 }
