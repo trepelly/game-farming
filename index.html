@@ -1006,6 +1006,10 @@ function switchTab(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet','mvp','flow','team'][i]===t));
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
+  // Khi vào Team Wallet: nếu có ví mà chart chưa load thì load
+  if (t==='team' && typeof loadClaimChart==='function' && (teamWallets||[]).length && !claimChartData) {
+    loadClaimChart().catch(()=>{});
+  }
 }
 
 // ── Farm ──
@@ -2415,6 +2419,8 @@ async function fetchLivePrices(force=false) {
     liveAvaxUsd = avaxUsd;
     renderPriceTicker(data);
     if (typeof renderTeam === 'function' && document.getElementById('team-tbody')) renderTeam();
+    // Re-render claim chart with updated prices (data already loaded)
+    if (typeof renderClaimChart === 'function' && claimChartData) renderClaimChart();
   } catch(e) {
     if(upEl) upEl.textContent = 'Lỗi: ' + e.message;
   }
