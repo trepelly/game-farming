@@ -2707,6 +2707,13 @@ function renderClaimChart() {
   const maxV = Math.max(...vals, 1);
   const fmtK = n => n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n);
   const fmtFull = n => Math.round(n).toLocaleString('vi-VN');
+  // Tỷ giá quy đổi NESO → USD → VND
+  const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
+  const usdvnd = liveUsdVnd || 0;
+  const toUsd = n => n * nesoRate;
+  const toVnd = n => n * nesoRate * usdvnd;
+  const fmtUsd = n => '$'+toUsd(n).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtVnd = n => Math.round(toVnd(n)).toLocaleString('vi-VN')+'đ';
 
   // Label formatter
   const lblOf = k => {
@@ -2734,7 +2741,7 @@ function renderClaimChart() {
     const op = (isCurrentDay||isCurrentWk) ? '1' : '0.55';
     bars += `<g>
       <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h,1)}" rx="3" fill="${fill}" opacity="${op}">
-        <title>${lblOf(k)}: ${fmtFull(v)} NESO</title>
+        <title>${lblOf(k)}: ${fmtFull(v)} NESO\n≈ ${fmtUsd(v)} · ${fmtVnd(v)}</title>
       </rect>
       <text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="8" fill="var(--muted2)" font-family="monospace">${h>14?fmtK(v):''}</text>
       <text x="${x+barW/2}" y="${H-padB+14}" text-anchor="middle" font-size="8" fill="var(--muted2)" font-family="monospace" transform="rotate(0 ${x+barW/2} ${H-padB+14})">${lblOf(k)}</text>
@@ -2743,11 +2750,17 @@ function renderClaimChart() {
 
   const total = vals.reduce((a,b)=>a+b,0);
   const avg = total/vals.length;
+  const statBox = (lbl, v, color) => `<div>
+      <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">${lbl}</div>
+      <div style="font-size:15px;font-weight:800;color:${color}">${fmtFull(v)} <span style="font-size:9px;color:var(--muted2);font-weight:600">NESO</span></div>
+      <div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">${fmtUsd(v)}</div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:1px">${fmtVnd(v)}</div>
+    </div>`;
   body.innerHTML = `
-    <div style="display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap">
-      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">Tổng (${keys.length} ${claimChartMode==='day'?'ngày':'tuần'})</div><div style="font-size:15px;font-weight:800;color:var(--green)">${fmtFull(total)}</div></div>
-      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">TB / ${claimChartMode==='day'?'ngày':'tuần'}</div><div style="font-size:15px;font-weight:800;color:var(--text)">${fmtFull(avg)}</div></div>
-      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">Cao nhất</div><div style="font-size:15px;font-weight:800;color:var(--text)">${fmtFull(maxV)}</div></div>
+    <div style="display:flex;gap:24px;margin-bottom:14px;flex-wrap:wrap">
+      ${statBox('Tổng ('+keys.length+' '+(claimChartMode==='day'?'ngày':'tuần')+')', total, 'var(--green)')}
+      ${statBox('TB / '+(claimChartMode==='day'?'ngày':'tuần'), avg, 'var(--text)')}
+      ${statBox('Cao nhất', maxV, 'var(--text)')}
     </div>
     <div style="overflow-x:auto;padding-bottom:4px">
       <svg width="${W}" height="${H}" style="display:block;min-width:100%">${bars}</svg>
