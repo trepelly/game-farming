@@ -4235,22 +4235,60 @@ function renderFlowExpand(cont, rows) {
   const f = n => Math.round(n).toLocaleString('vi-VN');
 
   let totE=0,totNft=0,totFt=0,totInSwap=0,totOutSwap=0;
+  // NESO THU VÀO theo nguồn
+  let inMintAmt=0, inNftAmt=0, inNftCnt=0, inFtAmt=0, inFtCnt=0, inCrystalAmt=0, inTransferAmt=0;
   rows.forEach(r=>{
     totE       += r.out_enhancement_amount||r.out_crystal_amount||0;
     totNft     += r.out_nft_amount||0;
     totFt      += r.out_ft_amount||0;
     totInSwap  += r.in_swap_amount||0;
     totOutSwap += r.out_swap_amount||0;
+    inMintAmt     += r.in_mint_amount||0;
+    inNftAmt      += r.in_nft_amount||0;  inNftCnt += r.in_nft_count||0;
+    inFtAmt       += r.in_ft_amount||0;   inFtCnt  += r.in_ft_count||0;
+    inCrystalAmt  += r.in_crystal_amount||0;
+    inTransferAmt += r.in_transfer_amount||0;
   });
+  const claimGame = inMintAmt + inCrystalAmt; // claim từ game (mint + crystal)
+  const totalIn   = claimGame + inNftAmt + inFtAmt + inTransferAmt;
   const mvpElig = totE + (totNft+totFt)*0.05;
   const mvpPts  = Math.floor(mvpElig/100000);
   const tier    = getTier(mvpPts);
+  // Tỷ giá quy đổi
+  const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
+  const usdvnd = liveUsdVnd || 0;
+  const cv = n => { const u=n*nesoRate, v=u*usdvnd; return `<div style="font-size:9px;color:var(--text2);margin-top:1px">$${u.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div style="font-size:9px;color:var(--muted2)">${Math.round(v).toLocaleString('vi-VN')}đ</div>`; };
 
   cont.innerHTML = `
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center">
       <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">NESO Flow (Tất cả)</div>
       <div style="background:${tier.bg};border:1px solid ${tier.color}44;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:${tier.color}">${tier.icon} ${tier.name} · ${f(mvpPts)} pts</div>
     </div>
+    <!-- NESO THU VÀO theo nguồn -->
+    <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">⬇ NESO Thu vào · ${f(totalIn)}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin-bottom:12px">
+      <div style="background:var(--surface);border-radius:6px;padding:8px 10px;border:1px solid var(--green)44">
+        <div style="font-size:9px;color:var(--muted2);margin-bottom:2px">🎮 Claim game</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green)">${f(claimGame)}</div>
+        ${cv(claimGame)}
+      </div>
+      <div style="background:var(--surface);border-radius:6px;padding:8px 10px;border:1px solid var(--border)">
+        <div style="font-size:9px;color:var(--muted2);margin-bottom:2px">🎴 Bán NFT <span style="color:var(--blue);font-weight:700">${f(inNftCnt)} cái</span></div>
+        <div style="font-size:13px;font-weight:700;color:var(--green)">${f(inNftAmt)}</div>
+        ${cv(inNftAmt)}
+      </div>
+      <div style="background:var(--surface);border-radius:6px;padding:8px 10px;border:1px solid var(--border)">
+        <div style="font-size:9px;color:var(--muted2);margin-bottom:2px">🪙 Bán FT <span style="color:#ef4444;font-weight:700">${f(inFtCnt)} cái</span></div>
+        <div style="font-size:13px;font-weight:700;color:var(--green)">${f(inFtAmt)}</div>
+        ${cv(inFtAmt)}
+      </div>
+      ${inTransferAmt>0?`<div style="background:var(--surface);border-radius:6px;padding:8px 10px;border:1px solid var(--border)">
+        <div style="font-size:9px;color:var(--muted2);margin-bottom:2px">↪ Nhận chuyển</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green)">${f(inTransferAmt)}</div>
+        ${cv(inTransferAmt)}
+      </div>`:''}
+    </div>
+    <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">⬆ NESO Chi ra (MVP)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-bottom:10px">
       <div style="background:var(--surface);border-radius:6px;padding:8px 10px;border:1px solid var(--border)">
         <div style="font-size:9px;color:var(--muted2);margin-bottom:2px">Enhancement</div>
@@ -4276,26 +4314,29 @@ function renderFlowExpand(cont, rows) {
     <div style="overflow-x:auto"><table style="width:100%;min-width:500px;border-collapse:collapse;font-size:11px">
       <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
         <th style="padding:5px 8px;text-align:left;color:var(--muted2)">Ngày</th>
-        <th style="padding:5px 8px;text-align:right;color:var(--amber)">Enhancement</th>
-        <th style="padding:5px 8px;text-align:right;color:var(--blue)">Out NFT</th>
-        <th style="padding:5px 8px;text-align:right;color:var(--blue)">Out FT</th>
-        <th style="padding:5px 8px;text-align:right;color:var(--green)">In Swap</th>
+        <th style="padding:5px 8px;text-align:right;color:var(--green)" title="Claim từ game (mint+crystal)">🎮 Claim</th>
+        <th style="padding:5px 8px;text-align:right;color:var(--green)" title="NESO bán NFT (số NFT)">🎴 Bán NFT</th>
+        <th style="padding:5px 8px;text-align:right;color:var(--green)" title="NESO bán FT (số FT)">🪙 Bán FT</th>
+        <th style="padding:5px 8px;text-align:right;color:var(--amber)">Enhance</th>
         <th style="padding:5px 8px;text-align:right;color:#e84142">Out Swap</th>
       </tr></thead>
       <tbody>
         ${rows.filter(r=>
-          (r.out_enhancement_amount||r.out_crystal_amount||0)+
-          (r.out_nft_amount||0)+(r.out_ft_amount||0)+
-          (r.in_swap_amount||0)+(r.out_swap_amount||0) > 0
-        ).map(r=>`
+          (r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_nft_amount||0)+(r.in_ft_amount||0)+
+          (r.out_enhancement_amount||r.out_crystal_amount||0)+(r.out_swap_amount||0) > 0
+        ).map(r=>{
+          const claim = (r.in_mint_amount||0)+(r.in_crystal_amount||0);
+          const nftA = r.in_nft_amount||0, nftC = r.in_nft_count||0;
+          const ftA = r.in_ft_amount||0, ftC = r.in_ft_count||0;
+          return `
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:4px 8px;font-family:monospace">${r.day?.slice(0,10)}</td>
+          <td style="padding:4px 8px;text-align:right;color:var(--green)">${claim>0?f(claim):'<span style=\'color:var(--muted2)\'>—</span>'}</td>
+          <td style="padding:4px 8px;text-align:right;color:var(--green)">${nftA>0?f(nftA)+(nftC>0?` <span style=\'color:var(--blue);font-size:9px\'>(${nftC})</span>`:''):'<span style=\'color:var(--muted2)\'>—</span>'}</td>
+          <td style="padding:4px 8px;text-align:right;color:var(--green)">${ftA>0?f(ftA)+(ftC>0?` <span style=\'color:#ef4444;font-size:9px\'>(${ftC})</span>`:''):'<span style=\'color:var(--muted2)\'>—</span>'}</td>
           <td style="padding:4px 8px;text-align:right;color:var(--amber)">${f(r.out_enhancement_amount||r.out_crystal_amount||0)}</td>
-          <td style="padding:4px 8px;text-align:right;color:var(--blue)">${f(r.out_nft_amount||0)}</td>
-          <td style="padding:4px 8px;text-align:right;color:var(--blue)">${f(r.out_ft_amount||0)}</td>
-          <td style="padding:4px 8px;text-align:right;color:var(--green)">${f(r.in_swap_amount||0)}</td>
           <td style="padding:4px 8px;text-align:right;color:#e84142">${f(r.out_swap_amount||0)}</td>
-        </tr>`).join('')}
+        </tr>`;}).join('')}
       </tbody>
     </table></div>`;
 }
