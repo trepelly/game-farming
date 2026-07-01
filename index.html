@@ -1825,7 +1825,7 @@ document.head.appendChild(spinStyle);
 <script>
 // ── TEAM WALLET MODULE ──
 const GIST_ID    = 'fbbc7f578f4ad7760206f397c0706348';
-const _tk        = () => ['ghp_9a6s','tUahIiIr','rCVrfQH0','QsteIRsr','tq3vuXb2'].join('');
+const GIST_ENDPOINT = 'https://msu-proxy.petertrepellynguyen.workers.dev/gist';
 const GIST_FILE  = 'team-wallets.json';
 const USERS_FILE = 'team-users.json';
 
@@ -1848,9 +1848,7 @@ async function unlockTeam() {
   err.innerHTML = '<span style="color:var(--muted2)">Đang xác thực...</span>';
 
   try {
-    const r    = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-      headers: { Authorization: `token ${_tk()}`, Accept: 'application/vnd.github.v3+json' }
-    });
+    const r    = await fetch(GIST_ENDPOINT);
     const data = await r.json();
     const raw  = data.files?.[USERS_FILE]?.content || '{"users":[]}';
     const {users} = JSON.parse(raw);
@@ -1890,17 +1888,15 @@ function lockTeam() {
 
 // ── Gist CRUD ──
 async function fetchGist() {
-  const r = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    headers: { Authorization: `token ${_tk()}`, Accept: 'application/vnd.github.v3+json' }
-  });
+  const r = await fetch(GIST_ENDPOINT);
   const d = await r.json();
   return JSON.parse(d.files?.[GIST_FILE]?.content || '{"wallets":[]}');
 }
 
 async function saveGist(data) {
-  await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+  await fetch(GIST_ENDPOINT, {
     method: 'PATCH',
-    headers: { Authorization: `token ${_tk()}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(data, null, 2) } } })
   });
 }
