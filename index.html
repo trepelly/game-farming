@@ -812,6 +812,26 @@ Ví sếp, 0x5678...efgh
         </div>
       </div>
 
+      <!-- NESO SWAP CHART -->
+      <div id="swap-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">NESO Swap</span>
+            <span style="font-size:10px;color:var(--muted2)">đổi NESO ↔ token khác (In / Out)</span>
+          </div>
+          <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+            <button id="swap-mode-day" onclick="setSwapChartMode('day')" class="swap-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
+            <button id="swap-mode-week" onclick="setSwapChartMode('week')" class="swap-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tuần</button>
+            <button id="swap-mode-month" onclick="setSwapChartMode('month')" class="swap-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tháng</button>
+            <button id="swap-mode-year" onclick="setSwapChartMode('year')" class="swap-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Năm</button>
+          </div>
+        </div>
+        <div id="swap-chart-body" style="min-height:260px">
+          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu swap...</div>
+        </div>
+      </div>
+
       </div>
     </div>
   </div>
@@ -1030,6 +1050,7 @@ function switchTab(t){
   if (t==='team' && typeof loadClaimChart==='function' && (teamWallets||[]).length && !claimChartData) {
     loadClaimChart().catch(()=>{});
     loadSpendChart().catch(()=>{});
+    loadSwapChart().catch(()=>{});
   }
 }
 
@@ -1924,6 +1945,7 @@ async function loadTeamWallets() {
     loadAllNftParallel().catch(()=>{});
     loadClaimChart().catch(()=>{});
     loadSpendChart().catch(()=>{});
+    loadSwapChart().catch(()=>{});
   } catch(e) {
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
@@ -2440,6 +2462,7 @@ async function fetchLivePrices(force=false) {
     // Re-render claim chart with updated prices (data already loaded)
     if (typeof renderClaimChart === 'function' && claimChartData) renderClaimChart();
     if (typeof renderSpendChart === 'function' && spendChartData) renderSpendChart();
+    if (typeof renderSwapChart === 'function' && swapChartData) renderSwapChart();
   } catch(e) {
     if(upEl) upEl.textContent = 'Lỗi: ' + e.message;
   }
@@ -3162,6 +3185,203 @@ function renderSpendChart() {
   });
 }
 
+
+// ══════════════ NESO SWAP CHART (In/Out diverging) ══════════════
+let swapChartMode = 'day';
+let swapChartData = null;
+const SWAP_MODES = {
+  day:   { limit: 30, stepW: 34, unit: 'ngày',  src: 'byDay' },
+  week:  { limit: 13, stepW: 64, unit: 'tuần',  src: 'byWeek' },
+  month: { limit: 12, stepW: 56, unit: 'tháng', src: 'byMonth' },
+  year:  { limit: 6,  stepW: 80, unit: 'năm',   src: 'byYear' },
+};
+
+function setSwapChartMode(mode) {
+  swapChartMode = mode;
+  ['day','week','month','year'].forEach(m => {
+    const b = document.getElementById('swap-mode-'+m);
+    if (b) { b.style.background = m===mode ? 'var(--accent)' : 'transparent'; b.style.color = m===mode ? '#fff' : 'var(--muted2)'; }
+  });
+  renderSwapChart();
+}
+
+async function loadSwapChart() {
+  const wrap = document.getElementById('swap-chart-wrap');
+  if (!wrap) return;
+  const wallets = teamWallets || [];
+  if (!wallets.length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+
+  const inOf  = r => (r.in_swap_amount||0);
+  const outOf = r => (r.out_swap_amount||0);
+  // Structure: byDay[key] = {in, out}
+  const mk = () => ({});
+  const byDay=mk(),byWeek=mk(),byMonth=mk(),byYear=mk();
+  const dW={},wW={},mW={},yW={};
+  const addIO=(o,k,i,ou)=>{ if(!o[k])o[k]={in:0,out:0}; o[k].in+=i; o[k].out+=ou; };
+  try {
+    const all = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
+    all.forEach((res, wi) => {
+      if (res.status !== 'fulfilled') return;
+      const addr = wallets[wi].address;
+      (res.value||[]).forEach(r => {
+        const day = r.day ? r.day.slice(0,10) : null;
+        if (!day) return;
+        const si=inOf(r), so=outOf(r);
+        const wk=(typeof getWeekKey==='function')?getWeekKey(day):day, mo=day.slice(0,7), yr=day.slice(0,4);
+        addIO(byDay,day,si,so); addIO(byWeek,wk,si,so); addIO(byMonth,mo,si,so); addIO(byYear,yr,si,so);
+        if (si>0||so>0) {
+          (dW[day]=dW[day]||new Set()).add(addr);(wW[wk]=wW[wk]||new Set()).add(addr);
+          (mW[mo]=mW[mo]||new Set()).add(addr);(yW[yr]=yW[yr]||new Set()).add(addr);
+        }
+      });
+    });
+    const cnt=src=>{const o={};Object.keys(src).forEach(k=>o[k]=src[k].size);return o;};
+    swapChartData = {
+      byDay,byWeek,byMonth,byYear,
+      dayCount:cnt(dW),weekCount:cnt(wW),monthCount:cnt(mW),yearCount:cnt(yW),
+      totalWallets:wallets.length
+    };
+    renderSwapChart();
+  } catch(e) {
+    document.getElementById('swap-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
+  }
+}
+
+function renderSwapChart() {
+  const body = document.getElementById('swap-chart-body');
+  if (!body || !swapChartData) return;
+  const M = SWAP_MODES[swapChartMode];
+  const src = swapChartData[M.src] || {};
+  const cntKey = swapChartMode+'Count';
+  const cntMap = swapChartData[cntKey] || {};
+  const totalW = swapChartData.totalWallets || 0;
+  let keys = Object.keys(src).sort().slice(-M.limit);
+  if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu</div>'; return; }
+
+  const insV = keys.map(k=>src[k].in), outsV = keys.map(k=>src[k].out);
+  const maxMag = Math.max(...insV, ...outsV, 1);
+  const niceCeil = n => { const e=Math.pow(10,Math.floor(Math.log10(n))); const f=n/e; const nf=f<=1?1:f<=2?2:f<=5?5:10; return nf*e; };
+  const yMax = niceCeil(maxMag);
+  const fmtK = n => { const a=Math.abs(n); return a>=1e9?(n/1e9).toFixed(1)+'B':a>=1e6?(n/1e6).toFixed(1)+'M':a>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n); };
+  const fmtFull = n => Math.round(n).toLocaleString('vi-VN');
+  const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
+  const usdvnd = liveUsdVnd || 0;
+  const fmtUsd = n => '$'+(n*nesoRate).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtVnd = n => Math.round(n*nesoRate*usdvnd).toLocaleString('vi-VN')+'đ';
+
+  const lblOf = k => {
+    if (swapChartMode==='day')  return k.slice(8,10)+'/'+k.slice(5,7);
+    if (swapChartMode==='month')return 'T'+parseInt(k.slice(5,7))+'/'+k.slice(2,4);
+    if (swapChartMode==='year') return k;
+    const d = new Date(k+'T00:00:00Z'); const e = new Date(d); e.setUTCDate(d.getUTCDate()+6);
+    const f = x => ('0'+x.getUTCDate()).slice(-2)+'/'+('0'+(x.getUTCMonth()+1)).slice(-2);
+    return f(d)+'–'+f(e);
+  };
+  const curKey = () => {
+    const today = new Date().toISOString().slice(0,10);
+    if (swapChartMode==='day') return today;
+    if (swapChartMode==='week') return (typeof getWeekKey==='function')?getWeekKey(today):today;
+    if (swapChartMode==='month') return today.slice(0,7);
+    return today.slice(0,4);
+  };
+  const ck = curKey();
+
+  // Diverging layout: zero line ở giữa. In lên trên, Out xuống dưới.
+  const padL = 46, padR = 12, padT = 16, padB = 40;
+  const innerW = Math.max(keys.length * M.stepW, 320);
+  const W = padL + innerW + padR;
+  const H = 290;
+  const midY = padT + (H - padT - padB) / 2;
+  const halfH = (H - padT - padB) / 2;
+  const bw = innerW / keys.length;
+  const barW = Math.min(bw * 0.62, 46);
+  const IN_C = 'var(--green)', OUT_C = '#ef4444';
+
+  // Grid (In phía trên, Out phía dưới)
+  let grid = '';
+  [1, 0.5].forEach(fr => {
+    const yUp = midY - fr*halfH, yDn = midY + fr*halfH;
+    grid += `<line x1="${padL}" y1="${yUp}" x2="${W-padR}" y2="${yUp}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>`;
+    grid += `<line x1="${padL}" y1="${yDn}" x2="${W-padR}" y2="${yDn}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>`;
+    grid += `<text x="${padL-8}" y="${yUp+3}" text-anchor="end" font-size="8" fill="var(--muted2)" font-family="monospace">${fmtK(yMax*fr)}</text>`;
+    grid += `<text x="${padL-8}" y="${yDn+3}" text-anchor="end" font-size="8" fill="var(--muted2)" font-family="monospace">${fmtK(yMax*fr)}</text>`;
+  });
+  // zero line
+  grid += `<line x1="${padL}" y1="${midY}" x2="${W-padR}" y2="${midY}" stroke="var(--border3)" stroke-width="1.5"/>`;
+
+  let bars = '';
+  keys.forEach((k, i) => {
+    const si = src[k].in, so = src[k].out;
+    const x = padL + i*bw + (bw-barW)/2;
+    const isCur = k === ck;
+    const hIn  = (si/yMax) * halfH;
+    const hOut = (so/yMax) * halfH;
+    const op = isCur ? '1' : '0.7';
+    bars += `<g class="swap-bar" data-k="${i}" style="cursor:pointer">
+      ${si>0?`<rect x="${x}" y="${midY-hIn}" width="${barW}" height="${Math.max(hIn,1)}" rx="3" fill="${IN_C}" opacity="${op}"/>`:''}
+      ${so>0?`<rect x="${x}" y="${midY}" width="${barW}" height="${Math.max(hOut,1)}" rx="3" fill="${OUT_C}" opacity="${op}"/>`:''}
+      <text x="${x+barW/2}" y="${H-padB+14}" text-anchor="middle" font-size="8" fill="var(--muted2)" font-family="monospace">${lblOf(k)}</text>
+      <rect x="${x-bw*0.19}" y="${padT}" width="${bw}" height="${H-padT-padB}" fill="transparent" data-tip="${i}"/>
+    </g>`;
+  });
+
+  const totIn = insV.reduce((a,b)=>a+b,0), totOut = outsV.reduce((a,b)=>a+b,0);
+  const net = totIn - totOut;
+  const avgW = keys.reduce((s,k)=>s+(cntMap[k]||0),0)/keys.length;
+
+  const ic = svg => `<span style="display:inline-flex;color:var(--muted2);margin-right:4px">${svg}</span>`;
+  const I = {
+    dn:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>',
+    up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
+    eq:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/></svg>',
+    users:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  };
+  const stat = (lbl, v, color, icon, extra) => `<div>
+      <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
+      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
+    </div>`;
+  const dot = c => `<span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block"></span>`;
+  const netColor = net>=0 ? 'var(--green)' : '#ef4444';
+
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(IN_C)}Swap In (nhận NESO)</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(OUT_C)}Swap Out (đổi NESO đi)</span>
+    </div>
+    <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
+      ${stat('Swap In', fmtFull(totIn), IN_C, I.up, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totIn)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totIn)+'</div>')}
+      ${stat('Swap Out', fmtFull(totOut), OUT_C, I.dn, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totOut)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totOut)+'</div>')}
+      ${stat('Ròng (In−Out)', (net>=0?'+':'')+fmtFull(net), netColor, I.eq, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+(net>=0?'+':'')+fmtUsd(net).replace('$','$')+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(net)+'</div>')}
+      ${stat('TB ví swap', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
+    </div>
+    <div id="swap-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
+      <svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg>
+    </div>`;
+
+  const sc = document.getElementById('swap-svg-scroll');
+  if (sc) sc.scrollLeft = sc.scrollWidth;
+
+  let tip = document.getElementById('swap-tip');
+  if (!tip) { tip = document.createElement('div'); tip.id='swap-tip'; tip.style.cssText='position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
+  body.querySelectorAll('[data-tip]').forEach(el => {
+    const idx = +el.getAttribute('data-tip'); const k = keys[idx];
+    el.addEventListener('mousemove', e => {
+      const si=src[k].in, so=src[k].out, nt=si-so;
+      tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${IN_C};display:inline-block"></span><span style="color:var(--muted2)">Swap In:</span> <span style="color:var(--text);font-weight:600">${fmtFull(si)}</span></div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${OUT_C};display:inline-block"></span><span style="color:var(--muted2)">Swap Out:</span> <span style="color:var(--text);font-weight:600">${fmtFull(so)}</span></div>
+        <div style="font-size:10px;margin-top:2px"><span style="color:var(--muted2)">Ròng:</span> <span style="color:${nt>=0?IN_C:OUT_C};font-weight:700">${nt>=0?'+':''}${fmtFull(nt)}</span></div>
+        <div style="color:var(--text2);font-size:9px;margin-top:2px">≈ ${fmtUsd(Math.abs(nt))} · ${fmtVnd(Math.abs(nt))}</div>
+        <div style="color:var(--accent);font-size:10px;margin-top:3px">${cntMap[k]||0}/${totalW} ví swap</div>`;
+      tip.style.opacity = '1';
+      let tx = e.clientX + 14, ty = e.clientY + 14;
+      if (tx + 240 > window.innerWidth) tx = e.clientX - 240;
+      tip.style.left = tx+'px'; tip.style.top = ty+'px';
+    });
+    el.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
+  });
+}
 
 
 function showChangePopup(w, period, diff, pct) {

@@ -1,19 +1,57 @@
 // MSU Proxy - Cloudflare Worker
 // Cho phép fetch msu.io API từ browser (bỏ qua CORS)
 
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+  'Access-Control-Allow-Headers': '*',
+};
+
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': '*',
-        },
-      });
+      return new Response(null, { headers: CORS });
+    }
+
+    // ══════════════ GIST ROUTES (token giấu trong env.GIST_TOKEN) ══════════════
+    // GET  /gist        → đọc toàn bộ Gist (trả files)
+    // PATCH /gist       → ghi Gist (body = {files:{...}})
+    if (url.pathname === '/gist') {
+      const GIST_ID = env.GIST_ID || 'fbbc7f578f4ad7760206f397c0706348';
+      const token   = env.GIST_TOKEN;
+      if (!token) {
+        return new Response(JSON.stringify({ error: 'GIST_TOKEN chưa được cấu hình trong Worker' }), {
+          status: 500, headers: { 'Content-Type': 'application/json', ...CORS },
+        });
+      }
+      const ghHeaders = {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'msu-proxy',
+      };
+      try {
+        if (request.method === 'GET') {
+          const r = await fetch('https://api.github.com/gists/' + GIST_ID, { headers: ghHeaders });
+          const body = await r.text();
+          return new Response(body, { status: r.status, headers: { 'Content-Type': 'application/json', ...CORS } });
+        }
+        if (request.method === 'PATCH') {
+          const inBody = await request.text();
+          const r = await fetch('https://api.github.com/gists/' + GIST_ID, {
+            method: 'PATCH',
+            headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+            body: inBody,
+          });
+          const body = await r.text();
+          return new Response(body, { status: r.status, headers: { 'Content-Type': 'application/json', ...CORS } });
+        }
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', ...CORS } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+      }
     }
 
     // Lấy target URL từ query ?url=...
