@@ -797,8 +797,8 @@ Ví sếp, 0x5678...efgh
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">NESO Spend</span>
-            <span style="font-size:10px;color:var(--muted2)">crystal + mua NFT/FT + burn (trừ swap)</span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Đầu tư (Investment)</span>
+            <span style="font-size:10px;color:var(--muted2)">crystal + mua NFT/FT + burn (+ bơm vốn swap in)</span>
           </div>
           <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="spend-mode-day" onclick="setSpendChartMode('day')" class="spend-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
@@ -817,8 +817,8 @@ Ví sếp, 0x5678...efgh
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
-            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">NESO Swap</span>
-            <span style="font-size:10px;color:var(--muted2)">Đầu tư (bơm vốn) ↕ Doanh thu (rút ra)</span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Doanh thu (Revenue)</span>
+            <span style="font-size:10px;color:var(--muted2)">NESO đổi ra token khác — rút doanh thu (Swap Out)</span>
           </div>
           <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="swap-mode-day" onclick="setSwapChartMode('day')" class="swap-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
@@ -2981,9 +2981,11 @@ async function loadSpendChart() {
   const nftOf     = r => (r.out_nft_amount||0);
   const ftOf      = r => (r.out_ft_amount||0);
   const burnOf    = r => (r.out_burn_amount||0);
+  const swapInOf  = r => (r.in_swap_amount||0); // bơm vốn (swap in) - chú thích
   const spentOf   = r => crystalOf(r)+nftOf(r)+ftOf(r)+burnOf(r);
   const byDay={},byWeek={},byMonth={},byYear={};
   const crD={},crW={},crM={},crY={}, nfD={},nfW={},nfM={},nfY={}, ftD={},ftW={},ftM={},ftY={}, bnD={},bnW={},bnM={},bnY={};
+  const siD={},siW={},siM={},siY={}; // swap in
   const dW={},wW={},mW={},yW={};
   const add=(o,k,v)=>o[k]=(o[k]||0)+v;
   try {
@@ -2994,9 +2996,10 @@ async function loadSpendChart() {
       (res.value||[]).forEach(r => {
         const day = r.day ? r.day.slice(0,10) : null;
         if (!day) return;
-        const sp=spentOf(r), cr=crystalOf(r), nf=nftOf(r), ft=ftOf(r), bn=burnOf(r);
+        const sp=spentOf(r), cr=crystalOf(r), nf=nftOf(r), ft=ftOf(r), bn=burnOf(r), si=swapInOf(r);
         const wk=(typeof getWeekKey==='function')?getWeekKey(day):day, mo=day.slice(0,7), yr=day.slice(0,4);
         add(byDay,day,sp);add(byWeek,wk,sp);add(byMonth,mo,sp);add(byYear,yr,sp);
+        add(siD,day,si);add(siW,wk,si);add(siM,mo,si);add(siY,yr,si);
         add(crD,day,cr);add(crW,wk,cr);add(crM,mo,cr);add(crY,yr,cr);
         add(nfD,day,nf);add(nfW,wk,nf);add(nfM,mo,nf);add(nfY,yr,nf);
         add(ftD,day,ft);add(ftW,wk,ft);add(ftM,mo,ft);add(ftY,yr,ft);
@@ -3014,6 +3017,7 @@ async function loadSpendChart() {
       nftDay:nfD,nftWeek:nfW,nftMonth:nfM,nftYear:nfY,
       ftDay:ftD,ftWeek:ftW,ftMonth:ftM,ftYear:ftY,
       burnDay:bnD,burnWeek:bnW,burnMonth:bnM,burnYear:bnY,
+      swapinDay:siD,swapinWeek:siW,swapinMonth:siM,swapinYear:siY,
       dayCount:cnt(dW),weekCount:cnt(wW),monthCount:cnt(mW),yearCount:cnt(yW),
       totalWallets:wallets.length
     };
@@ -3032,6 +3036,7 @@ function renderSpendChart() {
   const totalW = spendChartData.totalWallets || 0;
   const P = spendChartMode.charAt(0).toUpperCase()+spendChartMode.slice(1);
   const crMap = spendChartData['crystal'+P]||{}, nfMap = spendChartData['nft'+P]||{}, ftMap = spendChartData['ft'+P]||{}, bnMap = spendChartData['burn'+P]||{};
+  const siMap = spendChartData['swapin'+P]||{}; // Swap In (bơm vốn) - chú thích
   let keys = Object.keys(src).sort().slice(-M.limit);
   if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu</div>'; return; }
 
@@ -3111,6 +3116,7 @@ function renderSpendChart() {
   });
 
   const total = vals.reduce((a,b)=>a+b,0);
+  const totSi = keys.reduce((s,k)=>s+(siMap[k]||0),0);
   const totCr = keys.reduce((s,k)=>s+(crMap[k]||0),0);
   const totNf = keys.reduce((s,k)=>s+(nfMap[k]||0),0);
   const totFt = keys.reduce((s,k)=>s+(ftMap[k]||0),0);
@@ -3145,7 +3151,7 @@ function renderSpendChart() {
       <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(CC.bn)}Burn</span>
     </div>
     <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
-      ${stat('Tổng chi ('+keys.length+' '+M.unit+')', fmtFull(total), '#ef4444', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
+      ${stat('Chi mua đồ ('+keys.length+' '+M.unit+')', fmtFull(total), '#ef4444', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
       ${stat('Crystal', fmtFull(totCr), 'var(--amber)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+pct(totCr)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totCr)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totCr)+'</div>')}
       ${stat('Mua NFT', fmtFull(totNf), 'var(--blue)', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+pct(totNf)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totNf)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totNf)+'</div>')}
       ${stat('Mua FT', fmtFull(totFt), '#ef4444', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+pct(totFt)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totFt)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totFt)+'</div>')}
@@ -3153,6 +3159,13 @@ function renderSpendChart() {
       ${stat('TB / '+M.unit, fmtFull(avg), 'var(--text)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
       ${stat('TB ví chi', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
     </div>
+    ${totSi>0?`<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 12px;background:var(--surface);border:1px dashed var(--border2);border-radius:8px;font-size:11px">
+      <span style="display:inline-flex;color:var(--blue)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/></svg></span>
+      <span style="color:var(--muted2)">+ Bơm vốn (Swap In):</span>
+      <span style="color:var(--blue);font-weight:700">${fmtFull(totSi)} NESO</span>
+      <span style="color:var(--text2);font-size:10px">${fmtUsd(totSi)} · ${fmtVnd(totSi)}</span>
+      <span style="color:var(--muted2);font-size:9px;margin-left:auto">Tổng đầu tư = chi mua + bơm vốn = ${fmtFull(total+totSi)} NESO</span>
+    </div>`:''}
     <div id="spend-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
       <svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg>
     </div>`;
@@ -3253,17 +3266,17 @@ function renderSwapChart() {
   if (!body || !swapChartData) return;
   const M = SWAP_MODES[swapChartMode];
   const src = swapChartData[M.src] || {};
-  const cntKey = swapChartMode+'Count';
-  const cntMap = swapChartData[cntKey] || {};
+  const cntMap = swapChartData[swapChartMode+'Count'] || {};
   const totalW = swapChartData.totalWallets || 0;
   let keys = Object.keys(src).sort().slice(-M.limit);
   if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu</div>'; return; }
 
-  const insV = keys.map(k=>src[k].in), outsV = keys.map(k=>src[k].out);
-  const maxMag = Math.max(...insV, ...outsV, 1);
+  // Revenue = Swap Out (NESO đổi ra token khác)
+  const vals = keys.map(k => src[k].out);
+  const maxV = Math.max(...vals, 1);
   const niceCeil = n => { const e=Math.pow(10,Math.floor(Math.log10(n))); const f=n/e; const nf=f<=1?1:f<=2?2:f<=5?5:10; return nf*e; };
-  const yMax = niceCeil(maxMag);
-  const fmtK = n => { const a=Math.abs(n); return a>=1e9?(n/1e9).toFixed(1)+'B':a>=1e6?(n/1e6).toFixed(1)+'M':a>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n); };
+  const yMax = niceCeil(maxV);
+  const fmtK = n => n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n);
   const fmtFull = n => Math.round(n).toLocaleString('vi-VN');
   const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
   const usdvnd = liveUsdVnd || 0;
@@ -3287,73 +3300,68 @@ function renderSwapChart() {
   };
   const ck = curKey();
 
-  // Diverging layout: zero line ở giữa. In lên trên, Out xuống dưới.
-  const padL = 46, padR = 12, padT = 16, padB = 40;
+  const padL = 46, padR = 12, padT = 14, padB = 56;
   const innerW = Math.max(keys.length * M.stepW, 320);
   const W = padL + innerW + padR;
-  const H = 290;
-  const midY = padT + (H - padT - padB) / 2;
-  const halfH = (H - padT - padB) / 2;
+  const H = 272;
+  const chartH = H - padT - padB;
   const bw = innerW / keys.length;
   const barW = Math.min(bw * 0.62, 46);
-  const IN_C = 'var(--blue)', OUT_C = 'var(--green)';  // In=Đầu tư(xanh dương), Out=Doanh thu(xanh lá)
+  const REV_C = 'var(--green)';
 
-  // Grid (In phía trên, Out phía dưới)
   let grid = '';
-  [1, 0.5].forEach(fr => {
-    const yUp = midY - fr*halfH, yDn = midY + fr*halfH;
-    grid += `<line x1="${padL}" y1="${yUp}" x2="${W-padR}" y2="${yUp}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>`;
-    grid += `<line x1="${padL}" y1="${yDn}" x2="${W-padR}" y2="${yDn}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>`;
-    grid += `<text x="${padL-8}" y="${yUp+3}" text-anchor="end" font-size="8" fill="var(--muted2)" font-family="monospace">${fmtK(yMax*fr)}</text>`;
-    grid += `<text x="${padL-8}" y="${yDn+3}" text-anchor="end" font-size="8" fill="var(--muted2)" font-family="monospace">${fmtK(yMax*fr)}</text>`;
-  });
-  // zero line
-  grid += `<line x1="${padL}" y1="${midY}" x2="${W-padR}" y2="${midY}" stroke="var(--border3)" stroke-width="1.5"/>`;
+  for (let i=0; i<=4; i++) {
+    const gy = padT + chartH - (i/4)*chartH;
+    grid += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
+    grid += `<text x="${padL-8}" y="${gy+3}" text-anchor="end" font-size="8.5" fill="var(--muted2)" font-family="monospace">${fmtK(yMax*i/4)}</text>`;
+  }
+  grid += `<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="var(--border3)" stroke-width="1.5"/>`;
 
   let bars = '';
   keys.forEach((k, i) => {
-    const si = src[k].in, so = src[k].out;
+    const v = src[k].out;
+    const h = (v/yMax) * chartH;
     const x = padL + i*bw + (bw-barW)/2;
+    const y = padT + chartH - h;
     const isCur = k === ck;
-    const hIn  = (si/yMax) * halfH;
-    const hOut = (so/yMax) * halfH;
-    const op = isCur ? '1' : '0.7';
+    const fill = isCur ? 'var(--accent)' : REV_C;
     bars += `<g class="swap-bar" data-k="${i}" style="cursor:pointer">
-      ${si>0?`<rect x="${x}" y="${midY-hIn}" width="${barW}" height="${Math.max(hIn,1)}" rx="3" fill="${IN_C}" opacity="${op}"/>`:''}
-      ${so>0?`<rect x="${x}" y="${midY}" width="${barW}" height="${Math.max(hOut,1)}" rx="3" fill="${OUT_C}" opacity="${op}"/>`:''}
-      <text x="${x+barW/2}" y="${H-padB+14}" text-anchor="middle" font-size="8" fill="var(--muted2)" font-family="monospace">${lblOf(k)}</text>
-      <rect x="${x-bw*0.19}" y="${padT}" width="${bw}" height="${H-padT-padB}" fill="transparent" data-tip="${i}"/>
+      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h,1)}" rx="4" fill="${fill}" opacity="${isCur?'1':'0.72'}"/>
+      <text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="8.5" fill="${isCur?'var(--accent)':'var(--text2)'}" font-family="monospace" font-weight="${isCur?'700':'500'}">${h>16?fmtK(v):''}</text>
+      <text x="${x+barW/2}" y="${H-padB+15}" text-anchor="middle" font-size="8.5" fill="var(--muted2)" font-family="monospace">${lblOf(k)}</text>
+      <text x="${x+barW/2}" y="${H-padB+27}" text-anchor="middle" font-size="7.5" fill="${isCur?'var(--accent)':'var(--muted2)'}" font-family="monospace" font-weight="700">${cntMap[k]||0} ví</text>
+      <rect x="${x-bw*0.19}" y="${padT}" width="${bw}" height="${chartH}" fill="transparent" data-tip="${i}"/>
     </g>`;
   });
 
-  const totIn = insV.reduce((a,b)=>a+b,0), totOut = outsV.reduce((a,b)=>a+b,0);
-  const netProfit = totOut - totIn;  // Lợi nhuận = Doanh thu (rút ra) − Đầu tư (bơm vào)
-  const netProfitColor = netProfit>=0 ? 'var(--green)' : '#ef4444';
+  const total = vals.reduce((a,b)=>a+b,0);
+  const avg = total/vals.length;
   const avgW = keys.reduce((s,k)=>s+(cntMap[k]||0),0)/keys.length;
+  const lastV = vals[vals.length-1], prevV = vals.length>1?vals[vals.length-2]:0;
+  const trendPct = prevV>0 ? ((lastV-prevV)/prevV*100) : null;
+  const trendChip = trendPct!=null ? `<span style="font-size:10px;font-weight:700;color:${trendPct>=0?'var(--green)':'var(--red)'};background:${trendPct>=0?'var(--green-bg)':'var(--red-bg)'};padding:2px 7px;border-radius:6px">${trendPct>=0?'▲':'▼'} ${Math.abs(trendPct).toFixed(1)}% vs kỳ trước</span>` : '';
 
   const ic = svg => `<span style="display:inline-flex;color:var(--muted2);margin-right:4px">${svg}</span>`;
   const I = {
-    dn:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>',
+    layers:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
+    activity:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
     up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
-    eq:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/></svg>',
     users:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   };
   const stat = (lbl, v, color, icon, extra) => `<div>
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
     </div>`;
-  const dot = c => `<span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block"></span>`;
 
   body.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(IN_C)}Đầu tư <span style="opacity:.6">(Swap In · bơm vốn)</span></span>
-      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(OUT_C)}Doanh thu <span style="opacity:.6">(Swap Out · rút ra)</span></span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">${trendChip}
+      <span style="font-size:10px;color:var(--muted2)">Doanh thu = NESO rút ra qua swap (đổi sang token khác)</span>
     </div>
     <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
-      ${stat('Đầu tư (Swap In)', fmtFull(totIn), IN_C, I.dn, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totIn)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totIn)+'</div>')}
-      ${stat('Doanh thu (Swap Out)', fmtFull(totOut), OUT_C, I.up, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totOut)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totOut)+'</div>')}
-      ${stat('Lợi nhuận ròng', (netProfit>=0?'+':'')+fmtFull(netProfit), netProfitColor, I.eq, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+(netProfit>=0?'+':'')+fmtUsd(netProfit)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(netProfit)+'</div>')}
-      ${stat('TB ví swap', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
+      ${stat('Tổng doanh thu ('+keys.length+' '+M.unit+')', fmtFull(total), 'var(--green)', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
+      ${stat('Cao nhất', fmtFull(maxV), 'var(--text)', I.up, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(maxV)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(maxV)+'</div>')}
+      ${stat('TB / '+M.unit, fmtFull(avg), 'var(--text)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
+      ${stat('TB ví rút', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
     </div>
     <div id="swap-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
       <svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg>
@@ -3365,15 +3373,12 @@ function renderSwapChart() {
   let tip = document.getElementById('swap-tip');
   if (!tip) { tip = document.createElement('div'); tip.id='swap-tip'; tip.style.cssText='position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
   body.querySelectorAll('[data-tip]').forEach(el => {
-    const idx = +el.getAttribute('data-tip'); const k = keys[idx];
+    const idx = +el.getAttribute('data-tip'); const k = keys[idx]; const v = src[k].out;
     el.addEventListener('mousemove', e => {
-      const si=src[k].in, so=src[k].out, prof=so-si;
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
-        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${IN_C};display:inline-block"></span><span style="color:var(--muted2)">Đầu tư:</span> <span style="color:var(--text);font-weight:600">${fmtFull(si)}</span></div>
-        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${OUT_C};display:inline-block"></span><span style="color:var(--muted2)">Doanh thu:</span> <span style="color:var(--text);font-weight:600">${fmtFull(so)}</span></div>
-        <div style="font-size:10px;margin-top:2px"><span style="color:var(--muted2)">Lợi nhuận:</span> <span style="color:${prof>=0?'var(--green)':'#ef4444'};font-weight:700">${prof>=0?'+':''}${fmtFull(prof)}</span></div>
-        <div style="color:var(--text2);font-size:9px;margin-top:2px">≈ ${fmtUsd(Math.abs(prof))} · ${fmtVnd(Math.abs(prof))}</div>
-        <div style="color:var(--accent);font-size:10px;margin-top:3px">${cntMap[k]||0}/${totalW} ví swap</div>`;
+        <div style="color:var(--green);font-weight:700">${fmtFull(v)} NESO</div>
+        <div style="color:var(--text2);font-size:10px">≈ ${fmtUsd(v)} · ${fmtVnd(v)}</div>
+        <div style="color:var(--accent);font-size:10px;margin-top:3px">${cntMap[k]||0}/${totalW} ví rút</div>`;
       tip.style.opacity = '1';
       let tx = e.clientX + 14, ty = e.clientY + 14;
       if (tx + 240 > window.innerWidth) tx = e.clientX - 240;
@@ -3382,6 +3387,7 @@ function renderSwapChart() {
     el.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
   });
 }
+
 
 
 function showChangePopup(w, period, diff, pct) {
