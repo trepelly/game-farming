@@ -3011,57 +3011,78 @@ function renderSpendChart() {
   const src = spendChartData[M.src] || {};
   const cntMap = spendChartData[M.cnt] || {};
   const totalW = spendChartData.totalWallets || 0;
-  // Component maps
   const P = spendChartMode.charAt(0).toUpperCase()+spendChartMode.slice(1);
   const crMap = spendChartData['crystal'+P]||{}, nfMap = spendChartData['nft'+P]||{}, ftMap = spendChartData['ft'+P]||{}, bnMap = spendChartData['burn'+P]||{};
   let keys = Object.keys(src).sort().slice(-M.limit);
   if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu</div>'; return; }
 
-  const vals = keys.map(k=>src[k]);
-  const rawMax = Math.max(...vals,1);
-  const niceCeil = n => { const e=Math.pow(10,Math.floor(Math.log10(n))); const f=n/e; const nf=f<=1?1:f<=2?2:f<=5?5:10; return nf*e; };
-  const yMax = niceCeil(rawMax);
-  const fmtK = n=>n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n);
-  const fmtFull = n=>Math.round(n).toLocaleString('vi-VN');
+  const vals = keys.map(k => src[k]);
+  const maxV = Math.max(...vals, 1);
+  const yMax = niceCeil(maxV);
+  const fmtK = n => n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n);
+  const fmtFull = n => Math.round(n).toLocaleString('vi-VN');
   const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
   const usdvnd = liveUsdVnd || 0;
-  const fmtUsd = n=>'$'+(n*nesoRate).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const fmtVnd = n=>Math.round(n*nesoRate*usdvnd).toLocaleString('vi-VN')+'đ';
+  const fmtUsd = n => '$'+(n*nesoRate).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtVnd = n => Math.round(n*nesoRate*usdvnd).toLocaleString('vi-VN')+'đ';
+
   const lblOf = k => {
-    if (spendChartMode==='day') return k.slice(8,10)+'/'+k.slice(5,7);
-    if (spendChartMode==='week') { const d=new Date(k+'T00:00:00Z'),e=new Date(d);e.setUTCDate(d.getUTCDate()+6); const f=x=>('0'+x.getUTCDate()).slice(-2)+'/'+('0'+(x.getUTCMonth()+1)).slice(-2); return f(d)+'–'+f(e); }
-    if (spendChartMode==='month') return 'T'+k.slice(5,7)+'/'+k.slice(2,4);
-    return k;
+    if (spendChartMode==='day')  return k.slice(8,10)+'/'+k.slice(5,7);
+    if (spendChartMode==='month')return 'T'+parseInt(k.slice(5,7))+'/'+k.slice(2,4);
+    if (spendChartMode==='year') return k;
+    const d = new Date(k+'T00:00:00Z'); const e = new Date(d); e.setUTCDate(d.getUTCDate()+6);
+    const f = x => ('0'+x.getUTCDate()).slice(-2)+'/'+('0'+(x.getUTCMonth()+1)).slice(-2);
+    return f(d)+'–'+f(e);
   };
-  const ckOf = () => {
-    const t = new Date().toISOString().slice(0,10);
-    if (spendChartMode==='day') return t;
-    if (spendChartMode==='week') return (typeof getWeekKey==='function')?getWeekKey(t):t;
-    if (spendChartMode==='month') return t.slice(0,7);
-    return t.slice(0,4);
+  const curKey = () => {
+    const today = new Date().toISOString().slice(0,10);
+    if (spendChartMode==='day') return today;
+    if (spendChartMode==='week') return (typeof getWeekKey==='function')?getWeekKey(today):today;
+    if (spendChartMode==='month') return today.slice(0,7);
+    return today.slice(0,4);
   };
-  const ck = ckOf();
+  const ck = curKey();
 
-  const W = Math.max(keys.length*M.stepW, 340), H=260, padB=54, padT=18, padL=44, padR=10;
-  const chartH = H-padB-padT, bw=(W-padL-padR)/keys.length, barW=Math.min(bw*0.62, 40);
+  // Layout — same as Claim
+  const padL = 46, padR = 12, padT = 14, padB = 56;
+  const innerW = Math.max(keys.length * M.stepW, 320);
+  const W = padL + innerW + padR;
+  const H = 272;
+  const chartH = H - padT - padB;
+  const bw = innerW / keys.length;
+  const barW = Math.min(bw * 0.62, 46);
 
-  // Y grid
-  let grid=''; const yStep=4;
-  for (let i=0;i<=yStep;i++){ const val=yMax/yStep*i, y=padT+chartH-(val/yMax)*chartH;
-    grid+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border)" stroke-width="1" stroke-dasharray="${i===0?'0':'3 3'}" opacity="${i===0?'0.6':'0.3'}"/><text x="${padL-6}" y="${y+3}" text-anchor="end" font-size="8" fill="var(--muted2)" font-family="monospace">${fmtK(val)}</text>`; }
+  // Y grid — same style as Claim
+  let grid = '';
+  for (let i=0; i<=4; i++) {
+    const gy = padT + chartH - (i/4)*chartH;
+    const gv = (yMax * i/4);
+    grid += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
+    grid += `<text x="${padL-8}" y="${gy+3}" text-anchor="end" font-size="8.5" fill="var(--muted2)" font-family="monospace">${fmtK(gv)}</text>`;
+  }
+  grid += `<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="var(--border3)" stroke-width="1.5"/>`;
 
-  // Colors: crystal=amber, nft=blue, ft=red, burn=gray
-  const CC={cr:'var(--amber)',nf:'var(--blue)',ft:'#ef4444',bn:'var(--muted2)'};
-  let bars='';
-  keys.forEach((k,i)=>{
-    const v=src[k], cr=crMap[k]||0,nf=nfMap[k]||0,ft=ftMap[k]||0,bn=bnMap[k]||0;
-    const x=padL+i*bw+(bw-barW)/2;
-    const isCur=k===ck;
-    let yCursor=padT+chartH;
-    const seg=(amt,color)=>{ if(amt<=0)return''; const h=(amt/yMax)*chartH; yCursor-=h; return `<rect x="${x}" y="${yCursor}" width="${barW}" height="${Math.max(h,1)}" fill="${color}" opacity="${isCur?'1':'0.72'}"/>`; };
-    const segs = seg(cr,CC.cr)+seg(nf,CC.nf)+seg(ft,CC.ft)+seg(bn,CC.bn);
-    const totH=(v/yMax)*chartH, yTop=padT+chartH-totH;
-    bars+=`<g class="spend-bar" style="cursor:pointer">
+  // Colors per cost type: crystal=amber, nft=blue, ft=red, burn=gray
+  const CC = { cr:'var(--amber)', nf:'var(--blue)', ft:'#ef4444', bn:'var(--muted2)' };
+
+  let bars = '';
+  keys.forEach((k, i) => {
+    const v = src[k], cr = crMap[k]||0, nf = nfMap[k]||0, ft = ftMap[k]||0, bn = bnMap[k]||0;
+    const totH = (v/yMax) * chartH;
+    const x = padL + i*bw + (bw-barW)/2;
+    const yTop = padT + chartH - totH;
+    const isCur = k === ck;
+    // Stacked segments bottom→top: crystal, nft, ft, burn
+    let yCur = padT + chartH;
+    const comps = [[cr,CC.cr],[nf,CC.nf],[ft,CC.ft],[bn,CC.bn]].filter(c=>c[0]>0);
+    let segs = '';
+    comps.forEach(([amt,color], ci) => {
+      const h = (amt/yMax)*chartH;
+      yCur -= h;
+      const isTop = ci === comps.length-1;
+      segs += `<rect x="${x}" y="${yCur}" width="${barW}" height="${Math.max(h,1)}" rx="${isTop?4:0}" fill="${color}" opacity="${isCur?'1':'0.7'}"/>`;
+    });
+    bars += `<g class="spend-bar" data-k="${i}" style="cursor:pointer">
       ${segs}
       <text x="${x+barW/2}" y="${yTop-5}" text-anchor="middle" font-size="8.5" fill="${isCur?'var(--accent)':'var(--text2)'}" font-family="monospace" font-weight="${isCur?'700':'500'}">${totH>16?fmtK(v):''}</text>
       <text x="${x+barW/2}" y="${H-padB+15}" text-anchor="middle" font-size="8.5" fill="var(--muted2)" font-family="monospace">${lblOf(k)}</text>
@@ -3070,48 +3091,65 @@ function renderSpendChart() {
     </g>`;
   });
 
-  const total=vals.reduce((a,b)=>a+b,0), avg=total/vals.length, maxV=Math.max(...vals);
-  const totCr=keys.reduce((s,k)=>s+(crMap[k]||0),0), totNf=keys.reduce((s,k)=>s+(nfMap[k]||0),0), totFt=keys.reduce((s,k)=>s+(ftMap[k]||0),0), totBn=keys.reduce((s,k)=>s+(bnMap[k]||0),0);
-  const pct=n=>total>0?Math.round(n/total*100):0;
-  const ic=svg=>`<span style="display:inline-flex;color:var(--muted2);margin-right:5px">${svg}</span>`;
-  const I={layers:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',up:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',activity:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',users:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'};
-  const stat=(lbl,val,color,icon,extra)=>`<div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div><div style="font-size:15px;font-weight:800;color:${color}">${val}${extra||''}</div></div>`;
-  const compBox=(lbl,color,v)=>`<div style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px">
-      <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px"><span style="width:9px;height:9px;border-radius:2px;background:${color};display:inline-block"></span>${lbl} <span style="margin-left:auto;color:var(--text2);font-weight:700">${pct(v)}%</span></div>
-      <div style="font-size:14px;font-weight:800;color:${color}">${fmtFull(v)}</div>
-      <div style="font-size:9px;color:var(--text2)">${fmtUsd(v)}</div>
-      <div style="font-size:9px;color:var(--muted2)">${fmtVnd(v)}</div>
-    </div>`;
+  const total = vals.reduce((a,b)=>a+b,0);
+  const totCr = keys.reduce((s,k)=>s+(crMap[k]||0),0);
+  const totNf = keys.reduce((s,k)=>s+(nfMap[k]||0),0);
+  const totFt = keys.reduce((s,k)=>s+(ftMap[k]||0),0);
+  const totBn = keys.reduce((s,k)=>s+(bnMap[k]||0),0);
+  const avg = total/vals.length;
+  const avgW = keys.reduce((s,k)=>s+(cntMap[k]||0),0)/keys.length;
+  const pct = n => total>0?Math.round(n/total*100):0;
+  const lastV = vals[vals.length-1], prevV = vals.length>1?vals[vals.length-2]:0;
+  const trendPct = prevV>0 ? ((lastV-prevV)/prevV*100) : null;
+  // For spending, up = red (chi nhiều hơn), down = green
+  const trendChip = trendPct!=null ? `<span style="font-size:10px;font-weight:700;color:${trendPct>=0?'var(--red)':'var(--green)'};background:${trendPct>=0?'var(--red-bg)':'var(--green-bg)'};padding:2px 7px;border-radius:6px">${trendPct>=0?'▲':'▼'} ${Math.abs(trendPct).toFixed(1)}% vs kỳ trước</span>` : '';
 
-  const avgW=keys.length?(keys.reduce((s,k)=>s+(cntMap[k]||0),0)/keys.length):0;
+  const ic = svg => `<span style="display:inline-flex;color:var(--muted2);margin-right:4px">${svg}</span>`;
+  const I = {
+    layers:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
+    activity:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+    up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
+    users:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  };
+  const stat = (lbl, v, color, icon, extra) => `<div>
+      <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
+      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
+    </div>`;
+  const dot = c => `<span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block"></span>`;
+
   body.innerHTML = `
-    <div style="display:flex;gap:26px;margin-bottom:12px;flex-wrap:wrap">
-      ${stat('Tổng chi ('+keys.length+' '+M.unit+')',fmtFull(total),'#ef4444',I.layers,' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
-      ${stat('Cao nhất',fmtFull(maxV),'var(--text)',I.up,' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(maxV)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(maxV)+'</div>')}
-      ${stat('TB / '+M.unit,fmtFull(avg),'var(--text)',I.activity,' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
-      ${stat('TB ví chi',avgW.toFixed(1),'var(--accent)',I.users,' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      ${trendChip}
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(CC.cr)}Crystal/Enhance</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(CC.nf)}Mua NFT</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(CC.ft)}Mua FT</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(CC.bn)}Burn</span>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      ${compBox('Crystal/Enhance',CC.cr,totCr)}
-      ${compBox('Mua NFT',CC.nf,totNf)}
-      ${compBox('Mua FT',CC.ft,totFt)}
-      ${compBox('Burn',CC.bn,totBn)}
+    <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
+      ${stat('Tổng chi ('+keys.length+' '+M.unit+')', fmtFull(total), '#ef4444', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
+      ${stat('Crystal', fmtFull(totCr), 'var(--amber)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+pct(totCr)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totCr)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totCr)+'</div>')}
+      ${stat('Mua NFT', fmtFull(totNf), 'var(--blue)', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+pct(totNf)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totNf)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totNf)+'</div>')}
+      ${stat('Mua FT', fmtFull(totFt), '#ef4444', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+pct(totFt)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totFt)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totFt)+'</div>')}
+      ${stat('Burn', fmtFull(totBn), 'var(--muted2)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO ('+pct(totBn)+'%)</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totBn)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totBn)+'</div>')}
+      ${stat('TB / '+M.unit, fmtFull(avg), 'var(--text)', I.activity, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
+      ${stat('TB ví chi', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
     </div>
-    <div style="overflow-x:auto;padding-bottom:4px" id="spend-scroll">
-      <svg width="${W}" height="${H}" style="display:block;min-width:100%">${grid}${bars}</svg>
+    <div id="spend-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
+      <svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg>
     </div>`;
 
-  // Auto-scroll to latest
-  const sc=document.getElementById('spend-scroll'); if(sc) sc.scrollLeft=sc.scrollWidth;
+  const sc = document.getElementById('spend-svg-scroll');
+  if (sc) sc.scrollLeft = sc.scrollWidth;
 
-  // Tooltip
-  let tip=document.getElementById('spend-tip');
-  if(!tip){ tip=document.createElement('div'); tip.id='spend-tip'; tip.style.cssText='position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
-  body.querySelectorAll('[data-tip]').forEach(el=>{
-    const i=+el.getAttribute('data-tip'), k=keys[i], v=src[k];
-    el.addEventListener('mousemove',ev=>{
-      const cr=crMap[k]||0,nf=nfMap[k]||0,ft=ftMap[k]||0,bn=bnMap[k]||0;
-      tip.innerHTML=`<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
+  // Custom tooltip — same style as Claim
+  let tip = document.getElementById('spend-tip');
+  if (!tip) { tip = document.createElement('div'); tip.id = 'spend-tip'; tip.style.cssText = 'position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
+  body.querySelectorAll('[data-tip]').forEach(el => {
+    const idx = +el.getAttribute('data-tip');
+    const k = keys[idx], v = src[k];
+    el.addEventListener('mousemove', e => {
+      const cr=crMap[k]||0, nf=nfMap[k]||0, ft=ftMap[k]||0, bn=bnMap[k]||0;
+      tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:#ef4444;font-weight:700">${fmtFull(v)} NESO</div>
         <div style="color:var(--text2);font-size:10px">≈ ${fmtUsd(v)} · ${fmtVnd(v)}</div>
         <div style="margin-top:4px;font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${CC.cr};display:inline-block"></span><span style="color:var(--muted2)">Crystal:</span> <span style="color:var(--text);font-weight:600">${fmtFull(cr)}</span></div>
@@ -3119,12 +3157,15 @@ function renderSpendChart() {
         <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${CC.ft};display:inline-block"></span><span style="color:var(--muted2)">Mua FT:</span> <span style="color:var(--text);font-weight:600">${fmtFull(ft)}</span></div>
         <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${CC.bn};display:inline-block"></span><span style="color:var(--muted2)">Burn:</span> <span style="color:var(--text);font-weight:600">${fmtFull(bn)}</span></div>
         <div style="color:var(--accent);font-size:10px;margin-top:3px">${cntMap[k]||0}/${totalW} ví chi</div>`;
-      tip.style.left=Math.min(ev.clientX+14,window.innerWidth-180)+'px';
-      tip.style.top=(ev.clientY-10)+'px'; tip.style.opacity='1';
+      tip.style.opacity = '1';
+      let tx = e.clientX + 14, ty = e.clientY + 14;
+      if (tx + 240 > window.innerWidth) tx = e.clientX - 240;
+      tip.style.left = tx+'px'; tip.style.top = ty+'px';
     });
-    el.addEventListener('mouseleave',()=>{ tip.style.opacity='0'; });
+    el.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
   });
 }
+
 
 
 function showChangePopup(w, period, diff, pct) {
