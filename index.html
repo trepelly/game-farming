@@ -792,6 +792,26 @@ Ví sếp, 0x5678...efgh
         </div>
       </div>
 
+      <!-- NESO SPEND CHART -->
+      <div id="spend-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">NESO Spend</span>
+            <span style="font-size:10px;color:var(--muted2)">crystal + mua NFT/FT + burn (trừ swap)</span>
+          </div>
+          <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+            <button id="spend-mode-day" onclick="setSpendChartMode('day')" class="spend-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
+            <button id="spend-mode-week" onclick="setSpendChartMode('week')" class="spend-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tuần</button>
+            <button id="spend-mode-month" onclick="setSpendChartMode('month')" class="spend-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tháng</button>
+            <button id="spend-mode-year" onclick="setSpendChartMode('year')" class="spend-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Năm</button>
+          </div>
+        </div>
+        <div id="spend-chart-body" style="min-height:260px">
+          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu spend...</div>
+        </div>
+      </div>
+
       </div>
     </div>
   </div>
@@ -1009,6 +1029,7 @@ function switchTab(t){
   // Khi vào Team Wallet: nếu có ví mà chart chưa load thì load
   if (t==='team' && typeof loadClaimChart==='function' && (teamWallets||[]).length && !claimChartData) {
     loadClaimChart().catch(()=>{});
+    loadSpendChart().catch(()=>{});
   }
 }
 
@@ -1906,6 +1927,7 @@ async function loadTeamWallets() {
     loadTeamMvpPoints().catch(()=>{});
     loadAllNftParallel().catch(()=>{});
     loadClaimChart().catch(()=>{});
+    loadSpendChart().catch(()=>{});
   } catch(e) {
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
@@ -2421,6 +2443,7 @@ async function fetchLivePrices(force=false) {
     if (typeof renderTeam === 'function' && document.getElementById('team-tbody')) renderTeam();
     // Re-render claim chart with updated prices (data already loaded)
     if (typeof renderClaimChart === 'function' && claimChartData) renderClaimChart();
+    if (typeof renderSpendChart === 'function' && spendChartData) renderSpendChart();
   } catch(e) {
     if(upEl) upEl.textContent = 'Lỗi: ' + e.message;
   }
@@ -2904,6 +2927,202 @@ function renderClaimChart() {
       tip.style.left = tx+'px'; tip.style.top = ty+'px';
     });
     el.addEventListener('mouseleave', () => { tip.style.opacity = '0'; });
+  });
+}
+
+
+// ══════════════ NESO SPEND CHART ══════════════
+let spendChartMode = 'day';
+let spendChartData = null;
+const SPEND_MODES = {
+  day:   { limit: 30, stepW: 34, unit: 'ngày',  src: 'byDay',   cnt: 'dayCount' },
+  week:  { limit: 13, stepW: 64, unit: 'tuần',  src: 'byWeek',  cnt: 'weekCount' },
+  month: { limit: 12, stepW: 56, unit: 'tháng', src: 'byMonth', cnt: 'monthCount' },
+  year:  { limit: 6,  stepW: 80, unit: 'năm',   src: 'byYear',  cnt: 'yearCount' },
+};
+
+function setSpendChartMode(mode) {
+  spendChartMode = mode;
+  ['day','week','month','year'].forEach(m => {
+    const b = document.getElementById('spend-mode-'+m);
+    if (b) { b.style.background = m===mode ? 'var(--accent)' : 'transparent'; b.style.color = m===mode ? '#fff' : 'var(--muted2)'; }
+  });
+  renderSpendChart();
+}
+
+async function loadSpendChart() {
+  const wrap = document.getElementById('spend-chart-wrap');
+  if (!wrap) return;
+  const wallets = teamWallets || [];
+  if (!wallets.length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+
+  // NESO chi ra = crystal + nft + ft + burn (KHÔNG tính swap out, transfer out)
+  const crystalOf = r => (r.out_crystal_amount||0);
+  const nftOf     = r => (r.out_nft_amount||0);
+  const ftOf      = r => (r.out_ft_amount||0);
+  const burnOf    = r => (r.out_burn_amount||0);
+  const spentOf   = r => crystalOf(r)+nftOf(r)+ftOf(r)+burnOf(r);
+  const byDay={},byWeek={},byMonth={},byYear={};
+  const crD={},crW={},crM={},crY={}, nfD={},nfW={},nfM={},nfY={}, ftD={},ftW={},ftM={},ftY={}, bnD={},bnW={},bnM={},bnY={};
+  const dW={},wW={},mW={},yW={};
+  const add=(o,k,v)=>o[k]=(o[k]||0)+v;
+  try {
+    const all = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
+    all.forEach((res, wi) => {
+      if (res.status !== 'fulfilled') return;
+      const addr = wallets[wi].address;
+      (res.value||[]).forEach(r => {
+        const day = r.day ? r.day.slice(0,10) : null;
+        if (!day) return;
+        const sp=spentOf(r), cr=crystalOf(r), nf=nftOf(r), ft=ftOf(r), bn=burnOf(r);
+        const wk=(typeof getWeekKey==='function')?getWeekKey(day):day, mo=day.slice(0,7), yr=day.slice(0,4);
+        add(byDay,day,sp);add(byWeek,wk,sp);add(byMonth,mo,sp);add(byYear,yr,sp);
+        add(crD,day,cr);add(crW,wk,cr);add(crM,mo,cr);add(crY,yr,cr);
+        add(nfD,day,nf);add(nfW,wk,nf);add(nfM,mo,nf);add(nfY,yr,nf);
+        add(ftD,day,ft);add(ftW,wk,ft);add(ftM,mo,ft);add(ftY,yr,ft);
+        add(bnD,day,bn);add(bnW,wk,bn);add(bnM,mo,bn);add(bnY,yr,bn);
+        if (sp > 0) {
+          (dW[day]=dW[day]||new Set()).add(addr);(wW[wk]=wW[wk]||new Set()).add(addr);
+          (mW[mo]=mW[mo]||new Set()).add(addr);(yW[yr]=yW[yr]||new Set()).add(addr);
+        }
+      });
+    });
+    const cnt=src=>{const o={};Object.keys(src).forEach(k=>o[k]=src[k].size);return o;};
+    spendChartData = {
+      byDay,byWeek,byMonth,byYear,
+      crystalDay:crD,crystalWeek:crW,crystalMonth:crM,crystalYear:crY,
+      nftDay:nfD,nftWeek:nfW,nftMonth:nfM,nftYear:nfY,
+      ftDay:ftD,ftWeek:ftW,ftMonth:ftM,ftYear:ftY,
+      burnDay:bnD,burnWeek:bnW,burnMonth:bnM,burnYear:bnY,
+      dayCount:cnt(dW),weekCount:cnt(wW),monthCount:cnt(mW),yearCount:cnt(yW),
+      totalWallets:wallets.length
+    };
+    renderSpendChart();
+  } catch(e) {
+    document.getElementById('spend-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
+  }
+}
+
+function renderSpendChart() {
+  const body = document.getElementById('spend-chart-body');
+  if (!body || !spendChartData) return;
+  const M = SPEND_MODES[spendChartMode];
+  const src = spendChartData[M.src] || {};
+  const cntMap = spendChartData[M.cnt] || {};
+  const totalW = spendChartData.totalWallets || 0;
+  // Component maps
+  const P = spendChartMode.charAt(0).toUpperCase()+spendChartMode.slice(1);
+  const crMap = spendChartData['crystal'+P]||{}, nfMap = spendChartData['nft'+P]||{}, ftMap = spendChartData['ft'+P]||{}, bnMap = spendChartData['burn'+P]||{};
+  let keys = Object.keys(src).sort().slice(-M.limit);
+  if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu</div>'; return; }
+
+  const vals = keys.map(k=>src[k]);
+  const rawMax = Math.max(...vals,1);
+  const niceCeil = n => { const e=Math.pow(10,Math.floor(Math.log10(n))); const f=n/e; const nf=f<=1?1:f<=2?2:f<=5?5:10; return nf*e; };
+  const yMax = niceCeil(rawMax);
+  const fmtK = n=>n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':Math.round(n);
+  const fmtFull = n=>Math.round(n).toLocaleString('vi-VN');
+  const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
+  const usdvnd = liveUsdVnd || 0;
+  const fmtUsd = n=>'$'+(n*nesoRate).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtVnd = n=>Math.round(n*nesoRate*usdvnd).toLocaleString('vi-VN')+'đ';
+  const lblOf = k => {
+    if (spendChartMode==='day') return k.slice(8,10)+'/'+k.slice(5,7);
+    if (spendChartMode==='week') { const d=new Date(k+'T00:00:00Z'),e=new Date(d);e.setUTCDate(d.getUTCDate()+6); const f=x=>('0'+x.getUTCDate()).slice(-2)+'/'+('0'+(x.getUTCMonth()+1)).slice(-2); return f(d)+'–'+f(e); }
+    if (spendChartMode==='month') return 'T'+k.slice(5,7)+'/'+k.slice(2,4);
+    return k;
+  };
+  const ckOf = () => {
+    const t = new Date().toISOString().slice(0,10);
+    if (spendChartMode==='day') return t;
+    if (spendChartMode==='week') return (typeof getWeekKey==='function')?getWeekKey(t):t;
+    if (spendChartMode==='month') return t.slice(0,7);
+    return t.slice(0,4);
+  };
+  const ck = ckOf();
+
+  const W = Math.max(keys.length*M.stepW, 340), H=260, padB=54, padT=18, padL=44, padR=10;
+  const chartH = H-padB-padT, bw=(W-padL-padR)/keys.length, barW=Math.min(bw*0.62, 40);
+
+  // Y grid
+  let grid=''; const yStep=4;
+  for (let i=0;i<=yStep;i++){ const val=yMax/yStep*i, y=padT+chartH-(val/yMax)*chartH;
+    grid+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border)" stroke-width="1" stroke-dasharray="${i===0?'0':'3 3'}" opacity="${i===0?'0.6':'0.3'}"/><text x="${padL-6}" y="${y+3}" text-anchor="end" font-size="8" fill="var(--muted2)" font-family="monospace">${fmtK(val)}</text>`; }
+
+  // Colors: crystal=amber, nft=blue, ft=red, burn=gray
+  const CC={cr:'var(--amber)',nf:'var(--blue)',ft:'#ef4444',bn:'var(--muted2)'};
+  let bars='';
+  keys.forEach((k,i)=>{
+    const v=src[k], cr=crMap[k]||0,nf=nfMap[k]||0,ft=ftMap[k]||0,bn=bnMap[k]||0;
+    const x=padL+i*bw+(bw-barW)/2;
+    const isCur=k===ck;
+    let yCursor=padT+chartH;
+    const seg=(amt,color)=>{ if(amt<=0)return''; const h=(amt/yMax)*chartH; yCursor-=h; return `<rect x="${x}" y="${yCursor}" width="${barW}" height="${Math.max(h,1)}" fill="${color}" opacity="${isCur?'1':'0.72'}"/>`; };
+    const segs = seg(cr,CC.cr)+seg(nf,CC.nf)+seg(ft,CC.ft)+seg(bn,CC.bn);
+    const totH=(v/yMax)*chartH, yTop=padT+chartH-totH;
+    bars+=`<g class="spend-bar" style="cursor:pointer">
+      ${segs}
+      <text x="${x+barW/2}" y="${yTop-5}" text-anchor="middle" font-size="8.5" fill="${isCur?'var(--accent)':'var(--text2)'}" font-family="monospace" font-weight="${isCur?'700':'500'}">${totH>16?fmtK(v):''}</text>
+      <text x="${x+barW/2}" y="${H-padB+15}" text-anchor="middle" font-size="8.5" fill="var(--muted2)" font-family="monospace">${lblOf(k)}</text>
+      <text x="${x+barW/2}" y="${H-padB+27}" text-anchor="middle" font-size="7.5" fill="${isCur?'var(--accent)':'var(--muted2)'}" font-family="monospace" font-weight="700">${cntMap[k]||0} ví</text>
+      <rect x="${x-bw*0.19}" y="${padT}" width="${bw}" height="${chartH}" fill="transparent" data-tip="${i}"/>
+    </g>`;
+  });
+
+  const total=vals.reduce((a,b)=>a+b,0), avg=total/vals.length, maxV=Math.max(...vals);
+  const totCr=keys.reduce((s,k)=>s+(crMap[k]||0),0), totNf=keys.reduce((s,k)=>s+(nfMap[k]||0),0), totFt=keys.reduce((s,k)=>s+(ftMap[k]||0),0), totBn=keys.reduce((s,k)=>s+(bnMap[k]||0),0);
+  const pct=n=>total>0?Math.round(n/total*100):0;
+  const ic=svg=>`<span style="display:inline-flex;color:var(--muted2);margin-right:5px">${svg}</span>`;
+  const I={layers:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',up:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',activity:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',users:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'};
+  const stat=(lbl,val,color,icon,extra)=>`<div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div><div style="font-size:15px;font-weight:800;color:${color}">${val}${extra||''}</div></div>`;
+  const compBox=(lbl,color,v)=>`<div style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px">
+      <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px"><span style="width:9px;height:9px;border-radius:2px;background:${color};display:inline-block"></span>${lbl} <span style="margin-left:auto;color:var(--text2);font-weight:700">${pct(v)}%</span></div>
+      <div style="font-size:14px;font-weight:800;color:${color}">${fmtFull(v)}</div>
+      <div style="font-size:9px;color:var(--text2)">${fmtUsd(v)}</div>
+      <div style="font-size:9px;color:var(--muted2)">${fmtVnd(v)}</div>
+    </div>`;
+
+  const avgW=keys.length?(keys.reduce((s,k)=>s+(cntMap[k]||0),0)/keys.length):0;
+  body.innerHTML = `
+    <div style="display:flex;gap:26px;margin-bottom:12px;flex-wrap:wrap">
+      ${stat('Tổng chi ('+keys.length+' '+M.unit+')',fmtFull(total),'#ef4444',I.layers,' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
+      ${stat('Cao nhất',fmtFull(maxV),'var(--text)',I.up,' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(maxV)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(maxV)+'</div>')}
+      ${stat('TB / '+M.unit,fmtFull(avg),'var(--text)',I.activity,' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(avg)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(avg)+'</div>')}
+      ${stat('TB ví chi',avgW.toFixed(1),'var(--accent)',I.users,' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      ${compBox('Crystal/Enhance',CC.cr,totCr)}
+      ${compBox('Mua NFT',CC.nf,totNf)}
+      ${compBox('Mua FT',CC.ft,totFt)}
+      ${compBox('Burn',CC.bn,totBn)}
+    </div>
+    <div style="overflow-x:auto;padding-bottom:4px" id="spend-scroll">
+      <svg width="${W}" height="${H}" style="display:block;min-width:100%">${grid}${bars}</svg>
+    </div>`;
+
+  // Auto-scroll to latest
+  const sc=document.getElementById('spend-scroll'); if(sc) sc.scrollLeft=sc.scrollWidth;
+
+  // Tooltip
+  let tip=document.getElementById('spend-tip');
+  if(!tip){ tip=document.createElement('div'); tip.id='spend-tip'; tip.style.cssText='position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
+  body.querySelectorAll('[data-tip]').forEach(el=>{
+    const i=+el.getAttribute('data-tip'), k=keys[i], v=src[k];
+    el.addEventListener('mousemove',ev=>{
+      const cr=crMap[k]||0,nf=nfMap[k]||0,ft=ftMap[k]||0,bn=bnMap[k]||0;
+      tip.innerHTML=`<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
+        <div style="color:#ef4444;font-weight:700">${fmtFull(v)} NESO</div>
+        <div style="color:var(--text2);font-size:10px">≈ ${fmtUsd(v)} · ${fmtVnd(v)}</div>
+        <div style="margin-top:4px;font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${CC.cr};display:inline-block"></span><span style="color:var(--muted2)">Crystal:</span> <span style="color:var(--text);font-weight:600">${fmtFull(cr)}</span></div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${CC.nf};display:inline-block"></span><span style="color:var(--muted2)">Mua NFT:</span> <span style="color:var(--text);font-weight:600">${fmtFull(nf)}</span></div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${CC.ft};display:inline-block"></span><span style="color:var(--muted2)">Mua FT:</span> <span style="color:var(--text);font-weight:600">${fmtFull(ft)}</span></div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${CC.bn};display:inline-block"></span><span style="color:var(--muted2)">Burn:</span> <span style="color:var(--text);font-weight:600">${fmtFull(bn)}</span></div>
+        <div style="color:var(--accent);font-size:10px;margin-top:3px">${cntMap[k]||0}/${totalW} ví chi</div>`;
+      tip.style.left=Math.min(ev.clientX+14,window.innerWidth-180)+'px';
+      tip.style.top=(ev.clientY-10)+'px'; tip.style.opacity='1';
+    });
+    el.addEventListener('mouseleave',()=>{ tip.style.opacity='0'; });
   });
 }
 
