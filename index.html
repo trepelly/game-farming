@@ -818,7 +818,7 @@ Ví sếp, 0x5678...efgh
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">NESO Swap</span>
-            <span style="font-size:10px;color:var(--muted2)">đổi NESO ↔ token khác (In / Out)</span>
+            <span style="font-size:10px;color:var(--muted2)">Đầu tư (bơm vốn) ↕ Doanh thu (rút ra)</span>
           </div>
           <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="swap-mode-day" onclick="setSwapChartMode('day')" class="swap-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
@@ -3296,7 +3296,7 @@ function renderSwapChart() {
   const halfH = (H - padT - padB) / 2;
   const bw = innerW / keys.length;
   const barW = Math.min(bw * 0.62, 46);
-  const IN_C = 'var(--green)', OUT_C = '#ef4444';
+  const IN_C = 'var(--blue)', OUT_C = 'var(--green)';  // In=Đầu tư(xanh dương), Out=Doanh thu(xanh lá)
 
   // Grid (In phía trên, Out phía dưới)
   let grid = '';
@@ -3327,7 +3327,8 @@ function renderSwapChart() {
   });
 
   const totIn = insV.reduce((a,b)=>a+b,0), totOut = outsV.reduce((a,b)=>a+b,0);
-  const net = totIn - totOut;
+  const netProfit = totOut - totIn;  // Lợi nhuận = Doanh thu (rút ra) − Đầu tư (bơm vào)
+  const netProfitColor = netProfit>=0 ? 'var(--green)' : '#ef4444';
   const avgW = keys.reduce((s,k)=>s+(cntMap[k]||0),0)/keys.length;
 
   const ic = svg => `<span style="display:inline-flex;color:var(--muted2);margin-right:4px">${svg}</span>`;
@@ -3342,17 +3343,16 @@ function renderSwapChart() {
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
     </div>`;
   const dot = c => `<span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block"></span>`;
-  const netColor = net>=0 ? 'var(--green)' : '#ef4444';
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(IN_C)}Swap In (nhận NESO)</span>
-      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(OUT_C)}Swap Out (đổi NESO đi)</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(IN_C)}Đầu tư <span style="opacity:.6">(Swap In · bơm vốn)</span></span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)">${dot(OUT_C)}Doanh thu <span style="opacity:.6">(Swap Out · rút ra)</span></span>
     </div>
     <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
-      ${stat('Swap In', fmtFull(totIn), IN_C, I.up, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totIn)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totIn)+'</div>')}
-      ${stat('Swap Out', fmtFull(totOut), OUT_C, I.dn, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totOut)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totOut)+'</div>')}
-      ${stat('Ròng (In−Out)', (net>=0?'+':'')+fmtFull(net), netColor, I.eq, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+(net>=0?'+':'')+fmtUsd(net).replace('$','$')+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(net)+'</div>')}
+      ${stat('Đầu tư (Swap In)', fmtFull(totIn), IN_C, I.dn, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totIn)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totIn)+'</div>')}
+      ${stat('Doanh thu (Swap Out)', fmtFull(totOut), OUT_C, I.up, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(totOut)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(totOut)+'</div>')}
+      ${stat('Lợi nhuận ròng', (netProfit>=0?'+':'')+fmtFull(netProfit), netProfitColor, I.eq, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+(netProfit>=0?'+':'')+fmtUsd(netProfit)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(netProfit)+'</div>')}
       ${stat('TB ví swap', avgW.toFixed(1), 'var(--accent)', I.users, ' <span style="font-size:9px;color:var(--muted2)">/ '+totalW+' ví</span>')}
     </div>
     <div id="swap-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
@@ -3367,12 +3367,12 @@ function renderSwapChart() {
   body.querySelectorAll('[data-tip]').forEach(el => {
     const idx = +el.getAttribute('data-tip'); const k = keys[idx];
     el.addEventListener('mousemove', e => {
-      const si=src[k].in, so=src[k].out, nt=si-so;
+      const si=src[k].in, so=src[k].out, prof=so-si;
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
-        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${IN_C};display:inline-block"></span><span style="color:var(--muted2)">Swap In:</span> <span style="color:var(--text);font-weight:600">${fmtFull(si)}</span></div>
-        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${OUT_C};display:inline-block"></span><span style="color:var(--muted2)">Swap Out:</span> <span style="color:var(--text);font-weight:600">${fmtFull(so)}</span></div>
-        <div style="font-size:10px;margin-top:2px"><span style="color:var(--muted2)">Ròng:</span> <span style="color:${nt>=0?IN_C:OUT_C};font-weight:700">${nt>=0?'+':''}${fmtFull(nt)}</span></div>
-        <div style="color:var(--text2);font-size:9px;margin-top:2px">≈ ${fmtUsd(Math.abs(nt))} · ${fmtVnd(Math.abs(nt))}</div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${IN_C};display:inline-block"></span><span style="color:var(--muted2)">Đầu tư:</span> <span style="color:var(--text);font-weight:600">${fmtFull(si)}</span></div>
+        <div style="font-size:10px;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${OUT_C};display:inline-block"></span><span style="color:var(--muted2)">Doanh thu:</span> <span style="color:var(--text);font-weight:600">${fmtFull(so)}</span></div>
+        <div style="font-size:10px;margin-top:2px"><span style="color:var(--muted2)">Lợi nhuận:</span> <span style="color:${prof>=0?'var(--green)':'#ef4444'};font-weight:700">${prof>=0?'+':''}${fmtFull(prof)}</span></div>
+        <div style="color:var(--text2);font-size:9px;margin-top:2px">≈ ${fmtUsd(Math.abs(prof))} · ${fmtVnd(Math.abs(prof))}</div>
         <div style="color:var(--accent);font-size:10px;margin-top:3px">${cntMap[k]||0}/${totalW} ví swap</div>`;
       tip.style.opacity = '1';
       let tx = e.clientX + 14, ty = e.clientY + 14;
