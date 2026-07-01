@@ -5005,4 +5005,24 @@ async function loadExpandFlow(cont, address, key) {
 </script>
 
 
+
+<!-- Scroll to top button -->
+<button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Lên đầu trang"
+  style="position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;display:none;align-items:center;justify-content:center;z-index:9998;opacity:0;transition:opacity .25s,transform .2s;color:#fff"
+  onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+</button>
+<script>
+(function(){
+  const btn = document.getElementById('scroll-top-btn');
+  if (!btn) return;
+  const toggle = () => {
+    const y = window.scrollY || document.documentElement.scrollTop;
+    if (y > 400) { btn.style.display = 'flex'; requestAnimationFrame(()=>btn.style.opacity='1'); }
+    else { btn.style.opacity = '0'; setTimeout(()=>{ if((window.scrollY||0)<=400) btn.style.display='none'; }, 250); }
+  };
+  window.addEventListener('scroll', toggle, { passive:true });
+  toggle();
+})();
+</script>
 </body>
