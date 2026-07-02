@@ -784,7 +784,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="claim-chart-body" style="min-height:260px">
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu claim...</div>
         </div>
-        <div style="text-align:center;margin-top:12px">
+        <div style="text-align:left;margin-top:12px">
           <button id="claim-detail-btn" onclick="toggleChartDetail('claim')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
         <div id="claim-detail-body" style="display:none"></div>
@@ -808,7 +808,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="spend-chart-body" style="min-height:260px">
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu spend...</div>
         </div>
-        <div style="text-align:center;margin-top:12px">
+        <div style="text-align:left;margin-top:12px">
           <button id="spend-detail-btn" onclick="toggleChartDetail('spend')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
         <div id="spend-detail-body" style="display:none"></div>
@@ -832,7 +832,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="swap-chart-body" style="min-height:260px">
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu swap...</div>
         </div>
-        <div style="text-align:center;margin-top:12px">
+        <div style="text-align:left;margin-top:12px">
           <button id="revenue-detail-btn" onclick="toggleChartDetail('revenue')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
         <div id="revenue-detail-body" style="display:none"></div>
@@ -856,7 +856,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="swapin-chart-body" style="min-height:260px">
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu swap in...</div>
         </div>
-        <div style="text-align:center;margin-top:12px">
+        <div style="text-align:left;margin-top:12px">
           <button id="swapin-detail-btn" onclick="toggleChartDetail('swapin')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
         <div id="swapin-detail-body" style="display:none"></div>
@@ -2687,20 +2687,64 @@ async function refreshNesoEarned() {
 
 // ── NESO Claim Chart ──
 // ══════════════ CHART DETAIL TABLE (Xem thêm — per wallet) ══════════════
-const chartDetailOpen = {}; // { claim:false, spend:false, revenue:false, swapin:false }
+const chartDetailOpen = {};   // { claim, spend, revenue, swapin }
+const chartDetailPeriod = {}; // kỳ đã chọn (null = tất cả)
+
+// Mode của mỗi chart để tính period key
+function detailModeOf(key) {
+  if (key==='claim')   return claimChartMode;
+  if (key==='spend')   return spendChartMode;
+  if (key==='revenue') return swapChartMode;
+  if (key==='swapin')  return swapinChartMode;
+  return 'day';
+}
+// Tính period key từ ngày theo mode
+function periodKeyOf(day, mode) {
+  if (mode==='day')   return day;
+  if (mode==='week')  return (typeof getWeekKey==='function') ? getWeekKey(day) : day;
+  if (mode==='month') return day.slice(0,7);
+  if (mode==='year')  return day.slice(0,4);
+  return day;
+}
+// Nhãn kỳ để hiển thị
+function periodLabelOf(pk, mode) {
+  if (!pk) return '';
+  if (mode==='day')   return pk.slice(8,10)+'/'+pk.slice(5,7)+'/'+pk.slice(0,4);
+  if (mode==='month') return 'Tháng '+pk.slice(5,7)+'/'+pk.slice(0,4);
+  if (mode==='year')  return 'Năm '+pk;
+  const d = new Date(pk+'T00:00:00Z'); const e = new Date(d); e.setUTCDate(d.getUTCDate()+6);
+  const f = x => ('0'+x.getUTCDate()).slice(-2)+'/'+('0'+(x.getUTCMonth()+1)).slice(-2);
+  return 'Tuần '+f(d)+'–'+f(e);
+}
 
 function toggleChartDetail(key) {
   chartDetailOpen[key] = !chartDetailOpen[key];
+  if (!chartDetailOpen[key]) chartDetailPeriod[key] = null; // đóng thì bỏ chọn kỳ
   renderChartDetail(key);
   const btn = document.getElementById(key+'-detail-btn');
   if (btn) btn.innerHTML = chartDetailOpen[key] ? '▲ Ẩn chi tiết' : '▼ Xem thêm chi tiết theo ví';
+}
+
+// Bấm vào cột biểu đồ → chọn kỳ, mở chi tiết kỳ đó
+function selectChartPeriod(key, periodKey) {
+  chartDetailPeriod[key] = periodKey;
+  chartDetailOpen[key] = true;
+  renderChartDetail(key);
+  const btn = document.getElementById(key+'-detail-btn');
+  if (btn) btn.innerHTML = '▲ Ẩn chi tiết';
+  const body = document.getElementById(key+'-detail-body');
+  if (body) body.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function clearChartPeriod(key) {
+  chartDetailPeriod[key] = null;
+  renderChartDetail(key);
 }
 
 function chartDetailCopyBtn(val, tip) {
   return `<span onclick="navigator.clipboard.writeText('${(val||'').replace(/'/g,"\\'")}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)" style="cursor:pointer;font-size:10px;color:var(--muted);user-select:none;opacity:.6;margin-left:4px" title="${tip||'Copy'}">⎘</span>`;
 }
 
-// key: 'claim' | 'spend' | 'revenue' | 'swapin'
 function renderChartDetail(key) {
   const body = document.getElementById(key+'-detail-body');
   if (!body) return;
@@ -2713,49 +2757,67 @@ function renderChartDetail(key) {
   const vndOf = n => Math.round((n||0)*nesoRate*usdvnd).toLocaleString('vi-VN')+'đ';
   const shortAddr = a => a ? a.slice(0,6)+'...'+a.slice(-4) : '—';
 
-  // Định nghĩa cột theo từng chart
-  let data = [], cols = [], sortKey = 'total';
-  if (key==='claim' && claimChartData?.perWallet) {
-    data = claimChartData.perWallet.slice();
+  const mode = detailModeOf(key);
+  const selPeriod = chartDetailPeriod[key] || null;
+
+  // Cấu hình cột + nguồn dữ liệu raw theo từng chart
+  let raw = [], cols = [], sortKey = 'total', mapRow = null;
+  if (key==='claim' && claimChartData?.rawDetail) {
+    raw = claimChartData.rawDetail;
     cols = [
-      { k:'claimGame', label:'Claim game', color:'var(--green)', money:true },
-      { k:'sellNft', label:'Bán NFT', color:'var(--blue)', money:true, cnt:'nftCnt' },
-      { k:'sellFt', label:'Bán FT', color:'#ef4444', money:true, cnt:'ftCnt' },
-      { k:'total', label:'Tổng thu', color:'var(--text)', money:true, strong:true },
+      { k:'claimGame', label:'Claim game', color:'var(--green)', cnt:null },
+      { k:'sellNft', label:'Bán NFT', color:'var(--blue)', cnt:'nftCnt' },
+      { k:'sellFt', label:'Bán FT', color:'#ef4444', cnt:'ftCnt' },
+      { k:'total', label:'Tổng thu', color:'var(--text)', strong:true },
     ];
-  } else if (key==='spend' && spendChartData?.perWallet) {
-    data = spendChartData.perWallet.slice();
+    mapRow = r => ({ claimGame:r.claimGame, sellNft:r.sellNft, sellFt:r.sellFt, nftCnt:r.nftCnt, ftCnt:r.ftCnt, total:r.claimGame+r.sellNft+r.sellFt });
+  } else if (key==='spend' && spendChartData?.rawDetail) {
+    raw = spendChartData.rawDetail;
     cols = [
-      { k:'crystal', label:'Crystal', color:'var(--amber)', money:true },
-      { k:'nft', label:'Mua NFT', color:'var(--blue)', money:true },
-      { k:'ft', label:'Mua FT', color:'#ef4444', money:true },
-      { k:'burn', label:'Burn', color:'var(--muted2)', money:true },
-      { k:'swapIn', label:'Bơm vốn', color:'var(--blue)', money:true },
-      { k:'total', label:'Tổng chi', color:'var(--text)', money:true, strong:true },
+      { k:'crystal', label:'Crystal', color:'var(--amber)' },
+      { k:'nft', label:'Mua NFT', color:'var(--blue)' },
+      { k:'ft', label:'Mua FT', color:'#ef4444' },
+      { k:'burn', label:'Burn', color:'var(--muted2)' },
+      { k:'swapIn', label:'Bơm vốn', color:'var(--blue)' },
+      { k:'total', label:'Tổng chi', color:'var(--text)', strong:true },
     ];
-  } else if (key==='revenue' && swapChartData?.perWallet) {
-    data = swapChartData.perWallet.slice();
-    sortKey = 'swapOut';
-    cols = [
-      { k:'swapOut', label:'Doanh thu (Swap Out)', color:'var(--green)', money:true, strong:true },
-    ];
-  } else if (key==='swapin' && swapChartData?.perWallet) {
-    data = swapChartData.perWallet.slice();
-    sortKey = 'swapIn';
-    cols = [
-      { k:'swapIn', label:'Bơm vốn (Swap In)', color:'var(--blue)', money:true, strong:true },
-    ];
+    mapRow = r => ({ crystal:r.crystal, nft:r.nft, ft:r.ft, burn:r.burn, swapIn:r.swapIn, total:r.crystal+r.nft+r.ft+r.burn });
+  } else if (key==='revenue' && swapChartData?.rawDetail) {
+    raw = swapChartData.rawDetail; sortKey='swapOut';
+    cols = [ { k:'swapOut', label:'Doanh thu (Swap Out)', color:'var(--green)', strong:true } ];
+    mapRow = r => ({ swapOut:r.swapOut });
+  } else if (key==='swapin' && swapChartData?.rawDetail) {
+    raw = swapChartData.rawDetail; sortKey='swapIn';
+    cols = [ { k:'swapIn', label:'Bơm vốn (Swap In)', color:'var(--blue)', strong:true } ];
+    mapRow = r => ({ swapIn:r.swapIn });
   } else {
     body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted2);font-size:12px">Chưa có dữ liệu chi tiết</div>';
     return;
   }
 
-  // Chỉ hiện ví có hoạt động (giá trị cột chính > 0), sắp theo cột chính giảm dần
-  data = data.filter(w => (w[sortKey]||0) > 0).sort((a,b)=>(b[sortKey]||0)-(a[sortKey]||0));
-  if (!data.length) { body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted2);font-size:12px">Không có ví nào có hoạt động này</div>'; return; }
+  // Lọc theo kỳ đã chọn (nếu có), rồi gộp theo ví
+  const filtered = selPeriod ? raw.filter(r => periodKeyOf(r.day, mode) === selPeriod) : raw;
+  const byAddr = {};
+  filtered.forEach(r => {
+    const m = mapRow(r);
+    if (!byAddr[r.address]) byAddr[r.address] = { label:r.label, address:r.address };
+    const acc = byAddr[r.address];
+    Object.keys(m).forEach(kk => acc[kk] = (acc[kk]||0) + (m[kk]||0));
+  });
+  let data = Object.values(byAddr).filter(w => (w[sortKey]||0) > 0).sort((a,b)=>(b[sortKey]||0)-(a[sortKey]||0));
 
-  const th = (label, align, color) => `<th style="padding:6px 8px;text-align:${align};color:${color||'var(--muted2)'};font-size:10px;white-space:nowrap">${label}</th>`;
-  const headCells = cols.map(c => th(c.label, 'right', c.color)).join('');
+  // Banner kỳ đã chọn
+  const banner = selPeriod
+    ? `<div style="display:flex;align-items:center;gap:8px;margin-top:14px;margin-bottom:2px;flex-wrap:wrap">
+         <span style="font-size:11px;color:var(--accent);font-weight:700;background:var(--accent-glow,var(--surface));border:1px solid var(--accent);border-radius:6px;padding:3px 10px">📅 ${periodLabelOf(selPeriod, mode)}</span>
+         <button onclick="clearChartPeriod('${key}')" style="background:transparent;border:1px solid var(--border2);border-radius:6px;padding:3px 10px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">✕ Xem tất cả</button>
+       </div>`
+    : `<div style="font-size:10px;color:var(--muted2);margin-top:14px;margin-bottom:2px">Tổng tất cả các kỳ · <span style="color:var(--accent)">bấm 1 cột trong biểu đồ để xem riêng kỳ đó</span></div>`;
+
+  if (!data.length) { body.innerHTML = banner + '<div style="text-align:center;padding:20px;color:var(--muted2);font-size:12px">Không có ví nào có hoạt động này'+(selPeriod?' trong kỳ đã chọn':'')+'</div>'; return; }
+
+  const th = (label, color) => `<th style="padding:6px 8px;text-align:right;color:${color||'var(--muted2)'};font-size:10px;white-space:nowrap">${label}</th>`;
+  const headCells = cols.map(c => th(c.label, c.color)).join('');
   const rows = data.map((w,i) => {
     const cells = cols.map(c => {
       const v = w[c.k]||0;
@@ -2769,14 +2831,13 @@ function renderChartDetail(key) {
       ${cells}
     </tr>`;
   }).join('');
-  // Tổng cộng
   const totals = cols.map(c => {
     const sum = data.reduce((s,w)=>s+(w[c.k]||0),0);
     return `<td style="padding:7px 8px;text-align:right;color:${c.color};font-weight:700">${f(sum)}</td>`;
   }).join('');
 
-  body.innerHTML = `
-    <div style="overflow-x:auto;margin-top:14px;border-top:1px dashed var(--border2);padding-top:14px">
+  body.innerHTML = banner + `
+    <div style="overflow-x:auto;margin-top:8px;border-top:1px dashed var(--border2);padding-top:12px">
     <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:${420+cols.length*90}px">
       <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
         <th style="padding:6px 8px;text-align:center;color:var(--muted2);font-size:10px;width:32px">#</th>
@@ -2829,6 +2890,7 @@ async function loadClaimChart() {
   const dW = {}, wW = {}, mW = {}, yW = {};
   const add = (o,k,v) => o[k]=(o[k]||0)+v;
   const perWallet = []; // chi tiết theo ví
+  const rawDetail = []; // raw daily để lọc theo kỳ
   try {
     const all = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
     all.forEach((res, wi) => {
@@ -2849,6 +2911,7 @@ async function loadClaimChart() {
         if (amt > 0) {
           (dW[day]=dW[day]||new Set()).add(addr); (wW[wk]=wW[wk]||new Set()).add(addr);
           (mW[mo]=mW[mo]||new Set()).add(addr); (yW[yr]=yW[yr]||new Set()).add(addr);
+          rawDetail.push({ label:w.label, address:addr, day, claimGame:cl, sellNft:(r.in_nft_amount||0), sellFt:(r.in_ft_amount||0), nftCnt:(r.in_nft_count||0), ftCnt:(r.in_ft_count||0) });
         }
       });
       perWallet.push({ label:w.label, address:addr, claimGame:pwClaim, sellNft:pwSellNft, sellFt:pwSellFt, nftCnt:pwNftCnt, ftCnt:pwFtCnt, total:pwClaim+pwSellNft+pwSellFt });
@@ -2859,7 +2922,7 @@ async function loadClaimChart() {
       claimDay:clDay, claimWeek:clWeek, claimMonth:clMonth, claimYear:clYear,
       sellDay:slDay, sellWeek:slWeek, sellMonth:slMonth, sellYear:slYear,
       dayCount: cnt(dW), weekCount: cnt(wW), monthCount: cnt(mW), yearCount: cnt(yW),
-      totalWallets: wallets.length, perWallet
+      totalWallets: wallets.length, perWallet, rawDetail
     };
     renderClaimChart();
   } catch(e) {
@@ -3026,6 +3089,8 @@ function renderClaimChart() {
   body.querySelectorAll('[data-tip]').forEach(el => {
     const idx = +el.getAttribute('data-tip');
     const k = keys[idx], v = src[k];
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('claim', k); });
     el.addEventListener('mousemove', e => {
       const cl=clMap[k]||0, sl=slMap[k]||0;
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
@@ -3083,6 +3148,7 @@ async function loadSpendChart() {
   const dW={},wW={},mW={},yW={};
   const add=(o,k,v)=>o[k]=(o[k]||0)+v;
   const perWallet=[];
+  const rawDetail=[];
   try {
     const all = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
     all.forEach((res, wi) => {
@@ -3101,9 +3167,9 @@ async function loadSpendChart() {
         add(ftD,day,ft);add(ftW,wk,ft);add(ftM,mo,ft);add(ftY,yr,ft);
         add(bnD,day,bn);add(bnW,wk,bn);add(bnM,mo,bn);add(bnY,yr,bn);
         pwCr+=cr; pwNf+=nf; pwFt+=ft; pwBn+=bn; pwSi+=si;
-        if (sp > 0) {
-          (dW[day]=dW[day]||new Set()).add(addr);(wW[wk]=wW[wk]||new Set()).add(addr);
-          (mW[mo]=mW[mo]||new Set()).add(addr);(yW[yr]=yW[yr]||new Set()).add(addr);
+        if (sp > 0 || si > 0) {
+          if (sp > 0) { (dW[day]=dW[day]||new Set()).add(addr);(wW[wk]=wW[wk]||new Set()).add(addr);(mW[mo]=mW[mo]||new Set()).add(addr);(yW[yr]=yW[yr]||new Set()).add(addr); }
+          rawDetail.push({ label:w.label, address:addr, day, crystal:cr, nft:nf, ft:ft, burn:bn, swapIn:si });
         }
       });
       perWallet.push({ label:w.label, address:addr, crystal:pwCr, nft:pwNf, ft:pwFt, burn:pwBn, swapIn:pwSi, total:pwCr+pwNf+pwFt+pwBn });
@@ -3117,7 +3183,7 @@ async function loadSpendChart() {
       burnDay:bnD,burnWeek:bnW,burnMonth:bnM,burnYear:bnY,
       swapinDay:siD,swapinWeek:siW,swapinMonth:siM,swapinYear:siY,
       dayCount:cnt(dW),weekCount:cnt(wW),monthCount:cnt(mW),yearCount:cnt(yW),
-      totalWallets:wallets.length, perWallet
+      totalWallets:wallets.length, perWallet, rawDetail
     };
     renderSpendChart();
   } catch(e) {
@@ -3277,6 +3343,8 @@ function renderSpendChart() {
   body.querySelectorAll('[data-tip]').forEach(el => {
     const idx = +el.getAttribute('data-tip');
     const k = keys[idx], v = src[k];
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('spend', k); });
     el.addEventListener('mousemove', e => {
       const cr=crMap[k]||0, nf=nfMap[k]||0, ft=ftMap[k]||0, bn=bnMap[k]||0;
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
@@ -3331,6 +3399,7 @@ async function loadSwapChart() {
   const dW={},wW={},mW={},yW={};
   const addIO=(o,k,i,ou)=>{ if(!o[k])o[k]={in:0,out:0}; o[k].in+=i; o[k].out+=ou; };
   const perWallet=[];
+  const rawDetail=[];
   try {
     const all = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
     all.forEach((res, wi) => {
@@ -3347,6 +3416,7 @@ async function loadSwapChart() {
         if (si>0||so>0) {
           (dW[day]=dW[day]||new Set()).add(addr);(wW[wk]=wW[wk]||new Set()).add(addr);
           (mW[mo]=mW[mo]||new Set()).add(addr);(yW[yr]=yW[yr]||new Set()).add(addr);
+          rawDetail.push({ label:w.label, address:addr, day, swapIn:si, swapOut:so });
         }
       });
       perWallet.push({ label:w.label, address:addr, swapIn:pwIn, swapOut:pwOut, net:pwOut-pwIn });
@@ -3355,7 +3425,7 @@ async function loadSwapChart() {
     swapChartData = {
       byDay,byWeek,byMonth,byYear,
       dayCount:cnt(dW),weekCount:cnt(wW),monthCount:cnt(mW),yearCount:cnt(yW),
-      totalWallets:wallets.length, perWallet
+      totalWallets:wallets.length, perWallet, rawDetail
     };
     renderSwapChart();
     if (typeof renderSwapinChart === 'function') renderSwapinChart();
@@ -3477,6 +3547,8 @@ function renderSwapChart() {
   if (!tip) { tip = document.createElement('div'); tip.id='swap-tip'; tip.style.cssText='position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
   body.querySelectorAll('[data-tip]').forEach(el => {
     const idx = +el.getAttribute('data-tip'); const k = keys[idx]; const v = src[k].out;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('revenue', k); });
     el.addEventListener('mousemove', e => {
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:var(--green);font-weight:700">${fmtFull(v)} NESO</div>
@@ -3620,6 +3692,8 @@ function renderSwapinChart() {
   if (!tip) { tip = document.createElement('div'); tip.id='swapin-tip'; tip.style.cssText='position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
   body.querySelectorAll('[data-tip]').forEach(el => {
     const idx = +el.getAttribute('data-tip'); const k = keys[idx]; const v = src[k].in;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('swapin', k); });
     el.addEventListener('mousemove', e => {
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:var(--blue);font-weight:700">${fmtFull(v)} NESO</div>
