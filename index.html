@@ -786,8 +786,8 @@ Ví sếp, 0x5678...efgh
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span>
-            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Mô phỏng MVP & NESO còn lại</span>
-            <span style="font-size:10px;color:var(--muted2)">NESO còn lại = Tổng thu − NESO đã chi cho MVP (enhancement + bán NFT/FT)</span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Mô phỏng đạt Bronze (ví chưa đạt)</span>
+            <span style="font-size:10px;color:var(--muted2)">Dùng NESO hiện có chi đủ để đạt MVP 30 → số dư còn lại</span>
           </div>
         </div>
         <div id="mvp-sim-body" style="min-height:120px">
@@ -4311,9 +4311,14 @@ function renderMvpSim() {
   const wrap = document.getElementById('mvp-sim-wrap');
   const body = document.getElementById('mvp-sim-body');
   if (!wrap || !body) return;
-  const wallets = (teamWallets||[]).filter(w => w.mvpPoints != null);
-  if (!wallets.length) { wrap.style.display='none'; return; }
+  // Chỉ ví chưa đạt Bronze nhưng đã có điểm (0 < MVP < 30)
+  const list = (teamWallets||[]).filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
+  if (!(teamWallets||[]).some(w => w.mvpPoints != null)) { wrap.style.display='none'; return; }
   wrap.style.display = 'block';
+  if (!list.length) {
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted2);font-size:12px">Không có ví nào trong khoảng 0 &lt; MVP &lt; 30</div>';
+    return;
+  }
 
   const f = n => Math.round(n||0).toLocaleString('vi-VN');
   const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
@@ -4322,58 +4327,56 @@ function renderMvpSim() {
     const u = (n||0)*nesoRate, v = u*usdvnd;
     return `<div style="font-size:9px;color:var(--text2);margin-top:1px">$${u.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div style="font-size:9px;color:var(--muted2)">${Math.round(v).toLocaleString('vi-VN')}đ</div>`;
   };
-
-  // 2 nhóm
-  const belowBronze = wallets.filter(w => w.mvpPoints > 0 && w.mvpPoints < 30);
-  const achieved    = wallets.filter(w => w.mvpPoints >= 30);
+  const PT_COST = 100000; // 1 điểm MVP = 100,000 NESO enhancement
 
   const rowOf = (w, i) => {
-    const left = w.mvpNesoLeft != null ? w.mvpNesoLeft : ((w.mvpTotalIn||0)-(w.mvpSpent||0));
-    const leftColor = left >= 0 ? 'var(--green)' : '#ef4444';
+    const pts = w.mvpPoints || 0;
+    const ptsNeed = 30 - pts;                    // điểm còn thiếu
+    const nesoNeed = ptsNeed * PT_COST;          // NESO cần chi thêm (qua enhancement 100%)
+    const nesoHave = w.neso || 0;                // NESO hiện có
+    const left = nesoHave - nesoNeed;            // số dư còn lại sau khi chi đủ đạt 30
+    const enough = left >= 0;
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:11px">${i+1}</td>
       <td style="padding:8px 10px;text-align:left;color:var(--text);font-weight:600">${w.label||'—'}</td>
-      <td style="padding:8px 10px;text-align:right"><span style="color:${w.mvpPoints<30?'#fff':(w.mvpTier?.color||'var(--muted2)')};font-weight:700">${f(w.mvpPoints)}</span> <span style="font-size:9px;color:var(--muted2)">${w.mvpTier?.name||''}</span></td>
-      <td style="padding:8px 10px;text-align:right;color:var(--green)">${f(w.mvpTotalIn)}</td>
-      <td style="padding:8px 10px;text-align:right;color:var(--amber)">${f(w.mvpSpent)}</td>
-      <td style="padding:8px 10px;text-align:right;color:${leftColor};font-weight:700">${f(left)}${cvSub(left)}</td>
+      <td style="padding:8px 10px;text-align:right"><span style="color:#fff;font-weight:700">${f(pts)}</span> <span style="font-size:9px;color:var(--muted2)">/ 30</span></td>
+      <td style="padding:8px 10px;text-align:right;color:var(--amber)">${f(nesoNeed)}<div style="font-size:9px;color:var(--muted2);margin-top:1px">cần ${f(ptsNeed)} điểm</div></td>
+      <td style="padding:8px 10px;text-align:right;color:var(--green)">${f(nesoHave)}</td>
+      <td style="padding:8px 10px;text-align:right;color:${enough?'var(--green)':'#ef4444'};font-weight:700">${enough?'':'−'}${f(Math.abs(left))}${cvSub(Math.abs(left))}<div style="font-size:9px;color:${enough?'var(--green)':'#ef4444'};font-weight:600;margin-top:1px">${enough?'✓ đủ đạt Bronze':'✗ thiếu NESO'}</div></td>
     </tr>`;
   };
 
-  const tableOf = (list, title, titleColor) => {
-    if (!list.length) return '';
-    const sumIn = list.reduce((s,w)=>s+(w.mvpTotalIn||0),0);
-    const sumSpent = list.reduce((s,w)=>s+(w.mvpSpent||0),0);
-    const sumLeft = list.reduce((s,w)=>s+((w.mvpNesoLeft!=null?w.mvpNesoLeft:((w.mvpTotalIn||0)-(w.mvpSpent||0)))),0);
-    return `<div style="margin-bottom:20px">
-      <div style="font-size:11px;font-weight:700;color:${titleColor};text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px">${title} <span style="color:var(--muted2);font-weight:500">(${list.length} ví)</span></div>
-      <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:560px">
-        <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
-          <th style="padding:7px 10px;text-align:center;color:var(--muted2);font-size:10px;width:36px">#</th>
-          <th style="padding:7px 10px;text-align:left;color:var(--muted2);font-size:10px">Tên ví</th>
-          <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px">MVP</th>
-          <th style="padding:7px 10px;text-align:right;color:var(--green);font-size:10px" title="Tổng NESO thu vào (claim + bán, trừ swap)">Tổng thu</th>
-          <th style="padding:7px 10px;text-align:right;color:var(--amber);font-size:10px" title="NESO đã chi cho MVP (enhancement + bán NFT/FT)">Chi MVP</th>
-          <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px" title="Tổng thu − Chi MVP">NESO còn lại</th>
-        </tr></thead>
-        <tbody>${list.sort((a,b)=>(b.mvpPoints||0)-(a.mvpPoints||0)).map((w,i)=>rowOf(w,i)).join('')}</tbody>
-        <tfoot><tr style="border-top:2px solid var(--border2);font-weight:700">
-          <td colspan="3" style="padding:9px 10px;text-align:left;color:var(--muted2);font-size:11px">Tổng cộng</td>
-          <td style="padding:9px 10px;text-align:right;color:var(--green)">${f(sumIn)}</td>
-          <td style="padding:9px 10px;text-align:right;color:var(--amber)">${f(sumSpent)}</td>
-          <td style="padding:9px 10px;text-align:right;color:${sumLeft>=0?'var(--green)':'#ef4444'}">${f(sumLeft)}</td>
-        </tr></tfoot>
-      </table>
-      </div>
-    </div>`;
-  };
+  const sorted = list.slice().sort((a,b)=>(b.mvpPoints||0)-(a.mvpPoints||0));
+  const sumNeed = sorted.reduce((s,w)=>s+((30-(w.mvpPoints||0))*PT_COST),0);
+  const sumHave = sorted.reduce((s,w)=>s+(w.neso||0),0);
+  const sumLeft = sumHave - sumNeed;
+  const enoughCount = sorted.filter(w => (w.neso||0) >= (30-(w.mvpPoints||0))*PT_COST).length;
 
-  body.innerHTML =
-    tableOf(achieved, '✓ Đã đạt Bronze+ (MVP ≥ 30)', 'var(--green)') +
-    tableOf(belowBronze, '⏳ Chưa đạt Bronze (0 < MVP < 30)', 'var(--amber)') +
-    (achieved.length||belowBronze.length ? '' : '<div style="text-align:center;padding:30px;color:var(--muted2);font-size:12px">Chưa có ví nào có điểm MVP</div>');
+  body.innerHTML = `
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;padding:8px 12px;background:var(--surface);border:1px dashed var(--border2);border-radius:8px">
+      Mô phỏng: mỗi ví dùng <b style="color:var(--green)">NESO hiện có</b> chi vào enhancement để lên đủ <b>30 điểm MVP</b> (1 điểm = ${f(PT_COST)} NESO). Cột cuối = <b>số dư còn lại</b> sau khi đạt Bronze. <span style="color:var(--green);font-weight:700">${enoughCount}/${sorted.length} ví đủ NESO.</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px">
+      <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+        <th style="padding:7px 10px;text-align:center;color:var(--muted2);font-size:10px;width:36px">#</th>
+        <th style="padding:7px 10px;text-align:left;color:var(--muted2);font-size:10px">Tên ví</th>
+        <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px">MVP hiện tại</th>
+        <th style="padding:7px 10px;text-align:right;color:var(--amber);font-size:10px" title="NESO cần chi thêm (enhancement) để đủ 30 điểm">NESO cần thêm</th>
+        <th style="padding:7px 10px;text-align:right;color:var(--green);font-size:10px" title="Số dư NESO hiện có của ví">NESO hiện có</th>
+        <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px" title="NESO hiện có − NESO cần thêm">Số dư còn lại</th>
+      </tr></thead>
+      <tbody>${sorted.map((w,i)=>rowOf(w,i)).join('')}</tbody>
+      <tfoot><tr style="border-top:2px solid var(--border2);font-weight:700">
+        <td colspan="3" style="padding:9px 10px;text-align:left;color:var(--muted2);font-size:11px">Tổng cộng (${sorted.length} ví)</td>
+        <td style="padding:9px 10px;text-align:right;color:var(--amber)">${f(sumNeed)}</td>
+        <td style="padding:9px 10px;text-align:right;color:var(--green)">${f(sumHave)}</td>
+        <td style="padding:9px 10px;text-align:right;color:${sumLeft>=0?'var(--green)':'#ef4444'}">${sumLeft>=0?'':'−'}${f(Math.abs(sumLeft))}</td>
+      </tr></tfoot>
+    </table>
+    </div>`;
 }
+
 
 
 function updateMvpCell(w) {
