@@ -4373,7 +4373,7 @@ function renderMvpSim() {
   const totalAll = list.reduce((s,w)=>s+leftOf(w),0);                                  // tất cả (gồm âm)
   const enoughCount = list.filter(w => leftOf(w) >= 0).length;
 
-  const copyBtn = addr => `<span onclick="navigator.clipboard.writeText('${addr}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)" style="cursor:pointer;font-size:10px;color:var(--muted);user-select:none;opacity:.6;margin-left:4px" title="Copy địa chỉ">⎘</span>`;
+  const copyBtn = (val, tip) => `<span onclick="navigator.clipboard.writeText('${(val||'').replace(/'/g,"\\'")}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)" style="cursor:pointer;font-size:10px;color:var(--muted);user-select:none;opacity:.6;margin-left:4px" title="${tip||'Copy'}">⎘</span>`;
   const shortAddr = a => a ? a.slice(0,6)+'...'+a.slice(-4) : '—';
   const arrow = col => simSortCol===col ? (simSortDir==='desc'?' ↓':' ↑') : '';
   const th = (col, label, color, align, title) => `<th onclick="simSort('${col}')" title="${title||'Bấm để sắp xếp'}" style="padding:6px 8px;text-align:${align};color:${color||'var(--muted2)'};font-size:10px;cursor:pointer;user-select:none;white-space:nowrap">${label}<span style="opacity:.6">${arrow(col)}</span></th>`;
@@ -4385,8 +4385,8 @@ function renderMvpSim() {
     const left = leftOf(w);
     const enough = left >= 0;
     return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:5px 8px;text-align:left;color:var(--text);font-weight:600">${w.label||'—'}</td>
-      <td style="padding:5px 8px;text-align:left;color:var(--muted2);font-family:monospace;font-size:10px">${shortAddr(w.address)}${copyBtn(w.address)}</td>
+      <td style="padding:5px 8px;text-align:left;color:var(--text);font-weight:600">${w.label||'—'}${w.label?copyBtn(w.label,'Copy tên ví'):''}</td>
+      <td style="padding:5px 8px;text-align:left;color:var(--muted2);font-family:monospace;font-size:10px">${shortAddr(w.address)}${copyBtn(w.address,'Copy địa chỉ')}</td>
       <td style="padding:5px 8px;text-align:right"><span style="color:#fff;font-weight:700">${f(pts)}</span><span style="font-size:9px;color:var(--muted2)">/30</span></td>
       <td style="padding:5px 8px;text-align:right;color:var(--amber)">${f(nesoNeed)}</td>
       <td style="padding:5px 8px;text-align:right;color:var(--green)">${f(nesoHave)}</td>
