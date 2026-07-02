@@ -361,17 +361,17 @@ td:first-child{text-align:left;color:var(--muted2)}
     </div>
     <!-- Header tickers -->
     <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:center;flex-wrap:nowrap">
-      <div id="hdr-nxpc" class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png" style="width:17px;height:17px;border-radius:50%"/>
-        <span style="color:var(--muted2);font-weight:600">NXPC</span>
-        <span id="hdr-nxpc-price" style="color:var(--green);font-weight:700;font-family:'Chakra Petch',monospace">$—</span>
-        <span id="hdr-nxpc-chg" style="font-size:11px;color:var(--muted2)"></span>
-      </div>
       <div class="hdr-chip" style="display:flex;align-items:center;gap:6px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap" title="Tỷ lệ quy đổi cố định trong game: 1 NXPC = 100,000 NESO">
         <span style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">1 NXPC</span>
         <span style="color:var(--muted2)">=</span>
         <span style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">100,000</span>
         <span style="color:var(--muted2);font-weight:600;font-size:11px">NESO</span>
+      </div>
+      <div id="hdr-nxpc" class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png" style="width:17px;height:17px;border-radius:50%"/>
+        <span style="color:var(--muted2);font-weight:600">NXPC</span>
+        <span id="hdr-nxpc-price" style="color:var(--green);font-weight:700;font-family:'Chakra Petch',monospace">$—</span>
+        <span id="hdr-nxpc-chg" style="font-size:11px;color:var(--muted2)"></span>
       </div>
       <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:17px;height:17px;border-radius:50%"/>
@@ -390,7 +390,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <span style="color:var(--muted2);font-weight:600;font-size:11px">Gas</span>
         <span id="hdr-avax-gas" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
-      <div id="hdr-updated" style="font-size:10px;color:var(--muted2)"></div>
+      <div id="hdr-updated" class="hdr-chip" style="display:inline-flex;align-items:center;color:var(--muted2);border-radius:8px;padding:5px 7px" title="Chưa cập nhật"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div>
       <button onclick="fetchLivePrices(true)" title="Cập nhật giá" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;font-size:12px;line-height:1;transition:all .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">⟳</button>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
@@ -2582,7 +2582,7 @@ function renderPriceTicker(data) {
   // AVAX gas fee (nAVAX = Gwei)
   const hG = document.getElementById('hdr-avax-gas');
   if(hG && data.avaxGas != null) hG.textContent = data.avaxGas.toFixed(data.avaxGas<1?2:1)+' nAVAX';
-  if(hU) hU.textContent = 'Cập nhật: '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  if(hU) hU.title = 'Cập nhật: '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
   const nxpcEl   = document.getElementById('price-nxpc');
   const nesoEl   = document.getElementById('price-neso');
