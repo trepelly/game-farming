@@ -4432,13 +4432,11 @@ function updateMvpCell(w) {
   const tw = (window.teamWallets||[]).find(x=>x.address===w.address);
   if(tw) { tw.mvpPoints=w.mvpPoints; tw.mvpTier=w.mvpTier; tw.mvpFirstWeek=w.mvpFirstWeek; tw.mvpBronzeWeeks=w.mvpBronzeWeeks; }
 
-  // Update MVP pts cell
+  // Update MVP pts cell (khớp renderTeam: điểm <30 sáng trắng, có dòng Week N)
   const cells = document.querySelectorAll('#team-tbody td[data-addr="'+w.address+'"]');
-  if(cells.length) {
-    const tier=w.mvpTier, pts=w.mvpPoints;
-    cells[0].innerHTML = tier&&tier.name!=='Unranked'
-      ? `<span style="color:${tier.color};font-weight:600;font-size:13px">${pts}</span>`
-      : `<span style="color:var(--muted2);font-size:12px">${pts}</span>`;
+  if(cells.length && w.mvpPoints!=null) {
+    const pts=w.mvpPoints;
+    cells[0].innerHTML = `<span style="color:${pts<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${pts<30?'700':'600'};font-size:13px">${pts}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`;
   }
 
   // Update Chi tuần này cell
