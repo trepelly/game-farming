@@ -249,7 +249,7 @@ body.has-expanded tbody tr.row-expanded > td{
 
   /* Header compact */
   header{padding:0 12px;height:60px}
-  #hdr-nxpc,#hdr-ratio,#hdr-vnd,#hdr-updated{display:none!important}
+  header .hdr-chip,#hdr-updated{display:none!important}
 
   /* Stats: 2 cols on mobile */
   .stats-fixed{grid-template-columns:repeat(2,1fr);gap:8px}
@@ -367,15 +367,28 @@ td:first-child{text-align:left;color:var(--muted2)}
         <span id="hdr-nxpc-price" style="color:var(--green);font-weight:700;font-family:'Chakra Petch',monospace">$—</span>
         <span id="hdr-nxpc-chg" style="font-size:11px;color:var(--muted2)"></span>
       </div>
-      <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
-        <span style="color:var(--muted2);font-weight:600">NXPC/NESO</span>
-        <span id="hdr-ratio" style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
+      <div class="hdr-chip" style="display:flex;align-items:center;gap:6px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap" title="Tỷ lệ quy đổi cố định trong game: 1 NXPC = 100,000 NESO">
+        <span style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">1 NXPC</span>
+        <span style="color:var(--muted2)">=</span>
+        <span style="color:var(--amber);font-weight:700;font-family:'Chakra Petch',monospace">100,000</span>
+        <span style="color:var(--muted2);font-weight:600;font-size:11px">NESO</span>
       </div>
       <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:17px;height:17px;border-radius:50%"/>
         <span style="color:var(--muted2);font-weight:600" title="Giá thị trường (CoinGecko) + 2% chênh lệch P2P chợ đen VN. Xấp xỉ giá bán USDT trên Binance P2P.">USDT/VND <span style="font-size:9px;opacity:.7;cursor:help">≈P2P ⓘ</span></span>
         <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
         <span id="hdr-vnd-chg" style="font-size:11px;color:var(--muted2)"></span>
+      </div>
+      <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
+        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png" style="width:17px;height:17px;border-radius:50%"/>
+        <span style="color:var(--muted2);font-weight:600">AVAX</span>
+        <span id="hdr-avax-price" style="color:var(--blue);font-weight:700;font-family:'Chakra Petch',monospace">$—</span>
+        <span id="hdr-avax-chg" style="font-size:11px;color:var(--muted2)"></span>
+      </div>
+      <div class="hdr-chip" style="display:flex;align-items:center;gap:6px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap" title="Phí gas mạng Avalanche C-Chain (giá gas hiện tại, nGwei)">
+        <span style="display:inline-flex;color:var(--muted2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M3 20V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v14"/><path d="M3 20h11"/><path d="M19 9l2 1v6a2 2 0 0 1-2 2"/></svg></span>
+        <span style="color:var(--muted2);font-weight:600;font-size:11px">Gas</span>
+        <span id="hdr-avax-gas" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
       <div id="hdr-updated" style="font-size:10px;color:var(--muted2)"></div>
       <button onclick="fetchLivePrices(true)" title="Cập nhật giá" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;font-size:12px;line-height:1;transition:all .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">⟳</button>
@@ -2451,14 +2464,16 @@ async function fetchLivePrices(force=false) {
   try {
     // Binance API - no CORS issues, public
     // NXPC/USDT ticker
-    const [nxpcRes, usdvndRes, avaxRes] = await Promise.all([
+    const [nxpcRes, usdvndRes, avaxRes, gasRes] = await Promise.all([
       fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=NXPCUSDT'),
       fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTVND').catch(()=>null),
-      fetch('https://api.binance.com/api/v3/ticker/price?symbol=AVAXUSDT').catch(()=>null),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=AVAXUSDT').catch(()=>null),
+      fetch('https://api.avax.network/ext/bc/C/rpc', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_gasPrice',params:[]}) }).catch(()=>null),
     ]);
 
-    let nxpc = null, nxpcChg = 0, usdvnd = null, avaxUsd = null;
-    if(avaxRes?.ok) { const d = await avaxRes.json(); avaxUsd = parseFloat(d.price) || null; }
+    let nxpc = null, nxpcChg = 0, usdvnd = null, avaxUsd = null, avaxChg = 0, avaxGas = null;
+    if(avaxRes?.ok) { const d = await avaxRes.json(); avaxUsd = parseFloat(d.lastPrice) || null; avaxChg = parseFloat(d.priceChangePercent) || 0; }
+    if(gasRes?.ok) { try { const g = await gasRes.json(); if(g?.result) avaxGas = parseInt(g.result, 16) / 1e9; } catch {} } // wei → nAVAX (Gwei)
 
     if(nxpcRes.ok) {
       const d = await nxpcRes.json();
@@ -2496,7 +2511,7 @@ async function fetchLivePrices(force=false) {
     const neso    = nxpc ? nxpc / 100000 : null;
     const nesoChg = nxpcChg; // NESO tracks NXPC
 
-    const data = { nxpc, nxpcChg, neso, nesoChg, usdvnd, usdvndChg, avaxUsd, ts: Date.now() };
+    const data = { nxpc, nxpcChg, neso, nesoChg, usdvnd, usdvndChg, avaxUsd, avaxChg, avaxGas, ts: Date.now() };
     sessionStorage.setItem('live_prices', JSON.stringify(data));
     liveNxpcUsd = nxpc;
     liveNesoUsd = neso;
@@ -2533,6 +2548,14 @@ function renderPriceTicker(data) {
   if(hV && data.usdvnd) hV.textContent = Math.round(data.usdvnd).toLocaleString('vi-VN');
   const hVc = document.getElementById('hdr-vnd-chg');
   if(hVc && data.usdvndChg != null) { hVc.textContent=(data.usdvndChg>=0?'+':'')+data.usdvndChg.toFixed(2)+'%'; hVc.style.color=data.usdvndChg>=0?'var(--green)':'var(--red)'; }
+  // AVAX price + change
+  const hA = document.getElementById('hdr-avax-price');
+  const hAc = document.getElementById('hdr-avax-chg');
+  if(hA && data.avaxUsd) hA.textContent = '$'+data.avaxUsd.toFixed(2);
+  if(hAc && data.avaxChg != null) { hAc.textContent=(data.avaxChg>=0?'+':'')+data.avaxChg.toFixed(2)+'%'; hAc.style.color=data.avaxChg>=0?'var(--green)':'var(--red)'; }
+  // AVAX gas fee (nAVAX = Gwei)
+  const hG = document.getElementById('hdr-avax-gas');
+  if(hG && data.avaxGas != null) hG.textContent = data.avaxGas.toFixed(data.avaxGas<1?2:1)+' nAVAX';
   if(hU) hU.textContent = 'Cập nhật: '+new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
   const nxpcEl   = document.getElementById('price-nxpc');
