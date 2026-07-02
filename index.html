@@ -781,6 +781,20 @@ Ví sếp, 0x5678...efgh
         </table>
       </div>
 
+      <!-- MVP SIMULATION TABLE -->
+      <div id="mvp-sim-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Mô phỏng MVP & NESO còn lại</span>
+            <span style="font-size:10px;color:var(--muted2)">NESO còn lại = Tổng thu − NESO đã chi cho MVP (enhancement + bán NFT/FT)</span>
+          </div>
+        </div>
+        <div id="mvp-sim-body" style="min-height:120px">
+          <div style="text-align:center;padding:40px 0;color:var(--muted2);font-size:12px">Đang tải...</div>
+        </div>
+      </div>
+
       <!-- NESO CLAIM CHART -->
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -2490,6 +2504,7 @@ async function fetchLivePrices(force=false) {
     if (typeof renderClaimChart === 'function' && claimChartData) renderClaimChart();
     if (typeof renderSpendChart === 'function' && spendChartData) renderSpendChart();
     if (typeof renderSwapChart === 'function' && swapChartData) renderSwapChart();
+    if (typeof renderMvpSim === 'function') renderMvpSim();
   } catch(e) {
     if(upEl) upEl.textContent = 'Lỗi: ' + e.message;
   }
@@ -4251,6 +4266,15 @@ async function loadTeamMvpPoints() {
       // Set directly on the teamWallets object
       teamWallets[idx].mvpPoints = calc.points;
       teamWallets[idx].mvpTier   = getTier(calc.points);
+      // Tổng thu (claim + bán + transfer, trừ swap) & NESO đã chi cho MVP (enhancement + out nft/ft) — toàn bộ lịch sử từ MVP_LAUNCH
+      let inSum = 0, mvpSpentSum = 0;
+      rows.forEach(r => {
+        inSum += (r.in_mint_amount||0)+(r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
+        mvpSpentSum += (r.out_enhancement_amount||r.out_crystal_amount||0)+(r.out_nft_amount||0)+(r.out_ft_amount||0);
+      });
+      teamWallets[idx].mvpTotalIn = inSum;
+      teamWallets[idx].mvpSpent   = mvpSpentSum;
+      teamWallets[idx].mvpNesoLeft = inSum - mvpSpentSum;
       if (calc.points >= 30 && rows.length > 0) {
         const eligibleRows = rows.filter(r =>
           (r.out_enhancement_amount||r.out_crystal_amount||0) > 0 ||
@@ -4279,7 +4303,78 @@ async function loadTeamMvpPoints() {
   renderTeam();
   // Re-apply all MVP cells after final render
   teamWallets.forEach(w => updateMvpCell(w));
+  if (typeof renderMvpSim === 'function') renderMvpSim();
 }
+
+// ══════════════ MVP SIMULATION TABLE ══════════════
+function renderMvpSim() {
+  const wrap = document.getElementById('mvp-sim-wrap');
+  const body = document.getElementById('mvp-sim-body');
+  if (!wrap || !body) return;
+  const wallets = (teamWallets||[]).filter(w => w.mvpPoints != null);
+  if (!wallets.length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+
+  const f = n => Math.round(n||0).toLocaleString('vi-VN');
+  const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
+  const usdvnd = liveUsdVnd || 0;
+  const cvSub = n => {
+    const u = (n||0)*nesoRate, v = u*usdvnd;
+    return `<div style="font-size:9px;color:var(--text2);margin-top:1px">$${u.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div style="font-size:9px;color:var(--muted2)">${Math.round(v).toLocaleString('vi-VN')}đ</div>`;
+  };
+
+  // 2 nhóm
+  const belowBronze = wallets.filter(w => w.mvpPoints > 0 && w.mvpPoints < 30);
+  const achieved    = wallets.filter(w => w.mvpPoints >= 30);
+
+  const rowOf = (w, i) => {
+    const left = w.mvpNesoLeft != null ? w.mvpNesoLeft : ((w.mvpTotalIn||0)-(w.mvpSpent||0));
+    const leftColor = left >= 0 ? 'var(--green)' : '#ef4444';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:11px">${i+1}</td>
+      <td style="padding:8px 10px;text-align:left;color:var(--text);font-weight:600">${w.label||'—'}</td>
+      <td style="padding:8px 10px;text-align:right"><span style="color:${w.mvpPoints<30?'#fff':(w.mvpTier?.color||'var(--muted2)')};font-weight:700">${f(w.mvpPoints)}</span> <span style="font-size:9px;color:var(--muted2)">${w.mvpTier?.name||''}</span></td>
+      <td style="padding:8px 10px;text-align:right;color:var(--green)">${f(w.mvpTotalIn)}</td>
+      <td style="padding:8px 10px;text-align:right;color:var(--amber)">${f(w.mvpSpent)}</td>
+      <td style="padding:8px 10px;text-align:right;color:${leftColor};font-weight:700">${f(left)}${cvSub(left)}</td>
+    </tr>`;
+  };
+
+  const tableOf = (list, title, titleColor) => {
+    if (!list.length) return '';
+    const sumIn = list.reduce((s,w)=>s+(w.mvpTotalIn||0),0);
+    const sumSpent = list.reduce((s,w)=>s+(w.mvpSpent||0),0);
+    const sumLeft = list.reduce((s,w)=>s+((w.mvpNesoLeft!=null?w.mvpNesoLeft:((w.mvpTotalIn||0)-(w.mvpSpent||0)))),0);
+    return `<div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:${titleColor};text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px">${title} <span style="color:var(--muted2);font-weight:500">(${list.length} ví)</span></div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:560px">
+        <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+          <th style="padding:7px 10px;text-align:center;color:var(--muted2);font-size:10px;width:36px">#</th>
+          <th style="padding:7px 10px;text-align:left;color:var(--muted2);font-size:10px">Tên ví</th>
+          <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px">MVP</th>
+          <th style="padding:7px 10px;text-align:right;color:var(--green);font-size:10px" title="Tổng NESO thu vào (claim + bán, trừ swap)">Tổng thu</th>
+          <th style="padding:7px 10px;text-align:right;color:var(--amber);font-size:10px" title="NESO đã chi cho MVP (enhancement + bán NFT/FT)">Chi MVP</th>
+          <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px" title="Tổng thu − Chi MVP">NESO còn lại</th>
+        </tr></thead>
+        <tbody>${list.sort((a,b)=>(b.mvpPoints||0)-(a.mvpPoints||0)).map((w,i)=>rowOf(w,i)).join('')}</tbody>
+        <tfoot><tr style="border-top:2px solid var(--border2);font-weight:700">
+          <td colspan="3" style="padding:9px 10px;text-align:left;color:var(--muted2);font-size:11px">Tổng cộng</td>
+          <td style="padding:9px 10px;text-align:right;color:var(--green)">${f(sumIn)}</td>
+          <td style="padding:9px 10px;text-align:right;color:var(--amber)">${f(sumSpent)}</td>
+          <td style="padding:9px 10px;text-align:right;color:${sumLeft>=0?'var(--green)':'#ef4444'}">${f(sumLeft)}</td>
+        </tr></tfoot>
+      </table>
+      </div>
+    </div>`;
+  };
+
+  body.innerHTML =
+    tableOf(achieved, '✓ Đã đạt Bronze+ (MVP ≥ 30)', 'var(--green)') +
+    tableOf(belowBronze, '⏳ Chưa đạt Bronze (0 < MVP < 30)', 'var(--amber)') +
+    (achieved.length||belowBronze.length ? '' : '<div style="text-align:center;padding:30px;color:var(--muted2);font-size:12px">Chưa có ví nào có điểm MVP</div>');
+}
+
 
 function updateMvpCell(w) {
   const tw = (window.teamWallets||[]).find(x=>x.address===w.address);
