@@ -2243,10 +2243,15 @@ function renderTeam() {
       const total = teamWallets.length;
       const bp = mvpLoadedPct>0 ? mvpBronzePlus : 0;
       const pct = total>0 ? Math.round(bp/total*100) : 0;
+      // Ví chưa đạt Bronze (0<MVP<30) nhưng đủ NESO hiện có để lên 30 điểm
+      const readyWallets = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) >= (30-w.mvpPoints)*100000);
+      const readyCount = readyWallets.length;
+      const belowCount = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30).length;
       return `<div class="stat" style="display:flex;flex-direction:column">
         <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>Ví đang theo dõi</div>
         <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px"><span class="stat-val" style="font-size:34px">${total}</span><span style="font-size:12px;color:var(--muted2);font-weight:600">ví</span></div>
         <div style="font-size:11px;color:var(--muted2);margin-top:3px">tổng số ví theo dõi</div>
+        ${mvpLoadedPct>0 && readyCount>0 ? `<div style="font-size:11px;color:var(--green);font-weight:600;margin-top:6px;line-height:1.4" title="Ví có 0 < MVP < 30 nhưng NESO hiện có đủ để chi lên 30 điểm">✓ ${readyCount}/${belowCount} ví chưa đạt Bronze nhưng đủ NESO lên 30 điểm</div>` : ''}
         <div style="height:1px;background:var(--border2);margin:13px 0 11px"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px"><span style="color:var(--muted2);font-weight:600">Bronze+</span><span style="color:var(--amber);font-weight:700">${mvpLoadedPct>0?bp+' ví · '+pct+'%':'...'}</span></div>
         <div style="height:6px;border-radius:99px;background:var(--border);margin-top:8px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--amber),var(--accent))"></div></div>
