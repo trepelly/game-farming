@@ -2187,7 +2187,12 @@ function renderTeam() {
       <td style="text-align:right;color:var(--muted2);font-weight:500" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
       <td style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
-          ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`
+          ? (w.mvpPoints<30
+              ? (()=>{ const need=(30-w.mvpPoints)*100000; const left=(w.neso||0)-need; const enough=left>=0;
+                  return `<span style="color:#ffffff;font-weight:700;font-size:13px">${w.mvpPoints}</span>`
+                    + `<div style="font-size:9px;color:var(--amber);font-weight:500;margin-top:2px">+${Math.round(need).toLocaleString('vi-VN')} để đạt 30</div>`
+                    + `<div style="font-size:9px;color:${enough?'var(--green)':'#ef4444'};font-weight:600;margin-top:1px">${enough?'dư ':'thiếu '}${Math.round(Math.abs(left)).toLocaleString('vi-VN')}</div>`; })()
+              : `<span style="color:${w.mvpTier?.color||'var(--muted2)'};font-weight:600;font-size:13px">${w.mvpPoints}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`)
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
@@ -2221,10 +2226,13 @@ function renderTeam() {
   const totVndAvax     = totUsdtAvax * (liveUsdVnd||0);
   const mvpWallets = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>=30);
   const mvpCount   = mvpWallets.length;
+  // Tổng NESO dư của ví chưa đạt Bronze (chỉ tính dương, sau khi trừ NESO cần để đạt 30)
+  const mvpSurplus = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>0&&w.mvpPoints<30)
+    .reduce((s,w)=>{ const left=(w.neso||0)-((30-w.mvpPoints)*100000); return s+(left>0?left:0); },0);
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
+    <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}${mvpSurplus>0?`<div style="font-size:9px;color:var(--green);font-weight:600;margin-top:2px" title="Tổng NESO dư của ví chưa đạt Bronze (không tính âm)">dư +${Math.round(mvpSurplus).toLocaleString('vi-VN')}</div>`:''}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}${(()=>{const u=totNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
@@ -4405,13 +4413,20 @@ function updateMvpCell(w) {
   const tw = (window.teamWallets||[]).find(x=>x.address===w.address);
   if(tw) { tw.mvpPoints=w.mvpPoints; tw.mvpTier=w.mvpTier; tw.mvpFirstWeek=w.mvpFirstWeek; tw.mvpBronzeWeeks=w.mvpBronzeWeeks; }
 
-  // Update MVP pts cell
+  // Update MVP pts cell (khớp với renderTeam: ví <30 có sub-lines NESO cần thêm + dư)
   const cells = document.querySelectorAll('#team-tbody td[data-addr="'+w.address+'"]');
   if(cells.length) {
     const tier=w.mvpTier, pts=w.mvpPoints;
-    cells[0].innerHTML = tier&&tier.name!=='Unranked'
-      ? `<span style="color:${tier.color};font-weight:600;font-size:13px">${pts}</span>`
-      : `<span style="color:var(--muted2);font-size:12px">${pts}</span>`;
+    if (pts!=null && pts<30) {
+      const need=(30-pts)*100000, left=(w.neso||0)-need, enough=left>=0;
+      cells[0].innerHTML = `<span style="color:#ffffff;font-weight:700;font-size:13px">${pts}</span>`
+        + `<div style="font-size:9px;color:var(--amber);font-weight:500;margin-top:2px">+${Math.round(need).toLocaleString('vi-VN')} để đạt 30</div>`
+        + `<div style="font-size:9px;color:${enough?'var(--green)':'#ef4444'};font-weight:600;margin-top:1px">${enough?'dư ':'thiếu '}${Math.round(Math.abs(left)).toLocaleString('vi-VN')}</div>`;
+    } else {
+      cells[0].innerHTML = tier&&tier.name!=='Unranked'
+        ? `<span style="color:${tier.color};font-weight:600;font-size:13px">${pts}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`
+        : `<span style="color:var(--muted2);font-size:12px">${pts}</span>`;
+    }
   }
 
   // Update Chi tuần này cell
