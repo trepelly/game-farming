@@ -2445,6 +2445,32 @@ let liveAvaxUsd = null;
 let liveUsdVnd  = null;
 let liveUsdVndChg = 0;
 
+// Lấy gas AVAX từ RPC công khai (thử lần lượt, có CORS), fallback qua Worker
+async function fetchAvaxGas() {
+  const rpcs = [
+    'https://avalanche-c-chain-rpc.publicnode.com',
+    'https://avax.meowrpc.com',
+    'https://1rpc.io/avax/c',
+  ];
+  const body = JSON.stringify({ jsonrpc:'2.0', id:1, method:'eth_gasPrice', params:[] });
+  const parse = async (res) => { if(!res||!res.ok) return null; try { const g = await res.json(); return g?.result ? parseInt(g.result,16)/1e9 : null; } catch { return null; } };
+  // 1) thử trực tiếp từng RPC
+  for (const url of rpcs) {
+    try {
+      const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body });
+      const g = await parse(res);
+      if (g != null) return g;
+    } catch {}
+  }
+  // 2) fallback qua Worker proxy (Avalanche chính thức)
+  try {
+    const res = await fetch(msuProxy('https://api.avax.network/ext/bc/C/rpc'), { method:'POST', headers:{'Content-Type':'application/json'}, body });
+    const g = await parse(res);
+    if (g != null) return g;
+  } catch {}
+  return null;
+}
+
 async function fetchLivePrices(force=false) {
   // Cache 60s
   const cached = JSON.parse(sessionStorage.getItem('live_prices') || 'null');
@@ -2464,16 +2490,16 @@ async function fetchLivePrices(force=false) {
   try {
     // Binance API - no CORS issues, public
     // NXPC/USDT ticker
-    const [nxpcRes, usdvndRes, avaxRes, gasRes] = await Promise.all([
+    const [nxpcRes, usdvndRes, avaxRes] = await Promise.all([
       fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=NXPCUSDT'),
       fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTVND').catch(()=>null),
       fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=AVAXUSDT').catch(()=>null),
-      fetch(msuProxy('https://api.avax.network/ext/bc/C/rpc'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_gasPrice',params:[]}) }).catch(()=>null),
     ]);
 
     let nxpc = null, nxpcChg = 0, usdvnd = null, avaxUsd = null, avaxChg = 0, avaxGas = null;
     if(avaxRes?.ok) { const d = await avaxRes.json(); avaxUsd = parseFloat(d.lastPrice) || null; avaxChg = parseFloat(d.priceChangePercent) || 0; }
-    if(gasRes?.ok) { try { const g = await gasRes.json(); if(g?.result) avaxGas = parseInt(g.result, 16) / 1e9; } catch {} } // wei → nAVAX (Gwei)
+    // AVAX gas — thử RPC công khai (CORS-enabled), fallback qua Worker proxy
+    avaxGas = await fetchAvaxGas();
 
     if(nxpcRes.ok) {
       const d = await nxpcRes.json();
