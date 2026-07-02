@@ -2689,6 +2689,14 @@ async function refreshNesoEarned() {
 // ══════════════ CHART DETAIL TABLE (Xem thêm — per wallet) ══════════════
 const chartDetailOpen = {};   // { claim, spend, revenue, swapin }
 const chartDetailPeriod = {}; // kỳ đã chọn (null = tất cả)
+const chartDetailSort = {};   // { key: {col, dir} }
+
+function sortChartDetail(key, col) {
+  const cur = chartDetailSort[key] || {};
+  if (cur.col === col) { cur.dir = cur.dir === 'desc' ? 'asc' : 'desc'; }
+  else { chartDetailSort[key] = { col, dir: 'desc' }; }
+  renderChartDetail(key);
+}
 
 // Mode của mỗi chart để tính period key
 function detailModeOf(key) {
@@ -2804,7 +2812,16 @@ function renderChartDetail(key) {
     const acc = byAddr[r.address];
     Object.keys(m).forEach(kk => acc[kk] = (acc[kk]||0) + (m[kk]||0));
   });
-  let data = Object.values(byAddr).filter(w => (w[sortKey]||0) > 0).sort((a,b)=>(b[sortKey]||0)-(a[sortKey]||0));
+  let data = Object.values(byAddr).filter(w => (w[sortKey]||0) > 0);
+  // Sắp xếp theo cột đã chọn (mặc định = cột chính, giảm dần)
+  const sortState = chartDetailSort[key] || { col: sortKey, dir: 'desc' };
+  const sc = sortState.col, sd = sortState.dir;
+  data.sort((a,b) => {
+    let av, bv;
+    if (sc === 'label') { av = (a.label||'').toLowerCase(); bv = (b.label||'').toLowerCase(); return sd==='asc' ? av.localeCompare(bv) : bv.localeCompare(av); }
+    if (sc === 'address') { av = a.address||''; bv = b.address||''; return sd==='asc' ? av.localeCompare(bv) : bv.localeCompare(av); }
+    av = a[sc]||0; bv = b[sc]||0; return sd==='asc' ? av-bv : bv-av;
+  });
 
   // Banner kỳ đã chọn
   const banner = selPeriod
@@ -2816,8 +2833,9 @@ function renderChartDetail(key) {
 
   if (!data.length) { body.innerHTML = banner + '<div style="text-align:center;padding:20px;color:var(--muted2);font-size:12px">Không có ví nào có hoạt động này'+(selPeriod?' trong kỳ đã chọn':'')+'</div>'; return; }
 
-  const th = (label, color) => `<th style="padding:6px 8px;text-align:right;color:${color||'var(--muted2)'};font-size:10px;white-space:nowrap">${label}</th>`;
-  const headCells = cols.map(c => th(c.label, c.color)).join('');
+  const arrow = c => (sc===c ? (sd==='asc'?' ↑':' ↓') : '');
+  const thSort = (col, label, color, align) => `<th onclick="sortChartDetail('${key}','${col}')" title="Bấm để sắp xếp" style="padding:6px 8px;text-align:${align};color:${color||'var(--muted2)'};font-size:10px;white-space:nowrap;cursor:pointer;user-select:none">${label}<span style="opacity:.6">${arrow(col)}</span></th>`;
+  const headCells = cols.map(c => thSort(c.k, c.label, c.color, 'right')).join('');
   const rows = data.map((w,i) => {
     const cells = cols.map(c => {
       const v = w[c.k]||0;
@@ -2841,8 +2859,8 @@ function renderChartDetail(key) {
     <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:${420+cols.length*90}px">
       <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
         <th style="padding:6px 8px;text-align:center;color:var(--muted2);font-size:10px;width:32px">#</th>
-        <th style="padding:6px 8px;text-align:left;color:var(--muted2);font-size:10px">Tên ví</th>
-        <th style="padding:6px 8px;text-align:left;color:var(--muted2);font-size:10px">Địa chỉ</th>
+        ${thSort('label','Tên ví',null,'left')}
+        ${thSort('address','Địa chỉ',null,'left')}
         ${headCells}
       </tr></thead>
       <tbody>${rows}</tbody>
