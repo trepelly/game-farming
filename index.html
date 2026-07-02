@@ -732,7 +732,11 @@ Ví sếp, 0x5678...efgh
             style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 32px 9px 34px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
           <span id="search-clear" onclick="clearTeamSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:14px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">✕</span>
         </div>
-
+        <button id="mvp-filter-btn" onclick="toggleMvpFilter()" title="Chỉ hiện ví đạt Bronze+ (MVP ≥ 30)"
+          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:all .15s">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+          MVP ≥ 30
+        </button>
       </div>
 
       <div id="team-loading" style="text-align:center;padding:40px;color:var(--muted2);font-size:13px;display:none">
@@ -1984,11 +1988,29 @@ function updateColSortIcons() {
   });
 }
 let teamAlpha = 'all';
+let mvpFilterOn = false;
 
 function clearTeamSearch() {
   const inp = document.getElementById('team-search');
   if(inp) { inp.value = ''; renderTeam(); updateSearchClear(); }
 }
+function toggleMvpFilter() {
+  mvpFilterOn = !mvpFilterOn;
+  const btn = document.getElementById('mvp-filter-btn');
+  if (btn) {
+    if (mvpFilterOn) {
+      btn.style.background = 'var(--accent)';
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = 'var(--input-bg)';
+      btn.style.borderColor = 'var(--border2)';
+      btn.style.color = 'var(--muted2)';
+    }
+  }
+  renderTeam();
+}
+
 function updateSearchClear() {
   const inp = document.getElementById('team-search');
   const btn = document.getElementById('search-clear');
@@ -2065,6 +2087,10 @@ function renderTeam() {
       if (teamAlpha === '#') return first && !/[A-Z]/.test(first);
       return first === teamAlpha;
     });
+  }
+  // Filter MVP ≥ 30 (Bronze+)
+  if (mvpFilterOn) {
+    displayWallets = displayWallets.filter(w => w.mvpPoints != null && w.mvpPoints >= 30);
   }
 
   // Sort
