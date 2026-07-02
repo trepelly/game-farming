@@ -789,6 +789,11 @@ Ví sếp, 0x5678...efgh
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Mô phỏng đạt Bronze (ví chưa đạt)</span>
             <span style="font-size:10px;color:var(--muted2)">Dùng NESO hiện có chi đủ để đạt MVP 30 → số dư còn lại</span>
           </div>
+          <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+            <button id="sim-filter-all" onclick="setSimFilter('all')" style="background:var(--accent);border:none;border-radius:6px;padding:5px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tất cả</button>
+            <button id="sim-filter-enough" onclick="setSimFilter('enough')" style="background:transparent;border:none;border-radius:6px;padding:5px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Đủ NESO</button>
+            <button id="sim-filter-short" onclick="setSimFilter('short')" style="background:transparent;border:none;border-radius:6px;padding:5px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Thiếu NESO</button>
+          </div>
         </div>
         <div id="mvp-sim-body" style="min-height:120px">
           <div style="text-align:center;padding:40px 0;color:var(--muted2);font-size:12px">Đang tải...</div>
@@ -4307,34 +4312,57 @@ async function loadTeamMvpPoints() {
 }
 
 // ══════════════ MVP SIMULATION TABLE ══════════════
+let simFilter = 'all'; // 'all' | 'enough' | 'short'
+function setSimFilter(mode) {
+  simFilter = mode;
+  const on = { bg:'var(--accent)', c:'#fff' }, off = { bg:'transparent', c:'var(--muted2)' };
+  [['sim-filter-all','all'],['sim-filter-enough','enough'],['sim-filter-short','short']].forEach(([id,m])=>{
+    const b = document.getElementById(id); if(!b) return;
+    const s = m===mode?on:off; b.style.background=s.bg; b.style.color=s.c;
+  });
+  renderMvpSim();
+}
+
 function renderMvpSim() {
   const wrap = document.getElementById('mvp-sim-wrap');
   const body = document.getElementById('mvp-sim-body');
   if (!wrap || !body) return;
-  const list = (teamWallets||[]).filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
+  const base = (teamWallets||[]).filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
   if (!(teamWallets||[]).some(w => w.mvpPoints != null)) { wrap.style.display='none'; return; }
   wrap.style.display = 'block';
-  if (!list.length) {
-    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted2);font-size:12px">Không có ví nào trong khoảng 0 &lt; MVP &lt; 30</div>';
-    return;
-  }
 
   const f = n => Math.round(n||0).toLocaleString('vi-VN');
   const nesoRate = liveNesoUsd || ((liveNxpcUsd||0)/100000);
   const usdvnd = liveUsdVnd || 0;
   const vndOf = n => Math.round((n||0)*nesoRate*usdvnd).toLocaleString('vi-VN')+'đ';
   const PT_COST = 100000;
+  const leftOf = w => (w.neso||0) - (30-(w.mvpPoints||0))*PT_COST;
 
-  const sorted = list.slice().sort((a,b)=>(b.mvpPoints||0)-(a.mvpPoints||0));
+  // Apply filter
+  let list = base.slice();
+  if (simFilter === 'enough') list = list.filter(w => leftOf(w) >= 0);
+  else if (simFilter === 'short') list = list.filter(w => leftOf(w) < 0);
+  const sorted = list.sort((a,b)=>(b.mvpPoints||0)-(a.mvpPoints||0));
 
-  const rowOf = (w, i) => {
+  // Totals (dựa trên toàn bộ base — không đổi theo filter)
+  const sumNeed = base.reduce((s,w)=>s+((30-(w.mvpPoints||0))*PT_COST),0);
+  const sumHave = base.reduce((s,w)=>s+(w.neso||0),0);
+  const surplus = base.reduce((s,w)=>{ const l=leftOf(w); return s+(l>0?l:0); },0);      // chỉ ví dư (dương)
+  const totalAll = base.reduce((s,w)=>s+leftOf(w),0);                                       // tất cả (gồm âm)
+  const enoughCount = base.filter(w => leftOf(w) >= 0).length;
+
+  const copyBtn = addr => `<span onclick="navigator.clipboard.writeText('${addr}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)" style="cursor:pointer;font-size:10px;color:var(--muted);user-select:none;opacity:.6;margin-left:4px" title="Copy địa chỉ">⎘</span>`;
+  const shortAddr = a => a ? a.slice(0,6)+'...'+a.slice(-4) : '—';
+
+  const rowOf = (w) => {
     const pts = w.mvpPoints || 0;
     const nesoNeed = (30 - pts) * PT_COST;
     const nesoHave = w.neso || 0;
-    const left = nesoHave - nesoNeed;
+    const left = leftOf(w);
     const enough = left >= 0;
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:5px 8px;text-align:left;color:var(--text);font-weight:600">${w.label||'—'}</td>
+      <td style="padding:5px 8px;text-align:left;color:var(--muted2);font-family:monospace;font-size:10px">${shortAddr(w.address)}${copyBtn(w.address)}</td>
       <td style="padding:5px 8px;text-align:right"><span style="color:#fff;font-weight:700">${f(pts)}</span><span style="font-size:9px;color:var(--muted2)">/30</span></td>
       <td style="padding:5px 8px;text-align:right;color:var(--amber)">${f(nesoNeed)}</td>
       <td style="padding:5px 8px;text-align:right;color:var(--green)">${f(nesoHave)}</td>
@@ -4342,36 +4370,33 @@ function renderMvpSim() {
     </tr>`;
   };
 
-  const sumNeed = sorted.reduce((s,w)=>s+((30-(w.mvpPoints||0))*PT_COST),0);
-  const sumHave = sorted.reduce((s,w)=>s+(w.neso||0),0);
-  // Tổng NESO còn dư (chỉ ví đủ — left >= 0)
-  const surplus = sorted.reduce((s,w)=>{ const l=(w.neso||0)-((30-(w.mvpPoints||0))*PT_COST); return s + (l>0?l:0); },0);
-  const enoughCount = sorted.filter(w => (w.neso||0) >= (30-(w.mvpPoints||0))*PT_COST).length;
-
   body.innerHTML = `
     <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px">
-      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Ví đủ NESO</div><div style="font-size:15px;font-weight:800;color:var(--green)">${enoughCount}<span style="font-size:10px;color:var(--muted2);font-weight:600">/${sorted.length}</span></div></div>
-      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tổng NESO còn dư <span style="opacity:.7">(ví đủ)</span></div><div style="font-size:15px;font-weight:800;color:var(--green)">${f(surplus)}</div><div style="font-size:10px;color:var(--muted2)">${vndOf(surplus)}</div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Ví đủ NESO</div><div style="font-size:15px;font-weight:800;color:var(--green)">${enoughCount}<span style="font-size:10px;color:var(--muted2);font-weight:600">/${base.length}</span></div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tổng dư <span style="opacity:.7">(ví đủ)</span></div><div style="font-size:15px;font-weight:800;color:var(--green)">+${f(surplus)}</div><div style="font-size:10px;color:var(--muted2)">${vndOf(surplus)}</div></div>
+      <div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tổng còn lại <span style="opacity:.7">(tất cả)</span></div><div style="font-size:15px;font-weight:800;color:${totalAll>=0?'var(--green)':'#ef4444'}">${totalAll>=0?'+':'−'}${f(Math.abs(totalAll))}</div><div style="font-size:10px;color:var(--muted2)">${vndOf(Math.abs(totalAll))}</div></div>
     </div>
-    <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:440px">
+    ${sorted.length ? `<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px">
       <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
         <th style="padding:6px 8px;text-align:left;color:var(--muted2);font-size:10px">Tên ví</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--muted2);font-size:10px">Địa chỉ</th>
         <th style="padding:6px 8px;text-align:right;color:var(--muted2);font-size:10px">MVP</th>
         <th style="padding:6px 8px;text-align:right;color:var(--amber);font-size:10px" title="NESO cần chi thêm để đủ 30 điểm">Cần thêm</th>
         <th style="padding:6px 8px;text-align:right;color:var(--green);font-size:10px" title="NESO hiện có">Hiện có</th>
-        <th style="padding:6px 8px;text-align:right;color:var(--muted2);font-size:10px" title="Hiện có − Cần thêm (✓ đủ / ✗ thiếu)">Còn lại</th>
+        <th style="padding:6px 8px;text-align:right;color:var(--muted2);font-size:10px" title="Hiện có − Cần thêm">Còn lại</th>
       </tr></thead>
-      <tbody>${sorted.map((w,i)=>rowOf(w,i)).join('')}</tbody>
+      <tbody>${sorted.map(rowOf).join('')}</tbody>
       <tfoot><tr style="border-top:2px solid var(--border2);font-weight:700">
-        <td colspan="2" style="padding:7px 8px;text-align:left;color:var(--muted2);font-size:11px">Tổng (${sorted.length} ví)</td>
+        <td colspan="3" style="padding:7px 8px;text-align:left;color:var(--muted2);font-size:11px">Tổng ${simFilter!=='all'?sorted.length+'/':''}${base.length} ví</td>
         <td style="padding:7px 8px;text-align:right;color:var(--amber)">${f(sumNeed)}</td>
         <td style="padding:7px 8px;text-align:right;color:var(--green)">${f(sumHave)}</td>
-        <td style="padding:7px 8px;text-align:right;color:var(--green)" title="Tổng NESO còn dư của ví đủ">+${f(surplus)}</td>
+        <td style="padding:7px 8px;text-align:right;color:${totalAll>=0?'var(--green)':'#ef4444'}">${totalAll>=0?'+':'−'}${f(Math.abs(totalAll))}</td>
       </tr></tfoot>
     </table>
-    </div>`;
+    </div>` : '<div style="text-align:center;padding:24px;color:var(--muted2);font-size:12px">Không có ví nào khớp bộ lọc</div>'}`;
 }
+
 
 
 
