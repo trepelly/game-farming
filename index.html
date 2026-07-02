@@ -517,53 +517,23 @@ td:first-child{text-align:left;color:var(--muted2)}
   <!-- PANEL 3: WALLET -->
   <div id="panel-wallet" class="panel">
 
-    <!-- MetaMask connect -->
-    <div class="section-label">Kết nối ví</div>
-    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px;align-items:flex-start">
-      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);flex:1;min-width:260px">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px">MetaMask</div>
-        <button id="mm-btn" onclick="connectMetaMask()" style="display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f6851b,#e2761b);border:none;border-radius:10px;padding:12px 20px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;width:100%;justify-content:center">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:22px;height:22px" onerror="this.style.display='none'"/>
-          Kết nối MetaMask
-        </button>
-        <div id="mm-status" style="font-size:11px;color:var(--muted2);margin-top:10px;min-height:16px"></div>
+    <!-- Wallet input (gộp 1 ô) -->
+    <div class="section-label">Thêm ví</div>
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:28px">
+      <div style="font-size:11px;color:var(--muted2);margin-bottom:8px;line-height:1.5">
+        Nhập <b style="color:var(--text)">1 hoặc nhiều ví</b> — mỗi dòng 1 ví. Hỗ trợ các dạng:
+        <code style="color:var(--accent)">0x...</code> ·
+        <code style="color:var(--accent)">Tên, 0x...</code> ·
+        <code style="color:var(--accent)">Tên: 0x...</code> ·
+        <code style="color:var(--accent)">Tên 0x...</code> ·
+        <code style="color:var(--accent)">Tên | 0x...</code>
       </div>
-      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);flex:2;min-width:280px">
-        <!-- Mode toggle -->
-        <div style="display:flex;gap:4px;margin-bottom:14px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
-          <button id="mode-single-btn" onclick="setInputMode('single')" style="flex:1;background:var(--accent);border:none;border-radius:6px;padding:7px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s">Thêm 1 ví</button>
-          <button id="mode-bulk-btn" onclick="setInputMode('bulk')" style="flex:1;background:transparent;border:none;border-radius:6px;padding:7px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s">Nhập hàng loạt</button>
-        </div>
-
-        <!-- Single mode -->
-        <div id="input-single">
-          <div style="display:grid;grid-template-columns:1fr 1.5fr auto;gap:8px;align-items:end">
-            <div>
-              <div style="font-size:10px;color:var(--muted2);margin-bottom:5px">Tên (tùy chọn)</div>
-              <input id="wallet-name-input" type="text" placeholder="VD: Ví chính" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
-            </div>
-            <div>
-              <div style="font-size:10px;color:var(--muted2);margin-bottom:5px">Địa chỉ ví</div>
-              <input id="wallet-input" type="text" placeholder="0x..." style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
-            </div>
-            <button onclick="addWalletManual()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">+ Thêm</button>
-          </div>
-        </div>
-
-        <!-- Bulk mode -->
-        <div id="input-bulk" style="display:none">
-          <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">Mỗi dòng 1 địa chỉ · Hỗ trợ: <code style="font-weight:400;color:var(--accent)">0x...</code> · <code style="font-weight:400;color:var(--accent)">tên, 0x...</code> · <code style="font-weight:400;color:var(--accent)">tên 0x...</code></div>
-          <textarea id="wallet-bulk" placeholder="0x1234...abcd
-Ví sếp, 0x5678...efgh
-0xaaaa...1111" rows="5" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;line-height:1.6"></textarea>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px;flex-wrap:wrap">
-            <div id="bulk-preview" style="font-size:10px;color:var(--muted2)">Nhập địa chỉ bên trên</div>
-            <button onclick="addWalletsBulk()" style="background:var(--accent);border:none;border-radius:8px;padding:9px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ Thêm tất cả</button>
-          </div>
-        </div>
-
-        <div id="wallet-error" style="font-size:11px;color:var(--red);margin-top:8px;min-height:16px"></div>
+      <textarea id="wallet-bulk" oninput="updateBulkPreview()" placeholder="0x1234...abcd&#10;Ví chính, 0x5678...efgh&#10;Ví sếp: 0xaaaa...1111&#10;Backup | 0xbbbb...2222" rows="5" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;line-height:1.7;box-sizing:border-box"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:8px;flex-wrap:wrap">
+        <div id="bulk-preview" style="font-size:11px;color:var(--muted2)">Nhập địa chỉ ví bên trên</div>
+        <button onclick="addWalletsBulk()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 20px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ Thêm ví</button>
       </div>
+      <div id="wallet-error" style="font-size:11px;color:var(--red);margin-top:8px;min-height:16px"></div>
     </div>
 
     <!-- Portfolio summary (on top) -->
@@ -1385,59 +1355,7 @@ async function fetchBalances(address) {
   };
 }
 
-// ── MetaMask ──
-async function connectMetaMask() {
-  const btn = document.getElementById('mm-btn');
-  const status = document.getElementById('mm-status');
-  if(!window.ethereum) {
-    status.innerHTML = '<span style="color:var(--red)">MetaMask chưa được cài. <a href="https://metamask.io" target="_blank" style="color:var(--blue)">Tải tại đây</a></span>';
-    return;
-  }
-  try {
-    btn.textContent = 'Đang kết nối...';
-    const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
-    const addr = accounts[0];
-
-    // Add Henesys chain if not exists
-    try {
-      await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:HENESYS_CHAIN}]});
-    } catch(e) {
-      if(e.code===4902) {
-        await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
-          chainId: HENESYS_CHAIN,
-          chainName: 'Henesys L1',
-          nativeCurrency:{name:'NXPC',symbol:'NXPC',decimals:18},
-          rpcUrls:[HENESYS_RPC],
-          blockExplorerUrls:['https://msu-explorer.xangle.io']
-        }]});
-      }
-    }
-
-    status.innerHTML = `<span style="color:var(--green)">✓ Đã kết nối: ${addr.slice(0,6)}...${addr.slice(-4)}</span>`;
-    btn.innerHTML = `<span style="color:#fff">✓ ${addr.slice(0,6)}...${addr.slice(-4)}</span>`;
-
-    addWallet(addr, 'MetaMask');
-  } catch(e) {
-    status.innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
-    btn.innerHTML = '<img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" style="width:22px;height:22px"/>Kết nối MetaMask';
-  }
-}
-
 // ── Add wallet ──
-// ── Input mode toggle ──
-function setInputMode(mode) {
-  const isSingle = mode === 'single';
-  document.getElementById('input-single').style.display = isSingle ? '' : 'none';
-  document.getElementById('input-bulk').style.display   = isSingle ? 'none' : '';
-  document.getElementById('mode-single-btn').style.background = isSingle ? 'var(--accent)' : 'transparent';
-  document.getElementById('mode-single-btn').style.color      = isSingle ? '#fff' : 'var(--muted2)';
-  document.getElementById('mode-bulk-btn').style.background   = isSingle ? 'transparent' : 'var(--accent)';
-  document.getElementById('mode-bulk-btn').style.color        = isSingle ? 'var(--muted2)' : '#fff';
-  document.getElementById('wallet-error').textContent = '';
-}
-
-// ── Live preview for bulk ──
-// bulk preview wired via oninput inline
 function parseBulkLines(raw) {
   return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
     let label = null, addr = line;
@@ -1446,10 +1364,10 @@ function parseBulkLines(raw) {
     const match = line.match(/0x[0-9a-fA-F]{40}/i);
     if (match) {
       addr = match[0];
-      // Everything before the address (strip trailing comma/space) is the label
-      const before = line.slice(0, match.index).replace(/[,\s]+$/, '').trim();
-      // Everything after the address (strip leading comma/space) could also be label
-      const after  = line.slice(match.index + 42).replace(/^[,\s]+/, '').trim();
+      // Phần trước địa chỉ = tên (bỏ dấu phân cách , : | - và khoảng trắng ở cuối)
+      const before = line.slice(0, match.index).replace(/[,:|\-\s]+$/, '').trim();
+      // Phần sau địa chỉ cũng có thể là tên
+      const after  = line.slice(match.index + 42).replace(/^[,:|\-\s]+/, '').trim();
       label = before || after || null;
     }
 
@@ -1462,28 +1380,12 @@ function updateBulkPreview() {
   const preview = document.getElementById('bulk-preview');
   if (!ta || !preview) return;
   const parsed = parseBulkLines(ta.value);
-  if (parsed.length === 0) { preview.innerHTML = 'Nhập địa chỉ bên trên'; return; }
+  if (parsed.length === 0) { preview.innerHTML = 'Nhập địa chỉ ví bên trên'; return; }
   const valid = parsed.filter(p => p.valid).length;
   const bad   = parsed.length - valid;
   preview.innerHTML =
     (valid > 0 ? `<span style="color:var(--green)">✓ ${valid} hợp lệ</span>` : '') +
     (bad   > 0 ? ` · <span style="color:var(--red)">✗ ${bad} không hợp lệ</span>` : '');
-}
-
-function addWalletManual() {
-  const input = document.getElementById('wallet-input');
-  const err   = document.getElementById('wallet-error');
-  const addr  = input.value.trim();
-  if(!/^0x[0-9a-fA-F]{40}$/.test(addr)){
-    err.textContent = 'Địa chỉ ví không hợp lệ (phải bắt đầu bằng 0x và 40 ký tự hex)';
-    return;
-  }
-  err.textContent = '';
-  input.value = '';
-  const nameInput = document.getElementById('wallet-name-input');
-  const customName = nameInput ? nameInput.value.trim() : '';
-  if (nameInput) nameInput.value = '';
-  addWallet(addr, 'Thủ công', customName);
 }
 
 function addWalletsBulk() {
@@ -1507,7 +1409,7 @@ function addWalletsBulk() {
     renderWallets();
     wallets.filter(w => w.loading && w.nxpc === null).forEach(w => loadWalletData(w.address));
     ta.value = '';
-    document.getElementById('bulk-preview').innerHTML = 'Nhập địa chỉ bên trên';
+    document.getElementById('bulk-preview').innerHTML = 'Nhập địa chỉ ví bên trên';
   }
 
   const msgs = [];
@@ -2368,7 +2270,7 @@ function updateTeamBulkPreview() {
   const preview = document.getElementById('tm-bulk-preview');
   if (!ta || !preview) return;
   const parsed = parseBulkLines(ta.value);
-  if (parsed.length === 0) { preview.innerHTML = 'Nhập địa chỉ bên trên'; return; }
+  if (parsed.length === 0) { preview.innerHTML = 'Nhập địa chỉ ví bên trên'; return; }
   const valid = parsed.filter(p => p.valid).length;
   const bad   = parsed.length - valid;
   preview.innerHTML =
