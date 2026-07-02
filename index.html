@@ -2735,6 +2735,15 @@ function toggleChartDetail(key) {
 
 // Bấm vào cột biểu đồ → chọn kỳ, mở chi tiết kỳ đó
 function selectChartPeriod(key, periodKey) {
+  // Bấm lại đúng cột đang mở → thu gọn (đóng bảng chi tiết)
+  if (chartDetailOpen[key] && chartDetailPeriod[key] === periodKey) {
+    chartDetailOpen[key] = false;
+    chartDetailPeriod[key] = null;
+    renderChartDetail(key);
+    const btn0 = document.getElementById(key+'-detail-btn');
+    if (btn0) btn0.innerHTML = '▼ Xem thêm chi tiết theo ví';
+    return;
+  }
   chartDetailPeriod[key] = periodKey;
   chartDetailOpen[key] = true;
   renderChartDetail(key);
