@@ -2468,7 +2468,7 @@ async function fetchLivePrices(force=false) {
       fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=NXPCUSDT'),
       fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTVND').catch(()=>null),
       fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=AVAXUSDT').catch(()=>null),
-      fetch('https://api.avax.network/ext/bc/C/rpc', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_gasPrice',params:[]}) }).catch(()=>null),
+      fetch(msuProxy('https://api.avax.network/ext/bc/C/rpc'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_gasPrice',params:[]}) }).catch(()=>null),
     ]);
 
     let nxpc = null, nxpcChg = 0, usdvnd = null, avaxUsd = null, avaxChg = 0, avaxGas = null;
