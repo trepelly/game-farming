@@ -2246,23 +2246,40 @@ function renderTeam() {
       const enoughNeso = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) >= (30-w.mvpPoints)*100000).length;
       const shortNeso  = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) <  (30-w.mvpPoints)*100000).length;
       const other = Math.max(total - bp - enoughNeso - shortNeso, 0); // MVP=0 / chưa tải
-      const p = n => total>0 ? (n/total*100) : 0;
-      const AMBER='var(--amber)', GREEN='var(--green)', RED='#ef4444', WHITE='var(--border2)';
-      const seg = (val,color) => val>0 ? `<div style="width:${p(val)}%;height:100%;background:${color}" title="${val} ví"></div>` : '';
-      const legend = (color,label,val) => `<div style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--muted2)"><span style="width:8px;height:8px;border-radius:2px;background:${color};display:inline-block;flex-shrink:0"></span>${label} <b style="color:var(--text)">${val}</b></div>`;
+      const p = n => total>0 ? Math.round(n/total*100) : 0;
+      const AMBER='var(--amber)', GREEN='var(--green)', RED='#ef4444', GRAY='#5b5b6b';
+      // Donut: 4 cung, r=40, circ≈251.33, bắt đầu từ 12h (rotate -90)
+      const R=40, CIRC=2*Math.PI*R;
+      const groups = [ ['Bronze+',bp,AMBER], ['Đủ NESO',enoughNeso,GREEN], ['Thiếu NESO',shortNeso,RED], ['Chưa có điểm',other,GRAY] ];
+      let offset = 0;
+      const arcs = groups.map(([label,val,color]) => {
+        if (val<=0) return '';
+        const len = total>0 ? (val/total)*CIRC : 0;
+        const dash = `${len} ${CIRC-len}`;
+        const circleEl = `<circle cx="50" cy="50" r="${R}" fill="none" stroke="${color}" stroke-width="13" stroke-dasharray="${dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 50 50)"><title>${label}: ${val} ví · ${p(val)}%</title></circle>`;
+        offset += len;
+        return circleEl;
+      }).join('');
+      const legend = (color,label,val) => `<div style="display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--muted2);min-width:0"><span style="width:8px;height:8px;border-radius:2px;background:${color};display:inline-block;flex-shrink:0"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${label}</span> <b style="color:var(--text);font-family:'Chakra Petch',monospace;flex-shrink:0">${val}</b></div>`;
       return `<div class="stat" style="display:flex;flex-direction:column">
         <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)"></span>Ví đang theo dõi</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px"><span class="stat-val" style="font-size:32px">${total}</span><span style="font-size:12px;color:var(--muted2);font-weight:600">ví</span></div>
         ${mvpLoadedPct>0 ? `
-        <div style="display:flex;height:8px;border-radius:99px;overflow:hidden;margin-top:12px;background:var(--border);gap:1px">
-          ${seg(bp,AMBER)}${seg(enoughNeso,GREEN)}${seg(shortNeso,RED)}${seg(other,WHITE)}
+        <div style="position:relative;width:104px;height:104px;margin:12px auto 0">
+          <svg width="104" height="104" viewBox="0 0 100 100" style="display:block">
+            <circle cx="50" cy="50" r="${R}" fill="none" stroke="var(--border)" stroke-width="13"/>
+            ${arcs}
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <span class="stat-val" style="font-size:28px;line-height:1">${total}</span>
+            <span style="font-size:9px;color:var(--muted2);margin-top:1px">ví theo dõi</span>
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-top:14px">
           ${legend(AMBER,'Bronze+',bp)}
           ${legend(GREEN,'Đủ NESO',enoughNeso)}
           ${legend(RED,'Thiếu NESO',shortNeso)}
-          ${legend(WHITE,'Chưa có điểm',other)}
-        </div>` : `<div style="font-size:11px;color:var(--muted2);margin-top:12px">Đang tải MVP...</div>`}
+          ${legend(GRAY,'Chưa có điểm',other)}
+        </div>` : `<div style="display:flex;align-items:baseline;gap:8px;margin-top:10px"><span class="stat-val" style="font-size:32px">${total}</span><span style="font-size:12px;color:var(--muted2);font-weight:600">ví</span></div><div style="font-size:11px;color:var(--muted2);margin-top:12px">Đang tải MVP...</div>`}
       </div>`;
     })()}
     ${tokenCard('🍁 HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd)}
