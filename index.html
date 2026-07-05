@@ -1861,13 +1861,15 @@ function renderUserManager() {
     const isAdmin = u.role === 'admin';
     const players = Array.isArray(u.players) ? u.players : (u.player ? [u.player] : []);
     const playerBadges = isAdmin
-      ? '<span style="font-size:11px;color:var(--amber)">Xem tất cả</span>'
-      : (players.length ? players.map(pn => playerBadge(pn,{size:11})).join(' ') : '<span style="font-size:11px;color:var(--muted2);font-style:italic">chưa gán tên</span>');
+      ? '<span style="font-size:11px;color:var(--amber)">👑 Xem tất cả</span>'
+      : (u.viewAll ? '<span style="font-size:11px;color:var(--green);font-weight:700">🌐 Xem tất cả</span>'
+        : (players.length ? players.map(pn => playerBadge(pn,{size:11})).join(' ') : '<span style="font-size:11px;color:var(--muted2);font-style:italic">chưa gán tên</span>'));
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:7px 10px;color:var(--text);font-weight:600">${u.username}${isAdmin?' <span style="font-size:10px;color:var(--amber)">👑</span>':''}</td>
       <td style="padding:7px 10px">${playerBadges}</td>
       <td style="padding:7px 10px;text-align:right;white-space:nowrap">
-        ${isAdmin?'':`<button onclick="editUserPlayers(${i})" style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:3px 9px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;margin-right:4px">Gán tên</button>
+        ${isAdmin?'':`<button onclick="toggleUserViewAll(${i})" style="background:${u.viewAll?'color-mix(in srgb,var(--green) 20%,var(--surface))':'var(--subtle)'};border:1px solid ${u.viewAll?'var(--green)':'var(--border2)'};border-radius:5px;padding:3px 9px;color:${u.viewAll?'var(--green)':'var(--muted2)'};font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;margin-right:4px" title="Cho phép member này xem tất cả ví">${u.viewAll?'✓ Xem tất cả':'Xem tất cả'}</button>
+        <button onclick="editUserPlayers(${i})" style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:3px 9px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;margin-right:4px">Gán tên</button>
         <button onclick="resetUserPassword(${i})" style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:3px 9px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;margin-right:4px">Đổi MK</button>
         <button onclick="removeUser(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:5px;padding:3px 9px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">Xoá</button>`}
       </td>
@@ -1937,6 +1939,14 @@ async function removeUser(i) {
   if (u.role === 'admin') { alert('Không thể xoá admin'); return; }
   if (!confirm(`Xoá tài khoản "${u.username}"?`)) return;
   teamUsersCache.splice(i,1);
+  await saveUsers(teamUsersCache);
+  renderUserManager();
+}
+
+// Bật/tắt quyền "Xem tất cả" cho member
+async function toggleUserViewAll(i) {
+  const u = teamUsersCache[i]; if (!u || u.role === 'admin') return;
+  u.viewAll = !u.viewAll;
   await saveUsers(teamUsersCache);
   renderUserManager();
 }
@@ -2493,8 +2503,8 @@ async function loadTeamWallets() {
     teamPlayers = data.players || [];
     // đảm bảo field player/since/history cho mỗi ví
     teamWallets.forEach(w => { if (!('player' in w)) w.player = null; if (!('since' in w)) w.since = null; if (!Array.isArray(w.history)) w.history = []; });
-    // LỌC THEO MEMBER: member chỉ thấy ví gán cho tên người chơi của mình
-    if (teamUser && teamUser.role !== 'admin') {
+    // LỌC THEO MEMBER: member chỉ thấy ví gán cho tên người chơi của mình (trừ khi được cấp 'Xem tất cả')
+    if (teamUser && teamUser.role !== 'admin' && !teamUser.viewAll) {
       const mine = memberPlayerNames(teamUser);
       teamWallets = teamWallets.filter(w => w.player && mine.includes(w.player.toLowerCase()));
     }
