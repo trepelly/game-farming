@@ -2012,7 +2012,102 @@ function renderPlayerManager() {
         <input id="new-player-date" type="date" value="${todayISO()}" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/></div>
       <button onclick="addPlayer()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ Thêm</button>
     </div>
-    <div id="player-manager-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>`;
+    <div id="player-manager-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
+
+    <!-- Gán ví hàng loạt -->
+    <div style="border-top:1px dashed var(--border2);margin-top:16px;padding-top:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📋 Gán ví hàng loạt</div>
+      <div style="font-size:10px;color:var(--muted2);margin-bottom:8px;line-height:1.5">
+        Mỗi dòng: <code style="color:var(--accent)">Người chơi: ví1, ví2, ví3</code> — ví ghi theo <b style="color:var(--text)">tên</b> hoặc <b style="color:var(--text)">mã 0x</b>.<br>
+        VD: <code style="color:var(--muted2)">Nguyễn A: Ví chính, 0x1234...abcd</code><br>
+        Người chơi chưa có sẽ được tự tạo. Ngày nhận = ngày chọn bên dưới.
+      </div>
+      <textarea id="bulk-assign-ta" oninput="previewBulkAssign()" rows="4" placeholder="Nguyễn A: Ví chính, 0x1234...abcd&#10;Trần B: 0x5678...efgh, Ví phụ 2" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
+      <div style="display:flex;gap:8px;align-items:end;margin-top:8px;flex-wrap:wrap">
+        <div><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ngày nhận ví</div>
+          <input id="bulk-assign-date" type="date" value="${todayISO()}" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/></div>
+        <button onclick="applyBulkAssign()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">✓ Gán tất cả</button>
+        <div id="bulk-assign-preview" style="font-size:10px;color:var(--muted2);flex:1;min-width:120px"></div>
+      </div>
+      <div id="bulk-assign-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
+    </div>`;
+}
+
+// Tìm ví theo tên (label) hoặc mã (address), không phân biệt hoa thường
+function findWalletByToken(token) {
+  const t = token.trim().toLowerCase();
+  if (!t) return null;
+  // ưu tiên khớp địa chỉ đầy đủ
+  let w = teamWallets.find(x => x.address.toLowerCase() === t);
+  if (w) return w;
+  // khớp địa chỉ rút gọn (0x1234...abcd) — so đầu 6 + cuối 4
+  const m = t.match(/^0x([0-9a-f]{4,})\.{2,3}([0-9a-f]{2,})$/i);
+  if (m) { w = teamWallets.find(x => { const a=x.address.toLowerCase(); return a.startsWith('0x'+m[1]) && a.endsWith(m[2]); }); if (w) return w; }
+  // khớp tên (label) đầy đủ
+  w = teamWallets.find(x => (x.label||'').toLowerCase() === t);
+  return w || null;
+}
+
+// Parse textarea gán hàng loạt → [{player, wallets:[w...], unmatched:[token...]}]
+function parseBulkAssign() {
+  const raw = (document.getElementById('bulk-assign-ta')?.value || '');
+  const result = [];
+  raw.split('\n').forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    const ci = line.indexOf(':');
+    if (ci < 0) return;
+    const player = line.slice(0, ci).trim();
+    if (!player) return;
+    const tokens = line.slice(ci+1).split(',').map(s=>s.trim()).filter(Boolean);
+    const wallets = [], unmatched = [];
+    tokens.forEach(tk => { const w = findWalletByToken(tk); if (w) wallets.push(w); else unmatched.push(tk); });
+    result.push({ player, wallets, unmatched });
+  });
+  return result;
+}
+
+function previewBulkAssign() {
+  const el = document.getElementById('bulk-assign-preview');
+  if (!el) return;
+  const parsed = parseBulkAssign();
+  if (!parsed.length) { el.textContent = ''; return; }
+  const totalMatch = parsed.reduce((s,p)=>s+p.wallets.length,0);
+  const totalUnmatch = parsed.reduce((s,p)=>s+p.unmatched.length,0);
+  const newPlayers = parsed.filter(p => !teamPlayers.find(tp=>tp.name.toLowerCase()===p.player.toLowerCase())).map(p=>p.player);
+  el.innerHTML = `<span style="color:var(--green)">✓ ${totalMatch} ví khớp</span>`
+    + (totalUnmatch ? ` · <span style="color:var(--red)">${totalUnmatch} không tìm thấy</span>` : '')
+    + (newPlayers.length ? ` · <span style="color:var(--amber)">tạo mới: ${newPlayers.join(', ')}</span>` : '');
+}
+
+async function applyBulkAssign() {
+  const parsed = parseBulkAssign();
+  const err = document.getElementById('bulk-assign-err');
+  const date = document.getElementById('bulk-assign-date')?.value || todayISO();
+  if (!parsed.length) { err.textContent = 'Chưa nhập gì'; return; }
+  err.innerHTML = '<span style="color:var(--muted2)">Đang gán...</span>';
+  let assigned = 0; const unmatchedAll = [];
+  parsed.forEach(({player, wallets, unmatched}) => {
+    // tạo người chơi nếu chưa có
+    if (!teamPlayers.find(p => p.name.toLowerCase() === player.toLowerCase())) {
+      teamPlayers.push({ name: player, joined: date, active: true, left: null });
+    }
+    wallets.forEach(w => {
+      if (w.player === player) return; // đã đúng người
+      if (!Array.isArray(w.history)) w.history = [];
+      const openE = w.history.find(h => h.to == null);
+      if (openE) openE.to = date;
+      w.history.push({ player, from: date, to: null });
+      w.player = player; w.since = date;
+      assigned++;
+    });
+    unmatched.forEach(u => unmatchedAll.push(u));
+  });
+  await saveTeamData();
+  renderPlayerManager();
+  renderTeam();
+  const e2 = document.getElementById('bulk-assign-err');
+  if (e2) e2.innerHTML = `<span style="color:var(--green)">✓ Đã gán ${assigned} ví</span>` + (unmatchedAll.length ? ` · <span style="color:var(--red)">bỏ qua ${unmatchedAll.length} không tìm thấy: ${unmatchedAll.slice(0,5).join(', ')}${unmatchedAll.length>5?'...':''}</span>` : '');
 }
 
 async function addPlayer() {
