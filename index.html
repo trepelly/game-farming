@@ -2141,6 +2141,19 @@ function parseBulkAssignList(raw) {
   return order.map(p => ({ player: p, wallets: groups[p].wallets, unmatched: groups[p].unmatched }));
 }
 
+// Phát hiện xung đột: 1 ví được gán cho ≥2 người chơi khác nhau trong cùng lần dán
+function findBulkConflicts(parsed) {
+  const byAddr = {}; // address -> {label, players:Set}
+  parsed.forEach(({player, wallets}) => {
+    wallets.forEach(w => {
+      if (!byAddr[w.address]) byAddr[w.address] = { label: w.label, players: new Set() };
+      byAddr[w.address].players.add(player);
+    });
+  });
+  return Object.values(byAddr).filter(o => o.players.size > 1)
+    .map(o => ({ label: o.label, players: [...o.players] }));
+}
+
 function previewBulkAssign() {
   const el = document.getElementById('bulk-assign-preview');
   if (!el) return;
@@ -2149,9 +2162,11 @@ function previewBulkAssign() {
   const totalMatch = parsed.reduce((s,p)=>s+p.wallets.length,0);
   const totalUnmatch = parsed.reduce((s,p)=>s+p.unmatched.length,0);
   const newPlayers = parsed.filter(p => !teamPlayers.find(tp=>tp.name.toLowerCase()===p.player.toLowerCase())).map(p=>p.player);
+  const conflicts = findBulkConflicts(parsed);
   el.innerHTML = `<span style="color:var(--green)">✓ ${totalMatch} ví khớp</span>`
     + (totalUnmatch ? ` · <span style="color:var(--red)">${totalUnmatch} không tìm thấy</span>` : '')
-    + (newPlayers.length ? ` · <span style="color:var(--amber)">tạo mới: ${newPlayers.join(', ')}</span>` : '');
+    + (newPlayers.length ? ` · <span style="color:var(--amber)">tạo mới: ${newPlayers.join(', ')}</span>` : '')
+    + (conflicts.length ? `<div style="color:#ef4444;font-weight:600;margin-top:4px">⚠ ${conflicts.length} ví trùng (gán cho nhiều người): ${conflicts.slice(0,4).map(c=>`${c.label||'?'} → ${c.players.join(' / ')}`).join('; ')}${conflicts.length>4?'...':''}</div>` : '');
 }
 
 async function applyBulkAssign() {
@@ -2159,6 +2174,12 @@ async function applyBulkAssign() {
   const err = document.getElementById('bulk-assign-err');
   const date = document.getElementById('bulk-assign-date')?.value || todayISO();
   if (!parsed.length) { err.textContent = 'Chưa nhập gì'; return; }
+  // Chặn nếu có ví trùng (1 ví gán cho nhiều người) — bắt sửa trước
+  const conflicts = findBulkConflicts(parsed);
+  if (conflicts.length) {
+    err.innerHTML = `<span style="color:#ef4444;font-weight:600">⚠ Có ${conflicts.length} ví bị gán cho nhiều người, sửa lại trước khi gán:</span> ` + conflicts.map(c=>`<b>${c.label||'?'}</b> (${c.players.join(' / ')})`).join('; ');
+    return;
+  }
   err.innerHTML = '<span style="color:var(--muted2)">Đang gán...</span>';
   let assigned = 0; const unmatchedAll = [];
   parsed.forEach(({player, wallets, unmatched}) => {
