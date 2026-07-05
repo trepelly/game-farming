@@ -1785,6 +1785,21 @@ document.head.appendChild(spinStyle);
 <script>
 // ── TEAM WALLET MODULE ──
 const GIST_ID    = 'fbbc7f578f4ad7760206f397c0706348';
+// ── MVP tiers (định nghĩa sớm để mọi hàm dùng được, tránh TDZ) ──
+const MVP_TIERS = [
+  { name:'Unranked', min:0,    max:29,   color:'var(--muted2)', icon:'—',  bg:'var(--subtle)' },
+  { name:'Bronze',   min:30,   max:749,  color:'#cd7f32',       icon:'🥉', bg:'#cd7f3218' },
+  { name:'Silver',   min:750,  max:1499, color:'#c0c0c0',       icon:'🥈', bg:'#c0c0c018' },
+  { name:'Gold',     min:1500, max:3499, color:'#ffd700',       icon:'🥇', bg:'#ffd70018' },
+  { name:'Diamond',  min:3500, max:6999, color:'#60a5fa',       icon:'💎', bg:'#60a5fa18' },
+  { name:'Black',    min:7000, max:Infinity, color:'#f1f0ff',   icon:'⚫', bg:'#ffffff12' },
+];
+function getTier(pts) { return MVP_TIERS.find(t=>pts>=t.min&&pts<=t.max)||MVP_TIERS[0]; }
+function getNextTier(pts) {
+  const idx=MVP_TIERS.findIndex(t=>pts>=t.min&&pts<=t.max);
+  return idx>=0&&idx<MVP_TIERS.length-1?MVP_TIERS[idx+1]:null;
+}
+
 const GIST_ENDPOINT = 'https://msu-proxy.petertrepellynguyen.workers.dev/gist';
 const GIST_FILE  = 'team-wallets.json';
 const USERS_FILE = 'team-users.json';
@@ -4664,19 +4679,7 @@ const MVP_SUPABASE = 'https://pvydmytgmlrarwbozlnl.supabase.co';
 const MVP_KEY      = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2eWRteXRnbWxyYXJ3Ym96bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1OTE4MTEsImV4cCI6MjA2NzE2NzgxMX0.mV8hFCjHVC5Gmj1oZ6S5ZZOCr77tFGnoWltZ55dMINw';
 const MVP_LAUNCH   = '2026-05-15';
 
-const MVP_TIERS = [
-  { name:'Unranked', min:0,    max:29,   color:'var(--muted2)', icon:'—',  bg:'var(--subtle)' },
-  { name:'Bronze',   min:30,   max:749,  color:'#cd7f32',       icon:'🥉', bg:'#cd7f3218' },
-  { name:'Silver',   min:750,  max:1499, color:'#c0c0c0',       icon:'🥈', bg:'#c0c0c018' },
-  { name:'Gold',     min:1500, max:3499, color:'#ffd700',       icon:'🥇', bg:'#ffd70018' },
-  { name:'Diamond',  min:3500, max:6999, color:'#60a5fa',       icon:'💎', bg:'#60a5fa18' },
-  { name:'Black',    min:7000, max:Infinity, color:'#f1f0ff',   icon:'⚫', bg:'#ffffff12' },
-];
-function getTier(pts) { return MVP_TIERS.find(t=>pts>=t.min&&pts<=t.max)||MVP_TIERS[0]; }
-function getNextTier(pts) {
-  const idx=MVP_TIERS.findIndex(t=>pts>=t.min&&pts<=t.max);
-  return idx>=0&&idx<MVP_TIERS.length-1?MVP_TIERS[idx+1]:null;
-}
+// MVP_TIERS + getTier + getNextTier đã chuyển lên block đầu để tránh TDZ
 
 // Fetch daily data từ msutool — EXACT same as NESO Flow
 async function fetchDailyData(address, since) {
