@@ -666,6 +666,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button onclick="openPlayerManager()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">👤 Quản lý người chơi</button>
             <button onclick="openUserManager()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🔑 Quản lý tài khoản</button>
+            <button onclick="openMvpManual()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">✍ Nhập MVP tay</button>
           </div>
         </div>
 
@@ -752,25 +753,6 @@ td:first-child{text-align:left;color:var(--muted2)}
           <tbody id="team-tbody"></tbody>
           <tfoot id="team-tfoot" style="border-top:2px solid var(--border2);position:sticky;bottom:0;z-index:2"></tfoot>
         </table>
-      </div>
-
-      <!-- MVP SIMULATION TABLE -->
-      <div id="mvp-sim-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span>
-            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Mô phỏng đạt Bronze (ví chưa đạt)</span>
-            <span style="font-size:10px;color:var(--muted2)">Dùng NESO hiện có chi đủ để đạt MVP 30 → số dư còn lại</span>
-          </div>
-          <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
-            <button id="sim-filter-all" onclick="setSimFilter('all')" style="background:var(--accent);border:none;border-radius:6px;padding:5px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tất cả</button>
-            <button id="sim-filter-enough" onclick="setSimFilter('enough')" style="background:transparent;border:none;border-radius:6px;padding:5px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Đủ NESO</button>
-            <button id="sim-filter-short" onclick="setSimFilter('short')" style="background:transparent;border:none;border-radius:6px;padding:5px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Thiếu NESO</button>
-          </div>
-        </div>
-        <div id="mvp-sim-body" style="min-height:120px">
-          <div style="text-align:center;padding:40px 0;color:var(--muted2);font-size:12px">Đang tải...</div>
-        </div>
       </div>
 
       <!-- NESO CLAIM CHART -->
@@ -1951,6 +1933,94 @@ async function toggleUserViewAll(i) {
   renderUserManager();
 }
 
+// ══════════════ NHẬP MVP THỦ CÔNG (admin) ══════════════
+function openMvpManual() {
+  if (teamUser?.role !== 'admin') return;
+  const m = document.getElementById('mvp-manual-modal');
+  if (m) m.style.display = 'flex';
+  renderMvpManual();
+}
+function closeMvpManual() { const m=document.getElementById('mvp-manual-modal'); if(m) m.style.display='none'; }
+
+function renderMvpManual() {
+  const body = document.getElementById('mvp-manual-body');
+  if (!body) return;
+  const short = a => a ? a.slice(0,6)+'...'+a.slice(-4) : '—';
+  const rows = teamWallets.map((w,i) => {
+    const auto = (w.mvpManual!=null) ? '—' : (w.mvpPoints!=null ? w.mvpPoints : '...');
+    const cur = (w.mvpManual!=null) ? w.mvpManual : '';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 8px;color:var(--text);font-weight:600;white-space:nowrap">${w.label||'—'}${w.player?' '+playerBadge(w.player,{size:10}):''}</td>
+      <td style="padding:6px 8px;color:var(--muted2);font-family:monospace;font-size:10px">${short(w.address)}</td>
+      <td style="padding:6px 8px;text-align:center;color:var(--muted2);font-size:11px">${auto}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <input type="number" min="0" value="${cur}" placeholder="—" onchange="setMvpManual(${i}, this.value)" style="width:60px;background:var(--input-bg);border:1px solid ${w.mvpManual!=null?'var(--accent)':'var(--border2)'};border-radius:6px;padding:5px 6px;font-family:inherit;font-size:12px;color:var(--text);outline:none;text-align:center"/>
+        ${w.mvpManual!=null?`<button onclick="clearMvpManual(${i})" style="background:transparent;border:none;color:var(--muted2);font-size:11px;cursor:pointer;margin-left:2px" title="Xoá, dùng lại tự động">✕</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+  body.innerHTML = `
+    <div style="overflow-x:auto;max-height:50vh;overflow-y:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead style="position:sticky;top:0"><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+        <th style="padding:6px 8px;text-align:left;color:var(--muted2);font-size:10px">Ví</th>
+        <th style="padding:6px 8px;text-align:left;color:var(--muted2);font-size:10px">Địa chỉ</th>
+        <th style="padding:6px 8px;text-align:center;color:var(--muted2);font-size:10px" title="MVP lấy tự động từ website">Tự động</th>
+        <th style="padding:6px 8px;text-align:center;color:var(--muted2);font-size:10px">Nhập tay ✍</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </div>
+    <div style="border-top:1px dashed var(--border2);margin-top:14px;padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📋 Nhập nhanh hàng loạt</div>
+      <div style="font-size:10px;color:var(--muted2);margin-bottom:6px">Mỗi dòng: <code style="color:var(--accent)">ví: điểm</code> (ví theo tên hoặc mã 0x). VD: <code style="color:var(--muted2)">Ví chính: 35</code></div>
+      <textarea id="mvp-manual-bulk" rows="3" placeholder="Ví chính: 35&#10;0x1234...abcd: 28" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <button onclick="applyMvpManualBulk()" style="background:var(--accent);border:none;border-radius:8px;padding:9px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">✓ Áp dụng</button>
+        <div id="mvp-manual-err" style="font-size:11px;color:var(--muted2)"></div>
+      </div>
+    </div>`;
+}
+
+async function setMvpManual(i, val) {
+  const w = teamWallets[i]; if (!w) return;
+  const v = val === '' ? null : Math.max(0, Math.round(parseFloat(val)) || 0);
+  w.mvpManual = v;
+  if (v != null) { w.mvpPoints = v; w.mvpTier = getTier(v); }
+  await saveTeamData();
+  updateMvpCell(w);
+  renderTeam();
+  renderMvpManual();
+}
+async function clearMvpManual(i) {
+  const w = teamWallets[i]; if (!w) return;
+  w.mvpManual = null;
+  await saveTeamData();
+  renderMvpManual();
+  // tải lại MVP tự động cho ví này
+  if (typeof loadTeamMvpPoints === 'function') loadTeamMvpPoints();
+}
+
+async function applyMvpManualBulk() {
+  const raw = document.getElementById('mvp-manual-bulk')?.value || '';
+  const err = document.getElementById('mvp-manual-err');
+  let n = 0; const bad = [];
+  raw.split('\n').forEach(line => {
+    line = line.trim(); if (!line) return;
+    const ci = line.lastIndexOf(':');
+    if (ci < 0) return;
+    const token = line.slice(0, ci).trim();
+    const pts = parseFloat(line.slice(ci+1).trim());
+    if (isNaN(pts)) { bad.push(token); return; }
+    const w = findWalletByToken(token);
+    if (w) { w.mvpManual = Math.max(0, Math.round(pts)); w.mvpPoints = w.mvpManual; w.mvpTier = getTier(w.mvpManual); n++; }
+    else bad.push(token);
+  });
+  if (n) { await saveTeamData(); renderTeam(); teamWallets.forEach(updateMvpCell); renderMvpManual(); }
+  if (err) err.innerHTML = `<span style="color:var(--green)">✓ Đã nhập ${n} ví</span>` + (bad.length?` · <span style="color:var(--red)">bỏ qua ${bad.length}: ${bad.slice(0,4).join(', ')}</span>`:'');
+}
+
+
 
 // ── Auth ──
 async function unlockTeam() {
@@ -2018,7 +2088,7 @@ async function saveGist(data) {
 // Lưu toàn bộ dữ liệu team (giữ player/since/history + danh sách người chơi)
 async function saveTeamData() {
   await saveGist({
-    wallets: teamWallets.map(w=>({ address:w.address, label:w.label, player:w.player||null, since:w.since||null, history:w.history||[] })),
+    wallets: teamWallets.map(w=>({ address:w.address, label:w.label, player:w.player||null, since:w.since||null, history:w.history||[], mvpManual:(w.mvpManual!=null?w.mvpManual:null) })),
     players: teamPlayers
   });
 }
@@ -2502,7 +2572,7 @@ async function loadTeamWallets() {
     teamWallets = data.wallets || [];
     teamPlayers = data.players || [];
     // đảm bảo field player/since/history cho mỗi ví
-    teamWallets.forEach(w => { if (!('player' in w)) w.player = null; if (!('since' in w)) w.since = null; if (!Array.isArray(w.history)) w.history = []; });
+    teamWallets.forEach(w => { if (!('player' in w)) w.player = null; if (!('since' in w)) w.since = null; if (!Array.isArray(w.history)) w.history = []; if (!('mvpManual' in w)) w.mvpManual = null; });
     // LỌC THEO MEMBER: member chỉ thấy ví gán cho tên người chơi của mình (trừ khi được cấp 'Xem tất cả')
     if (teamUser && teamUser.role !== 'admin' && !teamUser.viewAll) {
       const mine = memberPlayerNames(teamUser);
@@ -2739,7 +2809,7 @@ function renderTeam() {
       <td style="text-align:right;color:var(--muted2);font-weight:500" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
       <td style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
-          ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`
+          ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px">✍</span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
@@ -5228,6 +5298,11 @@ async function loadTeamMvpPoints() {
       teamWallets[idx].mvpPoints = 0;
       teamWallets[idx].mvpTier   = getTier(0);
     }
+    // Ghi đè MVP thủ công (nếu admin đã nhập tay) — dùng khi fetch lỗi / website không khả dụng
+    if (teamWallets[idx].mvpManual != null) {
+      teamWallets[idx].mvpPoints = teamWallets[idx].mvpManual;
+      teamWallets[idx].mvpTier   = getTier(teamWallets[idx].mvpManual);
+    }
     updateMvpCell(teamWallets[idx]);
     setTimeout(updateWalletCountdowns,50);
   }));
@@ -5362,7 +5437,7 @@ function updateMvpCell(w) {
   const cells = document.querySelectorAll('#team-tbody td[data-addr="'+w.address+'"]');
   if(cells.length && w.mvpPoints!=null) {
     const pts=w.mvpPoints;
-    cells[0].innerHTML = `<span style="color:${pts<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${pts<30?'700':'600'};font-size:13px">${pts}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`;
+    cells[0].innerHTML = `<span style="color:${pts<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${pts<30?'700':'600'};font-size:13px">${pts}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px">✍</span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`;
   }
 
   // Update Chi tuần này cell
@@ -6153,6 +6228,17 @@ async function loadExpandFlow(cont, address, key) {
       <button onclick="closePlayerHistory()" style="background:transparent;border:none;color:var(--muted2);font-size:18px;cursor:pointer;line-height:1">✕</button>
     </div>
     <div id="player-history-body"></div>
+  </div>
+</div>
+
+<div id="mvp-manual-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeMvpManual()">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:620px;width:100%;box-shadow:var(--shadow-lg);max-height:88vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:14px;font-weight:800;color:var(--text)">✍ Nhập MVP thủ công</div>
+      <button onclick="closeMvpManual()" style="background:transparent;border:none;color:var(--muted2);font-size:18px;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:14px;line-height:1.5">Nhập MVP tay khi <b style="color:var(--text)">lỗi kết nối</b> hoặc website không lấy được. Giá trị nhập tay sẽ <b style="color:var(--text)">ghi đè</b> giá trị tự động (đánh dấu ✍). Bấm ✕ ở ô để xoá và dùng lại tự động.</div>
+    <div id="mvp-manual-body"></div>
   </div>
 </div>
 
