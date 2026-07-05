@@ -2040,7 +2040,8 @@ async function applyMvpManualBulk() {
   const err = document.getElementById('mvp-manual-err');
   let n = 0; const bad = [];
 
-  if (mvpBulkMode === 'same') {
+  const sameActive = (mvpBulkMode === 'same') || (document.getElementById('mvpb-same-row')?.style.display === 'block');
+  if (sameActive) {
     // 1 điểm cho nhiều ví: đọc điểm chung, rồi tách token ví bằng tokenizer linh hoạt
     const ptsRaw = document.getElementById('mvp-manual-same-pts')?.value;
     const pts = parseFloat(ptsRaw);
