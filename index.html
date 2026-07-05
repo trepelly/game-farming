@@ -661,7 +661,10 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- Add wallet to team (admin only) -->
       <div class="admin-only" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:24px">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px">Thêm ví vào team</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)">Thêm ví vào team</div>
+          <button onclick="openPlayerManager()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">👤 Quản lý người chơi</button>
+        </div>
 
         <div style="font-size:11px;color:var(--muted2);margin-bottom:8px;line-height:1.5">
           Nhập <b style="color:var(--text)">1 hoặc nhiều ví</b> — mỗi dòng 1 ví. Hỗ trợ:
@@ -722,7 +725,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <table>
           <thead>
           <tr class="grp-row">
-            <th colspan="4" style="border-bottom:none;background:var(--surface)"></th>
+            <th colspan="5" style="border-bottom:none;background:var(--surface)"></th>
             <th colspan="2" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
             <th colspan="2" style="text-align:center;color:var(--green);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--green) 16%,var(--surface))">🍁 Henesys</th>
             <th colspan="3" style="text-align:center;color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--blue) 16%,var(--surface))">🔺 Avalanche</th>
@@ -732,6 +735,7 @@ td:first-child{text-align:left;color:var(--muted2)}
             <th style="text-align:center">#</th>
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
             <th style="text-align:left">Địa chỉ</th>
+            <th style="text-align:left;cursor:pointer;user-select:none;color:var(--accent)" onclick="colSort('player')" title="Người chơi đang giữ ví">👤 Player <span id="sort-icon-player" style="opacity:.3">↕</span></th>
             <th style="color:#ffffff;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);cursor:pointer;user-select:none" onclick="colSort('mvp')" title="Điểm MVP · Week = số tuần Bronze+">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
@@ -1802,6 +1806,7 @@ const USERS_FILE = 'team-users.json';
 
 let teamUser     = null; // currently logged in user
 let teamWallets  = [];
+let teamPlayers  = []; // danh sách người chơi: [{name, joined, active, left}]
 
 // SHA-256 via SubtleCrypto
 async function sha256(str) {
@@ -1872,6 +1877,179 @@ async function saveGist(data) {
   });
 }
 
+// Lưu toàn bộ dữ liệu team (giữ player/since/history + danh sách người chơi)
+async function saveTeamData() {
+  await saveGist({
+    wallets: teamWallets.map(w=>({ address:w.address, label:w.label, player:w.player||null, since:w.since||null, history:w.history||[] })),
+    players: teamPlayers
+  });
+}
+
+// ══════════════ PLAYER / NGƯỜI CHƠI ══════════════
+const todayISO = () => new Date().toISOString().slice(0,10);
+const fmtDate = d => d ? (d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)) : '—';
+
+// Cell hiển thị người chơi trong bảng team
+function renderPlayerCell(w, isAdmin) {
+  const cur = w.player || null;
+  const nameHtml = cur
+    ? `<span style="color:var(--accent);font-weight:700;font-size:12px">${cur}</span><div style="font-size:9px;color:var(--muted2);margin-top:1px">từ ${fmtDate(w.since)}</div>`
+    : `<span style="color:var(--muted2);font-size:11px;font-style:italic">chưa gán</span>`;
+  if (!isAdmin) return nameHtml;
+  // Admin: nút mở popup gán + xem lịch sử
+  const histBtn = (w.history && w.history.length) ? `<span onclick="showPlayerHistory('${w.address}')" style="cursor:pointer;font-size:10px;color:var(--muted2);margin-left:5px" title="Xem lịch sử nhân sự">🕑</span>` : '';
+  return `<div style="display:flex;flex-direction:column;gap:3px">
+    <div style="display:flex;align-items:center">${nameHtml}${histBtn}</div>
+    <button onclick="openAssignPlayer('${w.address}')" style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 7px;color:var(--muted2);font-family:inherit;font-size:9px;cursor:pointer;width:fit-content">${cur?'Đổi':'Gán'}</button>
+  </div>`;
+}
+
+// Gán/đổi người chơi cho 1 ví (admin) — mở prompt chọn người + ngày
+function openAssignPlayer(address) {
+  if (teamUser?.role !== 'admin') return;
+  const w = teamWallets.find(x => x.address === address);
+  if (!w) return;
+  const activePlayers = teamPlayers.filter(p => p.active !== false);
+  const opts = activePlayers.map(p => `<option value="${p.name}" ${w.player===p.name?'selected':''}>${p.name}</option>`).join('');
+  const modal = document.getElementById('assign-player-modal');
+  document.getElementById('assign-player-addr').value = address;
+  document.getElementById('assign-player-title').textContent = `Gán người chơi · ${w.label||short(address)}`;
+  document.getElementById('assign-player-select').innerHTML = `<option value="">— Bỏ gán —</option>` + opts;
+  document.getElementById('assign-player-select').value = w.player || '';
+  document.getElementById('assign-player-date').value = todayISO();
+  document.getElementById('assign-player-err').textContent = teamPlayers.length ? '' : 'Chưa có người chơi nào — thêm ở "Quản lý người chơi" trước.';
+  modal.style.display = 'flex';
+}
+function closeAssignPlayer() { const m=document.getElementById('assign-player-modal'); if(m) m.style.display='none'; }
+
+async function confirmAssignPlayer() {
+  const address = document.getElementById('assign-player-addr').value;
+  const newPlayer = document.getElementById('assign-player-select').value || null;
+  const date = document.getElementById('assign-player-date').value || todayISO();
+  const w = teamWallets.find(x => x.address === address);
+  if (!w) return;
+  if (w.player === newPlayer) { closeAssignPlayer(); return; }
+  if (!Array.isArray(w.history)) w.history = [];
+  // Đóng bản ghi hiện tại (nếu có)
+  const openEntry = w.history.find(h => h.to == null);
+  if (openEntry) openEntry.to = date;
+  // Mở bản ghi mới (nếu gán người mới)
+  if (newPlayer) w.history.push({ player: newPlayer, from: date, to: null });
+  w.player = newPlayer;
+  w.since = newPlayer ? date : null;
+  const btn = document.getElementById('assign-player-confirm');
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang lưu...'; }
+  await saveTeamData();
+  closeAssignPlayer();
+  renderTeam();
+  if (btn) { btn.disabled = false; btn.textContent = 'Lưu'; }
+}
+
+// Xem lịch sử nhân sự của 1 ví
+function showPlayerHistory(address) {
+  const w = teamWallets.find(x => x.address === address);
+  if (!w) return;
+  const hist = (w.history||[]).slice().reverse();
+  const rows = hist.length ? hist.map(h => `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 10px;color:var(--accent);font-weight:700">${h.player}</td>
+      <td style="padding:6px 10px;color:var(--text2);font-size:11px">${fmtDate(h.from)}</td>
+      <td style="padding:6px 10px;color:var(--text2);font-size:11px">${h.to?fmtDate(h.to):`<span style="color:var(--green)">hiện tại</span>`}</td>
+    </tr>`).join('') : `<tr><td colspan="3" style="padding:14px;text-align:center;color:var(--muted2);font-size:12px">Chưa có lịch sử</td></tr>`;
+  const modal = document.getElementById('player-history-modal');
+  document.getElementById('player-history-title').textContent = `Lịch sử nhân sự · ${w.label||short(address)}`;
+  document.getElementById('player-history-body').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+        <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Người chơi</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Từ ngày</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Đến ngày</th>
+      </tr></thead><tbody>${rows}</tbody>
+    </table>`;
+  modal.style.display = 'flex';
+}
+function closePlayerHistory() { const m=document.getElementById('player-history-modal'); if(m) m.style.display='none'; }
+
+// ── Quản lý danh sách người chơi (admin) ──
+function openPlayerManager() {
+  if (teamUser?.role !== 'admin') return;
+  renderPlayerManager();
+  const m = document.getElementById('player-manager-modal');
+  if (m) m.style.display = 'flex';
+}
+function closePlayerManager() { const m=document.getElementById('player-manager-modal'); if(m) m.style.display='none'; }
+
+function renderPlayerManager() {
+  const body = document.getElementById('player-manager-body');
+  if (!body) return;
+  const rows = teamPlayers.length ? teamPlayers.map((p,i) => {
+    const cnt = teamWallets.filter(w => w.player === p.name).length;
+    const active = p.active !== false;
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:7px 10px;color:var(--text);font-weight:600">${p.name}</td>
+      <td style="padding:7px 10px;color:var(--text2);font-size:11px">${fmtDate(p.joined)}</td>
+      <td style="padding:7px 10px;text-align:center;color:var(--accent);font-weight:700">${cnt} ví</td>
+      <td style="padding:7px 10px;text-align:center">${active?`<span style="color:var(--green);font-size:11px">● Hoạt động</span>`:`<span style="color:var(--muted2);font-size:11px">○ Nghỉ ${p.left?fmtDate(p.left):''}</span>`}</td>
+      <td style="padding:7px 10px;text-align:right;white-space:nowrap">
+        <button onclick="togglePlayerActive(${i})" style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:3px 9px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;margin-right:4px">${active?'Cho nghỉ':'Kích hoạt'}</button>
+        <button onclick="removePlayer(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:5px;padding:3px 9px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">Xoá</button>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted2);font-size:12px">Chưa có người chơi nào</td></tr>`;
+  body.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
+      <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+        <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Tên</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Ngày vào</th>
+        <th style="padding:6px 10px;text-align:center;color:var(--muted2);font-size:10px">Ví giữ</th>
+        <th style="padding:6px 10px;text-align:center;color:var(--muted2);font-size:10px">Trạng thái</th>
+        <th style="padding:6px 10px;text-align:right;color:var(--muted2);font-size:10px"></th>
+      </tr></thead><tbody>${rows}</tbody>
+    </table>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;border-top:1px dashed var(--border2);padding-top:14px">
+      <div style="flex:1;min-width:140px"><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Tên người chơi</div>
+        <input id="new-player-name" type="text" placeholder="VD: Nguyễn A" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/></div>
+      <div><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ngày vào</div>
+        <input id="new-player-date" type="date" value="${todayISO()}" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/></div>
+      <button onclick="addPlayer()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ Thêm</button>
+    </div>
+    <div id="player-manager-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>`;
+}
+
+async function addPlayer() {
+  const name = document.getElementById('new-player-name').value.trim();
+  const date = document.getElementById('new-player-date').value || todayISO();
+  const err = document.getElementById('player-manager-err');
+  if (!name) { err.textContent = 'Nhập tên người chơi'; return; }
+  if (teamPlayers.find(p => p.name.toLowerCase() === name.toLowerCase())) { err.textContent = 'Tên đã tồn tại'; return; }
+  teamPlayers.push({ name, joined: date, active: true, left: null });
+  await saveTeamData();
+  renderPlayerManager();
+}
+
+async function togglePlayerActive(i) {
+  const p = teamPlayers[i]; if (!p) return;
+  if (p.active !== false) { p.active = false; p.left = todayISO(); }
+  else { p.active = true; p.left = null; }
+  await saveTeamData();
+  renderPlayerManager();
+}
+
+async function removePlayer(i) {
+  const p = teamPlayers[i]; if (!p) return;
+  const cnt = teamWallets.filter(w => w.player === p.name).length;
+  if (!confirm(`Xoá người chơi "${p.name}"?${cnt?` (${cnt} ví đang gán sẽ thành "chưa gán")`:''}`)) return;
+  // Bỏ gán các ví của người này (đóng lịch sử)
+  teamWallets.forEach(w => { if (w.player === p.name) {
+    const openE = (w.history||[]).find(h => h.to == null); if (openE) openE.to = todayISO();
+    w.player = null; w.since = null;
+  }});
+  teamPlayers.splice(i,1);
+  await saveTeamData();
+  renderPlayerManager();
+  renderTeam();
+}
+
+
 // ── Load & render ──
 async function loadTeamWallets() {
   document.getElementById('team-loading').style.display    = 'block';
@@ -1880,6 +2058,9 @@ async function loadTeamWallets() {
   try {
     const data  = await fetchGist();
     teamWallets = data.wallets || [];
+    teamPlayers = data.players || [];
+    // đảm bảo field player/since/history cho mỗi ví
+    teamWallets.forEach(w => { if (!('player' in w)) w.player = null; if (!('since' in w)) w.since = null; if (!Array.isArray(w.history)) w.history = []; });
     await Promise.all(teamWallets.map(async w => {
       try {
         const {nxpc, neso, avax, nxpc_avax, usdt_avax_real} = await fetchBalances(w.address);
@@ -1924,7 +2105,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','neso','nxpc','avax','nxpc_avax','usdt_avax','mvp','tuanmvp','mvpweek','nft'].forEach(c => {
+  ['label','player','neso','nxpc','avax','nxpc_avax','usdt_avax','mvp','tuanmvp','mvpweek','nft'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -2044,6 +2225,7 @@ function renderTeam() {
   else if (teamSortMode === 'col' && teamSortCol) {
     const getVal = w => {
       if (teamSortCol==='label')     return (w.label||'').toLowerCase();
+      if (teamSortCol==='player')    return (w.player||'zzz').toLowerCase();
       if (teamSortCol==='nxpc')      return w.nxpc     ?? -1;
       if (teamSortCol==='neso')      return w.neso     ?? -1;
       if (teamSortCol==='avax')      return w.avax ?? -1;
@@ -2106,6 +2288,7 @@ function renderTeam() {
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
         <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
       </td>
+      <td style="text-align:left;white-space:nowrap">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
       <td style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
@@ -2121,7 +2304,7 @@ function renderTeam() {
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
-      <td colspan="13" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:var(--bg2)">
+      <td colspan="14" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:var(--bg2)">
         <div style="display:flex;gap:4px;padding:12px 16px 0;background:var(--bg2);flex-wrap:wrap;border-bottom:1px solid var(--border2);position:sticky;left:0;width:100%;box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
@@ -2144,7 +2327,7 @@ function renderTeam() {
   const mvpWallets = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>=30);
   const mvpCount   = mvpWallets.length;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
-    <td colspan="3" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
+    <td colspan="4" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
@@ -2324,7 +2507,7 @@ async function addTeamWalletsBulk() {
 
   if (added > 0) {
     err.innerHTML = '<span style="color:var(--muted2)">Đang lưu...</span>';
-    await saveGist({ wallets: teamWallets.map(w=>({address:w.address,label:w.label})) });
+    await saveTeamData();
     ta.value = '';
     document.getElementById('tm-bulk-preview').innerHTML = 'Nhập địa chỉ bên trên';
   }
@@ -2341,7 +2524,7 @@ async function addTeamWalletsBulk() {
 async function removeTeamWallet(idx) {
   if (!confirm(`Xoá "${teamWallets[idx]?.label}" khỏi team?`)) return;
   teamWallets.splice(idx,1);
-  await saveGist({ wallets: teamWallets.map(w=>({address:w.address,label:w.label})) });
+  await saveTeamData();
   loadTeamWallets();
 }
 
@@ -5499,4 +5682,41 @@ async function loadExpandFlow(cont, address, key) {
   toggle();
 })();
 </script>
+<!-- ══ PLAYER MODALS ══ -->
+<div id="assign-player-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeAssignPlayer()">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:380px;width:100%;box-shadow:var(--shadow-lg)">
+    <div id="assign-player-title" style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:16px">Gán người chơi</div>
+    <input type="hidden" id="assign-player-addr"/>
+    <div style="font-size:10px;color:var(--muted2);margin-bottom:5px">Người chơi</div>
+    <select id="assign-player-select" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;margin-bottom:14px"></select>
+    <div style="font-size:10px;color:var(--muted2);margin-bottom:5px">Ngày nhận ví</div>
+    <input type="date" id="assign-player-date" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;margin-bottom:6px"/>
+    <div id="assign-player-err" style="font-size:11px;color:var(--amber);min-height:14px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeAssignPlayer()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:9px 16px;color:var(--muted2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Huỷ</button>
+      <button id="assign-player-confirm" onclick="confirmAssignPlayer()" style="background:var(--accent);border:none;border-radius:8px;padding:9px 20px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div id="player-history-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closePlayerHistory()">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:440px;width:100%;box-shadow:var(--shadow-lg)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div id="player-history-title" style="font-size:14px;font-weight:800;color:var(--text)">Lịch sử nhân sự</div>
+      <button onclick="closePlayerHistory()" style="background:transparent;border:none;color:var(--muted2);font-size:18px;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div id="player-history-body"></div>
+  </div>
+</div>
+
+<div id="player-manager-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closePlayerManager()">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:560px;width:100%;box-shadow:var(--shadow-lg);max-height:85vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:800;color:var(--text)">👤 Quản lý người chơi</div>
+      <button onclick="closePlayerManager()" style="background:transparent;border:none;color:var(--muted2);font-size:18px;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div id="player-manager-body"></div>
+  </div>
+</div>
+
 </body>
