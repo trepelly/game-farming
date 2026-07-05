@@ -1971,27 +1971,33 @@ function renderMvpManual() {
       <tbody>${rows}</tbody>
     </table>
     </div>
+    <!-- Khối 1: mỗi ví 1 điểm -->
     <div style="border-top:1px dashed var(--border2);margin-top:14px;padding-top:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-        <div style="font-size:11px;font-weight:700;color:var(--accent)">📋 Nhập nhanh hàng loạt</div>
-        <div style="display:flex;gap:3px;background:var(--input-bg);border-radius:7px;padding:3px;border:1px solid var(--border2)">
-          <button id="mvpb-mode-each" onclick="setMvpBulkMode('each')" style="background:var(--accent);border:none;border-radius:5px;padding:5px 11px;color:#fff;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">Mỗi ví 1 điểm</button>
-          <button id="mvpb-mode-same" onclick="setMvpBulkMode('same')" style="background:transparent;border:none;border-radius:5px;padding:5px 11px;color:var(--muted2);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">Cùng 1 điểm</button>
-        </div>
-      </div>
-      <div id="mvpb-help" style="font-size:10px;color:var(--muted2);margin-bottom:6px">Mỗi dòng: <code style="color:var(--accent)">ví: điểm</code> (ví theo tên hoặc mã 0x). VD: <code style="color:var(--muted2)">Ví chính: 35</code></div>
-      <div id="mvpb-same-row" style="display:none;margin-bottom:8px">
-        <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Điểm áp cho tất cả ví liệt kê bên dưới</div>
-        <input id="mvp-manual-same-pts" type="number" min="0" placeholder="VD: 30" style="width:100px;background:var(--input-bg);border:1px solid var(--accent);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);outline:none"/>
-      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📋 Nhập nhanh — mỗi ví 1 điểm</div>
+      <div style="font-size:10px;color:var(--muted2);margin-bottom:6px">Mỗi dòng: <code style="color:var(--accent)">ví: điểm</code> (ví theo tên hoặc mã 0x). VD: <code style="color:var(--muted2)">Ví chính: 35</code></div>
       <textarea id="mvp-manual-bulk" rows="3" placeholder="Ví chính: 35&#10;0x1234...abcd: 28" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
-        <button onclick="applyMvpManualBulk()" style="background:var(--accent);border:none;border-radius:8px;padding:9px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">✓ Áp dụng</button>
+        <button onclick="applyMvpEach()" style="background:var(--accent);border:none;border-radius:8px;padding:9px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">✓ Áp dụng</button>
         <div id="mvp-manual-err" style="font-size:11px;color:var(--muted2)"></div>
       </div>
+    </div>
+
+    <!-- Khối 2: cùng 1 điểm cho nhiều ví -->
+    <div style="border-top:1px dashed var(--border2);margin-top:14px;padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">🎯 Nhập nhanh — cùng 1 điểm cho nhiều ví</div>
+      <div style="display:flex;gap:8px;align-items:end;margin-bottom:8px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Điểm áp cho tất cả</div>
+          <input id="mvp-same-pts" type="number" min="0" placeholder="VD: 30" style="width:100px;background:var(--input-bg);border:1px solid var(--green);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);outline:none"/>
+        </div>
+        <div style="font-size:10px;color:var(--muted2);flex:1;min-width:150px;padding-bottom:9px">Liệt kê ví bên dưới (mỗi dòng 1 ví, hoặc cách nhau — tên hoặc mã 0x). Tất cả nhận cùng điểm trên.</div>
+      </div>
+      <textarea id="mvp-same-ta" rows="3" placeholder="Ví chính&#10;0x1234...abcd&#10;Ví farm 2" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <button onclick="applyMvpSamePoint()" style="background:var(--green);border:none;border-radius:8px;padding:9px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">🎯 Gán cùng điểm</button>
+        <div id="mvp-same-err" style="font-size:11px;color:var(--muted2)"></div>
+      </div>
     </div>`;
-  // giữ chế độ đang chọn khi re-render
-  setMvpBulkMode(mvpBulkMode);
 }
 
 async function setMvpManual(i, val) {
@@ -2013,57 +2019,15 @@ async function clearMvpManual(i) {
   if (typeof loadTeamMvpPoints === 'function') loadTeamMvpPoints();
 }
 
-let mvpBulkMode = 'each'; // 'each' (ví: điểm) | 'same' (1 điểm cho nhiều ví)
-function setMvpBulkMode(mode) {
-  mvpBulkMode = mode;
-  const be = document.getElementById('mvpb-mode-each'), bs = document.getElementById('mvpb-mode-same');
-  if (be && bs) {
-    be.style.background = mode==='each'?'var(--accent)':'transparent'; be.style.color = mode==='each'?'#fff':'var(--muted2)';
-    bs.style.background = mode==='same'?'var(--accent)':'transparent'; bs.style.color = mode==='same'?'#fff':'var(--muted2)';
-  }
-  const help = document.getElementById('mvpb-help');
-  const sameRow = document.getElementById('mvpb-same-row');
-  const ta = document.getElementById('mvp-manual-bulk');
-  if (mode==='same') {
-    if (sameRow) sameRow.style.display = 'block';
-    if (help) help.innerHTML = 'Nhập <b style="color:var(--text)">1 điểm</b> ở ô trên, rồi liệt kê các ví bên dưới (mỗi dòng 1 ví, hoặc cách nhau dấu phẩy/khoảng trắng — theo tên hoặc mã 0x). Tất cả ví đó sẽ nhận cùng điểm.';
-    if (ta) ta.placeholder = 'Ví chính\n0x1234...abcd\nVí farm 2';
-  } else {
-    if (sameRow) sameRow.style.display = 'none';
-    if (help) help.innerHTML = 'Mỗi dòng: <code style="color:var(--accent)">ví: điểm</code> (ví theo tên hoặc mã 0x). VD: <code style="color:var(--muted2)">Ví chính: 35</code>';
-    if (ta) ta.placeholder = 'Ví chính: 35\n0x1234...abcd: 28';
-  }
-}
-
-async function applyMvpManualBulk() {
+// Áp dụng: mỗi ví 1 điểm ('ví: điểm')
+async function applyMvpEach() {
   const raw = document.getElementById('mvp-manual-bulk')?.value || '';
   const err = document.getElementById('mvp-manual-err');
   let n = 0; const bad = [];
-
-  const sameActive = (mvpBulkMode === 'same') || (document.getElementById('mvpb-same-row')?.style.display === 'block');
-  if (sameActive) {
-    // 1 điểm cho nhiều ví: đọc điểm chung, rồi tách token ví bằng tokenizer linh hoạt
-    const ptsRaw = document.getElementById('mvp-manual-same-pts')?.value;
-    const pts = parseFloat(ptsRaw);
-    if (isNaN(pts)) { if(err) err.innerHTML = '<span style="color:var(--red)">Nhập điểm chung trước</span>'; return; }
-    const val = Math.max(0, Math.round(pts));
-    const tokens = tokenizeWalletStr(raw.replace(/\n/g, ' | '));
-    const seen = new Set();
-    tokens.forEach(tk => {
-      const w = findWalletByToken(tk);
-      if (w) { if (!seen.has(w.address)) { seen.add(w.address); w.mvpManual = val; w.mvpPoints = val; w.mvpTier = getTier(val); n++; } }
-      else bad.push(tk);
-    });
-    if (n) { await saveTeamData(); renderTeam(); teamWallets.forEach(updateMvpCell); renderMvpManual(); }
-    if (err) err.innerHTML = `<span style="color:var(--green)">✓ Đã gán ${val} điểm cho ${n} ví</span>` + (bad.length?` · <span style="color:var(--red)">bỏ qua ${bad.length}: ${bad.slice(0,4).join(', ')}</span>`:'');
-    return;
-  }
-
-  // Mỗi ví 1 điểm: 'ví: điểm'
   raw.split('\n').forEach(line => {
     line = line.trim(); if (!line) return;
     const ci = line.lastIndexOf(':');
-    if (ci < 0) return;
+    if (ci < 0) { bad.push(line); return; }
     const token = line.slice(0, ci).trim();
     const pts = parseFloat(line.slice(ci+1).trim());
     if (isNaN(pts)) { bad.push(token); return; }
@@ -2072,7 +2036,29 @@ async function applyMvpManualBulk() {
     else bad.push(token);
   });
   if (n) { await saveTeamData(); renderTeam(); teamWallets.forEach(updateMvpCell); renderMvpManual(); }
-  if (err) err.innerHTML = `<span style="color:var(--green)">✓ Đã nhập ${n} ví</span>` + (bad.length?` · <span style="color:var(--red)">bỏ qua ${bad.length}: ${bad.slice(0,4).join(', ')}</span>`:'');
+  const e2 = document.getElementById('mvp-manual-err');
+  if (e2) e2.innerHTML = `<span style="color:var(--green)">✓ Đã nhập ${n} ví</span>` + (bad.length?` · <span style="color:var(--red)">bỏ qua ${bad.length}: ${bad.slice(0,4).join(', ')}</span>`:'');
+}
+
+// Áp dụng: cùng 1 điểm cho nhiều ví
+async function applyMvpSamePoint() {
+  const err = document.getElementById('mvp-same-err');
+  const ptsRaw = document.getElementById('mvp-same-pts')?.value;
+  const pts = parseFloat(ptsRaw);
+  if (isNaN(pts)) { if(err) err.innerHTML = '<span style="color:var(--red)">Nhập điểm trước</span>'; return; }
+  const val = Math.max(0, Math.round(pts));
+  const raw = document.getElementById('mvp-same-ta')?.value || '';
+  if (!raw.trim()) { if(err) err.innerHTML = '<span style="color:var(--red)">Liệt kê ví bên dưới</span>'; return; }
+  const tokens = tokenizeWalletStr(raw.replace(/\n/g, ' | '));
+  let n = 0; const bad = []; const seen = new Set();
+  tokens.forEach(tk => {
+    const w = findWalletByToken(tk);
+    if (w) { if (!seen.has(w.address)) { seen.add(w.address); w.mvpManual = val; w.mvpPoints = val; w.mvpTier = getTier(val); n++; } }
+    else bad.push(tk);
+  });
+  if (n) { await saveTeamData(); renderTeam(); teamWallets.forEach(updateMvpCell); renderMvpManual(); }
+  const e2 = document.getElementById('mvp-same-err');
+  if (e2) e2.innerHTML = `<span style="color:var(--green)">✓ Đã gán ${val} điểm cho ${n} ví</span>` + (bad.length?` · <span style="color:var(--red)">bỏ qua ${bad.length}: ${bad.slice(0,4).join(', ')}</span>`:'');
 }
 
 
