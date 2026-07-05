@@ -1889,11 +1889,26 @@ async function saveTeamData() {
 const todayISO = () => new Date().toISOString().slice(0,10);
 const fmtDate = d => d ? (d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)) : '—';
 
+// Palette màu + emoji cho người chơi
+const PLAYER_COLORS = ['#a78bfa','#f59e0b','#22c55e','#ef4444','#3b82f6','#ec4899','#14b8a6','#eab308','#8b5cf6','#f97316','#06b6d4','#84cc16'];
+const PLAYER_EMOJIS = ['👤','🎮','🔥','⭐','🚀','🐉','🦊','🐺','🦁','🐯','🐼','🦄','🌟','💎','⚡','🎯','🏆','👑','🍀','🎃'];
+function getPlayer(name) { return teamPlayers.find(p => p.name === name) || null; }
+function playerColor(name) { const p = getPlayer(name); return (p && p.color) || 'var(--accent)'; }
+function playerEmoji(name) { const p = getPlayer(name); return (p && p.emoji) || ''; }
+// Badge: emoji + tên có màu
+function playerBadge(name, opts={}) {
+  if (!name) return '';
+  const c = playerColor(name), e = playerEmoji(name);
+  const fs = opts.size || 12;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;color:${c};font-weight:700;font-size:${fs}px">${e?`<span style="font-size:${fs+1}px">${e}</span>`:''}${name}</span>`;
+}
+
+
 // Cell hiển thị người chơi trong bảng team
 function renderPlayerCell(w, isAdmin) {
   const cur = w.player || null;
   const nameHtml = cur
-    ? `<span style="color:var(--accent);font-weight:700;font-size:12px">${cur}</span><div style="font-size:9px;color:var(--muted2);margin-top:1px">từ ${fmtDate(w.since)}</div>`
+    ? `${playerBadge(cur,{size:12})}<div style="font-size:9px;color:var(--muted2);margin-top:1px">từ ${fmtDate(w.since)}</div>`
     : `<span style="color:var(--muted2);font-size:11px;font-style:italic">chưa gán</span>`;
   if (!isAdmin) return nameHtml;
   // Admin: nút mở popup gán + xem lịch sử
@@ -1910,7 +1925,7 @@ function openAssignPlayer(address) {
   const w = teamWallets.find(x => x.address === address);
   if (!w) return;
   const activePlayers = teamPlayers.filter(p => p.active !== false);
-  const opts = activePlayers.map(p => `<option value="${p.name}" ${w.player===p.name?'selected':''}>${p.name}</option>`).join('');
+  const opts = activePlayers.map(p => `<option value="${p.name}" ${w.player===p.name?'selected':''}>${p.emoji?p.emoji+' ':''}${p.name}</option>`).join('');
   const modal = document.getElementById('assign-player-modal');
   document.getElementById('assign-player-addr').value = address;
   document.getElementById('assign-player-title').textContent = `Gán người chơi · ${w.label||short(address)}`;
@@ -1951,7 +1966,7 @@ function showPlayerHistory(address) {
   if (!w) return;
   const hist = (w.history||[]).slice().reverse();
   const rows = hist.length ? hist.map(h => `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:6px 10px;color:var(--accent);font-weight:700">${h.player}</td>
+      <td style="padding:6px 10px">${playerBadge(h.player,{size:12})}</td>
       <td style="padding:6px 10px;color:var(--text2);font-size:11px">${fmtDate(h.from)}</td>
       <td style="padding:6px 10px;color:var(--text2);font-size:11px">${h.to?fmtDate(h.to):`<span style="color:var(--green)">hiện tại</span>`}</td>
     </tr>`).join('') : `<tr><td colspan="3" style="padding:14px;text-align:center;color:var(--muted2);font-size:12px">Chưa có lịch sử</td></tr>`;
@@ -1984,8 +1999,16 @@ function renderPlayerManager() {
   const rows = teamPlayers.length ? teamPlayers.map((p,i) => {
     const cnt = teamWallets.filter(w => w.player === p.name).length;
     const active = p.active !== false;
+    const emojiOpts = PLAYER_EMOJIS.map(e => `<option value="${e}" ${p.emoji===e?'selected':''}>${e}</option>`).join('');
+    const colorSwatches = PLAYER_COLORS.map(c => `<span onclick="setPlayerColor(${i},'${c}')" style="width:15px;height:15px;border-radius:4px;background:${c};cursor:pointer;display:inline-block;border:2px solid ${(p.color===c)?'var(--text)':'transparent'}" title="${c}"></span>`).join('');
     return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:7px 10px;color:var(--text);font-weight:600">${p.name}</td>
+      <td style="padding:7px 10px">${playerBadge(p.name,{size:12})}</td>
+      <td style="padding:7px 10px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <select onchange="setPlayerEmoji(${i}, this.value)" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:3px 4px;font-size:13px;cursor:pointer;outline:none">${emojiOpts}</select>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;max-width:130px">${colorSwatches}</div>
+        </div>
+      </td>
       <td style="padding:7px 10px;color:var(--text2);font-size:11px">${fmtDate(p.joined)}</td>
       <td style="padding:7px 10px;text-align:center;color:var(--accent);font-weight:700">${cnt} ví</td>
       <td style="padding:7px 10px;text-align:center">${active?`<span style="color:var(--green);font-size:11px">● Hoạt động</span>`:`<span style="color:var(--muted2);font-size:11px">○ Nghỉ ${p.left?fmtDate(p.left):''}</span>`}</td>
@@ -1994,11 +2017,12 @@ function renderPlayerManager() {
         <button onclick="removePlayer(${i})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:5px;padding:3px 9px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">Xoá</button>
       </td>
     </tr>`;
-  }).join('') : `<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--muted2);font-size:12px">Chưa có người chơi nào</td></tr>`;
+  }).join('') : `<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--muted2);font-size:12px">Chưa có người chơi nào</td></tr>`;
   body.innerHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
       <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
         <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Tên</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Icon / Màu</th>
         <th style="padding:6px 10px;text-align:left;color:var(--muted2);font-size:10px">Ngày vào</th>
         <th style="padding:6px 10px;text-align:center;color:var(--muted2);font-size:10px">Ví giữ</th>
         <th style="padding:6px 10px;text-align:center;color:var(--muted2);font-size:10px">Trạng thái</th>
@@ -2008,6 +2032,10 @@ function renderPlayerManager() {
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;border-top:1px dashed var(--border2);padding-top:14px">
       <div style="flex:1;min-width:140px"><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Tên người chơi</div>
         <input id="new-player-name" type="text" placeholder="VD: Nguyễn A" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/></div>
+      <div><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Icon</div>
+        <select id="new-player-emoji" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 8px;font-size:15px;color:var(--text);outline:none;cursor:pointer">${PLAYER_EMOJIS.map((e,idx)=>`<option value="${e}" ${idx===(teamPlayers.length%PLAYER_EMOJIS.length)?'selected':''}>${e}</option>`).join('')}</select></div>
+      <div><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Màu</div>
+        <input id="new-player-color" type="color" value="${PLAYER_COLORS[teamPlayers.length%PLAYER_COLORS.length]}" style="width:44px;height:38px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:2px;cursor:pointer;outline:none"/></div>
       <div><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ngày vào</div>
         <input id="new-player-date" type="date" value="${todayISO()}" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/></div>
       <button onclick="addPlayer()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">+ Thêm</button>
@@ -2021,6 +2049,7 @@ function renderPlayerManager() {
         <div style="display:flex;gap:3px;background:var(--input-bg);border-radius:7px;padding:3px;border:1px solid var(--border2)">
           <button id="bulk-mode-inline" onclick="setBulkAssignMode('inline')" style="background:var(--accent);border:none;border-radius:5px;padding:5px 11px;color:#fff;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">Gộp dòng</button>
           <button id="bulk-mode-list" onclick="setBulkAssignMode('list')" style="background:transparent;border:none;border-radius:5px;padding:5px 11px;color:var(--muted2);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">Danh sách</button>
+          <button id="bulk-mode-date" onclick="setBulkAssignMode('date')" style="background:transparent;border:none;border-radius:5px;padding:5px 11px;color:var(--muted2);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">📅 Chỉnh ngày</button>
         </div>
       </div>
       <div id="bulk-assign-help" style="font-size:10px;color:var(--muted2);margin-bottom:8px;line-height:1.5">
@@ -2031,9 +2060,9 @@ function renderPlayerManager() {
       </div>
       <textarea id="bulk-assign-ta" oninput="previewBulkAssign()" rows="5" placeholder="Nguyễn A: Ví chính, 0x1234...abcd&#10;Trần B: 0x5678...efgh, Ví phụ 2" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
       <div style="display:flex;gap:8px;align-items:end;margin-top:8px;flex-wrap:wrap">
-        <div><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ngày nhận ví</div>
+        <div><div id="bulk-assign-date-label" style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ngày nhận ví</div>
           <input id="bulk-assign-date" type="date" value="${todayISO()}" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/></div>
-        <button onclick="applyBulkAssign()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">✓ Gán tất cả</button>
+        <button id="bulk-assign-btn" onclick="applyBulkAssign()" style="background:var(--accent);border:none;border-radius:8px;padding:10px 18px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">✓ Gán tất cả</button>
         <div id="bulk-assign-preview" style="font-size:10px;color:var(--muted2);flex:1;min-width:120px"></div>
       </div>
       <div id="bulk-assign-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>
@@ -2060,14 +2089,21 @@ let bulkAssignMode = 'inline'; // 'inline' (Người chơi: ví1, ví2) | 'list'
 
 function setBulkAssignMode(mode) {
   bulkAssignMode = mode;
-  const bi = document.getElementById('bulk-mode-inline'), bl = document.getElementById('bulk-mode-list');
-  if (bi && bl) {
-    bi.style.background = mode==='inline'?'var(--accent)':'transparent'; bi.style.color = mode==='inline'?'#fff':'var(--muted2)';
-    bl.style.background = mode==='list'?'var(--accent)':'transparent';   bl.style.color = mode==='list'?'#fff':'var(--muted2)';
-  }
+  [['inline','bulk-mode-inline'],['list','bulk-mode-list'],['date','bulk-mode-date']].forEach(([m,id]) => {
+    const b = document.getElementById(id);
+    if (b) { b.style.background = mode===m?'var(--accent)':'transparent'; b.style.color = mode===m?'#fff':'var(--muted2)'; }
+  });
+  // Đổi nhãn nút hành động + tiêu đề ngày
+  const applyBtn = document.getElementById('bulk-assign-btn');
+  const dateLbl = document.getElementById('bulk-assign-date-label');
+  if (applyBtn) applyBtn.textContent = mode==='date' ? '📅 Cập nhật ngày' : '✓ Gán tất cả';
+  if (dateLbl) dateLbl.textContent = mode==='date' ? 'Ngày mới' : 'Ngày nhận ví';
   const ta = document.getElementById('bulk-assign-ta');
   const help = document.getElementById('bulk-assign-help');
-  if (mode==='list') {
+  if (mode==='date') {
+    if (ta) ta.placeholder = 'Nguyễn A\nTrần B: Ví chính, 0x1234...abcd';
+    if (help) help.innerHTML = 'Chỉnh <b style="color:var(--text)">ngày nhận</b> hàng loạt (không đổi người chơi). Mỗi dòng:<br>• Chỉ <b style="color:var(--text)">tên người chơi</b> → đổi ngày cho <b>tất cả ví</b> của người đó.<br>• <code style="color:var(--accent)">Người chơi: ví1, ví2</code> → chỉ đổi ngày các ví liệt kê.<br>Ngày mới = ngày chọn bên dưới. VD: <code style="color:var(--muted2)">Nguyễn A</code> (đổi hết ví của Nguyễn A).';
+  } else if (mode==='list') {
     if (ta) ta.placeholder = 'Nguyễn A:\nVí chính\n0x1234...abcd\nVí farm 2\n\nTrần B:\n0x5678...efgh\nVí phụ';
     if (help) help.innerHTML = 'Dòng có dấu <b style="color:var(--text)">:</b> ở cuối = <b style="color:var(--text)">tên người chơi</b>. Các dòng bên dưới (không có <b>:</b>) = <b style="color:var(--text)">ví</b> của người đó, mỗi dòng 1 hoặc nhiều ví (theo tên hoặc mã 0x), đến khi gặp người chơi tiếp theo.<br>VD:<br><code style="color:var(--muted2)">Nguyễn A:</code><br><code style="color:var(--muted2)">Ví chính</code><br><code style="color:var(--muted2)">0x1234...abcd</code><br><code style="color:var(--muted2)">Trần B:</code><br><code style="color:var(--muted2)">0x5678...efgh</code>';
   } else {
@@ -2100,6 +2136,7 @@ function matchTokens(tokens) {
 
 function parseBulkAssign() {
   const raw = (document.getElementById('bulk-assign-ta')?.value || '');
+  if (bulkAssignMode === 'date') return parseBulkDate(raw);
   if (bulkAssignMode === 'list') return parseBulkAssignList(raw);
   const result = [];
   raw.split('\n').forEach(line => {
@@ -2111,6 +2148,27 @@ function parseBulkAssign() {
     if (!player) return;
     const { wallets, unmatched } = matchTokens(tokenizeWalletStr(line.slice(ci+1)));
     result.push({ player, wallets, unmatched });
+  });
+  return result;
+}
+
+// Mode chỉnh ngày: mỗi dòng = tên người (→ tất cả ví của họ) HOẶC 'Người chơi: ví1, ví2' (→ các ví đó)
+function parseBulkDate(raw) {
+  const result = [];
+  raw.split('\n').forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    const ci = line.indexOf(':');
+    if (ci < 0) {
+      // chỉ tên người chơi → tất cả ví đang gán cho người đó
+      const player = line;
+      const wallets = teamWallets.filter(w => w.player && w.player.toLowerCase() === player.toLowerCase());
+      result.push({ player, wallets, unmatched: wallets.length ? [] : [player] });
+    } else {
+      const player = line.slice(0, ci).trim();
+      const { wallets, unmatched } = matchTokens(tokenizeWalletStr(line.slice(ci+1)));
+      result.push({ player, wallets, unmatched });
+    }
   });
   return result;
 }
@@ -2161,6 +2219,10 @@ function previewBulkAssign() {
   if (!parsed.length) { el.textContent = ''; return; }
   const totalMatch = parsed.reduce((s,p)=>s+p.wallets.length,0);
   const totalUnmatch = parsed.reduce((s,p)=>s+p.unmatched.length,0);
+  if (bulkAssignMode === 'date') {
+    el.innerHTML = `<span style="color:var(--green)">📅 ${totalMatch} ví sẽ đổi ngày</span>` + (totalUnmatch ? ` · <span style="color:var(--red)">${totalUnmatch} không tìm thấy</span>` : '');
+    return;
+  }
   const newPlayers = parsed.filter(p => !teamPlayers.find(tp=>tp.name.toLowerCase()===p.player.toLowerCase())).map(p=>p.player);
   const conflicts = findBulkConflicts(parsed);
   el.innerHTML = `<span style="color:var(--green)">✓ ${totalMatch} ví khớp</span>`
@@ -2174,6 +2236,30 @@ async function applyBulkAssign() {
   const err = document.getElementById('bulk-assign-err');
   const date = document.getElementById('bulk-assign-date')?.value || todayISO();
   if (!parsed.length) { err.textContent = 'Chưa nhập gì'; return; }
+
+  // ── MODE CHỈNH NGÀY: chỉ đổi ngày nhận, không đổi người ──
+  if (bulkAssignMode === 'date') {
+    err.innerHTML = '<span style="color:var(--muted2)">Đang cập nhật ngày...</span>';
+    let updated = 0; const unmatchedAll = [];
+    parsed.forEach(({wallets, unmatched}) => {
+      wallets.forEach(w => {
+        if (!w.player) return; // chưa gán thì bỏ qua (không có ngày để chỉnh)
+        w.since = date;
+        if (!Array.isArray(w.history)) w.history = [];
+        const openE = w.history.find(h => h.to == null);
+        if (openE) openE.from = date; else w.history.push({ player: w.player, from: date, to: null });
+        updated++;
+      });
+      (unmatched||[]).forEach(u => unmatchedAll.push(u));
+    });
+    await saveTeamData();
+    renderPlayerManager();
+    renderTeam();
+    const e2 = document.getElementById('bulk-assign-err');
+    if (e2) e2.innerHTML = `<span style="color:var(--green)">✓ Đã đổi ngày ${updated} ví</span>` + (unmatchedAll.length ? ` · <span style="color:var(--red)">bỏ qua ${unmatchedAll.length}: ${unmatchedAll.slice(0,5).join(', ')}${unmatchedAll.length>5?'...':''}</span>` : '');
+    return;
+  }
+
   // Chặn nếu có ví trùng (1 ví gán cho nhiều người) — bắt sửa trước
   const conflicts = findBulkConflicts(parsed);
   if (conflicts.length) {
@@ -2211,10 +2297,16 @@ async function addPlayer() {
   const err = document.getElementById('player-manager-err');
   if (!name) { err.textContent = 'Nhập tên người chơi'; return; }
   if (teamPlayers.find(p => p.name.toLowerCase() === name.toLowerCase())) { err.textContent = 'Tên đã tồn tại'; return; }
-  teamPlayers.push({ name, joined: date, active: true, left: null });
+  const emoji = document.getElementById('new-player-emoji')?.value || PLAYER_EMOJIS[teamPlayers.length % PLAYER_EMOJIS.length];
+  const color = document.getElementById('new-player-color')?.value || PLAYER_COLORS[teamPlayers.length % PLAYER_COLORS.length];
+  teamPlayers.push({ name, joined: date, active: true, left: null, color, emoji });
   await saveTeamData();
   renderPlayerManager();
 }
+
+// Đổi màu / emoji người chơi
+async function setPlayerColor(i, color) { const p=teamPlayers[i]; if(!p)return; p.color=color; await saveTeamData(); renderPlayerManager(); renderTeam(); }
+async function setPlayerEmoji(i, emoji) { const p=teamPlayers[i]; if(!p)return; p.emoji=emoji; await saveTeamData(); renderPlayerManager(); renderTeam(); }
 
 async function togglePlayerActive(i) {
   const p = teamPlayers[i]; if (!p) return;
