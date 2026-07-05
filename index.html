@@ -4784,37 +4784,21 @@ function fmtDate(d) {
 
 function renderMvpResult(address, rows, totalPts, label) {
   const f   = n => Math.round(n).toLocaleString('vi-VN');
-  const tier = getTier(totalPts);
-  const next = getNextTier(totalPts);
-  const pct  = next ? Math.min(100,((totalPts-tier.min)/(next.min-tier.min)*100)) : 100;
 
   return `
-    <div style="background:var(--card);border:1px solid ${tier.color}44;border-radius:14px;padding:20px;box-shadow:var(--shadow);border-left:3px solid ${tier.color}">
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow)">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
         <div>
           <div style="font-size:13px;font-weight:700;color:var(--text)">${label}</div>
           <div style="font-family:monospace;font-size:10px;color:var(--muted2)">${address}</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <div style="text-align:center;background:${tier.bg};border-radius:8px;padding:8px 14px;border:1px solid ${tier.color}33">
-            <div style="font-size:20px">${tier.icon}</div>
-            <div style="font-size:14px;font-weight:800;color:${tier.color}">${tier.name}</div>
-          </div>
           <div style="text-align:center">
             <div style="font-size:10px;color:var(--muted2)">13W Points</div>
             <div style="font-size:22px;font-weight:800;color:var(--text)">${f(totalPts)}</div>
           </div>
-          ${next ? `<div style="text-align:center">
-            <div style="font-size:10px;color:var(--muted2)">To ${next.name}</div>
-            <div style="font-size:22px;font-weight:800;color:var(--accent)">${f(next.min-totalPts)}</div>
-          </div>` : ''}
         </div>
       </div>
-      ${next ? `<div style="margin-bottom:14px">
-        <div style="height:5px;background:var(--subtle);border-radius:3px;overflow:hidden">
-          <div style="height:100%;background:${tier.color};border-radius:3px;width:${pct.toFixed(1)}%;transition:width .6s"></div>
-        </div>
-      </div>` : ''}
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
@@ -4824,7 +4808,6 @@ function renderMvpResult(address, rows, totalPts, label) {
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Giá trị MVP/tuần</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Weekly Points</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">13W Cumulative</th>
-            <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">MVP Tier</th>
           </tr></thead>
           <tbody>
             ${rows.map(r=>`
@@ -4837,7 +4820,6 @@ function renderMvpResult(address, rows, totalPts, label) {
               </td>
               <td style="padding:7px 10px;text-align:right;color:${r.weeklyPoints>0?'var(--green)':'var(--muted2)'}">${f(r.weeklyPoints)}</td>
               <td style="padding:7px 10px;text-align:right;font-weight:600">${f(r.cumulativePoints)}</td>
-              <td style="padding:7px 10px;text-align:center;color:${r.tier.color}">${r.tier.icon} ${r.tier.name}</td>
             </tr>`).join('')}
           </tbody>
         </table>
