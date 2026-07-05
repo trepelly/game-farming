@@ -2016,14 +2016,20 @@ function renderPlayerManager() {
 
     <!-- Gán ví hàng loạt -->
     <div style="border-top:1px dashed var(--border2);margin-top:16px;padding-top:14px">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📋 Gán ví hàng loạt</div>
-      <div style="font-size:10px;color:var(--muted2);margin-bottom:8px;line-height:1.5">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent)">📋 Gán ví hàng loạt</div>
+        <div style="display:flex;gap:3px;background:var(--input-bg);border-radius:7px;padding:3px;border:1px solid var(--border2)">
+          <button id="bulk-mode-inline" onclick="setBulkAssignMode('inline')" style="background:var(--accent);border:none;border-radius:5px;padding:5px 11px;color:#fff;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">Gộp dòng</button>
+          <button id="bulk-mode-list" onclick="setBulkAssignMode('list')" style="background:transparent;border:none;border-radius:5px;padding:5px 11px;color:var(--muted2);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer">Danh sách</button>
+        </div>
+      </div>
+      <div id="bulk-assign-help" style="font-size:10px;color:var(--muted2);margin-bottom:8px;line-height:1.5">
         Mỗi dòng: <code style="color:var(--accent)">Người chơi: ví1, ví2, ví3</code> — dấu <b style="color:var(--text)">:</b> để nhận biết người chơi.<br>
         Ví ghi theo <b style="color:var(--text)">tên</b> hoặc <b style="color:var(--text)">mã 0x</b>, cách nhau bằng <b style="color:var(--text)">dấu phẩy, cách, chấm phẩy, gạch đứng...</b> (tên có 1 khoảng trắng vẫn giữ nguyên).<br>
         VD: <code style="color:var(--muted2)">Nguyễn A: Ví chính, 0x1234...abcd 0x5678... efgh</code><br>
         Người chơi chưa có sẽ được tự tạo. Ngày nhận = ngày chọn bên dưới.
       </div>
-      <textarea id="bulk-assign-ta" oninput="previewBulkAssign()" rows="4" placeholder="Nguyễn A: Ví chính, 0x1234...abcd&#10;Trần B: 0x5678...efgh, Ví phụ 2" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
+      <textarea id="bulk-assign-ta" oninput="previewBulkAssign()" rows="5" placeholder="Nguyễn A: Ví chính, 0x1234...abcd&#10;Trần B: 0x5678...efgh, Ví phụ 2" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;line-height:1.6"></textarea>
       <div style="display:flex;gap:8px;align-items:end;margin-top:8px;flex-wrap:wrap">
         <div><div style="font-size:10px;color:var(--muted2);margin-bottom:4px">Ngày nhận ví</div>
           <input id="bulk-assign-date" type="date" value="${todayISO()}" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none"/></div>
@@ -2050,36 +2056,89 @@ function findWalletByToken(token) {
 }
 
 // Parse textarea gán hàng loạt → [{player, wallets:[w...], unmatched:[token...]}]
+let bulkAssignMode = 'inline'; // 'inline' (Người chơi: ví1, ví2) | 'list' (người chơi header + ví từng dòng)
+
+function setBulkAssignMode(mode) {
+  bulkAssignMode = mode;
+  const bi = document.getElementById('bulk-mode-inline'), bl = document.getElementById('bulk-mode-list');
+  if (bi && bl) {
+    bi.style.background = mode==='inline'?'var(--accent)':'transparent'; bi.style.color = mode==='inline'?'#fff':'var(--muted2)';
+    bl.style.background = mode==='list'?'var(--accent)':'transparent';   bl.style.color = mode==='list'?'#fff':'var(--muted2)';
+  }
+  const ta = document.getElementById('bulk-assign-ta');
+  const help = document.getElementById('bulk-assign-help');
+  if (mode==='list') {
+    if (ta) ta.placeholder = 'Nguyễn A:\nVí chính\n0x1234...abcd\nVí farm 2\n\nTrần B:\n0x5678...efgh\nVí phụ';
+    if (help) help.innerHTML = 'Dòng có dấu <b style="color:var(--text)">:</b> ở cuối = <b style="color:var(--text)">tên người chơi</b>. Các dòng bên dưới (không có <b>:</b>) = <b style="color:var(--text)">ví</b> của người đó, mỗi dòng 1 hoặc nhiều ví (theo tên hoặc mã 0x), đến khi gặp người chơi tiếp theo.<br>VD:<br><code style="color:var(--muted2)">Nguyễn A:</code><br><code style="color:var(--muted2)">Ví chính</code><br><code style="color:var(--muted2)">0x1234...abcd</code><br><code style="color:var(--muted2)">Trần B:</code><br><code style="color:var(--muted2)">0x5678...efgh</code>';
+  } else {
+    if (ta) ta.placeholder = 'Nguyễn A: Ví chính, 0x1234...abcd\nTrần B: 0x5678...efgh, Ví phụ 2';
+    if (help) help.innerHTML = 'Mỗi dòng: <code style="color:var(--accent)">Người chơi: ví1, ví2, ví3</code> — dấu <b style="color:var(--text)">:</b> để nhận biết người chơi.<br>Ví ghi theo <b style="color:var(--text)">tên</b> hoặc <b style="color:var(--text)">mã 0x</b>, cách nhau bằng <b style="color:var(--text)">dấu phẩy, cách, chấm phẩy, gạch đứng...</b> (tên có 1 khoảng trắng vẫn giữ nguyên).<br>VD: <code style="color:var(--muted2)">Nguyễn A: Ví chính, 0x1234...abcd 0x5678... efgh</code><br>Người chơi chưa có sẽ được tự tạo. Ngày nhận = ngày chọn bên dưới.';
+  }
+  previewBulkAssign();
+}
+
+// Tách 1 chuỗi ví → mảng token (mã 0x trích bằng regex, tên tách bằng , ; | : tab hoặc 2+ cách)
+function tokenizeWalletStr(str) {
+  const tokens = [];
+  const addrRe = /0x[0-9a-fA-F]{2,}(?:\.{2,3}[0-9a-fA-F]{2,}|[0-9a-fA-F]{38,})/g;
+  let m;
+  while ((m = addrRe.exec(str)) !== null) tokens.push(m[0]);
+  str = str.replace(addrRe, ' | ');
+  str.split(/[,;|:\t]+|\s{2,}/).map(s=>s.trim()).filter(Boolean).forEach(t => tokens.push(t));
+  return tokens;
+}
+
+function matchTokens(tokens) {
+  const wallets = [], unmatched = [], seen = new Set();
+  tokens.forEach(tk => {
+    const w = findWalletByToken(tk);
+    if (w) { if (!seen.has(w.address)) { seen.add(w.address); wallets.push(w); } }
+    else unmatched.push(tk);
+  });
+  return { wallets, unmatched };
+}
+
 function parseBulkAssign() {
   const raw = (document.getElementById('bulk-assign-ta')?.value || '');
+  if (bulkAssignMode === 'list') return parseBulkAssignList(raw);
   const result = [];
   raw.split('\n').forEach(line => {
     line = line.trim();
     if (!line) return;
-    // Người chơi = phần trước dấu ':' ĐẦU TIÊN
     const ci = line.indexOf(':');
     if (ci < 0) return;
     const player = line.slice(0, ci).trim();
     if (!player) return;
-    let walletPart = line.slice(ci+1);
-    const tokens = [];
-    // 1) Trích mọi mã 0x (đầy đủ hoặc rút gọn 0x1234...abcd) — phân cách kiểu gì cũng nhận
-    const addrRe = /0x[0-9a-fA-F]{2,}(?:\.{2,3}[0-9a-fA-F]{2,}|[0-9a-fA-F]{38,})/g;
-    let m;
-    while ((m = addrRe.exec(walletPart)) !== null) tokens.push(m[0]);
-    walletPart = walletPart.replace(addrRe, ' | '); // thay địa chỉ bằng dấu phân tách
-    // 2) Phần còn lại = tên ví, tách bằng , ; | : tab hoặc 2+ khoảng trắng (GIỮ tên có 1 khoảng trắng, vd "Ví chính")
-    walletPart.split(/[,;|:\t]+|\s{2,}/).map(s=>s.trim()).filter(Boolean).forEach(t => tokens.push(t));
-    const wallets = [], unmatched = [];
-    const seen = new Set();
-    tokens.forEach(tk => {
-      const w = findWalletByToken(tk);
-      if (w) { if (!seen.has(w.address)) { seen.add(w.address); wallets.push(w); } }
-      else unmatched.push(tk);
-    });
+    const { wallets, unmatched } = matchTokens(tokenizeWalletStr(line.slice(ci+1)));
     result.push({ player, wallets, unmatched });
   });
   return result;
+}
+
+// Chế độ danh sách: dòng kết thúc bằng ':' = người chơi; dòng dưới = ví của người đó
+function parseBulkAssignList(raw) {
+  const groups = {}; // player -> {wallets, unmatched}
+  const order = [];
+  let curPlayer = null;
+  raw.split('\n').forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    // Người chơi: dòng kết thúc bằng ':' (hoặc có ':' và không chứa mã 0x, phần sau ':' rỗng)
+    if (/:\s*$/.test(line)) {
+      curPlayer = line.replace(/:\s*$/, '').trim();
+      if (curPlayer && !groups[curPlayer]) { groups[curPlayer] = { wallets: [], unmatched: [], seen: new Set() }; order.push(curPlayer); }
+      return;
+    }
+    // Dòng ví (thuộc người chơi hiện tại)
+    if (!curPlayer) return; // chưa có người chơi → bỏ qua
+    const g = groups[curPlayer];
+    tokenizeWalletStr(line).forEach(tk => {
+      const w = findWalletByToken(tk);
+      if (w) { if (!g.seen.has(w.address)) { g.seen.add(w.address); g.wallets.push(w); } }
+      else g.unmatched.push(tk);
+    });
+  });
+  return order.map(p => ({ player: p, wallets: groups[p].wallets, unmatched: groups[p].unmatched }));
 }
 
 function previewBulkAssign() {
