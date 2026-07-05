@@ -2000,13 +2000,17 @@ function renderPlayerManager() {
     const cnt = teamWallets.filter(w => w.player === p.name).length;
     const active = p.active !== false;
     const emojiOpts = PLAYER_EMOJIS.map(e => `<option value="${e}" ${p.emoji===e?'selected':''}>${e}</option>`).join('');
-    const colorSwatches = PLAYER_COLORS.map(c => `<span onclick="setPlayerColor(${i},'${c}')" style="width:15px;height:15px;border-radius:4px;background:${c};cursor:pointer;display:inline-block;border:2px solid ${(p.color===c)?'var(--text)':'transparent'}" title="${c}"></span>`).join('');
     return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:7px 10px">${playerBadge(p.name,{size:12})}</td>
+      <td style="padding:7px 10px">
+        <div style="display:flex;align-items:center;gap:5px">
+          ${playerBadge(p.name,{size:12})}
+          <span onclick="renamePlayer(${i})" style="cursor:pointer;font-size:11px;color:var(--muted2);opacity:.7" title="Đổi tên">✏️</span>
+        </div>
+      </td>
       <td style="padding:7px 10px">
         <div style="display:flex;align-items:center;gap:6px">
           <select onchange="setPlayerEmoji(${i}, this.value)" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:3px 4px;font-size:13px;cursor:pointer;outline:none">${emojiOpts}</select>
-          <div style="display:flex;gap:3px;flex-wrap:wrap;max-width:130px">${colorSwatches}</div>
+          <input type="color" value="${p.color||'#a78bfa'}" onchange="setPlayerColor(${i}, this.value)" style="width:30px;height:26px;background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:1px;cursor:pointer;outline:none" title="Chọn màu"/>
         </div>
       </td>
       <td style="padding:7px 10px;color:var(--text2);font-size:11px">${fmtDate(p.joined)}</td>
@@ -2307,6 +2311,24 @@ async function addPlayer() {
 // Đổi màu / emoji người chơi
 async function setPlayerColor(i, color) { const p=teamPlayers[i]; if(!p)return; p.color=color; await saveTeamData(); renderPlayerManager(); renderTeam(); }
 async function setPlayerEmoji(i, emoji) { const p=teamPlayers[i]; if(!p)return; p.emoji=emoji; await saveTeamData(); renderPlayerManager(); renderTeam(); }
+
+// Đổi tên người chơi — cập nhật cả ví đang gán + lịch sử
+async function renamePlayer(i) {
+  const p = teamPlayers[i]; if (!p) return;
+  const oldName = p.name;
+  const newName = (prompt('Đổi tên người chơi:', oldName) || '').trim();
+  if (!newName || newName === oldName) return;
+  if (teamPlayers.find((x,idx) => idx!==i && x.name.toLowerCase() === newName.toLowerCase())) { alert('Tên "'+newName+'" đã tồn tại'); return; }
+  p.name = newName;
+  // cập nhật các ví đang gán + toàn bộ lịch sử
+  teamWallets.forEach(w => {
+    if (w.player === oldName) w.player = newName;
+    (w.history||[]).forEach(h => { if (h.player === oldName) h.player = newName; });
+  });
+  await saveTeamData();
+  renderPlayerManager();
+  renderTeam();
+}
 
 async function togglePlayerActive(i) {
   const p = teamPlayers[i]; if (!p) return;
