@@ -5272,7 +5272,7 @@ async function loadTeamMvpPoints() {
   const wallets = teamWallets;
   if (!wallets || !wallets.length) return;
   window.teamWallets = teamWallets; // ensure global access
-  await Promise.all(wallets.map(async (w, idx) => {
+  await Promise.allSettled(wallets.map(async (w, idx) => {
     try {
       const [rows, crystalRows] = await Promise.all([
         fetchDailyData(w.address, MVP_LAUNCH),
@@ -5329,13 +5329,13 @@ async function loadTeamMvpPoints() {
       teamWallets[idx].mvpPoints = teamWallets[idx].mvpManual;
       teamWallets[idx].mvpTier   = getTier(teamWallets[idx].mvpManual);
     }
-    updateMvpCell(teamWallets[idx]);
+    try { updateMvpCell(teamWallets[idx]); } catch(e) { console.warn('updateMvpCell error', e.message); }
     setTimeout(updateWalletCountdowns,50);
   }));
-  renderTeam();
-  // Re-apply all MVP cells after final render
-  teamWallets.forEach(w => updateMvpCell(w));
-  if (typeof renderMvpSim === 'function') renderMvpSim();
+  // Luôn render lại bảng để hiển thị MVP dù có lỗi lẻ ở cell nào
+  try { renderTeam(); } catch(e) { console.warn('renderTeam after MVP error', e.message); }
+  try { teamWallets.forEach(w => { try { updateMvpCell(w); } catch(_){} }); } catch(_){}
+  if (typeof renderMvpSim === 'function') { try { renderMvpSim(); } catch(_){} }
 }
 
 // ══════════════ MVP SIMULATION TABLE ══════════════
