@@ -4768,7 +4768,7 @@ function buildWeeklyRows(allRows) {
   return rows;
 }
 
-function fmtDate(d) {
+function fmtDateTime(d) {
   return d.toISOString().slice(0,10) + ' ' + d.toISOString().slice(11,19);
 }
 
@@ -4803,8 +4803,8 @@ function renderMvpResult(address, rows, totalPts, label) {
             ${rows.map(r=>`
             <tr style="border-bottom:1px solid var(--border);opacity:${r.inWindow?'1':'0.4'};${r.isCurrentWeek?'background:var(--accent-glow)':''}">
               <td style="padding:7px 10px;text-align:center;color:var(--muted2)">${r.weekNum}</td>
-              <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodStart)}</td>
-              <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDate(r.periodEnd)}</td>
+              <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDateTime(r.periodStart)}</td>
+              <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDateTime(r.periodEnd)}</td>
               <td style="padding:7px 10px;text-align:right;font-weight:600">
                 ${r.inWindow ? `<span style="color:${r.enhance>=230000?'var(--green)':r.isCurrentWeek?'var(--amber)':'var(--muted2)'}">${f(r.enhance)}</span>${r.isCurrentWeek?`<div style="font-size:9px;color:var(--muted2)">${r.enhance>=230000?'✓ đủ 230k':'cần '+f(Math.max(0,230000-r.enhance))+' nữa'}</div>`:''}` : '<span style="color:var(--muted2)">—</span>'}
               </td>
