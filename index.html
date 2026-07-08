@@ -4773,7 +4773,10 @@ function fmtDateTime(d) {
 }
 
 function renderMvpResult(address, rows, totalPts, label) {
-  const f   = n => Math.round(n).toLocaleString('vi-VN');
+  const f    = n => Math.round(n).toLocaleString('vi-VN');
+  const tier = getTier(totalPts);
+  const next = getNextTier(totalPts);
+  const progPct = next ? Math.min(100, Math.max(0, (totalPts - tier.min) / (next.min - tier.min) * 100)) : 100;
 
   return `
     <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:var(--shadow)">
@@ -4782,13 +4785,35 @@ function renderMvpResult(address, rows, totalPts, label) {
           <div style="font-size:13px;font-weight:700;color:var(--text)">${label}</div>
           <div style="font-family:monospace;font-size:10px;color:var(--muted2)">${address}</div>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--muted2)">Current Tier</div>
+            <div style="font-size:15px;font-weight:800;color:${tier.color}">${tier.icon} ${tier.name}</div>
+          </div>
           <div style="text-align:center">
             <div style="font-size:10px;color:var(--muted2)">13W Points</div>
             <div style="font-size:22px;font-weight:800;color:var(--text)">${f(totalPts)}</div>
           </div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--muted2)">To Next</div>
+            <div style="font-size:15px;font-weight:800;color:var(--accent)">${next ? f(next.min - totalPts) : '—'}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--muted2)">Next Tier</div>
+            <div style="font-size:15px;font-weight:800;color:${next ? next.color : 'var(--muted2)'}">${next ? next.icon + ' ' + next.name : '🏆 Max'}</div>
+          </div>
         </div>
       </div>
+      ${next ? `<div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted2);margin-bottom:4px">
+          <span>${tier.icon} ${tier.name} (${f(tier.min)})</span>
+          <span>${next.icon} ${next.name} (${f(next.min)})</span>
+        </div>
+        <div style="height:8px;background:var(--surface);border:1px solid var(--border2);border-radius:5px;overflow:hidden">
+          <div style="height:100%;width:${progPct.toFixed(1)}%;background:${tier.color};border-radius:5px;transition:width .3s"></div>
+        </div>
+        <div style="text-align:right;font-size:9px;color:var(--muted2);margin-top:3px">${progPct.toFixed(0)}% · còn ${f(next.min - totalPts)} điểm lên ${next.name}</div>
+      </div>` : `<div style="margin-bottom:16px;font-size:11px;color:var(--amber);font-weight:700;text-align:center">🏆 Đã đạt tier cao nhất (${tier.name})</div>`}
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
