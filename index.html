@@ -851,6 +851,21 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="swapin-detail-body" style="display:none"></div>
       </div>
 
+      <!-- MVP DISTRIBUTION CHART -->
+      <div id="mvp-dist-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.7 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Phân bố MVP</span>
+            <span style="font-size:10px;color:var(--muted2)">Số ví theo từng hạng MVP — nhấp vào cột để xem danh sách ví</span>
+          </div>
+        </div>
+        <div id="mvp-dist-body" style="min-height:260px">
+          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu MVP...</div>
+        </div>
+        <div id="mvp-dist-detail" style="display:none;margin-top:14px"></div>
+      </div>
+
       </div>
     </div>
   </div>
@@ -1058,6 +1073,9 @@ function switchTab(t){
     loadClaimChart().catch(()=>{});
     loadSpendChart().catch(()=>{});
     loadSwapChart().catch(()=>{});
+  }
+  if (t==='flow' && typeof renderMvpDistChart==='function' && (teamWallets||[]).length) {
+    try { renderMvpDistChart(); } catch(_){}
   }
 }
 
@@ -5382,6 +5400,7 @@ async function loadTeamMvpPoints() {
   try { renderTeam(); } catch(e) { console.warn('renderTeam after MVP error', e.message); }
   try { teamWallets.forEach(w => { try { updateMvpCell(w); } catch(_){} }); } catch(_){}
   if (typeof renderMvpSim === 'function') { try { renderMvpSim(); } catch(_){} }
+  if (typeof renderMvpDistChart === 'function') { try { renderMvpDistChart(); } catch(_){} }
 }
 
 // ══════════════ MVP SIMULATION TABLE ══════════════
@@ -5401,6 +5420,156 @@ function simSort(col) {
   if (simSortCol === col) simSortDir = simSortDir==='desc'?'asc':'desc';
   else { simSortCol = col; simSortDir = 'desc'; }
   renderMvpSim();
+}
+
+// ══════════════ MVP DISTRIBUTION CHART (phân bố ví theo hạng) ══════════════
+let mvpDistBuckets = [];
+let mvpDistSelected = null;
+
+function computeMvpBuckets() {
+  const wallets = (teamWallets || []).map(w => {
+    const pts = (w.mvpPoints != null ? w.mvpPoints
+               : (w.mvpManual != null ? w.mvpManual : 0)) || 0;
+    return { w, pts };
+  });
+  const defs = [
+    { label:'Chưa farm',     icon:'🕳️', color:'var(--muted2)', sub:'0 điểm',   test:p=>p<=0 },
+    { label:'Đang tích luỹ', icon:'⏳', color:'#9a9aab',       sub:'0<MVP<30', test:p=>p>0 && p<30 },
+  ];
+  MVP_TIERS.filter(t=>t.name!=='Unranked').forEach(t=>{
+    defs.push({ label:t.name, icon:t.icon, color:t.color,
+      sub: t.max===Infinity ? ('≥'+t.min) : (t.min+'–'+t.max),
+      test:p=>p>=t.min && p<=t.max });
+  });
+  return defs.map(d => ({
+    label:d.label, icon:d.icon, color:d.color, sub:d.sub,
+    wallets: wallets.filter(x=>d.test(x.pts)).sort((a,b)=>b.pts-a.pts)
+  }));
+}
+
+function renderMvpDistChart() {
+  const wrap = document.getElementById('mvp-dist-wrap');
+  const body = document.getElementById('mvp-dist-body');
+  if (!wrap || !body) return;
+  if (!(teamWallets||[]).length) { wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+
+  mvpDistBuckets = computeMvpBuckets();
+  const counts = mvpDistBuckets.map(b=>b.wallets.length);
+  const totalW = counts.reduce((a,b)=>a+b,0);
+  const yMax   = Math.max(...counts, 1);
+
+  const padL=34, padR=12, padT=16, padB=66;
+  const n=mvpDistBuckets.length;
+  const innerW=Math.max(n*72, 320);
+  const W=padL+innerW+padR, H=284, chartH=H-padT-padB;
+  const bw=innerW/n, barW=Math.min(bw*0.56, 48);
+
+  let grid='';
+  const ticks=Math.min(yMax,5);
+  for (let i=0;i<=ticks;i++){
+    const gy=padT+chartH-(i/ticks)*chartH;
+    grid+=`<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
+    grid+=`<text x="${padL-7}" y="${gy+3}" text-anchor="end" font-size="8.5" fill="var(--muted2)" font-family="monospace">${Math.round(yMax*i/ticks)}</text>`;
+  }
+  grid+=`<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="var(--border3)" stroke-width="1.5"/>`;
+
+  let bars='';
+  mvpDistBuckets.forEach((b,i)=>{
+    const v=b.wallets.length;
+    const h=(v/yMax)*chartH;
+    const x=padL+i*bw+(bw-barW)/2;
+    const y=padT+chartH-h;
+    const sel=mvpDistSelected===i;
+    bars+=`<g class="mvpdist-bar" data-bi="${i}" style="cursor:pointer">
+      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h, v>0?3:0)}" rx="4" fill="${b.color}" opacity="${sel?'1':(v>0?'0.82':'0.35')}" stroke="${sel?'var(--text)':'none'}" stroke-width="${sel?'1.5':'0'}"/>
+      <text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="10" fill="${sel?'var(--text)':'var(--text2)'}" font-family="monospace" font-weight="700">${v||''}</text>
+      <text x="${x+barW/2}" y="${H-padB+17}" text-anchor="middle" font-size="13">${b.icon}</text>
+      <text x="${x+barW/2}" y="${H-padB+31}" text-anchor="middle" font-size="9" fill="${sel?'var(--text)':'var(--muted2)'}" font-family="monospace" font-weight="${sel?'700':'500'}">${b.label}</text>
+      <text x="${x+barW/2}" y="${H-padB+42}" text-anchor="middle" font-size="7.5" fill="var(--muted2)" font-family="monospace">${b.sub}</text>
+      <rect x="${padL+i*bw}" y="${padT}" width="${bw}" height="${chartH+padB-10}" fill="transparent" data-bi="${i}"/>
+    </g>`;
+  });
+
+  const isTier = l => ['Bronze','Silver','Gold','Diamond','Black'].includes(l);
+  const achieved = mvpDistBuckets.filter(b=>isTier(b.label)).reduce((s,b)=>s+b.wallets.length,0);
+  const accumulating = (mvpDistBuckets.find(b=>b.label==='Đang tích luỹ')||{wallets:[]}).wallets.length;
+  const idle = (mvpDistBuckets.find(b=>b.label==='Chưa farm')||{wallets:[]}).wallets.length;
+  const stat=(lbl,v,color)=>`<div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">${lbl}</div><div style="font-size:16px;font-weight:800;color:${color};margin-top:2px">${v}</div></div>`;
+
+  body.innerHTML = `
+    <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
+      ${stat('Tổng ví', totalW, 'var(--text)')}
+      ${stat('Đã đạt (Bronze+)', achieved, 'var(--green)')}
+      ${stat('Đang tích luỹ', accumulating, '#9a9aab')}
+      ${stat('Chưa farm', idle, 'var(--muted2)')}
+    </div>
+    <div id="mvpdist-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
+      <svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg>
+    </div>
+    <div style="font-size:10px;color:var(--muted2);margin-top:8px;text-align:center">↑ Nhấp vào cột để xem danh sách ví trong hạng đó</div>`;
+
+  body.querySelectorAll('.mvpdist-bar').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const bi=+el.getAttribute('data-bi');
+      mvpDistSelected = (mvpDistSelected===bi ? null : bi);
+      renderMvpDistChart();
+    });
+  });
+
+  renderMvpDistDetail();
+}
+
+function renderMvpDistDetail() {
+  const det = document.getElementById('mvp-dist-detail');
+  if (!det) return;
+  if (mvpDistSelected==null || !mvpDistBuckets[mvpDistSelected]) { det.style.display='none'; det.innerHTML=''; return; }
+  const b = mvpDistBuckets[mvpDistSelected];
+  det.style.display='block';
+  const short = a => a.slice(0,6)+'…'+a.slice(-4);
+  const f = n => Math.round(n).toLocaleString('vi-VN');
+  const headBg = (b.color==='var(--muted2)') ? 'var(--subtle)' : b.color+'14';
+  const headFg = (b.color==='var(--muted2)') ? 'var(--text)' : b.color;
+
+  if (!b.wallets.length) {
+    det.innerHTML = `<div style="border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center;color:var(--muted2);font-size:12px">Không có ví nào trong hạng <b style="color:${headFg}">${b.icon} ${b.label}</b></div>`;
+    return;
+  }
+  const rows = b.wallets.map((x,i)=>{
+    const w=x.w;
+    const player = (typeof teamPlayers!=='undefined' && w.player) ? teamPlayers.find(p=>p.name===w.player) : null;
+    const playerCell = player ? `<span style="color:${player.color||'var(--text2)'}">${player.icon||''} ${player.name}</span>` : '<span style="color:var(--muted2)">—</span>';
+    const next = (typeof getNextTier==='function') ? getNextTier(x.pts) : null;
+    return `<tr style="border-top:1px solid var(--border2)">
+      <td style="padding:7px 10px;color:var(--muted2);font-family:monospace">${i+1}</td>
+      <td style="padding:7px 10px;font-weight:600;color:var(--text)">${w.label||short(w.address)}</td>
+      <td style="padding:7px 10px;font-family:monospace;font-size:11px;color:var(--muted2)">${short(w.address)} <span onclick="navigator.clipboard.writeText('${w.address}')" style="cursor:pointer;color:var(--accent)" title="Copy địa chỉ">⎘</span></td>
+      <td style="padding:7px 10px">${playerCell}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:800;color:${headFg}">${f(x.pts)}</td>
+      <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--muted2)">${next?('còn '+f(next.min-x.pts)+' → '+next.icon+' '+next.name):'—'}</td>
+    </tr>`;
+  }).join('');
+
+  det.innerHTML = `
+    <div style="border:1px solid var(--border2);border-radius:12px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:${headBg};border-bottom:1px solid var(--border2)">
+        <span style="font-size:12px;font-weight:800;color:${headFg}">${b.icon} ${b.label} · ${b.wallets.length} ví</span>
+        <span onclick="mvpDistSelected=null;renderMvpDistChart()" style="cursor:pointer;font-size:11px;color:var(--muted2)">✕ Đóng</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px">
+          <thead><tr style="background:var(--surface)">
+            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">#</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">Tên ví</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">Địa chỉ</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">Player</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase">Điểm 13W</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase">Lên hạng kế</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function renderMvpSim() {
