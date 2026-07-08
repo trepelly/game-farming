@@ -755,6 +755,36 @@ td:first-child{text-align:left;color:var(--muted2)}
         </table>
       </div>
 
+      <!-- MVP DISTRIBUTION CHART -->
+      <div id="mvp-dist-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:8px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.7 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Phân bố MVP</span>
+            <span style="font-size:10px;color:var(--muted2)">Số ví theo từng hạng MVP — nhấp vào cột để xem danh sách ví</span>
+          </div>
+        </div>
+        <div id="mvp-dist-body" style="min-height:260px">
+          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu MVP...</div>
+        </div>
+        <div id="mvp-dist-detail" style="display:none;margin-top:14px"></div>
+      </div>
+
+      <!-- NESO SUFFICIENCY CHART (đủ/thiếu NESO để đạt Bronze) -->
+      <div id="neso-suf-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 7h20M2 17h20"/><circle cx="12" cy="12" r="3"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">NESO để đạt MVP</span>
+            <span style="font-size:10px;color:var(--muted2)">Ví chưa đạt Bronze — đủ hay thiếu NESO để đạt · nhấp cột để xem danh sách</span>
+          </div>
+        </div>
+        <div id="neso-suf-body" style="min-height:240px">
+          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu...</div>
+        </div>
+        <div id="neso-suf-detail" style="display:none;margin-top:14px"></div>
+      </div>
+
       <!-- NESO CLAIM CHART -->
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -849,21 +879,6 @@ td:first-child{text-align:left;color:var(--muted2)}
           <button id="swapin-detail-btn" onclick="toggleChartDetail('swapin')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
         <div id="swapin-detail-body" style="display:none"></div>
-      </div>
-
-      <!-- MVP DISTRIBUTION CHART -->
-      <div id="mvp-dist-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.7 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg></span>
-            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Phân bố MVP</span>
-            <span style="font-size:10px;color:var(--muted2)">Số ví theo từng hạng MVP — nhấp vào cột để xem danh sách ví</span>
-          </div>
-        </div>
-        <div id="mvp-dist-body" style="min-height:260px">
-          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu MVP...</div>
-        </div>
-        <div id="mvp-dist-detail" style="display:none;margin-top:14px"></div>
       </div>
 
       </div>
@@ -1074,8 +1089,8 @@ function switchTab(t){
     loadSpendChart().catch(()=>{});
     loadSwapChart().catch(()=>{});
   }
-  if (t==='flow' && typeof renderMvpDistChart==='function' && (teamWallets||[]).length) {
-    try { renderMvpDistChart(); } catch(_){}
+  if (t==='team' && typeof renderMvpDistChart==='function' && (teamWallets||[]).length) {
+    try { renderMvpDistChart(); renderNesoSufChart(); } catch(_){}
   }
 }
 
@@ -5400,7 +5415,7 @@ async function loadTeamMvpPoints() {
   try { renderTeam(); } catch(e) { console.warn('renderTeam after MVP error', e.message); }
   try { teamWallets.forEach(w => { try { updateMvpCell(w); } catch(_){} }); } catch(_){}
   if (typeof renderMvpSim === 'function') { try { renderMvpSim(); } catch(_){} }
-  if (typeof renderMvpDistChart === 'function') { try { renderMvpDistChart(); } catch(_){} }
+  if (typeof renderMvpDistChart === 'function') { try { renderMvpDistChart(); renderNesoSufChart(); } catch(_){} }
 }
 
 // ══════════════ MVP SIMULATION TABLE ══════════════
@@ -5422,16 +5437,53 @@ function simSort(col) {
   renderMvpSim();
 }
 
-// ══════════════ MVP DISTRIBUTION CHART (phân bố ví theo hạng) ══════════════
+// ══════════════ MVP / NESO DISTRIBUTION CHARTS ══════════════
 let mvpDistBuckets = [];
 let mvpDistSelected = null;
+let nesoSufSelected = null;   // 'enough' | 'short' | null
+let _mvpTbl = { el:null, wallets:[], title:'', color:'', sortCol:'pts', sortDir:'desc' };
+
+function mvpPtsOf(w){ return (w.mvpPoints!=null ? w.mvpPoints : (w.mvpManual!=null ? w.mvpManual : 0)) || 0; }
+function mvpNesoNeed(w){ return Math.max(0, (30 - mvpPtsOf(w)) * 100000); }      // NESO cần để đạt Bronze
+function mvpNesoDeficit(w){ return Math.max(0, mvpNesoNeed(w) - (w.neso||0)); }   // NESO còn thiếu
+
+function _mvpBarSvg(buckets, selIdx, barClass) {
+  const counts = buckets.map(b=>b.wallets.length);
+  const yMax = Math.max(...counts, 1);
+  const padL=34, padR=12, padT=16, padB=66;
+  const n=buckets.length;
+  const innerW=Math.max(n*(n<=2?120:72), 300);
+  const W=padL+innerW+padR, H=284, chartH=H-padT-padB;
+  const bw=innerW/n, barW=Math.min(bw*0.5, 54);
+  let grid='';
+  const ticks=Math.min(yMax,5);
+  for (let i=0;i<=ticks;i++){
+    const gy=padT+chartH-(i/ticks)*chartH;
+    grid+=`<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
+    grid+=`<text x="${padL-7}" y="${gy+3}" text-anchor="end" font-size="8.5" fill="var(--muted2)" font-family="monospace">${Math.round(yMax*i/ticks)}</text>`;
+  }
+  grid+=`<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="var(--border3)" stroke-width="1.5"/>`;
+  let bars='';
+  buckets.forEach((b,i)=>{
+    const v=b.wallets.length;
+    const h=(v/yMax)*chartH;
+    const x=padL+i*bw+(bw-barW)/2;
+    const y=padT+chartH-h;
+    const sel=selIdx===i;
+    bars+=`<g class="${barClass}" data-bi="${i}" style="cursor:pointer">
+      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h, v>0?3:0)}" rx="4" fill="${b.color}" opacity="${sel?'1':(v>0?'0.82':'0.35')}" stroke="${sel?'var(--text)':'none'}" stroke-width="${sel?'1.5':'0'}"/>
+      <text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="10" fill="${sel?'var(--text)':'var(--text2)'}" font-family="monospace" font-weight="700">${v||''}</text>
+      <text x="${x+barW/2}" y="${H-padB+17}" text-anchor="middle" font-size="14">${b.icon}</text>
+      <text x="${x+barW/2}" y="${H-padB+31}" text-anchor="middle" font-size="9.5" fill="${sel?'var(--text)':'var(--muted2)'}" font-family="monospace" font-weight="${sel?'700':'500'}">${b.label}</text>
+      <text x="${x+barW/2}" y="${H-padB+42}" text-anchor="middle" font-size="7.5" fill="var(--muted2)" font-family="monospace">${b.sub||''}</text>
+      <rect x="${padL+i*bw}" y="${padT}" width="${bw}" height="${chartH+padB-10}" fill="transparent" data-bi="${i}"/>
+    </g>`;
+  });
+  return `<div style="overflow-x:auto;padding-bottom:4px"><svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg></div>`;
+}
 
 function computeMvpBuckets() {
-  const wallets = (teamWallets || []).map(w => {
-    const pts = (w.mvpPoints != null ? w.mvpPoints
-               : (w.mvpManual != null ? w.mvpManual : 0)) || 0;
-    return { w, pts };
-  });
+  const ws = (teamWallets || []).slice();
   const defs = [
     { label:'Chưa farm',     icon:'🕳️', color:'var(--muted2)', sub:'0 điểm',   test:p=>p<=0 },
     { label:'Đang tích luỹ', icon:'⏳', color:'#9a9aab',       sub:'0<MVP<30', test:p=>p>0 && p<30 },
@@ -5441,130 +5493,142 @@ function computeMvpBuckets() {
       sub: t.max===Infinity ? ('≥'+t.min) : (t.min+'–'+t.max),
       test:p=>p>=t.min && p<=t.max });
   });
-  return defs.map(d => ({
-    label:d.label, icon:d.icon, color:d.color, sub:d.sub,
-    wallets: wallets.filter(x=>d.test(x.pts)).sort((a,b)=>b.pts-a.pts)
-  }));
+  return defs.map(d => ({ label:d.label, icon:d.icon, color:d.color, sub:d.sub,
+    wallets: ws.filter(w=>d.test(mvpPtsOf(w))) }));
 }
 
 function renderMvpDistChart() {
-  const wrap = document.getElementById('mvp-dist-wrap');
-  const body = document.getElementById('mvp-dist-body');
-  if (!wrap || !body) return;
-  if (!(teamWallets||[]).length) { wrap.style.display='none'; return; }
-  wrap.style.display = 'block';
-
+  const wrap=document.getElementById('mvp-dist-wrap'), body=document.getElementById('mvp-dist-body');
+  if(!wrap||!body) return;
+  if(!(teamWallets||[]).length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
   mvpDistBuckets = computeMvpBuckets();
-  const counts = mvpDistBuckets.map(b=>b.wallets.length);
-  const totalW = counts.reduce((a,b)=>a+b,0);
-  const yMax   = Math.max(...counts, 1);
-
-  const padL=34, padR=12, padT=16, padB=66;
-  const n=mvpDistBuckets.length;
-  const innerW=Math.max(n*72, 320);
-  const W=padL+innerW+padR, H=284, chartH=H-padT-padB;
-  const bw=innerW/n, barW=Math.min(bw*0.56, 48);
-
-  let grid='';
-  const ticks=Math.min(yMax,5);
-  for (let i=0;i<=ticks;i++){
-    const gy=padT+chartH-(i/ticks)*chartH;
-    grid+=`<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
-    grid+=`<text x="${padL-7}" y="${gy+3}" text-anchor="end" font-size="8.5" fill="var(--muted2)" font-family="monospace">${Math.round(yMax*i/ticks)}</text>`;
-  }
-  grid+=`<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="var(--border3)" stroke-width="1.5"/>`;
-
-  let bars='';
-  mvpDistBuckets.forEach((b,i)=>{
-    const v=b.wallets.length;
-    const h=(v/yMax)*chartH;
-    const x=padL+i*bw+(bw-barW)/2;
-    const y=padT+chartH-h;
-    const sel=mvpDistSelected===i;
-    bars+=`<g class="mvpdist-bar" data-bi="${i}" style="cursor:pointer">
-      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h, v>0?3:0)}" rx="4" fill="${b.color}" opacity="${sel?'1':(v>0?'0.82':'0.35')}" stroke="${sel?'var(--text)':'none'}" stroke-width="${sel?'1.5':'0'}"/>
-      <text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="10" fill="${sel?'var(--text)':'var(--text2)'}" font-family="monospace" font-weight="700">${v||''}</text>
-      <text x="${x+barW/2}" y="${H-padB+17}" text-anchor="middle" font-size="13">${b.icon}</text>
-      <text x="${x+barW/2}" y="${H-padB+31}" text-anchor="middle" font-size="9" fill="${sel?'var(--text)':'var(--muted2)'}" font-family="monospace" font-weight="${sel?'700':'500'}">${b.label}</text>
-      <text x="${x+barW/2}" y="${H-padB+42}" text-anchor="middle" font-size="7.5" fill="var(--muted2)" font-family="monospace">${b.sub}</text>
-      <rect x="${padL+i*bw}" y="${padT}" width="${bw}" height="${chartH+padB-10}" fill="transparent" data-bi="${i}"/>
-    </g>`;
-  });
-
-  const isTier = l => ['Bronze','Silver','Gold','Diamond','Black'].includes(l);
-  const achieved = mvpDistBuckets.filter(b=>isTier(b.label)).reduce((s,b)=>s+b.wallets.length,0);
-  const accumulating = (mvpDistBuckets.find(b=>b.label==='Đang tích luỹ')||{wallets:[]}).wallets.length;
-  const idle = (mvpDistBuckets.find(b=>b.label==='Chưa farm')||{wallets:[]}).wallets.length;
+  const totalW=mvpDistBuckets.reduce((s,b)=>s+b.wallets.length,0);
+  const isTier=l=>['Bronze','Silver','Gold','Diamond','Black'].includes(l);
+  const achieved=mvpDistBuckets.filter(b=>isTier(b.label)).reduce((s,b)=>s+b.wallets.length,0);
+  const accumulating=(mvpDistBuckets.find(b=>b.label==='Đang tích luỹ')||{wallets:[]}).wallets.length;
+  const idle=(mvpDistBuckets.find(b=>b.label==='Chưa farm')||{wallets:[]}).wallets.length;
   const stat=(lbl,v,color)=>`<div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">${lbl}</div><div style="font-size:16px;font-weight:800;color:${color};margin-top:2px">${v}</div></div>`;
-
-  body.innerHTML = `
+  body.innerHTML=`
     <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
       ${stat('Tổng ví', totalW, 'var(--text)')}
       ${stat('Đã đạt (Bronze+)', achieved, 'var(--green)')}
       ${stat('Đang tích luỹ', accumulating, '#9a9aab')}
       ${stat('Chưa farm', idle, 'var(--muted2)')}
     </div>
-    <div id="mvpdist-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
-      <svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg>
-    </div>
+    ${_mvpBarSvg(mvpDistBuckets, mvpDistSelected, 'mvpdist-bar')}
     <div style="font-size:10px;color:var(--muted2);margin-top:8px;text-align:center">↑ Nhấp vào cột để xem danh sách ví trong hạng đó</div>`;
-
   body.querySelectorAll('.mvpdist-bar').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const bi=+el.getAttribute('data-bi');
-      mvpDistSelected = (mvpDistSelected===bi ? null : bi);
-      renderMvpDistChart();
-    });
+    el.addEventListener('click',()=>{ const bi=+el.getAttribute('data-bi'); mvpDistSelected=(mvpDistSelected===bi?null:bi); renderMvpDistChart(); });
   });
-
-  renderMvpDistDetail();
+  const det=document.getElementById('mvp-dist-detail');
+  if(mvpDistSelected!=null && mvpDistBuckets[mvpDistSelected]){
+    const b=mvpDistBuckets[mvpDistSelected];
+    renderMvpWalletTable(det, b.wallets, b.icon+' '+b.label, b.color==='var(--muted2)'?'var(--text)':b.color);
+  } else if(det){ det.style.display='none'; det.innerHTML=''; }
 }
 
-function renderMvpDistDetail() {
-  const det = document.getElementById('mvp-dist-detail');
-  if (!det) return;
-  if (mvpDistSelected==null || !mvpDistBuckets[mvpDistSelected]) { det.style.display='none'; det.innerHTML=''; return; }
-  const b = mvpDistBuckets[mvpDistSelected];
-  det.style.display='block';
-  const short = a => a.slice(0,6)+'…'+a.slice(-4);
-  const f = n => Math.round(n).toLocaleString('vi-VN');
-  const headBg = (b.color==='var(--muted2)') ? 'var(--subtle)' : b.color+'14';
-  const headFg = (b.color==='var(--muted2)') ? 'var(--text)' : b.color;
+function computeNesoSuf() {
+  const base = (teamWallets||[]).filter(w => mvpPtsOf(w) < 30 && w.neso != null);
+  const enough = base.filter(w => (w.neso||0) >= mvpNesoNeed(w));
+  const short  = base.filter(w => (w.neso||0) <  mvpNesoNeed(w));
+  return { base, enough, short };
+}
 
-  if (!b.wallets.length) {
-    det.innerHTML = `<div style="border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center;color:var(--muted2);font-size:12px">Không có ví nào trong hạng <b style="color:${headFg}">${b.icon} ${b.label}</b></div>`;
+function renderNesoSufChart() {
+  const wrap=document.getElementById('neso-suf-wrap'), body=document.getElementById('neso-suf-body');
+  if(!wrap||!body) return;
+  if(!(teamWallets||[]).length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  const {base, enough, short} = computeNesoSuf();
+  const groups=[
+    { key:'enough', label:'Đủ NESO',    icon:'✅', color:'var(--green)', sub:'left ≥ 0', wallets:enough },
+    { key:'short',  label:'Thiếu NESO', icon:'⚠️', color:'var(--red)',   sub:'left < 0', wallets:short  },
+  ];
+  const selIdx = nesoSufSelected==='enough'?0 : nesoSufSelected==='short'?1 : null;
+  const f=n=>Math.round(n||0).toLocaleString('vi-VN');
+  const totalDeficit = short.reduce((s,w)=>s+mvpNesoDeficit(w),0);
+  const stat=(lbl,v,color)=>`<div><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">${lbl}</div><div style="font-size:16px;font-weight:800;color:${color};margin-top:2px">${v}</div></div>`;
+  body.innerHTML=`
+    <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
+      ${stat('Ví chưa Bronze', base.length, 'var(--text)')}
+      ${stat('Đủ NESO', enough.length, 'var(--green)')}
+      ${stat('Thiếu NESO', short.length, 'var(--red)')}
+      ${stat('Tổng NESO còn thiếu', f(totalDeficit), 'var(--red)')}
+    </div>
+    ${_mvpBarSvg(groups, selIdx, 'nesosuf-bar')}
+    <div style="font-size:10px;color:var(--muted2);margin-top:8px;text-align:center">↑ Nhấp vào cột để xem danh sách ví</div>`;
+  body.querySelectorAll('.nesosuf-bar').forEach(el=>{
+    el.addEventListener('click',()=>{ const bi=+el.getAttribute('data-bi'); const k=groups[bi].key; nesoSufSelected=(nesoSufSelected===k?null:k); renderNesoSufChart(); });
+  });
+  const det=document.getElementById('neso-suf-detail');
+  if(selIdx!=null){
+    const g=groups[selIdx];
+    renderMvpWalletTable(det, g.wallets, g.icon+' '+g.label, g.color);
+  } else if(det){ det.style.display='none'; det.innerHTML=''; }
+}
+
+// ── Bảng ví dùng chung, có sort cột ──
+function renderMvpWalletTable(el, wallets, title, color) {
+  _mvpTbl = { el, wallets: wallets.slice(), title, color, sortCol:_mvpTbl.sortCol, sortDir:_mvpTbl.sortDir };
+  _drawMvpTable();
+}
+function sortMvpTable(col){
+  if(_mvpTbl.sortCol===col) _mvpTbl.sortDir = _mvpTbl.sortDir==='desc'?'asc':'desc';
+  else { _mvpTbl.sortCol=col; _mvpTbl.sortDir = col==='label'?'asc':'desc'; }
+  _drawMvpTable();
+}
+function _mvpCloseTable(){
+  mvpDistSelected=null; nesoSufSelected=null;
+  renderMvpDistChart(); renderNesoSufChart();
+}
+function _drawMvpTable(){
+  const { el, wallets, title, color, sortCol, sortDir } = _mvpTbl;
+  if(!el) return;
+  el.style.display='block';
+  const f=n=>Math.round(n||0).toLocaleString('vi-VN');
+  const short=a=>a?a.slice(0,6)+'…'+a.slice(-4):'—';
+  if(!wallets.length){
+    el.innerHTML=`<div style="border:1px solid var(--border2);border-radius:12px;padding:16px;text-align:center;color:var(--muted2);font-size:12px">Không có ví nào trong nhóm <b style="color:${color}">${title}</b></div>`;
     return;
   }
-  const rows = b.wallets.map((x,i)=>{
-    const w=x.w;
-    const player = (typeof teamPlayers!=='undefined' && w.player) ? teamPlayers.find(p=>p.name===w.player) : null;
-    const playerCell = player ? `<span style="color:${player.color||'var(--text2)'}">${player.icon||''} ${player.name}</span>` : '<span style="color:var(--muted2)">—</span>';
-    const next = (typeof getNextTier==='function') ? getNextTier(x.pts) : null;
+  const keyFn={
+    label:w=>(w.label||'').toLowerCase(),
+    pts:w=>mvpPtsOf(w),
+    have:w=>w.neso??-1,
+    deficit:w=>mvpNesoDeficit(w),
+  }[sortCol]||(w=>mvpPtsOf(w));
+  const sorted=wallets.slice().sort((a,b)=>{ const va=keyFn(a),vb=keyFn(b); const c=(typeof va==='string')?va.localeCompare(vb):(va-vb); return sortDir==='desc'?-c:c; });
+  const arrow=c=>sortCol===c?(sortDir==='desc'?' ↓':' ↑'):'';
+  const thS=(c,lbl,align)=>`<th onclick="sortMvpTable('${c}')" style="padding:8px 10px;text-align:${align};color:${sortCol===c?'var(--text)':'var(--muted2)'};font-size:10px;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap">${lbl}${arrow(c)}</th>`;
+  const thP=(lbl,align)=>`<th style="padding:8px 10px;text-align:${align};color:var(--muted2);font-size:10px;text-transform:uppercase;white-space:nowrap">${lbl}</th>`;
+  const rows=sorted.map((w,i)=>{
+    const pts=mvpPtsOf(w);
+    const player=(typeof teamPlayers!=='undefined'&&w.player)?teamPlayers.find(p=>p.name===w.player):null;
+    const playerCell=player?`<span style="color:${player.color||'var(--text2)'}">${player.icon||''} ${player.name}</span>`:'<span style="color:var(--muted2)">—</span>';
+    const next=(typeof getNextTier==='function')?getNextTier(pts):null;
+    const deficit=mvpNesoDeficit(w);
     return `<tr style="border-top:1px solid var(--border2)">
       <td style="padding:7px 10px;color:var(--muted2);font-family:monospace">${i+1}</td>
       <td style="padding:7px 10px;font-weight:600;color:var(--text)">${w.label||short(w.address)}</td>
       <td style="padding:7px 10px;font-family:monospace;font-size:11px;color:var(--muted2)">${short(w.address)} <span onclick="navigator.clipboard.writeText('${w.address}')" style="cursor:pointer;color:var(--accent)" title="Copy địa chỉ">⎘</span></td>
       <td style="padding:7px 10px">${playerCell}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:800;color:${headFg}">${f(x.pts)}</td>
-      <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--muted2)">${next?('còn '+f(next.min-x.pts)+' → '+next.icon+' '+next.name):'—'}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:800;color:${color==='var(--muted2)'?'var(--text)':color}">${f(pts)}</td>
+      <td style="padding:7px 10px;text-align:right;color:var(--green);font-weight:600">${w.neso!=null?f(w.neso):'—'}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:${deficit>0?'var(--red)':'var(--green)'}">${deficit>0?f(deficit):'✓ đủ'}</td>
+      <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--muted2)">${next?('còn '+f(next.min-pts)+' → '+next.icon+' '+next.name):'—'}</td>
     </tr>`;
   }).join('');
-
-  det.innerHTML = `
+  el.innerHTML=`
     <div style="border:1px solid var(--border2);border-radius:12px;overflow:hidden">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:${headBg};border-bottom:1px solid var(--border2)">
-        <span style="font-size:12px;font-weight:800;color:${headFg}">${b.icon} ${b.label} · ${b.wallets.length} ví</span>
-        <span onclick="mvpDistSelected=null;renderMvpDistChart()" style="cursor:pointer;font-size:11px;color:var(--muted2)">✕ Đóng</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--surface);border-bottom:1px solid var(--border2)">
+        <span style="font-size:12px;font-weight:800;color:${color==='var(--muted2)'?'var(--text)':color}">${title} · ${wallets.length} ví</span>
+        <span onclick="_mvpCloseTable()" style="cursor:pointer;font-size:11px;color:var(--muted2)">✕ Đóng</span>
       </div>
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:700px">
           <thead><tr style="background:var(--surface)">
-            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">#</th>
-            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">Tên ví</th>
-            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">Địa chỉ</th>
-            <th style="padding:8px 10px;text-align:left;color:var(--muted2);font-size:10px;text-transform:uppercase">Player</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase">Điểm 13W</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase">Lên hạng kế</th>
+            ${thP('#','left')}${thS('label','Tên ví','left')}${thP('Địa chỉ','left')}${thP('Player','left')}${thS('pts','Điểm 13W','right')}${thS('have','NESO hiện có','right')}${thS('deficit','NESO còn thiếu','right')}${thP('Lên hạng kế','right')}
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
