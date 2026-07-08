@@ -4823,6 +4823,7 @@ function renderMvpResult(address, rows, totalPts, label) {
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Giá trị MVP/tuần</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Weekly Points</th>
             <th style="padding:8px 10px;text-align:right;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">13W Cumulative</th>
+            <th style="padding:8px 10px;text-align:center;color:var(--muted2);font-size:10px;text-transform:uppercase;letter-spacing:.08em">Tier (cuối tuần)</th>
           </tr></thead>
           <tbody>
             ${rows.map(r=>`
@@ -4835,6 +4836,7 @@ function renderMvpResult(address, rows, totalPts, label) {
               </td>
               <td style="padding:7px 10px;text-align:right;color:${r.weeklyPoints>0?'var(--green)':'var(--muted2)'}">${f(r.weeklyPoints)}</td>
               <td style="padding:7px 10px;text-align:right;font-weight:600">${f(r.cumulativePoints)}</td>
+              <td style="padding:7px 10px;text-align:center;font-weight:700;color:${r.tier.color}">${r.inWindow ? r.tier.icon+' '+r.tier.name : '<span style=\"color:var(--muted2)\">—</span>'}</td>
             </tr>`).join('')}
           </tbody>
         </table>
