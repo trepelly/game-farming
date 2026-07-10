@@ -5579,7 +5579,12 @@ function sortMvpTable(col){
   else { _mvpTbl.sortCol=col; _mvpTbl.sortDir = col==='label'?'asc':'desc'; }
   _drawMvpTable();
 }
-function _mvpCloseTable(){ mvpDistSelected=null; renderMvpDistChart(); }
+function _mvpCloseTable(){
+  if(_mvpTbl && _mvpTbl.el){ _mvpTbl.el.style.display='none'; _mvpTbl.el.innerHTML=''; }
+  if(_mvpTbl) _mvpTbl.el=null;
+  mvpDistSelected=null;
+  if(typeof renderMvpDistChart==='function'){ try{ renderMvpDistChart(); }catch(_){} }
+}
 function _drawMvpTable(){
   const { el, wallets, title, color, sortCol, sortDir } = _mvpTbl;
   if(!el) return;
