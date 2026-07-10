@@ -409,7 +409,6 @@ td:first-child{text-align:left;color:var(--muted2)}
       <button class="tab" onclick="switchTab('mvp')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span><span class="tab-text">MVP Status</span></button>
       <button class="tab" onclick="switchTab('flow')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="tab-text">NESO Flow</span></button>
       <button class="tab" onclick="switchTab('team')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="tab-text">Team Wallet</span></button>
-      <button class="tab viewall-only" style="display:none" onclick="switchTab('players')"><span class="tab-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/></svg></span><span class="tab-text">Tổng hợp NC</span></button>
     </div>
   </div>
   <div class="main-content">
@@ -756,6 +755,24 @@ td:first-child{text-align:left;color:var(--muted2)}
         </table>
       </div>
 
+      <!-- TỔNG HỢP NGƯỜI CHƠI (admin / view-all) — ngay dưới danh sách ví -->
+      <div id="player-summary-wrap" class="viewall-only" style="display:none;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 20px;box-shadow:var(--shadow);margin-top:20px">
+        <div onclick="togglePlayerSummary()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="color:var(--text);display:inline-flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text)">Tổng hợp người chơi</span>
+            <span style="font-size:10px;color:var(--muted2)">gom chỉ số theo từng người · nhấp tên để xem ví</span>
+          </div>
+          <span id="player-summary-caret" style="color:var(--muted2);font-size:12px">▼</span>
+        </div>
+        <div id="player-summary-collapse" style="margin-top:14px">
+          <div id="player-summary-body">
+            <div style="text-align:center;padding:40px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu...</div>
+          </div>
+          <div id="player-detail" style="display:none;margin-top:16px"></div>
+        </div>
+      </div>
+
       <!-- MVP DISTRIBUTION CHART (gộp: phân bố hạng + đủ/thiếu NESO) -->
       <div id="mvp-dist-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:8px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -977,16 +994,6 @@ td:first-child{text-align:left;color:var(--muted2)}
     </div>
   </div>
 
-  <!-- PANEL 7: PLAYER SUMMARY (admin / view-all only) -->
-  <div id="panel-players" class="panel">
-    <div class="section-label">Tổng hợp người chơi</div>
-    <div style="font-size:12px;color:var(--muted2);margin-bottom:16px">Chỉ số gom theo từng người chơi — chỉ admin và thành viên có quyền xem tất cả mới thấy tab này. Nhấp tên người chơi để xem chi tiết ví.</div>
-    <div id="player-summary-body">
-      <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đăng nhập ở tab Team Wallet để xem dữ liệu.</div>
-    </div>
-    <div id="player-detail" style="display:none;margin-top:16px"></div>
-  </div>
-
   </div><!-- end main-content -->
   </div><!-- end app-layout -->
 </div>
@@ -1076,8 +1083,7 @@ function makeChart(id,cfg){
 }
 
 function switchTab(t){
-  if (t==='players' && !(teamUser && (teamUser.role==='admin' || teamUser.viewAll))) { t='team'; }
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet','mvp','flow','team','players'][i]===t));
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['farm','target','wallet','mvp','flow','team'][i]===t));
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
   // Khi vào Team Wallet: nếu có ví mà chart chưa load thì load
@@ -1088,9 +1094,7 @@ function switchTab(t){
   }
   if (t==='team' && typeof renderMvpDistChart==='function' && (teamWallets||[]).length) {
     try { renderMvpDistChart(); } catch(_){}
-  }
-  if (t==='players' && typeof renderPlayerSummary==='function') {
-    try { renderPlayerSummary(); } catch(_){}
+    if (typeof renderPlayerSummary==='function') { try { renderPlayerSummary(); } catch(_){} }
   }
 }
 
@@ -2157,7 +2161,6 @@ async function unlockTeam() {
 function lockTeam() {
   teamUser = null;
   document.querySelectorAll('.viewall-only').forEach(el => el.style.display = 'none');
-  if (document.getElementById('panel-players')?.classList.contains('active')) { try { switchTab('team'); } catch(_){} }
   document.getElementById('team-lock').style.display    = 'block';
   document.getElementById('team-content').style.display = 'none';
   document.getElementById('team-username').value = '';
@@ -5665,6 +5668,15 @@ let playerSummarySort = { col:'points', dir:'desc' };
 
 function _canViewAll(){ return !!(teamUser && (teamUser.role==='admin' || teamUser.viewAll)); }
 
+function togglePlayerSummary(){
+  const c=document.getElementById('player-summary-collapse');
+  const caret=document.getElementById('player-summary-caret');
+  if(!c) return;
+  const hidden = c.style.display==='none';
+  c.style.display = hidden ? '' : 'none';
+  if(caret) caret.textContent = hidden ? '▼' : '▶';
+}
+
 function computePlayerStats(){
   const ws = teamWallets || [];
   const map = new Map();
@@ -5680,7 +5692,10 @@ function computePlayerStats(){
     const have = wl.reduce((a,w)=>a+(w.neso!=null?w.neso:0),0);
     const deficit = wl.reduce((a,w)=>a+mvpNesoDeficit(w),0);
     const left = wl.reduce((a,w)=>{ const l=(w.neso||0)-mvpNesoNeed(w); return a+(l>=0?l:0); },0);
-    rows.push({ name:key, isNone:key==='__none__', wallets:wl, count:wl.length, points, bronzePlus, have, deficit, left });
+    const avax = wl.reduce((a,w)=>a+(w.avax||0),0);
+    const nxpcAvax = wl.reduce((a,w)=>a+(w.nxpc_avax||0),0);
+    const usdtAvax = wl.reduce((a,w)=>a+(w.usdt_avax_real||0),0);
+    rows.push({ name:key, isNone:key==='__none__', wallets:wl, count:wl.length, points, bronzePlus, have, deficit, left, avax, nxpcAvax, usdtAvax });
   });
   return rows;
 }
@@ -5703,14 +5718,17 @@ function renderPlayerSummary(){
     name:r=>r.isNone?'zzzz':r.name.toLowerCase(),
     count:r=>r.count, points:r=>r.points, bronze:r=>r.bronzePlus,
     have:r=>r.have, deficit:r=>r.deficit, left:r=>r.left,
+    avax:r=>r.avax, nxpcAvax:r=>r.nxpcAvax, usdtAvax:r=>r.usdtAvax,
   }[playerSummarySort.col]||(r=>r.points);
   rows.sort((a,b)=>{ const va=keyFn(a),vb=keyFn(b); const c=(typeof va==='string')?va.localeCompare(vb):(va-vb); return playerSummarySort.dir==='desc'?-c:c; });
 
   const arrow=c=>playerSummarySort.col===c?(playerSummarySort.dir==='desc'?' ↓':' ↑'):'';
   const th=(c,lbl,align)=>`<th onclick="sortPlayerSummary('${c}')" style="padding:9px 11px;text-align:${align};color:${playerSummarySort.col===c?'var(--text)':'var(--muted2)'};font-size:10px;text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap">${lbl}${arrow(c)}</th>`;
 
-  const tot={ count:0, points:0, bronze:0, have:0, deficit:0, left:0 };
-  rows.forEach(r=>{ tot.count+=r.count; tot.points+=r.points; tot.bronze+=r.bronzePlus; tot.have+=r.have; tot.deficit+=r.deficit; tot.left+=r.left; });
+  const tot={ count:0, points:0, bronze:0, have:0, deficit:0, left:0, avax:0, nxpcAvax:0, usdtAvax:0 };
+  rows.forEach(r=>{ tot.count+=r.count; tot.points+=r.points; tot.bronze+=r.bronzePlus; tot.have+=r.have; tot.deficit+=r.deficit; tot.left+=r.left; tot.avax+=r.avax; tot.nxpcAvax+=r.nxpcAvax; tot.usdtAvax+=r.usdtAvax; });
+  const fd2=(n,d)=>{ n=+n||0; return n.toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}); };
+  const av=v=>v>0?fd2(v,3):'—', avU=v=>v>0?fd2(v,2):'—';
 
   const nameCell=r=>{
     if(r.isNone) return '<span style="color:var(--muted2);font-weight:600">🚫 Chưa gán</span>';
@@ -5728,14 +5746,23 @@ function renderPlayerSummary(){
       <td style="padding:8px 11px;text-align:right;color:var(--green);font-weight:600">${f(r.have)}</td>
       <td style="padding:8px 11px;text-align:right;color:var(--red);font-weight:700">${r.deficit>0?f(r.deficit):'—'}</td>
       <td style="padding:8px 11px;text-align:right;color:var(--green);font-weight:700">${r.left>0?f(r.left):'—'}</td>
+      <td style="padding:8px 11px;text-align:right;color:var(--blue);font-weight:600">${av(r.avax)}</td>
+      <td style="padding:8px 11px;text-align:right;color:var(--blue);font-weight:600">${av(r.nxpcAvax)}</td>
+      <td style="padding:8px 11px;text-align:right;color:var(--blue);font-weight:600">${avU(r.usdtAvax)}</td>
     </tr>`).join('');
 
   body.innerHTML=`
     <div style="border:1px solid var(--border2);border-radius:12px;overflow:hidden">
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:720px">
-          <thead><tr style="background:var(--surface)">
-            ${th('name','Người chơi','left')}${th('count','Số ví','right')}${th('points','Điểm MVP','right')}${th('bronze','Đạt Bronze+','right')}${th('have','NESO hiện có','right')}${th('deficit','NESO còn thiếu','right')}${th('left','NESO còn lại','right')}
+          <thead>
+          <tr style="background:var(--surface)">
+            <th colspan="4" style="border:none;background:var(--surface)"></th>
+            <th colspan="3" style="text-align:center;color:var(--green);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:5px 8px;background:color-mix(in srgb,var(--green) 14%,var(--surface))">🍁 NESO (Henesys)</th>
+            <th colspan="3" style="text-align:center;color:var(--blue);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:5px 8px;background:color-mix(in srgb,var(--blue) 14%,var(--surface))">🔺 Avalanche</th>
+          </tr>
+          <tr style="background:var(--surface)">
+            ${th('name','Người chơi','left')}${th('count','Số ví','right')}${th('points','Điểm MVP','right')}${th('bronze','Đạt Bronze+','right')}${th('have','NESO hiện có','right')}${th('deficit','NESO còn thiếu','right')}${th('left','NESO còn lại','right')}${th('avax','AVAX','right')}${th('nxpcAvax','NXPC (avax)','right')}${th('usdtAvax','USDT (avax)','right')}
           </tr></thead>
           <tbody>${tr}</tbody>
           <tfoot><tr style="border-top:2px solid var(--border3);background:var(--surface)">
@@ -5746,6 +5773,9 @@ function renderPlayerSummary(){
             <td style="padding:10px 11px;text-align:right;font-weight:800;color:var(--green)">${f(tot.have)}</td>
             <td style="padding:10px 11px;text-align:right;font-weight:800;color:var(--red)">${tot.deficit>0?f(tot.deficit):'—'}</td>
             <td style="padding:10px 11px;text-align:right;font-weight:800;color:var(--green)">${tot.left>0?f(tot.left):'—'}</td>
+            <td style="padding:10px 11px;text-align:right;font-weight:800;color:var(--blue)">${av(tot.avax)}</td>
+            <td style="padding:10px 11px;text-align:right;font-weight:800;color:var(--blue)">${av(tot.nxpcAvax)}</td>
+            <td style="padding:10px 11px;text-align:right;font-weight:800;color:var(--blue)">${avU(tot.usdtAvax)}</td>
           </tr></tfoot>
         </table>
       </div>
