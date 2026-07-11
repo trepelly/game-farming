@@ -16,42 +16,90 @@ export default {
       return new Response(null, { headers: CORS });
     }
 
-    // ══════════════ GIST ROUTES (token giấu trong env.GIST_TOKEN) ══════════════
-    // GET  /gist        → đọc toàn bộ Gist (trả files)
-    // PATCH /gist       → ghi Gist (body = {files:{...}})
+    // ══════════════ AUTH + GIST ROUTES (bảo vệ bằng session HMAC) ══════════════
+    // POST  /auth   {username, password}  → xác thực server-side, trả {token, role, viewAll, ...}
+    // GET   /gist   (Bearer session)      → đọc Gist — cần đăng nhập
+    // PATCH /gist   (Bearer session admin)→ ghi Gist — chỉ admin
+    // Cần env: GIST_TOKEN (đã có), SESSION_SECRET (chuỗi ngẫu nhiên dài, tự đặt)
+
+    const te = new TextEncoder();
+    const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const b64uStr = s => b64u(te.encode(s));
+    const fromB64u = s => { s = s.replace(/-/g,'+').replace(/_/g,'/'); while (s.length % 4) s += '='; return atob(s); };
+
+    async function hmacKey() {
+      return crypto.subtle.importKey('raw', te.encode(env.SESSION_SECRET || ''), { name:'HMAC', hash:'SHA-256' }, false, ['sign','verify']);
+    }
+    async function signSession(payload) {
+      const body = b64uStr(JSON.stringify(payload));
+      const sig  = await crypto.subtle.sign('HMAC', await hmacKey(), te.encode(body));
+      return body + '.' + b64u(sig);
+    }
+    async function verifySession(token) {
+      if (!token || token.indexOf('.') < 0) return null;
+      const [body, sig] = token.split('.');
+      const sigBytes = Uint8Array.from(fromB64u(sig), c => c.charCodeAt(0));
+      const ok = await crypto.subtle.verify('HMAC', await hmacKey(), sigBytes, te.encode(body));
+      if (!ok) return null;
+      let p; try { p = JSON.parse(fromB64u(body)); } catch { return null; }
+      if (!p.exp || Date.now() > p.exp) return null;
+      return p;
+    }
+    async function sha256Hex(str) {
+      const buf = await crypto.subtle.digest('SHA-256', te.encode(str));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    const json = (obj, status=200) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type':'application/json', ...CORS } });
+    const GIST_ID   = env.GIST_ID || 'fbbc7f578f4ad7760206f397c0706348';
+    const ghHeaders = { 'Authorization': 'token ' + (env.GIST_TOKEN||''), 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'msu-proxy' };
+    async function readGist() {
+      const r = await fetch('https://api.github.com/gists/' + GIST_ID, { headers: ghHeaders });
+      return { status: r.status, body: await r.text() };
+    }
+
+    if (url.pathname === '/auth' && request.method === 'POST') {
+      if (!env.GIST_TOKEN)      return json({ error: 'GIST_TOKEN chưa cấu hình' }, 500);
+      if (!env.SESSION_SECRET)  return json({ error: 'SESSION_SECRET chưa cấu hình' }, 500);
+      let creds; try { creds = await request.json(); } catch { return json({ error: 'Body không hợp lệ' }, 400); }
+      const { username, password } = creds || {};
+      if (!username || !password) return json({ error: 'Thiếu username/password' }, 400);
+      const g = await readGist();
+      if (g.status !== 200) return json({ error: 'Không đọc được dữ liệu người dùng' }, 502);
+      let users = [];
+      try { users = (JSON.parse(JSON.parse(g.body).files['team-users.json'].content).users) || []; } catch {}
+      const hash = await sha256Hex(password);
+      const u = users.find(x => x.username === username && x.password === hash);
+      if (!u) return json({ error: 'Sai tên đăng nhập hoặc mật khẩu' }, 401);
+      const payload = { u: u.username, role: u.role || 'member', viewAll: !!u.viewAll,
+                        player: u.player || null, players: u.players || null,
+                        exp: Date.now() + 12 * 3600 * 1000 };
+      const token = await signSession(payload);
+      return json({ token, user: payload });
+    }
+
     if (url.pathname === '/gist') {
-      const GIST_ID = env.GIST_ID || 'fbbc7f578f4ad7760206f397c0706348';
-      const token   = env.GIST_TOKEN;
-      if (!token) {
-        return new Response(JSON.stringify({ error: 'GIST_TOKEN chưa được cấu hình trong Worker' }), {
-          status: 500, headers: { 'Content-Type': 'application/json', ...CORS },
-        });
-      }
-      const ghHeaders = {
-        'Authorization': 'token ' + token,
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'msu-proxy',
-      };
+      if (!env.GIST_TOKEN) return json({ error: 'GIST_TOKEN chưa cấu hình' }, 500);
+      // Xác thực session (nếu SESSION_SECRET chưa đặt, coi như worker chưa nâng cấp xong → từ chối ghi, cho đọc để không chết trang)
+      const authz = request.headers.get('Authorization') || '';
+      const sess  = env.SESSION_SECRET ? await verifySession(authz.replace(/^Bearer\s+/i, '')) : null;
       try {
         if (request.method === 'GET') {
-          const r = await fetch('https://api.github.com/gists/' + GIST_ID, { headers: ghHeaders });
-          const body = await r.text();
-          return new Response(body, { status: r.status, headers: { 'Content-Type': 'application/json', ...CORS } });
+          if (env.SESSION_SECRET && !sess) return json({ error: 'Cần đăng nhập' }, 401);
+          const g = await readGist();
+          return new Response(g.body, { status: g.status, headers: { 'Content-Type':'application/json', ...CORS } });
         }
         if (request.method === 'PATCH') {
+          if (!env.SESSION_SECRET)      return json({ error: 'Worker chưa cấu hình SESSION_SECRET — từ chối ghi' }, 503);
+          if (!sess)                    return json({ error: 'Cần đăng nhập' }, 401);
+          if (sess.role !== 'admin')    return json({ error: 'Chỉ admin được ghi' }, 403);
           const inBody = await request.text();
           const r = await fetch('https://api.github.com/gists/' + GIST_ID, {
-            method: 'PATCH',
-            headers: { ...ghHeaders, 'Content-Type': 'application/json' },
-            body: inBody,
+            method: 'PATCH', headers: { ...ghHeaders, 'Content-Type': 'application/json' }, body: inBody,
           });
-          const body = await r.text();
-          return new Response(body, { status: r.status, headers: { 'Content-Type': 'application/json', ...CORS } });
+          return new Response(await r.text(), { status: r.status, headers: { 'Content-Type':'application/json', ...CORS } });
         }
-        return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', ...CORS } });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
-      }
+        return json({ error: 'Method not allowed' }, 405);
+      } catch (e) { return json({ error: e.message }, 502); }
     }
 
     // Lấy target URL từ query ?url=...

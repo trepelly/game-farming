@@ -1838,6 +1838,15 @@ function getNextTier(pts) {
 }
 
 const GIST_ENDPOINT = 'https://msu-proxy.petertrepellynguyen.workers.dev/gist';
+const AUTH_ENDPOINT = 'https://msu-proxy.petertrepellynguyen.workers.dev/auth';
+let teamSession = sessionStorage.getItem('teamSession') || null; // session HMAC từ Worker
+
+// Fetch gist kèm session (Worker mới yêu cầu; Worker cũ bỏ qua header thừa)
+function gistFetch(opts) {
+  const o = opts || {};
+  o.headers = Object.assign({}, o.headers || {}, teamSession ? { 'Authorization': 'Bearer ' + teamSession } : {});
+  return fetch(GIST_ENDPOINT, o);
+}
 const GIST_FILE  = 'team-wallets.json';
 const USERS_FILE = 'team-users.json';
 
@@ -1864,13 +1873,13 @@ function memberPlayerNames(user) {
 let teamUsersCache = []; // cache danh sách user (admin)
 
 async function fetchUsers() {
-  const r = await fetch(GIST_ENDPOINT);
+  const r = await gistFetch();
   const d = await r.json();
   const raw = d.files?.[USERS_FILE]?.content || '{"users":[]}';
   return JSON.parse(raw).users || [];
 }
 async function saveUsers(users) {
-  await fetch(GIST_ENDPOINT, {
+  await gistFetch({
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ files: { [USERS_FILE]: { content: JSON.stringify({ users }, null, 2) } } })
@@ -2125,18 +2134,45 @@ async function unlockTeam() {
   err.innerHTML = '<span style="color:var(--muted2)">Đang xác thực...</span>';
 
   try {
-    const r    = await fetch(GIST_ENDPOINT);
-    const data = await r.json();
-    const raw  = data.files?.[USERS_FILE]?.content || '{"users":[]}';
-    const {users} = JSON.parse(raw);
+    let matched = null;
 
-    const hash    = await sha256(password);
-    const matched = users.find(u => u.username === username && u.password === hash);
+    // ── Cách mới: xác thực server-side qua Worker /auth (nhận session HMAC) ──
+    let usedWorkerAuth = false;
+    try {
+      const ar = await fetch(AUTH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (ar.status === 200) {
+        const ad = await ar.json();
+        teamSession = ad.token;
+        sessionStorage.setItem('teamSession', teamSession);
+        matched = { username: ad.user.u, role: ad.user.role, viewAll: ad.user.viewAll,
+                    player: ad.user.player, players: ad.user.players };
+        usedWorkerAuth = true;
+      } else if (ar.status === 401) {
+        err.textContent = 'Sai tên đăng nhập hoặc mật khẩu';
+        document.getElementById('team-passcode').value = '';
+        return;
+      }
+      // 404/500/503 → Worker chưa nâng cấp hoặc chưa cấu hình → rơi xuống cách cũ
+    } catch(_) { /* mạng lỗi → thử cách cũ */ }
 
+    // ── Fallback: cách cũ (Worker chưa nâng cấp — /gist còn mở) ──
     if (!matched) {
-      err.textContent = 'Sai tên đăng nhập hoặc mật khẩu';
-      document.getElementById('team-passcode').value = '';
-      return;
+      const r    = await fetch(GIST_ENDPOINT);
+      if (r.status === 401) { err.textContent = 'Worker yêu cầu đăng nhập nhưng /auth không hoạt động — kiểm tra SESSION_SECRET trên Worker'; return; }
+      const data = await r.json();
+      const raw  = data.files?.[USERS_FILE]?.content || '{"users":[]}';
+      const {users} = JSON.parse(raw);
+      const hash = await sha256(password);
+      matched = users.find(u => u.username === username && u.password === hash);
+      if (!matched) {
+        err.textContent = 'Sai tên đăng nhập hoặc mật khẩu';
+        document.getElementById('team-passcode').value = '';
+        return;
+      }
     }
 
     teamUser = matched;
@@ -2160,6 +2196,7 @@ async function unlockTeam() {
 
 function lockTeam() {
   teamUser = null;
+  teamSession = null; sessionStorage.removeItem('teamSession');
   document.querySelectorAll('.viewall-only').forEach(el => el.style.display = 'none');
   document.getElementById('team-lock').style.display    = 'block';
   document.getElementById('team-content').style.display = 'none';
@@ -2169,13 +2206,13 @@ function lockTeam() {
 
 // ── Gist CRUD ──
 async function fetchGist() {
-  const r = await fetch(GIST_ENDPOINT);
+  const r = await gistFetch();
   const d = await r.json();
   return JSON.parse(d.files?.[GIST_FILE]?.content || '{"wallets":[]}');
 }
 
 async function saveGist(data) {
-  await fetch(GIST_ENDPOINT, {
+  await gistFetch({
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(data, null, 2) } } })
