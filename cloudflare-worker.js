@@ -49,8 +49,17 @@ export default {
       const buf = await crypto.subtle.digest('SHA-256', te.encode(str));
       return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
     }
+    // PBKDF2-SHA256 (100k vòng — mức tối đa Cloudflare cho phép) → hex
+    const PBKDF2_ITER = 100000;
+    async function pbkdf2Hex(password, saltHex, iterations) {
+      const salt = Uint8Array.from(saltHex.match(/.{2}/g).map(h => parseInt(h, 16)));
+      const key  = await crypto.subtle.importKey('raw', te.encode(password), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt, iterations: iterations || PBKDF2_ITER }, key, 256);
+      return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    const randomSaltHex = () => [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2,'0')).join('');
     const json = (obj, status=200) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type':'application/json', ...CORS } });
-    const GIST_ID   = env.GIST_ID || 'fbbc7f578f4ad7760206f397c0706348';
+    const GIST_ID   = env.GIST_ID; // BẮT BUỘC đặt trong env — không hardcode để không lộ trên repo
     const ghHeaders = { 'Authorization': 'token ' + (env.GIST_TOKEN||''), 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'msu-proxy' };
     async function readGist() {
       const r = await fetch('https://api.github.com/gists/' + GIST_ID, { headers: ghHeaders });
@@ -59,6 +68,7 @@ export default {
 
     if (url.pathname === '/auth' && request.method === 'POST') {
       if (!env.GIST_TOKEN)      return json({ error: 'GIST_TOKEN chưa cấu hình' }, 500);
+      if (!GIST_ID)             return json({ error: 'GIST_ID chưa cấu hình trong Worker env' }, 500);
       if (!env.SESSION_SECRET)  return json({ error: 'SESSION_SECRET chưa cấu hình' }, 500);
       let creds; try { creds = await request.json(); } catch { return json({ error: 'Body không hợp lệ' }, 400); }
       const { username, password } = creds || {};
@@ -67,9 +77,33 @@ export default {
       if (g.status !== 200) return json({ error: 'Không đọc được dữ liệu người dùng' }, 502);
       let users = [];
       try { users = (JSON.parse(JSON.parse(g.body).files['team-users.json'].content).users) || []; } catch {}
-      const hash = await sha256Hex(password);
-      const u = users.find(x => x.username === username && x.password === hash);
-      if (!u) return json({ error: 'Sai tên đăng nhập hoặc mật khẩu' }, 401);
+      const u = users.find(x => x.username === username);
+      let ok = false, migrated = false;
+      if (u && u.salt && u.hash) {
+        // ── Chế độ mới: PBKDF2 + salt riêng từng user ──
+        ok = (await pbkdf2Hex(password, u.salt, u.iter || PBKDF2_ITER)) === u.hash;
+      } else if (u && u.password) {
+        // ── Chế độ cũ: SHA-256 không salt → nếu đúng thì NÂNG CẤP record ngay ──
+        ok = (await sha256Hex(password)) === u.password;
+        if (ok) {
+          u.salt = randomSaltHex();
+          u.iter = PBKDF2_ITER;
+          u.hash = await pbkdf2Hex(password, u.salt, u.iter);
+          delete u.password; // xoá hash cũ không salt
+          migrated = true;
+        }
+      }
+      if (!ok) return json({ error: 'Sai tên đăng nhập hoặc mật khẩu' }, 401);
+      if (migrated) {
+        // Ghi lại file users với record đã nâng cấp (best-effort — lỗi ghi không chặn đăng nhập)
+        try {
+          await fetch('https://api.github.com/gists/' + GIST_ID, {
+            method: 'PATCH',
+            headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files: { 'team-users.json': { content: JSON.stringify({ users }, null, 2) } } }),
+          });
+        } catch {}
+      }
       const payload = { u: u.username, role: u.role || 'member', viewAll: !!u.viewAll,
                         player: u.player || null, players: u.players || null,
                         exp: Date.now() + 12 * 3600 * 1000 };
@@ -79,6 +113,7 @@ export default {
 
     if (url.pathname === '/gist') {
       if (!env.GIST_TOKEN) return json({ error: 'GIST_TOKEN chưa cấu hình' }, 500);
+      if (!GIST_ID)        return json({ error: 'GIST_ID chưa cấu hình trong Worker env' }, 500);
       // Xác thực session (nếu SESSION_SECRET chưa đặt, coi như worker chưa nâng cấp xong → từ chối ghi, cho đọc để không chết trang)
       const authz = request.headers.get('Authorization') || '';
       const sess  = env.SESSION_SECRET ? await verifySession(authz.replace(/^Bearer\s+/i, '')) : null;
