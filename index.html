@@ -664,8 +664,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
           <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)">Thêm ví vào team</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onclick="openPlayerManager()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">👤 Quản lý người chơi</button>
-            <button onclick="openUserManager()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">🔑 Quản lý tài khoản</button>
+            <button onclick="openAdminBoard()" style="background:var(--accent);border:none;border-radius:8px;padding:7px 16px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">⚙️ Bảng quản trị</button>
             <button onclick="openMvpManual()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">✍ Nhập MVP tay</button>
           </div>
         </div>
@@ -2350,6 +2349,162 @@ function showPlayerHistory(address) {
 function closePlayerHistory() { const m=document.getElementById('player-history-modal'); if(m) m.style.display='none'; }
 
 // ── Quản lý danh sách người chơi (admin) ──
+// ══════════════ BẢNG QUẢN TRỊ HỢP NHẤT (admin): Tài khoản → Người chơi → Ví ══════════════
+async function openAdminBoard() {
+  const m = document.getElementById('admin-board-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  document.getElementById('admin-board-body').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted2);font-size:12px">Đang tải...</div>';
+  try { teamUsersCache = await fetchUsers(); } catch(e) { teamUsersCache = []; }
+  renderAdminBoard();
+}
+function closeAdminBoard() { const m=document.getElementById('admin-board-modal'); if(m) m.style.display='none'; }
+function _boardOpen(){ const m=document.getElementById('admin-board-modal'); return m && m.style.display!=='none'; }
+
+function _userPlayersOf(u){ return Array.isArray(u.players) ? u.players : (u.player ? [u.player] : []); }
+
+function renderAdminBoard() {
+  const body = document.getElementById('admin-board-body');
+  if (!body) return;
+  const short = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '—';
+  const users = teamUsersCache || [];
+  const claimed = new Set(); // player đã thuộc tài khoản nào đó
+  users.forEach(u => _userPlayersOf(u).forEach(p => claimed.add(p.toLowerCase())));
+
+  // dropdown người chơi (cho ví) + dropdown tài khoản (cho người chơi)
+  const playerOpts = cur => `<option value="">— bỏ gán —</option>` + teamPlayers.map(p =>
+    `<option value="${p.name.replace(/"/g,'&quot;')}" ${p.name===cur?'selected':''}>${p.emoji?p.emoji+' ':''}${p.name}</option>`).join('');
+  const userOpts = curUsername => `<option value="">— không thuộc TK —</option>` + users.filter(u=>u.role!=='admin').map(u =>
+    `<option value="${u.username.replace(/"/g,'&quot;')}" ${u.username===curUsername?'selected':''}>🔑 ${u.username}</option>`).join('');
+
+  const walletRow = w => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 8px 5px 42px;font-size:11px;color:var(--text)">💼 ${w.label||short(w.address)}</td>
+      <td style="padding:5px 8px;font-family:monospace;font-size:10px;color:var(--muted2)">${short(w.address)}</td>
+      <td style="padding:5px 8px">
+        <select onchange="boardMoveWallet('${w.address}', this.value, this)" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;font-size:10px;color:var(--text);outline:none;cursor:pointer;max-width:150px">${playerOpts(w.player)}</select>
+      </td>
+      <td style="padding:5px 8px;text-align:right">
+        <span onclick="showPlayerHistory('${w.address}')" style="cursor:pointer;font-size:10px;color:var(--muted2)" title="Lịch sử gán">🕓</span>
+      </td>
+    </tr>`;
+
+  const playerBlock = (pname, ownerUsername) => {
+    const p = teamPlayers.find(x => x.name === pname);
+    const wl = teamWallets.filter(w => w.player === pname);
+    const badge = p ? `${p.emoji?p.emoji+' ':''}<span style="color:${p.color||'var(--text)'}">${p.name}</span>` : pname;
+    return `
+    <tr style="background:color-mix(in srgb,var(--accent) 5%,var(--card));border-bottom:1px solid var(--border)">
+      <td style="padding:6px 8px 6px 22px;font-weight:700;font-size:12px">👤 ${badge} <span style="font-weight:400;font-size:10px;color:var(--muted2)">· ${wl.length} ví</span></td>
+      <td style="padding:6px 8px" colspan="2">
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="font-size:9px;color:var(--muted2)">Tài khoản:</span>
+          <select onchange="boardMovePlayer('${pname.replace(/'/g,"\\'")}', this.value, this)" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:3px 6px;font-size:10px;color:var(--text);outline:none;cursor:pointer;max-width:160px">${userOpts(ownerUsername)}</select>
+        </div>
+      </td>
+      <td></td>
+    </tr>
+    ${wl.map(walletRow).join('')}
+    ${wl.length?'':`<tr style="border-bottom:1px solid var(--border)"><td colspan="4" style="padding:4px 8px 6px 42px;font-size:10px;color:var(--muted2);font-style:italic">chưa giữ ví nào</td></tr>`}`;
+  };
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+
+  users.forEach((u,i) => {
+    const isAdmin = u.role === 'admin';
+    const pls = _userPlayersOf(u);
+    html += `
+    <tr style="background:var(--surface);border-bottom:2px solid var(--border2)">
+      <td style="padding:8px;font-weight:800;font-size:12px;color:var(--text)">🔑 ${u.username} ${isAdmin?'<span style="font-size:10px;color:var(--amber)">👑 admin</span>':''}</td>
+      <td style="padding:8px" colspan="2">
+        ${isAdmin?'<span style="font-size:10px;color:var(--amber)">xem & sửa tất cả</span>':`
+        <button onclick="boardToggleViewAll(${i})" style="background:${u.viewAll?'color-mix(in srgb,var(--green) 20%,var(--surface))':'var(--subtle)'};border:1px solid ${u.viewAll?'var(--green)':'var(--border2)'};border-radius:5px;padding:2px 8px;color:${u.viewAll?'var(--green)':'var(--muted2)'};font-family:inherit;font-size:9.5px;font-weight:600;cursor:pointer">${u.viewAll?'✓ Xem tất cả':'Xem tất cả'}</button>`}
+      </td>
+      <td style="padding:8px;text-align:right;white-space:nowrap">
+        ${isAdmin?'':`
+        <button onclick="boardResetPass(${i})" style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 8px;color:var(--muted2);font-family:inherit;font-size:9.5px;cursor:pointer;margin-right:3px">Đổi MK</button>
+        <button onclick="boardRemoveUser(${i})" style="background:var(--red-bg);border:1px solid color-mix(in srgb,var(--red) 25%,transparent);border-radius:5px;padding:2px 8px;color:var(--red);font-family:inherit;font-size:9.5px;cursor:pointer">Xoá TK</button>`}
+      </td>
+    </tr>`;
+    if (isAdmin) {
+      html += `<tr style="border-bottom:1px solid var(--border)"><td colspan="4" style="padding:4px 8px 8px 22px;font-size:10px;color:var(--muted2);font-style:italic">admin thấy mọi người chơi — các người chơi liệt kê theo tài khoản member bên dưới</td></tr>`;
+    } else if (pls.length) {
+      pls.forEach(pn => { html += playerBlock(pn, u.username); });
+    } else {
+      html += `<tr style="border-bottom:1px solid var(--border)"><td colspan="4" style="padding:4px 8px 8px 22px;font-size:10px;color:var(--muted2);font-style:italic">chưa gán người chơi nào cho tài khoản này</td></tr>`;
+    }
+  });
+
+  // Người chơi chưa thuộc tài khoản nào
+  const orphanPlayers = teamPlayers.filter(p => !claimed.has(p.name.toLowerCase()));
+  if (orphanPlayers.length) {
+    html += `<tr style="background:var(--surface);border-bottom:2px solid var(--border2)">
+      <td colspan="4" style="padding:8px;font-weight:800;font-size:12px;color:var(--muted2)">🚫 Người chơi chưa thuộc tài khoản nào</td></tr>`;
+    orphanPlayers.forEach(p => { html += playerBlock(p.name, ''); });
+  }
+
+  // Ví chưa gán người chơi
+  const orphanWallets = teamWallets.filter(w => !w.player);
+  if (orphanWallets.length) {
+    html += `<tr style="background:var(--surface);border-bottom:2px solid var(--border2)">
+      <td colspan="4" style="padding:8px;font-weight:800;font-size:12px;color:var(--muted2)">💼 Ví chưa gán người chơi · ${orphanWallets.length}</td></tr>`;
+    orphanWallets.forEach(w => { html += walletRow(w); });
+  }
+
+  html += '</table><div id="admin-board-err" style="font-size:11px;color:var(--red);margin-top:8px;min-height:14px"></div>';
+  body.innerHTML = html;
+}
+
+// Đổi ví sang người chơi khác (giữ nguyên logic history của confirmAssignPlayer)
+async function boardMoveWallet(address, newPlayer, sel) {
+  newPlayer = newPlayer || null;
+  const w = teamWallets.find(x => x.address === address);
+  if (!w || w.player === newPlayer) return;
+  const date = todayISO();
+  if (!Array.isArray(w.history)) w.history = [];
+  const openEntry = w.history.find(h => h.to == null);
+  if (openEntry) openEntry.to = date;
+  if (newPlayer) w.history.push({ player: newPlayer, from: date, to: null });
+  w.player = newPlayer;
+  w.since = newPlayer ? date : null;
+  if (sel) sel.disabled = true;
+  try {
+    await saveTeamData();
+    renderTeam();
+    renderAdminBoard();
+  } catch(e) {
+    const err = document.getElementById('admin-board-err');
+    if (err) err.textContent = 'Lưu thất bại: ' + e.message;
+    if (sel) sel.disabled = false;
+  }
+}
+
+// Chuyển người chơi sang tài khoản khác (gỡ khỏi mọi TK cũ, thêm vào TK mới)
+async function boardMovePlayer(playerName, targetUsername, sel) {
+  if (sel) sel.disabled = true;
+  try {
+    teamUsersCache.forEach(u => {
+      if (u.role === 'admin') return;
+      const pls = _userPlayersOf(u).filter(p => p.toLowerCase() !== playerName.toLowerCase());
+      u.players = pls; delete u.player;
+    });
+    if (targetUsername) {
+      const t = teamUsersCache.find(u => u.username === targetUsername);
+      if (t) { t.players = _userPlayersOf(t); t.players.push(playerName); }
+    }
+    await saveUsers(teamUsersCache);
+    renderAdminBoard();
+  } catch(e) {
+    const err = document.getElementById('admin-board-err');
+    if (err) err.textContent = 'Lưu thất bại: ' + e.message;
+    if (sel) sel.disabled = false;
+  }
+}
+
+async function boardToggleViewAll(i){ await toggleUserViewAll(i); if(_boardOpen()) renderAdminBoard(); }
+async function boardResetPass(i){ await resetUserPassword(i); if(_boardOpen()) renderAdminBoard(); }
+async function boardRemoveUser(i){ await removeUser(i); if(_boardOpen()) renderAdminBoard(); }
+
 function openPlayerManager() {
   if (teamUser?.role !== 'admin') return;
   renderPlayerManager();
@@ -6790,6 +6945,22 @@ async function loadExpandFlow(cont, address, key) {
     </div>
     <div style="font-size:11px;color:var(--muted2);margin-bottom:14px;line-height:1.5">Member chỉ thấy ví gán cho <b style="color:var(--text)">người chơi</b> được gán vào tài khoản. Admin thấy tất cả.</div>
     <div id="user-manager-body"></div>
+  </div>
+</div>
+
+<!-- BẢNG QUẢN TRỊ HỢP NHẤT: Tài khoản → Người chơi → Ví -->
+<div id="admin-board-modal" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeAdminBoard()">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:860px;width:100%;box-shadow:var(--shadow-lg);max-height:88vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:14px;font-weight:800;color:var(--text)">⚙️ Bảng quản trị · Tài khoản → Người chơi → Ví</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="openPlayerManager()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:7px;padding:5px 11px;color:var(--accent);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer" title="Thêm/sửa người chơi, gán ví hàng loạt">👤 Người chơi & gán hàng loạt</button>
+        <button onclick="openUserManager()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:7px;padding:5px 11px;color:var(--accent);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer" title="Thêm tài khoản, đổi mật khẩu">🔑 Tài khoản chi tiết</button>
+        <button onclick="closeAdminBoard()" style="background:transparent;border:none;color:var(--muted2);font-size:18px;cursor:pointer;line-height:1">✕</button>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--muted2);margin-bottom:14px">Đổi ví sang người chơi khác / chuyển người chơi sang tài khoản khác ngay trên bảng — mọi thay đổi ví đều ghi lịch sử.</div>
+    <div id="admin-board-body"><div style="padding:24px;text-align:center;color:var(--muted2);font-size:12px">Đang tải...</div></div>
   </div>
 </div>
 
