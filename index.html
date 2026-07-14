@@ -1841,11 +1841,34 @@ const GIST_ENDPOINT = 'https://msu-proxy.petertrepellynguyen.workers.dev/gist';
 const AUTH_ENDPOINT = 'https://msu-proxy.petertrepellynguyen.workers.dev/auth';
 let teamSession = sessionStorage.getItem('teamSession') || null; // session HMAC từ Worker
 
-// Fetch gist kèm session (Worker mới yêu cầu; Worker cũ bỏ qua header thừa)
-function gistFetch(opts) {
+// Lưới an toàn: nếu một thao tác lưu (thêm ví, gán player, quản lý user...) không tự bắt lỗi
+// và phiên vừa hết hạn giữa chừng, đừng để lỗi "bay mất" trong im lặng — đưa về màn đăng nhập.
+window.addEventListener('unhandledrejection', (ev) => {
+  if (ev.reason && ev.reason.sessionExpired) {
+    ev.preventDefault();
+    try { lockTeam(); } catch(_) {}
+    const lockErr = document.getElementById('team-lock-err');
+    if (lockErr) lockErr.textContent = 'Phiên đăng nhập đã hết hạn, thao tác vừa rồi CHƯA được lưu — vui lòng đăng nhập lại và thử lại.';
+  }
+});
+
+// Fetch gist kèm session; ném lỗi rõ ràng khi Worker từ chối thay vì để lỗi bị "nuốt"
+async function gistFetch(opts) {
   const o = opts || {};
   o.headers = Object.assign({}, o.headers || {}, teamSession ? { 'Authorization': 'Bearer ' + teamSession } : {});
-  return fetch(GIST_ENDPOINT, o);
+  const r = await fetch(GIST_ENDPOINT, o);
+  if (!r.ok) {
+    let msg = 'Lỗi Worker (' + r.status + ')';
+    try { const b = await r.clone().json(); if (b && b.error) msg = b.error; } catch(_) {}
+    if (r.status === 401) {
+      teamSession = null; sessionStorage.removeItem('teamSession');
+      const err = new Error(msg || 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      err.sessionExpired = true;
+      throw err;
+    }
+    throw new Error(msg);
+  }
+  return r;
 }
 const GIST_FILE  = 'team-wallets.json';
 const USERS_FILE = 'team-users.json';
@@ -2729,6 +2752,12 @@ async function loadTeamWallets() {
     loadSpendChart().catch(()=>{});
     loadSwapChart().catch(()=>{});
   } catch(e) {
+    if (e.sessionExpired) {
+      try { lockTeam(); } catch(_) {}
+      const lockErr = document.getElementById('team-lock-err');
+      if (lockErr) lockErr.textContent = 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.';
+      return;
+    }
     document.getElementById('team-loading').innerHTML = `<span style="color:var(--red)">Lỗi: ${e.message}</span>`;
   }
 }
