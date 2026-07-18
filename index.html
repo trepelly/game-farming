@@ -876,6 +876,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải số dư...</div>
         </div>
         <div style="text-align:left;margin-top:12px">
+          <button id="usdt-flow-btn" onclick="loadUsdtFlow()" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;margin-right:6px">⇅ Tải lịch sử vào/ra</button>
           <button id="usdt-detail-btn" onclick="toggleUsdtDetail()" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem bảng chi tiết</button>
         </div>
         <div id="usdt-detail-body" style="display:none"></div>
@@ -4630,6 +4631,82 @@ function setSwapChartMode(mode) {
 // ══════════════ USDT TRÊN VÍ (Avalanche) — số dư thật ══════════════
 let usdtGroupMode = 'wallet';   // 'wallet' | 'player'
 
+let usdtSort = { col:'usdt', dir:'desc' };
+let usdtFlowData = null;      // { [addrLower]: {inAmt, outAmt, txs:[...]} }
+let usdtFlowLoading = false;
+let usdtFlowError = '';
+
+function sortUsdt(col) {
+  if (usdtSort.col === col) usdtSort.dir = usdtSort.dir === 'desc' ? 'asc' : 'desc';
+  else { usdtSort.col = col; usdtSort.dir = (col === 'name' || col === 'player') ? 'asc' : 'desc'; }
+  renderUsdtDetail();
+}
+
+// Lịch sử USDT vào/ra trên Avalanche (Routescan — API tương thích Etherscan, không cần key)
+const USDT_FLOW_API = a =>
+  `https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api?module=account&action=tokentx`
+  + `&contractaddress=${USDT_AVAX_CONTRACT}&address=${a}&sort=desc`;
+
+async function loadUsdtFlow() {
+  if (usdtFlowLoading) return;
+  const btn = document.getElementById('usdt-flow-btn');
+  const ws = (teamWallets || []).filter(w => w.address);
+  if (!ws.length) return;
+  usdtFlowLoading = true; usdtFlowError = '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Đang tải lịch sử...'; }
+  const acc = {};
+  let okCount = 0;
+  try {
+    const res = await Promise.allSettled(ws.map(async w => {
+      const r = await fetch(USDT_FLOW_API(w.address));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      const list = Array.isArray(d.result) ? d.result : [];
+      const me = w.address.toLowerCase();
+      let inAmt = 0, outAmt = 0; const txs = [];
+      list.forEach(t => {
+        const dec = +(t.tokenDecimal || 6);
+        const v = Number(t.value || 0) / Math.pow(10, dec);
+        const isIn = (t.to || '').toLowerCase() === me;
+        if (isIn) inAmt += v; else outAmt += v;
+        txs.push({ hash:t.hash, ts:+(t.timeStamp||0)*1000, dir: isIn?'in':'out', amt:v,
+                   counter: isIn ? (t.from||'') : (t.to||''), address:w.address, label:w.label, player:w.player||null });
+      });
+      return { addr: me, inAmt, outAmt, txs };
+    }));
+    res.forEach(r => {
+      if (r.status !== 'fulfilled') return;
+      okCount++;
+      acc[r.value.addr] = { inAmt:r.value.inAmt, outAmt:r.value.outAmt, txs:r.value.txs };
+    });
+    if (!okCount) usdtFlowError = 'Không tải được lịch sử (API chặn hoặc mất mạng)';
+    usdtFlowData = acc;
+  } catch(e) {
+    usdtFlowError = e.message || 'Lỗi tải lịch sử';
+  } finally {
+    usdtFlowLoading = false;
+    if (btn) { btn.disabled = false; btn.innerHTML = usdtFlowData ? '⟳ Tải lại lịch sử' : '⇅ Tải lịch sử vào/ra'; }
+    const d = document.getElementById('usdt-detail-body');
+    if (d && d.style.display === 'none') toggleUsdtDetail(); else renderUsdtDetail();
+  }
+}
+
+function usdtFlowOf(row) {
+  if (!usdtFlowData) return null;
+  if (usdtGroupMode === 'player') {
+    let i=0, o=0, any=false;
+    (teamWallets||[]).forEach(w => {
+      const key = w.player || '__none__';
+      if (key !== row.name) return;
+      const f = usdtFlowData[(w.address||'').toLowerCase()];
+      if (f) { i += f.inAmt; o += f.outAmt; any = true; }
+    });
+    return any ? { inAmt:i, outAmt:o } : null;
+  }
+  const f = usdtFlowData[(row.address||'').toLowerCase()];
+  return f ? { inAmt:f.inAmt, outAmt:f.outAmt } : null;
+}
+
 function setUsdtGroup(mode) {
   usdtGroupMode = mode;
   [['wallet','usdt-grp-wallet'],['player','usdt-grp-player']].forEach(([m,id]) => {
@@ -4652,8 +4729,8 @@ function usdtRows() {
     });
     return [...map.values()].sort((a,b) => b.usdt - a.usdt);
   }
-  return ws.map(w => ({ name: w.label || short(w.address), address:w.address, usdt: w.usdt_avax_real||0, count:1 }))
-           .sort((a,b) => b.usdt - a.usdt);
+  return ws.map(w => ({ name: w.label || short(w.address), address:w.address, player: w.player || null,
+                        usdt: w.usdt_avax_real||0, count:1 }));
 }
 
 function toggleUsdtDetail() {
@@ -4668,42 +4745,134 @@ function toggleUsdtDetail() {
 function renderUsdtDetail() {
   const body = document.getElementById('usdt-detail-body');
   if (!body) return;
-  const rows = usdtRows();
+  const byPlayer = usdtGroupMode === 'player';
   const usdvnd = (typeof liveUsdVnd==='number' && liveUsdVnd>0) ? liveUsdVnd : 0;
   const fU = n => n.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fV = n => usdvnd ? Math.round(n*usdvnd).toLocaleString('vi-VN')+'đ' : '—';
+
+  let rows = usdtRows().map(r => {
+    const f = usdtFlowOf(r);
+    return Object.assign({}, r, { inAmt: f?f.inAmt:null, outAmt: f?f.outAmt:null });
+  });
   const tot = rows.reduce((a,b)=>a+b.usdt,0);
-  const nameCell = r => {
-    if (usdtGroupMode !== 'player') return '💼 ' + r.name;
-    if (r.isNone) return '<span style="color:var(--muted2)">🚫 Chưa gán</span>';
-    const emoji = (typeof playerEmoji==='function') ? playerEmoji(r.name) : '';
-    const col = (typeof playerColor==='function') ? playerColor(r.name) : 'var(--text)';
-    return `<span style="color:${col};font-weight:700">${emoji} ${r.name}</span>`;
+
+  const keyFn = {
+    name:   r => (r.name||'').toLowerCase(),
+    player: r => (r.player || 'zzzz').toLowerCase(),
+    count:  r => r.count,
+    usdt:   r => r.usdt,
+    inAmt:  r => r.inAmt == null ? -1 : r.inAmt,
+    outAmt: r => r.outAmt == null ? -1 : r.outAmt,
+    net:    r => (r.inAmt == null ? -1e12 : r.inAmt - r.outAmt),
+  }[usdtSort.col] || (r => r.usdt);
+  rows.sort((a,b) => {
+    const va = keyFn(a), vb = keyFn(b);
+    const c = (typeof va === 'string') ? va.localeCompare(vb) : (va - vb);
+    return usdtSort.dir === 'desc' ? -c : c;
+  });
+
+  const hasFlow = !!usdtFlowData;
+  const arrow = c => usdtSort.col===c ? (usdtSort.dir==='desc'?' ↓':' ↑') : '';
+  const th = (c, lbl, align, color) => `<th onclick="sortUsdt('${c}')" style="padding:7px 10px;text-align:${align};color:${usdtSort.col===c?'var(--text)':(color||'var(--muted2)')};font-size:10px;cursor:pointer;user-select:none;white-space:nowrap">${lbl}${arrow(c)}</th>`;
+
+  const playerCell = p => {
+    if (!p) return '<span style="color:var(--muted2);font-size:10px">— chưa gán</span>';
+    const emoji = (typeof playerEmoji==='function') ? playerEmoji(p) : '';
+    const col = (typeof playerColor==='function') ? playerColor(p) : 'var(--text)';
+    return `<span style="color:${col};font-weight:600">${emoji} ${p}</span>`;
   };
-  body.innerHTML = rows.length ? `
-    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px">
+  const nameCell = r => {
+    if (!byPlayer) return '💼 ' + r.name;
+    if (r.isNone) return '<span style="color:var(--muted2)">🚫 Chưa gán</span>';
+    return playerCell(r.name);
+  };
+
+  const flowNote = usdtFlowError
+    ? `<div style="font-size:10px;color:var(--red);margin-top:6px">${usdtFlowError} — thử lại hoặc kiểm tra kết nối.</div>`
+    : (!hasFlow ? '<div style="font-size:10px;color:var(--muted2);margin-top:6px">Bấm “⇅ Tải lịch sử vào/ra” để xem USDT đã nhận / đã gửi.</div>' : '');
+
+  if (!rows.length) { body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted2);font-size:12px">Chưa có ví nào giữ USDT</div>' + flowNote; return; }
+
+  const totIn  = hasFlow ? rows.reduce((a,b)=>a+(b.inAmt||0),0) : null;
+  const totOut = hasFlow ? rows.reduce((a,b)=>a+(b.outAmt||0),0) : null;
+
+  body.innerHTML = `
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;min-width:${hasFlow?'720px':'520px'}">
       <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
-        <th style="padding:7px 10px;text-align:left;color:var(--muted2);font-size:10px">${usdtGroupMode==='player'?'Người chơi':'Ví'}</th>
-        ${usdtGroupMode==='player'?'<th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px">Số ví</th>':''}
-        <th style="padding:7px 10px;text-align:right;color:var(--blue);font-size:10px">USDT (AVAX)</th>
+        ${th('name', byPlayer?'Người chơi':'Ví', 'left')}
+        ${byPlayer ? th('count','Số ví','right') : th('player','Người chơi','left')}
+        ${th('usdt','USDT hiện có','right','var(--blue)')}
         <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px">≈ VNĐ</th>
+        ${hasFlow ? th('inAmt','⬇ Đã nhận','right','var(--green)') : ''}
+        ${hasFlow ? th('outAmt','⬆ Đã gửi','right','var(--red)') : ''}
+        ${hasFlow ? th('net','Ròng','right') : ''}
         <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px">Tỷ trọng</th>
       </tr></thead>
-      <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border)">
+      <tbody>${rows.map(r=>{
+        const net = (r.inAmt==null) ? null : (r.inAmt - r.outAmt);
+        return `<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:6px 10px;color:var(--text)">${nameCell(r)}</td>
-        ${usdtGroupMode==='player'?`<td style="padding:6px 10px;text-align:right;color:var(--text2)">${r.count}</td>`:''}
+        ${byPlayer
+          ? `<td style="padding:6px 10px;text-align:right;color:var(--text2)">${r.count}</td>`
+          : `<td style="padding:6px 10px">${playerCell(r.player)}</td>`}
         <td style="padding:6px 10px;text-align:right;color:var(--blue);font-weight:700;font-family:monospace">${fU(r.usdt)}</td>
         <td style="padding:6px 10px;text-align:right;color:var(--muted2);font-family:monospace">${fV(r.usdt)}</td>
+        ${hasFlow?`<td style="padding:6px 10px;text-align:right;color:var(--green);font-family:monospace">${r.inAmt==null?'—':fU(r.inAmt)}</td>`:''}
+        ${hasFlow?`<td style="padding:6px 10px;text-align:right;color:var(--red);font-family:monospace">${r.outAmt==null?'—':fU(r.outAmt)}</td>`:''}
+        ${hasFlow?`<td style="padding:6px 10px;text-align:right;font-family:monospace;font-weight:600;color:${net==null?'var(--muted2)':(net>=0?'var(--green)':'var(--red)')}">${net==null?'—':(net>=0?'+':'')+fU(net)}</td>`:''}
         <td style="padding:6px 10px;text-align:right;color:var(--muted2);font-family:monospace">${tot?((r.usdt/tot)*100).toFixed(1):'0.0'}%</td>
-      </tr>`).join('')}</tbody>
+      </tr>`}).join('')}</tbody>
       <tfoot><tr style="border-top:2px solid var(--border2);background:var(--surface)">
         <td style="padding:8px 10px;font-weight:800;color:var(--text)">Tổng · ${rows.length}</td>
-        ${usdtGroupMode==='player'?`<td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--text)">${rows.reduce((a,b)=>a+b.count,0)}</td>`:''}
+        ${byPlayer
+          ? `<td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--text)">${rows.reduce((a,b)=>a+b.count,0)}</td>`
+          : '<td></td>'}
         <td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--blue);font-family:monospace">${fU(tot)}</td>
         <td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--muted2);font-family:monospace">${fV(tot)}</td>
+        ${hasFlow?`<td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--green);font-family:monospace">${fU(totIn)}</td>`:''}
+        ${hasFlow?`<td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--red);font-family:monospace">${fU(totOut)}</td>`:''}
+        ${hasFlow?`<td style="padding:8px 10px;text-align:right;font-weight:800;font-family:monospace;color:${(totIn-totOut)>=0?'var(--green)':'var(--red)'}">${((totIn-totOut)>=0?'+':'')+fU(totIn-totOut)}</td>`:''}
         <td style="padding:8px 10px;text-align:right;color:var(--muted2)">100%</td>
       </tr></tfoot>
-    </table>` : '<div style="text-align:center;padding:24px;color:var(--muted2);font-size:12px">Chưa có ví nào giữ USDT</div>';
+    </table></div>
+    ${flowNote}
+    ${hasFlow ? renderUsdtTxList() : ''}`;
+}
+
+// Danh sách giao dịch gần đây (sau khi tải lịch sử)
+function renderUsdtTxList() {
+  if (!usdtFlowData) return '';
+  const all = [];
+  Object.values(usdtFlowData).forEach(f => (f.txs||[]).forEach(t => all.push(t)));
+  if (!all.length) return '<div style="font-size:10px;color:var(--muted2);margin-top:10px">Chưa có giao dịch USDT nào.</div>';
+  all.sort((a,b) => b.ts - a.ts);
+  const list = all.slice(0, 30);
+  const short = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '—';
+  const fU = n => n.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fD = ts => { const d = new Date(ts); return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); };
+  return `
+    <div style="margin-top:16px">
+      <div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:6px">Giao dịch USDT gần đây <span style="font-weight:400;color:var(--muted2)">· ${list.length}/${all.length}</span></div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:560px">
+        <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+          <th style="padding:6px 9px;text-align:left;color:var(--muted2);font-size:10px">Thời gian</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted2);font-size:10px">Ví</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted2);font-size:10px">Người chơi</th>
+          <th style="padding:6px 9px;text-align:center;color:var(--muted2);font-size:10px">Chiều</th>
+          <th style="padding:6px 9px;text-align:right;color:var(--muted2);font-size:10px">Số lượng</th>
+          <th style="padding:6px 9px;text-align:left;color:var(--muted2);font-size:10px">Đối tác</th>
+        </tr></thead>
+        <tbody>${list.map(t=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:5px 9px;color:var(--muted2);font-family:monospace">${fD(t.ts)}</td>
+          <td style="padding:5px 9px;color:var(--text)">💼 ${t.label||short(t.address)}</td>
+          <td style="padding:5px 9px;color:var(--text2)">${t.player?((typeof playerEmoji==='function'?playerEmoji(t.player):'')+' '+t.player):'<span style="color:var(--muted2)">—</span>'}</td>
+          <td style="padding:5px 9px;text-align:center;color:${t.dir==='in'?'var(--green)':'var(--red)'};font-weight:700">${t.dir==='in'?'⬇ vào':'⬆ ra'}</td>
+          <td style="padding:5px 9px;text-align:right;font-family:monospace;font-weight:700;color:${t.dir==='in'?'var(--green)':'var(--red)'}">${t.dir==='in'?'+':'−'}${fU(t.amt)}</td>
+          <td style="padding:5px 9px;font-family:monospace;color:var(--muted2)">${short(t.counter)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
 }
 
 function renderUsdtChart() {
