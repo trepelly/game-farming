@@ -859,6 +859,36 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="revenue-detail-body" style="display:none"></div>
       </div>
 
+      <!-- USDT REVENUE CHART (doanh thu swap-out quy đổi USDT, tỷ giá cố định) -->
+      <div id="usdt-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--blue);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Doanh thu USDT</span>
+            <span style="font-size:10px;color:var(--muted2)">NESO rút ra (swap out) × tỷ giá → USDT</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:5px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:4px 8px">
+              <span style="font-size:10px;color:var(--muted2);white-space:nowrap">NXPC/USDT</span>
+              <input id="usdt-rate-input" type="number" step="0.001" value="0.4" oninput="renderUsdtChart()" style="width:64px;background:transparent;border:none;color:var(--blue);font-family:inherit;font-size:12px;font-weight:700;outline:none"/>
+            </div>
+            <div style="display:flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+              <button id="usdt-mode-day" onclick="setUsdtChartMode('day')" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
+              <button id="usdt-mode-week" onclick="setUsdtChartMode('week')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tuần</button>
+              <button id="usdt-mode-month" onclick="setUsdtChartMode('month')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tháng</button>
+              <button id="usdt-mode-year" onclick="setUsdtChartMode('year')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Năm</button>
+            </div>
+          </div>
+        </div>
+        <div id="usdt-chart-body" style="min-height:260px">
+          <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu USDT...</div>
+        </div>
+        <div style="text-align:left;margin-top:12px">
+          <button id="usdt-detail-btn" onclick="toggleUsdtDetail()" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
+        </div>
+        <div id="usdt-detail-body" style="display:none"></div>
+      </div>
+
       <!-- NESO SWAP IN CHART -->
       <div id="swapin-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -4603,11 +4633,207 @@ function setSwapChartMode(mode) {
   renderSwapChart();
 }
 
+// ══════════════ BIỂU ĐỒ DOANH THU USDT (swap-out × tỷ giá cố định) ══════════════
+let usdtChartMode = 'day';
+let usdtRateInit = false;
+const USDT_MODES = {
+  day:   { limit: 30, stepW: 34, unit: 'ngày',  src: 'byDay' },
+  week:  { limit: 13, stepW: 64, unit: 'tuần',  src: 'byWeek' },
+  month: { limit: 12, stepW: 56, unit: 'tháng', src: 'byMonth' },
+  year:  { limit: 6,  stepW: 80, unit: 'năm',   src: 'byYear' },
+};
+function usdtRate() {
+  const el = document.getElementById('usdt-rate-input');
+  const v = el ? parseFloat(el.value) : NaN;
+  return (isFinite(v) && v > 0) ? v : 0;
+}
+function setUsdtChartMode(mode) {
+  usdtChartMode = mode;
+  ['day','week','month','year'].forEach(m => {
+    const b = document.getElementById('usdt-mode-'+m);
+    if (b) { b.style.background = m===mode ? 'var(--accent)' : 'transparent'; b.style.color = m===mode ? '#fff' : 'var(--muted2)'; }
+  });
+  renderUsdtChart();
+}
+function toggleUsdtDetail() {
+  const body = document.getElementById('usdt-detail-body');
+  const btn = document.getElementById('usdt-detail-btn');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  if (open) { body.style.display='none'; if(btn) btn.innerHTML='▼ Xem thêm chi tiết theo ví'; return; }
+  body.style.display='block'; if(btn) btn.innerHTML='▲ Ẩn chi tiết';
+  renderUsdtDetail();
+}
+function renderUsdtDetail() {
+  const body = document.getElementById('usdt-detail-body');
+  if (!body || !swapChartData) return;
+  const rate = usdtRate();
+  const toUsd = neso => (neso / NESO_PER_NXPC) * rate;
+  const rows = (swapChartData.perWallet || [])
+    .filter(w => (w.swapOut||0) > 0)
+    .map(w => ({ label:w.label, address:w.address, neso:w.swapOut, usd:toUsd(w.swapOut) }))
+    .sort((a,b) => b.usd - a.usd);
+  const short = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '—';
+  const fUsd = n => '$'+n.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fN = n => Math.round(n).toLocaleString('vi-VN');
+  const totNeso = rows.reduce((a,b)=>a+b.neso,0), totUsd = rows.reduce((a,b)=>a+b.usd,0);
+  body.innerHTML = rows.length ? `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px">
+      <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
+        <th style="padding:7px 10px;text-align:left;color:var(--muted2);font-size:10px">Ví</th>
+        <th style="padding:7px 10px;text-align:right;color:var(--muted2);font-size:10px">NESO rút ra</th>
+        <th style="padding:7px 10px;text-align:right;color:var(--blue);font-size:10px">Doanh thu USDT</th>
+      </tr></thead>
+      <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:6px 10px;color:var(--text)">💼 ${r.label||short(r.address)}</td>
+        <td style="padding:6px 10px;text-align:right;color:var(--text2);font-family:monospace">${fN(r.neso)}</td>
+        <td style="padding:6px 10px;text-align:right;color:var(--blue);font-weight:700;font-family:monospace">${fUsd(r.usd)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr style="border-top:2px solid var(--border2);background:var(--surface)">
+        <td style="padding:8px 10px;font-weight:800;color:var(--text)">Tổng · ${rows.length} ví</td>
+        <td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--text);font-family:monospace">${fN(totNeso)}</td>
+        <td style="padding:8px 10px;text-align:right;font-weight:800;color:var(--blue);font-family:monospace">${fUsd(totUsd)}</td>
+      </tr></tfoot>
+    </table>` : '<div style="text-align:center;padding:24px;color:var(--muted2);font-size:12px">Chưa có ví nào rút doanh thu</div>';
+}
+
+function renderUsdtChart() {
+  const wrap = document.getElementById('usdt-chart-wrap');
+  const body = document.getElementById('usdt-chart-body');
+  if (!wrap || !body) return;
+  if (!swapChartData) return; // sẽ được gọi lại sau khi loadSwapChart xong
+  wrap.style.display = 'block';
+  // Prefill tỷ giá lần đầu từ giá NXPC/USDT live (sau đó để người dùng tự cố định)
+  if (!usdtRateInit) {
+    const el = document.getElementById('usdt-rate-input');
+    if (el && typeof liveNxpcUsd === 'number' && liveNxpcUsd > 0) el.value = (+liveNxpcUsd).toFixed(3);
+    usdtRateInit = true;
+  }
+  const rate = usdtRate();
+  const M = USDT_MODES[usdtChartMode];
+  const src = swapChartData[M.src] || {};
+  const cntMap = swapChartData[usdtChartMode+'Count'] || {};
+  const totalW = swapChartData.totalWallets || 0;
+  let keys = Object.keys(src).sort().slice(-M.limit);
+  if (!keys.length) { body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted2);font-size:12px">Chưa có dữ liệu rút doanh thu</div>'; return; }
+
+  const toUsd = neso => (neso / NESO_PER_NXPC) * rate;
+  const vals = keys.map(k => toUsd(src[k].out));
+  const maxV = Math.max(...vals, 0.01);
+  const niceCeil = n => { const e=Math.pow(10,Math.floor(Math.log10(n))); const f=n/e; const nf=f<=1?1:f<=2?2:f<=5?5:10; return nf*e; };
+  const yMax = niceCeil(maxV);
+  const fmtK = n => n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(1)+'K':'$'+n.toFixed(n<10?1:0);
+  const fmtUsd = n => '$'+n.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const usdvnd = (typeof liveUsdVnd==='number' && liveUsdVnd>0) ? liveUsdVnd : 0;
+  const fmtVnd = n => usdvnd ? Math.round(n*usdvnd).toLocaleString('vi-VN')+'đ' : '';
+
+  const lblOf = k => {
+    if (usdtChartMode==='day')  return k.slice(8,10)+'/'+k.slice(5,7);
+    if (usdtChartMode==='month')return 'T'+parseInt(k.slice(5,7))+'/'+k.slice(2,4);
+    if (usdtChartMode==='year') return k;
+    const d = new Date(k+'T00:00:00Z'); const e = new Date(d); e.setUTCDate(d.getUTCDate()+6);
+    const f = x => ('0'+x.getUTCDate()).slice(-2)+'/'+('0'+(x.getUTCMonth()+1)).slice(-2);
+    return f(d)+'–'+f(e);
+  };
+  const curKey = () => {
+    const today = new Date().toISOString().slice(0,10);
+    if (usdtChartMode==='day') return today;
+    if (usdtChartMode==='week') return (typeof getWeekKey==='function')?getWeekKey(today):today;
+    if (usdtChartMode==='month') return today.slice(0,7);
+    return today.slice(0,4);
+  };
+  const ck = curKey();
+
+  const padL = 52, padR = 12, padT = 14, padB = 56;
+  const innerW = Math.max(keys.length * M.stepW, 320);
+  const W = padL + innerW + padR;
+  const H = 272;
+  const chartH = H - padT - padB;
+  const bw = innerW / keys.length;
+  const barW = Math.min(bw * 0.62, 46);
+  const USD_C = 'var(--blue)';
+
+  let grid = '';
+  for (let i=0; i<=4; i++) {
+    const gy = padT + chartH - (i/4)*chartH;
+    grid += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
+    grid += `<text x="${padL-8}" y="${gy+3}" text-anchor="end" font-size="8.5" fill="var(--muted2)" font-family="monospace">${fmtK(yMax*i/4)}</text>`;
+  }
+  grid += `<line x1="${padL}" y1="${padT+chartH}" x2="${W-padR}" y2="${padT+chartH}" stroke="var(--border3)" stroke-width="1.5"/>`;
+
+  let bars = '';
+  keys.forEach((k, i) => {
+    const v = toUsd(src[k].out);
+    const h = (v/yMax) * chartH;
+    const x = padL + i*bw + (bw-barW)/2;
+    const y = padT + chartH - h;
+    const isCur = k === ck;
+    const fill = isCur ? 'var(--accent)' : USD_C;
+    bars += `<g style="cursor:pointer">
+      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h,1)}" rx="4" fill="${fill}" opacity="${isCur?'1':'0.72'}"/>
+      <text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="8.5" fill="${isCur?'var(--accent)':'var(--text2)'}" font-family="monospace" font-weight="${isCur?'700':'500'}">${h>16?fmtK(v):''}</text>
+      <text x="${x+barW/2}" y="${H-padB+15}" text-anchor="middle" font-size="8.5" fill="var(--muted2)" font-family="monospace">${lblOf(k)}</text>
+      <text x="${x+barW/2}" y="${H-padB+27}" text-anchor="middle" font-size="7.5" fill="${isCur?'var(--accent)':'var(--muted2)'}" font-family="monospace" font-weight="700">${cntMap[k]||0} ví</text>
+      <rect x="${x-bw*0.19}" y="${padT}" width="${bw}" height="${chartH}" fill="transparent" data-tip="${i}"/>
+    </g>`;
+  });
+
+  const total = vals.reduce((a,b)=>a+b,0);
+  const avg = total/vals.length;
+  const lastV = vals[vals.length-1], prevV = vals.length>1?vals[vals.length-2]:0;
+  const trendPct = prevV>0 ? ((lastV-prevV)/prevV*100) : null;
+  const trendChip = trendPct!=null ? `<span style="font-size:10px;font-weight:700;color:${trendPct>=0?'var(--green)':'var(--red)'};background:${trendPct>=0?'var(--green-bg)':'var(--red-bg)'};padding:2px 7px;border-radius:6px">${trendPct>=0?'▲':'▼'} ${Math.abs(trendPct).toFixed(1)}% vs kỳ trước</span>` : '';
+  const stat = (lbl, v, color, sub) => `<div>
+      <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">${lbl}</div>
+      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
+      ${sub?`<div style="font-size:10px;color:var(--muted2)">${sub}</div>`:''}
+    </div>`;
+
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">${trendChip}
+      <span style="font-size:10px;color:var(--muted2)">Quy đổi: NESO ÷ ${NESO_PER_NXPC.toLocaleString('vi-VN')} × ${rate} (NXPC/USDT)</span>
+    </div>
+    <div style="display:flex;gap:26px;margin-bottom:14px;flex-wrap:wrap">
+      ${stat('Tổng doanh thu ('+keys.length+' '+M.unit+')', fmtUsd(total), 'var(--blue)', fmtVnd(total))}
+      ${stat('Cao nhất', fmtUsd(maxV), 'var(--text)', fmtVnd(maxV))}
+      ${stat('TB / '+M.unit, fmtUsd(avg), 'var(--text)', fmtVnd(avg))}
+    </div>
+    <div id="usdt-svg-scroll" style="overflow-x:auto;padding-bottom:4px">
+      <svg width="${W}" height="${H}" style="display:block">${grid}${bars}</svg>
+    </div>`;
+
+  const sc = document.getElementById('usdt-svg-scroll');
+  if (sc) sc.scrollLeft = sc.scrollWidth;
+
+  let tip = document.getElementById('usdt-tip');
+  if (!tip) { tip = document.createElement('div'); tip.id='usdt-tip'; tip.style.cssText='position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;z-index:9999;white-space:nowrap'; document.body.appendChild(tip); }
+  body.querySelectorAll('[data-tip]').forEach(el => {
+    const idx = +el.getAttribute('data-tip'); const k = keys[idx]; const v = toUsd(src[k].out);
+    el.addEventListener('mousemove', (e) => {
+      tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
+        <div style="color:var(--blue)">${fmtUsd(v)}</div>
+        ${fmtVnd(v)?`<div style="color:var(--muted2);font-size:10px">${fmtVnd(v)}</div>`:''}
+        <div style="color:var(--muted2);font-size:10px">${Math.round(src[k].out).toLocaleString('vi-VN')} NESO · ${cntMap[k]||0} ví</div>`;
+      tip.style.left = Math.min(e.clientX+14, window.innerWidth-200)+'px';
+      tip.style.top = (e.clientY-10)+'px'; tip.style.opacity='1';
+    });
+    el.addEventListener('mouseleave', () => { tip.style.opacity='0'; });
+  });
+
+  // Nếu bảng chi tiết đang mở thì cập nhật theo tỷ giá mới
+  const det = document.getElementById('usdt-detail-body');
+  if (det && det.style.display !== 'none') renderUsdtDetail();
+}
+
 async function loadSwapChart() {
   const wrap = document.getElementById('swap-chart-wrap');
   if (!wrap) return;
   const wallets = teamWallets || [];
-  if (!wallets.length) { wrap.style.display='none'; return; }
+  if (!wallets.length) {
+    wrap.style.display='none';
+    const uw = document.getElementById('usdt-chart-wrap'); if (uw) uw.style.display='none';
+    return;
+  }
   wrap.style.display = 'block';
 
   const inOf  = r => (r.in_swap_amount||0);
@@ -4648,6 +4874,7 @@ async function loadSwapChart() {
     };
     renderSwapChart();
     if (typeof renderSwapinChart === 'function') renderSwapinChart();
+    if (typeof renderUsdtChart === 'function') { try { renderUsdtChart(); } catch(_){} }
   } catch(e) {
     document.getElementById('swap-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
   }
