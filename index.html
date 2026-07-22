@@ -665,6 +665,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)">Thêm ví vào team</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button onclick="openAdminBoard()" style="background:var(--accent);border:none;border-radius:8px;padding:7px 16px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">⚙️ Bảng quản trị</button>
+            <button id="cp-load-btn" onclick="loadTeamCp(true)" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:#c084fc;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer" title="Lấy CP nhân vật mạnh nhất của từng ví (nguồn: msu.gg)">⚔️ Tải CP</button>
             <button onclick="openMvpManual()" style="background:var(--subtle);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">✍ Nhập MVP tay</button>
           </div>
         </div>
@@ -3070,7 +3071,6 @@ async function loadTeamWallets() {
     // Load MVP points + NFT/FT counts in parallel (non-blocking)
     loadTeamMvpPoints().catch(()=>{});
     loadAllNftParallel().catch(()=>{});
-    if (typeof loadTeamCp === 'function') loadTeamCp().catch(()=>{});
     loadClaimChart().catch(()=>{});
     loadSpendChart().catch(()=>{});
     loadSwapChart().catch(()=>{});
@@ -5944,73 +5944,84 @@ function renderFlowTable(rows) {
 // MVP points loaded directly inside loadTeamWallets
 
 const NFT_CACHE_KEY = 'msu_nft_cache_v1';
-const CP_CACHE_TTL = 1800000; // 30 phút
+const CP_CACHE_TTL = 3600000; // 60 phút
+let cpLoading = false;
 function loadCpCache() { try { return JSON.parse(localStorage.getItem('msu_cp_cache')||'{}'); } catch(e) { return {}; } }
 function saveCpCache(c) { try { localStorage.setItem('msu_cp_cache', JSON.stringify(c)); } catch(e) {} }
 
-// Dò giá trị CP trong object nhân vật — API có thể đặt tên trường khác nhau
-const CP_KEYS = ['combatpower','combatPower','cp','battlepower','battlePower','power','totalcombatpower','fightpower','might'];
-function extractCp(obj, depth) {
-  depth = depth || 0;
-  if (!obj || typeof obj !== 'object' || depth > 4) return null;
-  for (const k of Object.keys(obj)) {
-    const v = obj[k];
-    const kl = k.toLowerCase();
-    if (CP_KEYS.includes(kl) || (kl.includes('combat') && kl.includes('power')) || (kl.includes('battle') && kl.includes('power'))) {
-      const n = typeof v === 'object' ? (v && (v.value ?? v.amount ?? v.total)) : v;
-      const num = Number(n);
-      if (isFinite(num) && num > 0) return num;
-    }
-  }
-  for (const k of Object.keys(obj)) {
-    const v = obj[k];
-    if (v && typeof v === 'object') {
-      const r = extractCp(v, depth + 1);
-      if (r != null) return r;
-    }
-  }
+// ══════════════ CP NHÂN VẬT (nguồn: msu.gg, CP nằm trong HTML kết xuất sẵn) ══════════════
+const CP_PAGE = ak => `https://msu.gg/characters/${ak}`;
+
+// Bóc CP từ HTML: "combat_power":"33704" hoặc "combatPower":"33704" (có thể bị escape \")
+function extractCpFromHtml(html) {
+  if (!html) return null;
+  const flat = html.replace(/\\/g, '');
+  const m = flat.match(/"combat_?power"\s*:\s*"?(\d+)"?/i);
+  if (m) { const n = Number(m[1]); if (isFinite(n) && n > 0) return n; }
   return null;
 }
 
-// Lấy CP của nhân vật mạnh nhất cho từng ví (song song, có cache)
 async function loadTeamCp(force) {
   const ws = teamWallets || [];
   if (!ws.length) return;
+  const btn = document.getElementById('cp-load-btn');
   const cache = loadCpCache();
   const now = Date.now();
-  const fetchJson = async (url) => {
-    for (let a = 0; a < 3; a++) {
+
+  // Ví nào còn cache tươi thì dùng luôn
+  const todo = [];
+  ws.forEach(w => {
+    const a = (w.address || '').toLowerCase();
+    const c = cache[a];
+    if (!force && c && (now - c.ts) < CP_CACHE_TTL) { w.maxCp = c.cp; w.maxCpChar = c.name; w.cpLoaded = true; }
+    else todo.push(w);
+  });
+  try { renderTeam(); } catch(_) {}
+  if (!todo.length) return;
+  if (cpLoading) return;
+  cpLoading = true;
+
+  const fetchText = async (url) => {
+    for (let a = 0; a < 2; a++) {
       try {
         const r = await fetch(msuProxy(url));
-        if (!r.ok) { await new Promise(rs=>setTimeout(rs,350)); continue; }
-        const t = await r.text();
-        if (!t || t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,350)); continue; }
-        return JSON.parse(t);
-      } catch(e) { await new Promise(rs=>setTimeout(rs,350)); }
+        if (!r.ok) { await new Promise(rs => setTimeout(rs, 300)); continue; }
+        return await r.text();
+      } catch(e) { await new Promise(rs => setTimeout(rs, 300)); }
     }
     return null;
   };
-  await Promise.allSettled(ws.map(async w => {
-    const a = (w.address||'').toLowerCase();
-    const c = cache[a];
-    if (!force && c && (now - c.ts) < CP_CACHE_TTL) {
-      w.maxCp = c.cp; w.maxCpChar = c.name; w.cpLoaded = true; return;
-    }
+  const fetchJson = async (url) => { const t = await fetchText(url); try { return t ? JSON.parse(t) : null; } catch(e) { return null; } };
+
+  let done = 0;
+  const setBtn = () => { if (btn) btn.innerHTML = `⏳ CP ${done}/${todo.length}`; };
+  if (btn) { btn.disabled = true; setBtn(); }
+
+  // Xử lý tuần tự từng ví (nhẹ cho proxy), nhân vật trong ví thì song song có giới hạn
+  for (const w of todo) {
     try {
       const j = await fetchJson(`https://msu.io/navigator/api/navigator/inventory/${w.address}/characters-v2?size=28`);
-      const list = (j && (j.characters || j.data || j.items)) || [];
+      const chars = (j && j.characters) || [];
+      const keys = chars.map(c => ({ ak: c?.character?.assetKey, name: c?.character?.name }))
+                        .filter(x => x.ak);
       let best = null, bestName = null;
-      (Array.isArray(list) ? list : []).forEach(item => {
-        const ch = item.character || item;
-        const cp = extractCp(item);
-        if (cp != null && (best == null || cp > best)) { best = cp; bestName = ch?.name || ch?.characterName || null; }
-      });
+      for (let i = 0; i < keys.length; i += 3) {
+        const batch = keys.slice(i, i + 3);
+        const res = await Promise.allSettled(batch.map(async k => ({ name: k.name, cp: extractCpFromHtml(await fetchText(CP_PAGE(k.ak))) })));
+        res.forEach(r => {
+          if (r.status !== 'fulfilled' || r.value.cp == null) return;
+          if (best == null || r.value.cp > best) { best = r.value.cp; bestName = r.value.name; }
+        });
+      }
       w.maxCp = best; w.maxCpChar = bestName; w.cpLoaded = true;
-      cache[a] = { cp: best, name: bestName, ts: now };
+      cache[(w.address || '').toLowerCase()] = { cp: best, name: bestName, ts: Date.now() };
     } catch(e) { w.cpLoaded = true; }
-  }));
+    done++; setBtn();
+    try { renderTeam(); } catch(_) {}
+  }
   saveCpCache(cache);
-  try { renderTeam(); } catch(_) {}
+  cpLoading = false;
+  if (btn) { btn.disabled = false; btn.innerHTML = '⚔️ Tải lại CP'; }
 }
 
 const NFT_CACHE_TTL = 3600000; // 1 hour
