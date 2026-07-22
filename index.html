@@ -3189,6 +3189,17 @@ function setTeamSort(mode) {
   renderTeam();
 }
 
+function cpUpdatedLabel(list) {
+  const ts = (list || []).map(w => w.cpTs).filter(t => t && isFinite(t));
+  if (!ts.length) return '';
+  const d = new Date(Math.max(...ts));
+  const p = n => ('0' + n).slice(-2);
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  const rel = mins < 1 ? 'vừa xong' : mins < 60 ? mins + ' phút trước'
+            : mins < 1440 ? Math.floor(mins/60) + ' giờ trước' : Math.floor(mins/1440) + ' ngày trước';
+  return `<div style="font-size:8.5px;color:var(--muted2);font-weight:500;margin-top:1px" title="Cập nhật ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}">🕐 ${rel}</div>`;
+}
+
 function weekCellHtml(w) {
   const bw = w.mvpBronzeWeeks;
   if (bw == null) return '<span style="font-size:10px;color:var(--muted2)">...</span>';
@@ -3405,8 +3416,8 @@ function renderTeam() {
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="4" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#c084fc;font-size:11px;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví<div style="font-size:9px;color:var(--muted2);font-weight:500">CP &gt; 100k</div>`;})()}</td>
-    <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-size:11px;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`${ws.length} world<div style="font-size:9px;color:var(--muted2);font-weight:500">${ws.slice(0,3).join(', ')}</div>`:'—';})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:#c084fc;font-size:11px;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví<div style="font-size:9px;color:var(--muted2);font-weight:500">CP &gt; 100k</div>`;})()}${cpUpdatedLabel(displayWallets)}</td>
+    <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-size:11px;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`${ws.length} world<div style="font-size:9px;color:var(--muted2);font-weight:500">${ws.slice(0,3).join(', ')}</div>`:'—';})()}${cpUpdatedLabel(displayWallets)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700" title="Số ví đủ 13 tuần Bronze+">${(()=>{const f=displayWallets.filter(w=>w.mvpBronzeWeeks>=13).length;return f>0?f+' đủ 13w':'—';})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
