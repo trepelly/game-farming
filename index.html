@@ -715,6 +715,8 @@ td:first-child{text-align:left;color:var(--muted2)}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           0 &lt; MVP &lt; 30
         </button>
+        <select id="week-filter" onchange="setWeekFilter(this.value)" title="Lọc theo số tuần đạt Bronze+ (Week)"
+          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">Week: Tất cả</option><option value="0">Week = 0</option><option value="1">Week ≥ 1</option><option value="2">Week ≥ 2</option><option value="3">Week ≥ 3</option><option value="4">Week ≥ 4</option><option value="5">Week ≥ 5</option><option value="6">Week ≥ 6</option><option value="7">Week ≥ 7</option><option value="8">Week ≥ 8</option><option value="9">Week ≥ 9</option><option value="10">Week ≥ 10</option><option value="11">Week ≥ 11</option><option value="12">Week ≥ 12</option><option value="13">Week ≥ 13</option><option value="full">Week = 13 (đủ)</option></select>
       </div>
 
       <div id="team-loading" style="text-align:center;padding:40px;color:var(--muted2);font-size:13px;display:none">
@@ -3120,6 +3122,19 @@ function updateColSortIcons() {
 }
 let teamAlpha = 'all';
 let mvpFilter = 'all'; // 'all' | 'bronze' (≥30) | 'below' (0<x<30)
+let weekFilter = 'all'; // 'all' | '0' | '1'..'13' (≥N) | 'full' (=13)
+
+function setWeekFilter(v) {
+  weekFilter = v || 'all';
+  const el = document.getElementById('week-filter');
+  if (el) {
+    const on = weekFilter !== 'all';
+    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
+    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
+    el.style.color = on ? '#fff' : 'var(--muted2)';
+  }
+  renderTeam();
+}
 
 function clearTeamSearch() {
   const inp = document.getElementById('team-search');
@@ -3227,6 +3242,15 @@ function renderTeam() {
   } else if (mvpFilter === 'below') {
     displayWallets = displayWallets.filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
   }
+  if (weekFilter !== 'all') {
+    displayWallets = displayWallets.filter(w => {
+      const wk = w.mvpBronzeWeeks;
+      if (wk == null) return false;
+      if (weekFilter === '0') return wk === 0;
+      if (weekFilter === 'full') return wk >= 13;
+      return wk >= parseInt(weekFilter, 10);
+    });
+  }
 
   // Sort
   const nesoVal = w => w.neso ?? -1;
@@ -3261,7 +3285,8 @@ function renderTeam() {
   // Update count
   const countEl = document.getElementById('team-filter-count');
   if (countEl) {
-    countEl.textContent = query || teamSortMode !== 'default'
+    const filtering = query || teamSortMode !== 'default' || mvpFilter !== 'all' || weekFilter !== 'all';
+    countEl.textContent = filtering
       ? `Hiển thị ${displayWallets.length} / ${teamWallets.length} ví`
       : `${teamWallets.length} ví`;
   }
