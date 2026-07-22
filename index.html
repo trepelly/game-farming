@@ -3209,6 +3209,69 @@ function subLines(...lines) {
   return h + '</div>';
 }
 
+// Bảng nổi cho cột NFT: tách rõ đang ở trong ví hay trên nhân vật
+function nftTipHtml(w) {
+  const esc = t => String(t == null ? '' : t).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const n = v => (v == null ? null : Math.round(v).toLocaleString('vi-VN'));
+  const head = `<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:7px;margin-bottom:7px;border-bottom:1px solid var(--border2)">
+      <span style="font-weight:800;color:var(--text);font-size:12px">${esc(w.label || (w.address||'').slice(0,6))}</span>
+      <span style="font-size:10px;color:var(--muted2)">NFT &amp; vật phẩm</span>
+    </div>`;
+  if (w.nftCount == null) return head + '<div style="font-size:11px;color:var(--muted2);padding:2px 0">Đang tải dữ liệu NFT...</div>';
+
+  const inW = w.nftInWallet, inC = w.nftInCharacter, tot = w.nftCount || 0;
+  const bar = (() => {
+    if (inW == null || inC == null || tot === 0) return '';
+    const pw = Math.round((inW / tot) * 100);
+    return `<div style="display:flex;height:5px;border-radius:3px;overflow:hidden;margin:8px 0 3px;background:var(--border2)">
+        <div style="width:${pw}%;background:var(--accent)"></div><div style="flex:1;background:#38bdf8"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted2)"><span>${pw}% trong ví</span><span>${100-pw}% trên nhân vật</span></div>`;
+  })();
+
+  const row = (label, val, color, note) => val == null ? '' : `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:5px 0;border-top:1px solid var(--border)">
+      <span style="display:flex;align-items:center;gap:7px">
+        <span style="width:7px;height:7px;border-radius:50%;background:${color};display:inline-block"></span>
+        <span style="font-size:11.5px;color:var(--text);font-weight:600">${label}</span>
+        ${note?`<span style="font-size:9.5px;color:var(--muted2)">${note}</span>`:''}
+      </span>
+      <span style="font-family:monospace;font-size:11.5px;font-weight:700;color:${color}">${n(val)}</span>
+    </div>`;
+
+  const total = `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:2px 0 5px">
+      <span style="font-size:11.5px;color:var(--text);font-weight:800">Tổng NFT</span>
+      <span style="font-family:monospace;font-size:13px;font-weight:800;color:var(--text)">${n(tot)}</span>
+    </div>`;
+
+  const unknown = (inW == null || inC == null)
+    ? '<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2);font-size:9.5px;color:var(--muted2)">Chưa có số liệu tách ví / nhân vật</div>' : '';
+
+  const extras = (w.ftCount != null || w.redFlorin != null)
+    ? `<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2)">
+        ${row('Vật phẩm FT', w.ftCount, 'var(--green)', 'exchange')}
+        ${row('Red Florin', w.redFlorin, '#ef4444', '')}
+      </div>` : '';
+
+  return head + total + bar + row('Trong ví', inW, 'var(--accent)', 'chưa trang bị')
+       + row('Trên nhân vật', inC, '#38bdf8', 'đang dùng') + unknown + extras;
+}
+
+function showNftTip(ev, addr) {
+  const w = (teamWallets || []).find(x => x.address === addr);
+  if (!w) return;
+  let tip = document.getElementById('char-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'char-tip';
+    tip.style.cssText = 'position:fixed;z-index:10001;background:var(--card);border:1px solid var(--border2);border-radius:11px;padding:11px 13px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;pointer-events:none;max-width:330px;min-width:250px';
+    document.body.appendChild(tip);
+  }
+  tip.innerHTML = nftTipHtml(w);
+  tip.style.opacity = '1';
+  moveCharTip(ev);
+}
+
 // Bảng nổi liệt kê nhân vật của ví (CP / World) — dạng danh sách dọc
 function charTipHtml(w) {
   const list = (w.chars || []).slice().sort((a,b) => (b.cp||0) - (a.cp||0));
@@ -3428,7 +3491,7 @@ function renderTeam() {
         <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
       </td>
       <td style="text-align:left;white-space:nowrap">${renderPlayerCell(w, isAdmin)}</td>
-      <td style="text-align:right;color:var(--muted2);font-weight:500" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
+      <td style="text-align:right;color:var(--muted2);font-weight:500;cursor:help" id="nft-${w.address.slice(-8)}" onmouseenter="showNftTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
       <td style="text-align:right;white-space:nowrap;cursor:${(w.chars||[]).length?'help':'default'}" id="cp-${w.address.slice(-8)}" onmouseenter="showCharTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${
         w.maxCp!=null
           ? `<span style="color:#c084fc;font-weight:700;font-size:13px">${Math.round(w.maxCp).toLocaleString('vi-VN')}</span>${w.maxCpChar?`<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px;max-width:92px;overflow:hidden;text-overflow:ellipsis">${w.maxCpChar}</div>`:''}`
