@@ -375,9 +375,16 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
       <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" style="width:17px;height:17px;border-radius:50%"/>
-        <span style="color:var(--muted2);font-weight:600" title="Giá thị trường (CoinGecko) + 2% chênh lệch P2P chợ đen VN. Xấp xỉ giá bán USDT trên Binance P2P.">USDT/VND <span style="font-size:9px;opacity:.7;cursor:help">≈P2P ⓘ</span></span>
+        <span style="color:var(--muted2);font-weight:600" title="Giá thị trường (CoinGecko) + chênh lệch P2P (admin chỉnh được). Xấp xỉ giá bán USDT trên Binance P2P.">USDT/VND <span style="font-size:9px;opacity:.7;cursor:help">≈P2P ⓘ</span></span>
         <span id="hdr-vnd" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
         <span id="hdr-vnd-chg" style="font-size:11px;color:var(--muted2)"></span>
+        <span class="admin-only" style="display:none;align-items:center;gap:3px;border-left:1px solid var(--border2);padding-left:7px;margin-left:2px">
+          <span style="font-size:10px;color:var(--muted2)" title="Chênh lệch so với giá tham chiếu (giá P2P thực tế)">P2P +</span>
+          <input id="p2p-premium-input" type="number" step="0.1" min="-10" max="20" onchange="setP2pPremium(this.value)" onkeydown="if(event.key==='Enter')this.blur()"
+            style="width:46px;background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:2px 4px;font-family:inherit;font-size:11px;font-weight:700;color:var(--accent);outline:none;text-align:right"/>
+          <span style="font-size:10px;color:var(--muted2)">%</span>
+          <span id="p2p-premium-status" style="font-size:10px;color:var(--muted2)"></span>
+        </span>
       </div>
       <div class="hdr-chip" style="display:flex;align-items:center;gap:7px;border-radius:9px;padding:7px 12px;font-size:13px;white-space:nowrap">
         <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png" style="width:17px;height:17px;border-radius:50%"/>
@@ -2286,7 +2293,8 @@ async function saveGist(data) {
 async function saveTeamData() {
   await saveGist({
     wallets: teamWallets.map(w=>({ address:w.address, label:w.label, player:w.player||null, since:w.since||null, history:w.history||[], maxCp:w.maxCp??null, maxCpChar:w.maxCpChar||null, maxCpWorld:w.maxCpWorld||null, chars:w.chars||[], cpTs:w.cpTs||null, mvpManual:(w.mvpManual!=null?w.mvpManual:null) })),
-    players: teamPlayers
+    players: teamPlayers,
+    settings: teamSettings || {}
   });
 }
 
@@ -3055,6 +3063,8 @@ async function loadTeamWallets() {
     const data  = await fetchGist();
     teamWallets = data.wallets || [];
     teamPlayers = data.players || [];
+    teamSettings = data.settings || {};
+    try { applyP2pToPrices(); } catch(e) {}
     // đảm bảo field player/since/history cho mỗi ví
     teamWallets.forEach(w => { if (!('player' in w)) w.player = null; if (!('since' in w)) w.since = null; if (!Array.isArray(w.history)) w.history = []; if (!('mvpManual' in w)) w.mvpManual = null; });
     // LỌC THEO MEMBER: member chỉ thấy ví gán cho tên người chơi của mình (trừ khi được cấp 'Xem tất cả')
@@ -3616,6 +3626,44 @@ window.switchTab = function(t) { _origSwitchTeam(t); };
 let liveNxpcUsd = null;
 let liveNesoUsd = null;
 let liveAvaxUsd = null;
+let teamSettings = {};                 // cài đặt dùng chung, lưu trong gist
+const P2P_DEFAULT = 1.012;             // +1.2% mặc định
+function p2pPremium() { const v = teamSettings && teamSettings.p2pPremium; return (typeof v === 'number' && v > 0.5 && v < 1.5) ? v : P2P_DEFAULT; }
+function syncP2pInput() {
+  const el = document.getElementById('p2p-premium-input');
+  if (el && document.activeElement !== el) el.value = ((p2pPremium() - 1) * 100).toFixed(2).replace(/\.?0+$/, '');
+}
+async function setP2pPremium(pct) {
+  const n = parseFloat(pct);
+  const st = document.getElementById('p2p-premium-status');
+  if (!isFinite(n) || n < -10 || n > 20) { if (st) { st.textContent = '✗'; st.style.color = 'var(--red)'; } syncP2pInput(); return; }
+  teamSettings.p2pPremium = 1 + n / 100;
+  applyP2pToPrices();
+  if (st) { st.textContent = '⏳'; st.style.color = 'var(--muted2)'; }
+  try {
+    await saveTeamData();
+    if (st) { st.textContent = '✓'; st.style.color = 'var(--green)'; setTimeout(() => { if (st) st.textContent = ''; }, 2000); }
+  } catch(e) {
+    if (st) { st.textContent = '✗ chưa lưu'; st.style.color = 'var(--red)'; }
+  }
+}
+// Tính lại VNĐ từ giá gốc đã lưu (không cần gọi lại API)
+function applyP2pToPrices() {
+  try {
+    const raw = sessionStorage.getItem('live_prices');
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.usdvndBase) {
+      d.usdvnd = Math.round(d.usdvndBase * p2pPremium());
+      sessionStorage.setItem('live_prices', JSON.stringify(d));
+      liveUsdVnd = d.usdvnd;
+      renderPriceTicker(d);
+      if (typeof renderTeam === 'function' && document.getElementById('team-tbody')) renderTeam();
+    }
+  } catch(e) {}
+  syncP2pInput();
+}
+
 let liveUsdVnd  = null;
 let liveUsdVndChg = 0;
 
@@ -3683,14 +3731,15 @@ async function fetchLivePrices(force=false) {
 
     // USDT/VND — CoinGecko (giá thị trường) × hệ số P2P (chợ đen VN cao hơn ~3%)
     // Binance P2P trực tiếp chặn IP server, nên dùng CoinGecko làm nền + premium
-    const P2P_PREMIUM = 1.012; // +1.2% so với giá tham chiếu (chênh lệch P2P) — chỉnh ở đây nếu thay đổi
+    const P2P_PREMIUM = p2pPremium(); // hệ số P2P dùng chung (admin chỉnh trên thanh giá, lưu trong gist)
+    let usdvndBase = null;
     let usdvndChg = 0;
     try {
       const cgRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd&include_24hr_change=true');
       if (cgRes.ok) {
         const cg = await cgRes.json();
         const base = cg?.tether?.vnd;
-        if (base) usdvnd = Math.round(base * P2P_PREMIUM);
+        if (base) { usdvndBase = base; usdvnd = Math.round(base * P2P_PREMIUM); }
         usdvndChg = cg?.tether?.vnd_24h_change || 0;
       }
     } catch(e) { console.warn('CoinGecko price fail', e.message); }
@@ -3711,7 +3760,7 @@ async function fetchLivePrices(force=false) {
     const neso    = nxpc ? nxpc / 100000 : null;
     const nesoChg = nxpcChg; // NESO tracks NXPC
 
-    const data = { nxpc, nxpcChg, neso, nesoChg, usdvnd, usdvndChg, avaxUsd, avaxChg, avaxGas, ts: Date.now() };
+    const data = { nxpc, nxpcChg, neso, nesoChg, usdvnd, usdvndBase, usdvndChg, avaxUsd, avaxChg, avaxGas, ts: Date.now() };
     sessionStorage.setItem('live_prices', JSON.stringify(data));
     liveNxpcUsd = nxpc;
     liveNesoUsd = neso;
