@@ -3683,7 +3683,7 @@ async function fetchLivePrices(force=false) {
 
     // USDT/VND — CoinGecko (giá thị trường) × hệ số P2P (chợ đen VN cao hơn ~3%)
     // Binance P2P trực tiếp chặn IP server, nên dùng CoinGecko làm nền + premium
-    const P2P_PREMIUM = 1.013; // +1.3% so với giá tham chiếu (chênh lệch P2P) — chỉnh ở đây nếu thay đổi
+    const P2P_PREMIUM = 1.012; // +1.2% so với giá tham chiếu (chênh lệch P2P) — chỉnh ở đây nếu thay đổi
     let usdvndChg = 0;
     try {
       const cgRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd&include_24hr_change=true');
