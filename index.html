@@ -3209,6 +3209,66 @@ function subLines(...lines) {
   return h + '</div>';
 }
 
+// ── Làm mới CP của MỘT ví khi rê chuột (bỏ qua mọi tầng cache) ──
+let charTipAddr = null;
+const cpRefreshing = new Set();
+const msuProxyFresh = url => msuProxy(url) + '&_=' + Date.now();   // đổi URL -> Worker không trả bản cache
+
+async function cpFetchText(url, fresh) {
+  for (let a = 0; a < 2; a++) {
+    try {
+      const r = await fetch(fresh ? msuProxyFresh(url) : msuProxy(url));
+      if (!r.ok) { await new Promise(rs => setTimeout(rs, 250)); continue; }
+      return await r.text();
+    } catch(e) { await new Promise(rs => setTimeout(rs, 250)); }
+  }
+  return null;
+}
+
+async function refreshWalletChars(addr) {
+  if (cpRefreshing.has(addr)) return;
+  const w = (teamWallets || []).find(x => x.address === addr);
+  if (!w) return;
+  cpRefreshing.add(addr);
+  if (charTipAddr === addr) repaintCharTip();
+  try {
+    const txt = await cpFetchText(`https://msu.io/navigator/api/navigator/inventory/${addr}/characters-v2?size=28`, true);
+    const j = txt ? JSON.parse(txt) : null;
+    const keys = ((j && j.characters) || []).map(c => ({ ak: c?.character?.assetKey, name: c?.character?.name })).filter(x => x.ak);
+    const list = [];
+    for (let i = 0; i < keys.length; i += 3) {
+      const res = await Promise.allSettled(keys.slice(i, i + 3).map(async k => {
+        const info = extractCharInfo(await cpFetchText(CP_PAGE(k.ak), true));
+        return { name: k.name, ak: k.ak, cp: info.cp, world: info.world, job: info.job, level: info.level };
+      }));
+      res.forEach(r => { if (r.status === 'fulfilled') list.push(r.value); });
+      if (charTipAddr === addr) { w.chars = list.slice().sort((a,b)=>(b.cp||0)-(a.cp||0)); repaintCharTip(); }
+    }
+    list.sort((a, b) => (b.cp || 0) - (a.cp || 0));
+    const top = list.find(c => c.cp != null) || null;
+    w.chars = list; w.maxCp = top ? top.cp : null; w.maxCpChar = top ? top.name : null;
+    w.maxCpWorld = top ? (top.world || null) : null; w.cpTs = Date.now(); w.cpLoaded = true;
+    try { const c = loadCpCache(); c[addr.toLowerCase()] = { cp: w.maxCp, name: w.maxCpChar, world: w.maxCpWorld, chars: list, ts: w.cpTs }; saveCpCache(c); } catch(e) {}
+    try { renderTeam(); } catch(e) {}
+    // admin lưu lên gist để cả team hưởng số mới (giãn cách tối thiểu 60s)
+    if (teamUser && teamUser.role === 'admin' && Date.now() - (window.__lastCpSave || 0) > 60000) {
+      window.__lastCpSave = Date.now();
+      saveTeamData().catch(()=>{});
+    }
+  } catch(e) {
+  } finally {
+    cpRefreshing.delete(addr);
+    if (charTipAddr === addr) repaintCharTip();
+  }
+}
+
+function repaintCharTip() {
+  const tip = document.getElementById('char-tip');
+  if (!tip || tip.style.opacity === '0' || !charTipAddr) return;
+  const w = (teamWallets || []).find(x => x.address === charTipAddr);
+  if (w) tip.innerHTML = charTipHtml(w);
+}
+
 // Bảng nổi cho cột NFT: tách rõ đang ở trong ví hay trên nhân vật
 function nftTipHtml(w) {
   const esc = t => String(t == null ? '' : t).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
@@ -3280,7 +3340,10 @@ function charTipHtml(w) {
       <span style="font-weight:800;color:var(--text);font-size:12px">${esc(w.label || (w.address||'').slice(0,6))}</span>
       <span style="font-size:10px;color:var(--muted2)">${list.length} nhân vật</span>
     </div>`;
-  if (!list.length) return head + '<div style="font-size:11px;color:var(--muted2);padding:2px 0">Chưa có dữ liệu nhân vật</div>';
+  const fresh = cpRefreshing.has(w.address)
+    ? '<div style="font-size:9.5px;color:var(--accent);margin-bottom:6px">Đang cập nhật số mới nhất...</div>'
+    : (w.cpTs ? `<div style="font-size:9.5px;color:var(--muted2);margin-bottom:6px">Cập nhật ${Math.max(0,Math.round((Date.now()-w.cpTs)/1000))}s trước</div>` : '');
+  if (!list.length) return head + fresh + '<div style="font-size:11px;color:var(--muted2);padding:2px 0">Chưa có dữ liệu nhân vật</div>';
   const rows = list.map((c, i) => {
     const isTop = i === 0 && c.cp != null;
     return `<div style="display:flex;align-items:center;gap:9px;padding:5px 0${i?';border-top:1px solid var(--border)':''}">
@@ -3297,12 +3360,15 @@ function charTipHtml(w) {
   const foot = withCp < list.length
     ? `<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2);font-size:9.5px;color:var(--muted2)">${list.length - withCp} nhân vật chưa link MapleStory N nên không có CP</div>`
     : '';
-  return head + rows + foot;
+  return head + fresh + rows + foot;
 }
 
 function showCharTip(ev, addr) {
   const w = (teamWallets || []).find(x => x.address === addr);
   if (!w) return;
+  charTipAddr = addr;
+  // Dữ liệu cũ hơn 60 giây thì lặng lẽ làm mới ví này ngay
+  if (Date.now() - (w.cpTs || 0) > 60000) setTimeout(() => { if (charTipAddr === addr) refreshWalletChars(addr); }, 250);
   let tip = document.getElementById('char-tip');
   if (!tip) {
     tip = document.createElement('div');
@@ -3324,7 +3390,7 @@ function moveCharTip(ev) {
   tip.style.left = x + 'px';
   tip.style.top = y + 'px';
 }
-function hideCharTip() { const t = document.getElementById('char-tip'); if (t) t.style.opacity = '0'; }
+function hideCharTip() { const t = document.getElementById('char-tip'); if (t) t.style.opacity = '0'; charTipAddr = null; }
 
 function weekCellHtml(w) {
   const bw = w.mvpBronzeWeeks;
