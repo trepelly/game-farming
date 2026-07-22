@@ -3071,6 +3071,7 @@ async function loadTeamWallets() {
     // Load MVP points + NFT/FT counts in parallel (non-blocking)
     loadTeamMvpPoints().catch(()=>{});
     loadAllNftParallel().catch(()=>{});
+    if (typeof loadTeamCp === 'function') setTimeout(()=>loadTeamCp().catch(()=>{}), 1500);
     loadClaimChart().catch(()=>{});
     loadSpendChart().catch(()=>{});
     loadSwapChart().catch(()=>{});
