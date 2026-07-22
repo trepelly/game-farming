@@ -728,7 +728,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <table>
           <thead>
           <tr class="grp-row">
-            <th colspan="5" style="border-bottom:none;background:var(--surface)"></th>
+            <th colspan="6" style="border-bottom:none;background:var(--surface)"></th>
             <th colspan="2" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
             <th colspan="2" style="text-align:center;color:var(--green);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--green) 16%,var(--surface))">🍁 Henesys</th>
             <th colspan="3" style="text-align:center;color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--blue) 16%,var(--surface))">🔺 Avalanche</th>
@@ -740,6 +740,7 @@ td:first-child{text-align:left;color:var(--muted2)}
             <th style="text-align:left">Địa chỉ</th>
             <th style="text-align:left;cursor:pointer;user-select:none;color:var(--accent)" onclick="colSort('player')" title="Người chơi đang giữ ví">👤 Player <span id="sort-icon-player" style="opacity:.3">↕</span></th>
             <th style="color:#ffffff;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
+            <th style="color:#c084fc;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('cp')" title="CP của nhân vật mạnh nhất trên ví">⚔️ CP <span id="sort-icon-cp" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);cursor:pointer;user-select:none" onclick="colSort('mvp')" title="Điểm MVP · Week = số tuần Bronze+">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('neso')" title="NESO + quy đổi USDT/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
@@ -3069,6 +3070,7 @@ async function loadTeamWallets() {
     // Load MVP points + NFT/FT counts in parallel (non-blocking)
     loadTeamMvpPoints().catch(()=>{});
     loadAllNftParallel().catch(()=>{});
+    if (typeof loadTeamCp === 'function') loadTeamCp().catch(()=>{});
     loadClaimChart().catch(()=>{});
     loadSpendChart().catch(()=>{});
     loadSwapChart().catch(()=>{});
@@ -3175,6 +3177,14 @@ function renderTeam() {
       }
     });
   } catch(e) {}
+  // Khôi phục CP từ cache (30 phút)
+  try {
+    const cpc = loadCpCache(); const nowCp = Date.now();
+    teamWallets.forEach(w => {
+      const c = cpc[(w.address||'').toLowerCase()];
+      if (c && (nowCp - c.ts) < CP_CACHE_TTL && w.maxCp == null) { w.maxCp = c.cp; w.maxCpChar = c.name; w.cpLoaded = true; }
+    });
+  } catch(e) {}
 
   const nxpcRate = liveNxpcUsd || 0;
   const usdvnd   = liveUsdVnd  || 0;
@@ -3234,6 +3244,7 @@ function renderTeam() {
       if (teamSortCol==='tuanmvp')    return w.mvpBronzeWeeks ?? -1;
       if (teamSortCol==='mvpweek')    return w.mvpWeekValue ?? -1;
       if (teamSortCol==='nft')        return w.nftCount ?? -1;
+      if (teamSortCol==='cp')         return w.maxCp ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return w.usdt_avax_real ?? -1;
       return 0;
@@ -3291,6 +3302,11 @@ function renderTeam() {
       </td>
       <td style="text-align:left;white-space:nowrap">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
+      <td style="text-align:right;white-space:nowrap" id="cp-${w.address.slice(-8)}" title="${w.maxCpChar?('Nhân vật mạnh nhất: '+w.maxCpChar):''}">${
+        w.maxCp!=null
+          ? `<span style="color:#c084fc;font-weight:700;font-size:13px">${Math.round(w.maxCp).toLocaleString('vi-VN')}</span>${w.maxCpChar?`<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px;max-width:92px;overflow:hidden;text-overflow:ellipsis">${w.maxCpChar}</div>`:''}`
+          : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')
+      }</td>
       <td style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
           ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px">✍</span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`
@@ -5928,6 +5944,75 @@ function renderFlowTable(rows) {
 // MVP points loaded directly inside loadTeamWallets
 
 const NFT_CACHE_KEY = 'msu_nft_cache_v1';
+const CP_CACHE_TTL = 1800000; // 30 phút
+function loadCpCache() { try { return JSON.parse(localStorage.getItem('msu_cp_cache')||'{}'); } catch(e) { return {}; } }
+function saveCpCache(c) { try { localStorage.setItem('msu_cp_cache', JSON.stringify(c)); } catch(e) {} }
+
+// Dò giá trị CP trong object nhân vật — API có thể đặt tên trường khác nhau
+const CP_KEYS = ['combatpower','combatPower','cp','battlepower','battlePower','power','totalcombatpower','fightpower','might'];
+function extractCp(obj, depth) {
+  depth = depth || 0;
+  if (!obj || typeof obj !== 'object' || depth > 4) return null;
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    const kl = k.toLowerCase();
+    if (CP_KEYS.includes(kl) || (kl.includes('combat') && kl.includes('power')) || (kl.includes('battle') && kl.includes('power'))) {
+      const n = typeof v === 'object' ? (v && (v.value ?? v.amount ?? v.total)) : v;
+      const num = Number(n);
+      if (isFinite(num) && num > 0) return num;
+    }
+  }
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v && typeof v === 'object') {
+      const r = extractCp(v, depth + 1);
+      if (r != null) return r;
+    }
+  }
+  return null;
+}
+
+// Lấy CP của nhân vật mạnh nhất cho từng ví (song song, có cache)
+async function loadTeamCp(force) {
+  const ws = teamWallets || [];
+  if (!ws.length) return;
+  const cache = loadCpCache();
+  const now = Date.now();
+  const fetchJson = async (url) => {
+    for (let a = 0; a < 3; a++) {
+      try {
+        const r = await fetch(msuProxy(url));
+        if (!r.ok) { await new Promise(rs=>setTimeout(rs,350)); continue; }
+        const t = await r.text();
+        if (!t || t.trim().startsWith('<')) { await new Promise(rs=>setTimeout(rs,350)); continue; }
+        return JSON.parse(t);
+      } catch(e) { await new Promise(rs=>setTimeout(rs,350)); }
+    }
+    return null;
+  };
+  await Promise.allSettled(ws.map(async w => {
+    const a = (w.address||'').toLowerCase();
+    const c = cache[a];
+    if (!force && c && (now - c.ts) < CP_CACHE_TTL) {
+      w.maxCp = c.cp; w.maxCpChar = c.name; w.cpLoaded = true; return;
+    }
+    try {
+      const j = await fetchJson(`https://msu.io/navigator/api/navigator/inventory/${w.address}/characters-v2?size=28`);
+      const list = (j && (j.characters || j.data || j.items)) || [];
+      let best = null, bestName = null;
+      (Array.isArray(list) ? list : []).forEach(item => {
+        const ch = item.character || item;
+        const cp = extractCp(item);
+        if (cp != null && (best == null || cp > best)) { best = cp; bestName = ch?.name || ch?.characterName || null; }
+      });
+      w.maxCp = best; w.maxCpChar = bestName; w.cpLoaded = true;
+      cache[a] = { cp: best, name: bestName, ts: now };
+    } catch(e) { w.cpLoaded = true; }
+  }));
+  saveCpCache(cache);
+  try { renderTeam(); } catch(_) {}
+}
+
 const NFT_CACHE_TTL = 3600000; // 1 hour
 
 function loadNftCache() {
