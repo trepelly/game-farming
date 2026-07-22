@@ -732,7 +732,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <thead>
           <tr class="grp-row">
             <th colspan="7" style="border-bottom:none;background:var(--surface)"></th>
-            <th colspan="2" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
+            <th colspan="3" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
             <th colspan="2" style="text-align:center;color:var(--green);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--green) 16%,var(--surface))">🍁 Henesys</th>
             <th colspan="3" style="text-align:center;color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--blue) 16%,var(--surface))">🔺 Avalanche</th>
             <th class="admin-only" style="border-bottom:none;background:var(--surface)"></th>
@@ -745,7 +745,8 @@ td:first-child{text-align:left;color:var(--muted2)}
             <th style="color:#ffffff;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
             <th style="color:#c084fc;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('cp')" title="CP của nhân vật mạnh nhất trên ví">⚔️ CP <span id="sort-icon-cp" style="opacity:.3">↕</span></th>
             <th style="color:#38bdf8;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('world')" title="World của nhân vật mạnh nhất">🌍 World <span id="sort-icon-world" style="opacity:.3">↕</span></th>
-            <th style="color:var(--amber);white-space:nowrap" title="Điểm MVP · Week = số tuần Bronze+ (bấm từng phần để sắp xếp)"><span onclick="colSort('mvp')" style="cursor:pointer;user-select:none">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></span><span style="color:var(--muted2);margin:0 4px;font-weight:400">·</span><span onclick="colSort('tuanmvp')" style="cursor:pointer;user-select:none;font-size:10px">Week <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></span></th>
+            <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvp')" title="Điểm MVP">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
+            <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần đạt Bronze+">Week <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('neso')" title="NESO + quy đổi USDT/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('nxpc')" title="NXPC Henesys + quy đổi">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
@@ -3342,7 +3343,12 @@ function renderTeam() {
       }</td>
       <td style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
-          ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px">✍</span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`
+          ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px">✍</span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpTier?.name||''}</div>`
+          : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
+      </td>
+      <td style="text-align:center;white-space:nowrap" title="Số tuần đạt Bronze+ (tối đa 13 tuần gần nhất)">${
+        w.mvpBronzeWeeks!=null
+          ? `<span style="color:${w.mvpBronzeWeeks>=13?'var(--green)':(w.mvpBronzeWeeks>0?'var(--amber)':'var(--muted2)')};font-weight:700;font-size:13px">${w.mvpBronzeWeeks}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px">${w.mvpBronzeWeeks>0?'/13 tuần':'—'}</div>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
@@ -3382,6 +3388,7 @@ function renderTeam() {
     <td style="text-align:right;padding:10px 14px;color:#c084fc;font-size:11px;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví<div style="font-size:9px;color:var(--muted2);font-weight:500">CP &gt; 100k</div>`;})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-size:11px;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`${ws.length} world<div style="font-size:9px;color:var(--muted2);font-weight:500">${ws.slice(0,3).join(', ')}</div>`:'—';})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
+    <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700" title="Số ví đủ 13 tuần Bronze+">${(()=>{const f=displayWallets.filter(w=>w.mvpBronzeWeeks>=13).length;return f>0?f+' đủ 13w':'—';})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}${(()=>{const u=totNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
