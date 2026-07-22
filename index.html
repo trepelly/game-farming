@@ -3209,6 +3209,60 @@ function subLines(...lines) {
   return h + '</div>';
 }
 
+// Bảng nổi liệt kê nhân vật của ví (CP / World) — dạng danh sách dọc
+function charTipHtml(w) {
+  const list = (w.chars || []).slice().sort((a,b) => (b.cp||0) - (a.cp||0));
+  const esc = t => String(t == null ? '' : t).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+  const head = `<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:7px;margin-bottom:7px;border-bottom:1px solid var(--border2)">
+      <span style="font-weight:800;color:var(--text);font-size:12px">${esc(w.label || (w.address||'').slice(0,6))}</span>
+      <span style="font-size:10px;color:var(--muted2)">${list.length} nhân vật</span>
+    </div>`;
+  if (!list.length) return head + '<div style="font-size:11px;color:var(--muted2);padding:2px 0">Chưa có dữ liệu nhân vật</div>';
+  const rows = list.map((c, i) => {
+    const isTop = i === 0 && c.cp != null;
+    return `<div style="display:flex;align-items:center;gap:9px;padding:5px 0${i?';border-top:1px solid var(--border)':''}">
+      <span style="width:14px;text-align:right;font-size:9.5px;color:${isTop?'#c084fc':'var(--muted2)'};font-weight:${isTop?'800':'500'};font-family:monospace">${i+1}</span>
+      <span style="flex:1;min-width:96px">
+        <div style="font-size:11.5px;font-weight:${isTop?'800':'600'};color:var(--text);line-height:1.25">${esc(c.name)}</div>
+        <div style="font-size:9.5px;color:var(--muted2);margin-top:1px">${esc(c.job || '—')}${c.level!=null?' · Lv.'+c.level:''}</div>
+      </span>
+      <span style="font-size:9.5px;color:#38bdf8;background:color-mix(in srgb,#38bdf8 14%,transparent);border-radius:5px;padding:2px 7px;white-space:nowrap">${esc(c.world || '—')}</span>
+      <span style="min-width:58px;text-align:right;font-family:monospace;font-size:11.5px;font-weight:${isTop?'800':'600'};color:${c.cp!=null?'#c084fc':'var(--muted2)'}">${c.cp!=null?Math.round(c.cp).toLocaleString('vi-VN'):'chưa link'}</span>
+    </div>`;
+  }).join('');
+  const withCp = list.filter(c => c.cp != null).length;
+  const foot = withCp < list.length
+    ? `<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2);font-size:9.5px;color:var(--muted2)">${list.length - withCp} nhân vật chưa link MapleStory N nên không có CP</div>`
+    : '';
+  return head + rows + foot;
+}
+
+function showCharTip(ev, addr) {
+  const w = (teamWallets || []).find(x => x.address === addr);
+  if (!w) return;
+  let tip = document.getElementById('char-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'char-tip';
+    tip.style.cssText = 'position:fixed;z-index:10001;background:var(--card);border:1px solid var(--border2);border-radius:11px;padding:11px 13px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;pointer-events:none;max-width:330px;min-width:250px';
+    document.body.appendChild(tip);
+  }
+  tip.innerHTML = charTipHtml(w);
+  tip.style.opacity = '1';
+  moveCharTip(ev);
+}
+function moveCharTip(ev) {
+  const tip = document.getElementById('char-tip');
+  if (!tip || tip.style.opacity === '0') return;
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 16, y = ev.clientY + 12;
+  if (x + r.width > window.innerWidth - 10) x = ev.clientX - r.width - 14;
+  if (y + r.height > window.innerHeight - 10) y = Math.max(10, window.innerHeight - r.height - 10);
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+function hideCharTip() { const t = document.getElementById('char-tip'); if (t) t.style.opacity = '0'; }
+
 function weekCellHtml(w) {
   const bw = w.mvpBronzeWeeks;
   if (bw == null) return '<span style="font-size:10px;color:var(--muted2)">...</span>';
@@ -3375,12 +3429,12 @@ function renderTeam() {
       </td>
       <td style="text-align:left;white-space:nowrap">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500" id="nft-${w.address.slice(-8)}">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
-      <td style="text-align:right;white-space:nowrap" id="cp-${w.address.slice(-8)}" title="${w.maxCpChar?('Nhân vật mạnh nhất: '+w.maxCpChar):''}">${
+      <td style="text-align:right;white-space:nowrap;cursor:${(w.chars||[]).length?'help':'default'}" id="cp-${w.address.slice(-8)}" onmouseenter="showCharTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${
         w.maxCp!=null
           ? `<span style="color:#c084fc;font-weight:700;font-size:13px">${Math.round(w.maxCp).toLocaleString('vi-VN')}</span>${w.maxCpChar?`<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px;max-width:92px;overflow:hidden;text-overflow:ellipsis">${w.maxCpChar}</div>`:''}`
           : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')
       }</td>
-      <td style="text-align:center;white-space:nowrap" title="${(w.chars||[]).filter(c=>c.world).map(c=>c.name+': '+c.world).join(' · ')}">${
+      <td style="text-align:center;white-space:nowrap;cursor:${(w.chars||[]).length?'help':'default'}" onmouseenter="showCharTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${
         w.maxCpWorld
           ? `<span style="color:#38bdf8;font-weight:600;font-size:11px">${w.maxCpWorld}</span>${(()=>{const ws=[...new Set((w.chars||[]).map(c=>c.world).filter(Boolean))];return ws.length>1?`<div style="font-size:9px;color:var(--muted2)">+${ws.length-1} world</div>`:'';})()}`
           : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')
