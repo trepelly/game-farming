@@ -3347,7 +3347,7 @@ function renderTeam() {
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="4" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#c084fc;font-size:11px;font-weight:700">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);return cps.length?Math.max(...cps).toLocaleString('vi-VN'):'—';})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:#c084fc;font-size:11px;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví<div style="font-size:9px;color:var(--muted2);font-weight:500">CP &gt; 100k</div>`;})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
