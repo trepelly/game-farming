@@ -3179,6 +3179,20 @@ function setTeamSort(mode) {
   renderTeam();
 }
 
+function weekCellHtml(w) {
+  const bw = w.mvpBronzeWeeks;
+  if (bw == null) return '<span style="font-size:10px;color:var(--muted2)">...</span>';
+  let col = bw >= 13 ? 'var(--green)' : (bw > 0 ? 'var(--amber)' : 'var(--muted2)');
+  let sub = bw > 0 ? '/13 tuần' : '—';
+  try {
+    if (w.mvpFirstWeek && w.mvpPoints >= 30) {
+      const ms = new Date(w.mvpFirstWeek.getTime() + 91*86400000 - 1000) - new Date();
+      if (ms < 7*86400000) { col = 'var(--red)'; sub = 'sắp hết hạn'; }
+    }
+  } catch(e) {}
+  return `<span style="color:${col};font-weight:700;font-size:13px">${bw}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px">${sub}</div>`;
+}
+
 function renderTeam() {
   document.getElementById('team-loading').style.display    = 'none';
   document.getElementById('team-table-wrap').style.display = 'block';
@@ -3343,14 +3357,10 @@ function renderTeam() {
       }</td>
       <td style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
-          ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px">✍</span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpTier?.name||''}</div>`
+          ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px">✍</span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px">${w.mvpTier?.name||''}</div>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
-      <td style="text-align:center;white-space:nowrap" title="Số tuần đạt Bronze+ (tối đa 13 tuần gần nhất)">${
-        w.mvpBronzeWeeks!=null
-          ? `<span style="color:${w.mvpBronzeWeeks>=13?'var(--green)':(w.mvpBronzeWeeks>0?'var(--amber)':'var(--muted2)')};font-weight:700;font-size:13px">${w.mvpBronzeWeeks}</span><div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px">${w.mvpBronzeWeeks>0?'/13 tuần':'—'}</div>`
-          : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
-      </td>
+      <td style="text-align:center;white-space:nowrap" id="mvp-cd-${w.address.slice(-8)}" title="Số tuần đạt Bronze+ (tối đa 13 tuần gần nhất)">${weekCellHtml(w)}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${f(w.neso)}</span>${nesoBadge}${convSub(usdt, vnd)}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${fd2(w.nxpc,4)}</span>${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
@@ -6846,12 +6856,9 @@ function updateMvpCell(w) {
   if(cdEl) {
     const bw = w.mvpBronzeWeeks||0;
     if(!w.mvpFirstWeek||!w.mvpPoints||w.mvpPoints<30) {
-      cdEl.innerHTML='<span style="color:var(--muted2)">—</span>';
+      cdEl.innerHTML = weekCellHtml(w);
     } else {
-      const exp = new Date(w.mvpFirstWeek.getTime()+91*86400000-1000);
-      const ms  = exp-new Date();
-      const col = ms<7*86400000?'var(--amber)':'var(--accent)';
-      cdEl.innerHTML=`<span style="color:${col};font-weight:600" title="${bw} tuần Bronze+">Week ${bw}</span>`;
+      cdEl.innerHTML = weekCellHtml(w);
     }
   } else if(!cells.length) renderTeam();
 }
@@ -7472,14 +7479,10 @@ function updateWalletCountdowns() {
     // Only update if MVP data has been loaded (mvpPoints is set)
     if (w.mvpPoints === undefined || w.mvpPoints === null) return; // not loaded yet, skip
     if (!w.mvpFirstWeek || w.mvpPoints < 30) {
-      _el.innerHTML = '<span style="color:var(--muted2)">—</span>'; return;
+      _el.innerHTML = weekCellHtml(w); return;
     }
     // Count weeks from first eligible week to now
-    const _bw     = w.mvpBronzeWeeks || 0;
-    const _expiry = new Date(w.mvpFirstWeek.getTime() + 91*86400000 - 1000);
-    const _msLeft = _expiry - _now;
-    const _color  = _msLeft < 7*86400000 ? 'var(--amber)' : 'var(--accent)';
-    _el.innerHTML = `<span style="color:${_color};font-weight:600">Week ${_bw}</span>`;
+    _el.innerHTML = weekCellHtml(w);
   });
 }
 function updateMvpCountdown_UNUSED() {
