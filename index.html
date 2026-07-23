@@ -4192,13 +4192,13 @@ function trackWalletChange(w) {
 
     if (!stored) {
       // First time — save snapshot
-      storeBalance(addr, period, { neso: w.neso, nxpc: w.nxpc });
+      storeBalance(addr, period, { neso: w.neso, nxpc: w.nxpc, avax: w.avax, nxpc_avax: w.nxpc_avax, usdt_avax: w.usdt_avax_real });
       return;
     }
 
     // If snapshot is older than period, update it
     if (now - stored.savedAt > ms) {
-      storeBalance(addr, period, { neso: w.neso, nxpc: w.nxpc });
+      storeBalance(addr, period, { neso: w.neso, nxpc: w.nxpc, avax: w.avax, nxpc_avax: w.nxpc_avax, usdt_avax: w.usdt_avax_real });
       return;
     }
 
@@ -4208,6 +4208,21 @@ function trackWalletChange(w) {
     if (Math.abs(nesoPct) >= 1 && period === '24h') {
       // A — gom vào batch, hiển thị 1 toast tóm tắt sau khi load xong
       changeBatch.push({ label: w.label || w.address.slice(0,6)+'...', diff: nesoDiff, pct: nesoPct });
+    }
+
+    // Token mạng Avalanche — cùng cơ chế, gom riêng để hiện chip riêng
+    if (period === '24h') {
+      [
+        { key:'avax',      cur:w.avax,            old:stored.avax,      name:'AVAX',        dec:4 },
+        { key:'nxpc_avax', cur:w.nxpc_avax,       old:stored.nxpc_avax, name:'NXPC(avax)',  dec:2 },
+        { key:'usdt_avax', cur:w.usdt_avax_real,  old:stored.usdt_avax, name:'USDT(avax)',  dec:2 },
+      ].forEach(t => {
+        if (t.cur == null || t.old == null || !(t.old > 0)) return;
+        const d = t.cur - t.old;
+        const p = d / t.old * 100;
+        if (Math.abs(p) < 1) return;
+        avaxChangeBatch.push({ label: w.label || w.address.slice(0,6)+'...', token: t.name, diff: d, pct: p, dec: t.dec });
+      });
     }
   });
 }
@@ -4229,6 +4244,8 @@ function renderChange(address, period) {
 let popupQueue = [];
 let popupShowing = false;
 let changeBatch  = [];   // A — gom thay đổi của 1 lần refresh
+let avaxChangeBatch = [];  // biến động token mạng Avalanche
+let lastAvaxItems = [];
 let summaryToastEl = null;
 
 
@@ -4237,6 +4254,8 @@ let summaryToastEl = null;
 function flushChangeSummary() {
   const items = changeBatch.slice();
   changeBatch = [];
+  lastAvaxItems = avaxChangeBatch.slice();
+  avaxChangeBatch = [];
   updateChangeBar(items);
   refreshNesoEarned();
 }
@@ -4266,6 +4285,30 @@ function updateChangeBar(items) {
   const earnChip = (lbl, v, tip, sub) => v == null ? '' : `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border);cursor:help"><span style="color:var(--text);font-weight:800;font-size:10px;letter-spacing:.02em">NESO ${lbl}</span><span style="color:${v>=0?'var(--green)':'var(--red)'};font-weight:700">${v>=0?'▲':'▼'} ${sgn(v)}</span><span style="color:var(--muted2);font-size:9px">${sub}</span></span>`;
   const sumChips = nesoEarned ? (earnChip('hôm nay', nesoEarned.e24, 'Hôm nay ('+(nesoEarned.day||'?')+', mốc 7h sáng VN). '+n24+'/'+totalW+' ví đã claim. '+earnTip, n24+'/'+totalW+' ví') + earnChip('tuần này', nesoEarned.e7, 'Tuần game hiện tại '+(weekRange?'('+weekRange+', Thứ 5→Thứ 4) ':'')+'· reset 7h sáng Thứ 5. '+earnTip, weekRange||'claim+bán')) : '';
 
+  // Chip biến động token mạng Avalanche (gộp theo token cho gọn)
+  const avaxChips = (() => {
+    const list = lastAvaxItems || [];
+    if (!list.length) return '';
+    const byTok = new Map();
+    list.forEach(c => {
+      if (!byTok.has(c.token)) byTok.set(c.token, { token:c.token, dec:c.dec, diff:0, up:0, down:0, top:null });
+      const o = byTok.get(c.token);
+      o.diff += c.diff;
+      if (c.diff >= 0) o.up++; else o.down++;
+      if (!o.top || Math.abs(c.diff) > Math.abs(o.top.diff)) o.top = c;
+    });
+    return [...byTok.values()].map(o => {
+      const up = o.diff >= 0, cc = up ? 'var(--green)' : 'var(--red)';
+      const amt = (up ? '+' : '') + o.diff.toLocaleString('vi-VN', { minimumFractionDigits:o.dec, maximumFractionDigits:o.dec });
+      const tip = `${o.token}: ${o.up} ví tăng, ${o.down} ví giảm trong 24h. Biến động lớn nhất: ${o.top.label} ${(o.top.diff>=0?'+':'')+o.top.diff.toFixed(o.dec)}`;
+      return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)">
+        <span style="color:#38bdf8;font-weight:600">${o.token}</span>
+        <span style="color:${cc};font-weight:700">${up?'▲':'▼'} ${amt}</span>
+        <span style="color:var(--muted2);font-size:10px">${o.up}↑ ${o.down}↓</span>
+      </span>`;
+    }).join('');
+  })();
+
   const walletChips = (lastChangeItems||[])
     .sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff))
     .map(c => {
@@ -4273,7 +4316,7 @@ function updateChangeBar(items) {
       return `<span style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">${c.label}</span><span style="color:${cc};font-weight:700">${up?'▲':'▼'}${Math.abs(c.pct).toFixed(1)}%</span><span style="color:var(--muted2)">${sgn(c.diff)}</span></span>`;
     }).join('');
 
-  const chips = sumChips + walletChips;
+  const chips = sumChips + avaxChips + walletChips;
   if (!chips) { bar.innerHTML = `<span style="color:var(--muted2);font-size:10px">Chưa có dữ liệu NESO claim</span>`; return; }
   const cnt = (nesoEarned?2:0) + ((lastChangeItems&&lastChangeItems.length)||0);
   const dur = Math.max(14, cnt * 5);
@@ -5792,6 +5835,7 @@ if (_origLoadTeam) {
   window.loadTeamWallets = async function() {
     await _origLoadTeam();
     changeBatch = [];
+    avaxChangeBatch = [];
     (window.teamWallets||teamWallets||[]).forEach(w => { if(w.neso!=null) trackWalletChange(w); });
     flushChangeSummary();
   };
