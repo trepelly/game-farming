@@ -3301,10 +3301,31 @@ async function refreshWalletNft(addr) {
       w.nftInWallet = items.length - inChar;
       w.nftItemsFull = items;
     }
+    if (nftTipAddr === addr) repaintNftTip();
+    // Vật phẩm FT (Exchange Currency) + Red/Blue Florin
+    let ftItems = [], ftPage = 1, ftTot = 0;
+    do {
+      const j = await getJson(`https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${ftPage}&paginationParam.pageSize=30`);
+      if (!j) break;
+      ftTot = j.paginationResult?.totalCount || 0;
+      ftItems = ftItems.concat(j.items || []);
+      ftPage++;
+    } while (ftItems.length < ftTot && ftPage <= 5);
+    if (ftItems.length) {
+      const exch = ftItems.filter(it => it.category?.tier1?.label === 'Exchange Currency');
+      const qtyOf = it => (it.ftItem?.ownedOnchainQuantity || 0) + (it.ftItem?.ownedOffchainQuantity || 0);
+      w.ftCount    = exch.reduce((a, it) => a + qtyOf(it), 0);
+      w.redFlorin  = exch.filter(it => /red florin/i.test(it.ftItem?.name || '')).reduce((a, it) => a + qtyOf(it), 0);
+      w.blueFlorin = exch.filter(it => /blue florin/i.test(it.ftItem?.name || '')).reduce((a, it) => a + qtyOf(it), 0);
+      w.ftItemsFull = ftItems;
+      const elRed = document.getElementById('red-' + addr.slice(-8));
+      if (elRed && w.redFlorin != null) elRed.innerHTML = `<span style="color:#ef4444;font-weight:600">${w.redFlorin.toLocaleString('vi-VN')}</span>`;
+    }
     w.nftTs = Date.now();
     try {
       const c = loadNftCache(); const k = addr.toLowerCase();
-      c[k] = Object.assign({}, c[k], { total: w.nftCount, wallet: w.nftInWallet, char: w.nftInCharacter, ts: w.nftTs });
+      c[k] = Object.assign({}, c[k], { total: w.nftCount, wallet: w.nftInWallet, char: w.nftInCharacter,
+                                       ft: w.ftCount, red: w.redFlorin, blue: w.blueFlorin, ts: w.nftTs });
       saveNftCache(c);
     } catch(e) {}
     const el = document.getElementById('nft-' + addr.slice(-8));
@@ -3364,11 +3385,15 @@ function nftTipHtml(w) {
   const unknown = (inW == null || inC == null)
     ? '<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2);font-size:9.5px;color:var(--muted2)">Chưa có số liệu tách ví / nhân vật</div>' : '';
 
-  const extras = (w.ftCount != null || w.redFlorin != null)
+  const extras = (w.ftCount != null || w.redFlorin != null || w.blueFlorin != null)
     ? `<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2)">
         ${row('Vật phẩm FT', w.ftCount, 'var(--green)', 'exchange')}
         ${row('Red Florin', w.redFlorin, '#ef4444', '')}
-      </div>` : '';
+        ${row('Blue Florin', w.blueFlorin, '#3b82f6', '')}
+      </div>`
+    : (nftRefreshing.has(w.address)
+        ? '<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2);font-size:9.5px;color:var(--muted2)">Đang lấy vật phẩm FT...</div>'
+        : '');
 
   return head + fresh + total + bar + row('Trong ví', inW, 'var(--accent)', 'chưa trang bị')
        + row('Trên nhân vật', inC, '#38bdf8', 'đang dùng') + unknown + extras;
@@ -3477,6 +3502,9 @@ function renderTeam() {
       const c = cache[w.address.toLowerCase()];
       if (c && (now - c.ts) < NFT_CACHE_TTL) {
         if (c.wallet != null) { w.nftInWallet=c.wallet; w.nftCount=c.total; w.nftInCharacter=c.char; }
+        if (c.ft != null && w.ftCount == null) w.ftCount = c.ft;
+        if (c.blue != null && w.blueFlorin == null) w.blueFlorin = c.blue;
+        if (c.ts && w.nftTs == null) w.nftTs = c.ts;
         if (c.red != null) w.redFlorin = c.red;
       }
     });
