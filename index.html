@@ -3269,6 +3269,60 @@ function repaintCharTip() {
   if (w) tip.innerHTML = charTipHtml(w);
 }
 
+// ── Làm mới NFT của MỘT ví khi rê chuột (bỏ qua cache) ──
+let nftTipAddr = null;
+const nftRefreshing = new Set();
+
+async function refreshWalletNft(addr) {
+  if (nftRefreshing.has(addr)) return;
+  const w = (teamWallets || []).find(x => x.address === addr);
+  if (!w) return;
+  nftRefreshing.add(addr);
+  if (nftTipAddr === addr) repaintNftTip();
+  try {
+    const getJson = async (url) => { const t = await cpFetchText(url, true); try { return t ? JSON.parse(t) : null; } catch(e) { return null; } };
+    // Tổng NFT (nhanh) — hiện ngay rồi mới lấy phần tách chi tiết
+    const sum = await getJson(`https://msu.io/navigator/api/navigator/inventory/${addr}/summary-v2`);
+    const tot = sum?.msuStatistics?.ownedSummary?.totalNumNftItems;
+    if (tot != null) { w.nftCount = tot; if (nftTipAddr === addr) repaintNftTip(); }
+    // Danh sách chi tiết để tách "trong ví" / "trên nhân vật"
+    let items = [], page = 1, total = 0;
+    do {
+      const j = await getJson(`https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`);
+      if (!j) break;
+      total = j.paginationResult?.totalCount || 0;
+      items = items.concat(j.items || []);
+      page++;
+    } while (items.length < total && page <= 5);
+    if (items.length) {
+      const inChar = items.filter(it => it.nftItem?.ownedCharacter).length;
+      w.nftCount = items.length;
+      w.nftInCharacter = inChar;
+      w.nftInWallet = items.length - inChar;
+      w.nftItemsFull = items;
+    }
+    w.nftTs = Date.now();
+    try {
+      const c = loadNftCache(); const k = addr.toLowerCase();
+      c[k] = Object.assign({}, c[k], { total: w.nftCount, wallet: w.nftInWallet, char: w.nftInCharacter, ts: w.nftTs });
+      saveNftCache(c);
+    } catch(e) {}
+    const el = document.getElementById('nft-' + addr.slice(-8));
+    if (el && w.nftCount != null) el.innerHTML = `<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`;
+  } catch(e) {
+  } finally {
+    nftRefreshing.delete(addr);
+    if (nftTipAddr === addr) repaintNftTip();
+  }
+}
+
+function repaintNftTip() {
+  const tip = document.getElementById('char-tip');
+  if (!tip || tip.style.opacity === '0' || !nftTipAddr) return;
+  const w = (teamWallets || []).find(x => x.address === nftTipAddr);
+  if (w) tip.innerHTML = nftTipHtml(w);
+}
+
 // Bảng nổi cho cột NFT: tách rõ đang ở trong ví hay trên nhân vật
 function nftTipHtml(w) {
   const esc = t => String(t == null ? '' : t).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
@@ -3277,7 +3331,10 @@ function nftTipHtml(w) {
       <span style="font-weight:800;color:var(--text);font-size:12px">${esc(w.label || (w.address||'').slice(0,6))}</span>
       <span style="font-size:10px;color:var(--muted2)">NFT &amp; vật phẩm</span>
     </div>`;
-  if (w.nftCount == null) return head + '<div style="font-size:11px;color:var(--muted2);padding:2px 0">Đang tải dữ liệu NFT...</div>';
+  const fresh = nftRefreshing.has(w.address)
+    ? '<div style="font-size:9.5px;color:var(--accent);margin-bottom:6px">Đang cập nhật số mới nhất...</div>'
+    : (w.nftTs ? `<div style="font-size:9.5px;color:var(--muted2);margin-bottom:6px">Cập nhật ${Math.max(0,Math.round((Date.now()-w.nftTs)/1000))}s trước</div>` : '');
+  if (w.nftCount == null) return head + fresh + '<div style="font-size:11px;color:var(--muted2);padding:2px 0">Đang tải dữ liệu NFT...</div>';
 
   const inW = w.nftInWallet, inC = w.nftInCharacter, tot = w.nftCount || 0;
   const bar = (() => {
@@ -3313,13 +3370,15 @@ function nftTipHtml(w) {
         ${row('Red Florin', w.redFlorin, '#ef4444', '')}
       </div>` : '';
 
-  return head + total + bar + row('Trong ví', inW, 'var(--accent)', 'chưa trang bị')
+  return head + fresh + total + bar + row('Trong ví', inW, 'var(--accent)', 'chưa trang bị')
        + row('Trên nhân vật', inC, '#38bdf8', 'đang dùng') + unknown + extras;
 }
 
 function showNftTip(ev, addr) {
   const w = (teamWallets || []).find(x => x.address === addr);
   if (!w) return;
+  nftTipAddr = addr; charTipAddr = null;
+  if (Date.now() - (w.nftTs || 0) > 60000) setTimeout(() => { if (nftTipAddr === addr) refreshWalletNft(addr); }, 250);
   let tip = document.getElementById('char-tip');
   if (!tip) {
     tip = document.createElement('div');
@@ -3366,7 +3425,7 @@ function charTipHtml(w) {
 function showCharTip(ev, addr) {
   const w = (teamWallets || []).find(x => x.address === addr);
   if (!w) return;
-  charTipAddr = addr;
+  charTipAddr = addr; nftTipAddr = null;
   // Dữ liệu cũ hơn 60 giây thì lặng lẽ làm mới ví này ngay
   if (Date.now() - (w.cpTs || 0) > 60000) setTimeout(() => { if (charTipAddr === addr) refreshWalletChars(addr); }, 250);
   let tip = document.getElementById('char-tip');
@@ -3390,7 +3449,7 @@ function moveCharTip(ev) {
   tip.style.left = x + 'px';
   tip.style.top = y + 'px';
 }
-function hideCharTip() { const t = document.getElementById('char-tip'); if (t) t.style.opacity = '0'; charTipAddr = null; }
+function hideCharTip() { const t = document.getElementById('char-tip'); if (t) t.style.opacity = '0'; charTipAddr = null; nftTipAddr = null; }
 
 function weekCellHtml(w) {
   const bw = w.mvpBronzeWeeks;
