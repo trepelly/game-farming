@@ -1777,7 +1777,7 @@ function updatePortfolio() {
   const totalUsdtAvaxReal = loaded.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
   const usersSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
   // Token card with logo + USD/VND estimate inside (right-aligned numbers, left title)
-  const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal) => {
+  const tokenCard = (chain, chainColor, label, amount, usdVal, vndVal, badge) => {
     let sub = '';
     if (usdVal!=null) sub += `<div style="font-size:12px;color:var(--text2);font-weight:600;text-align:right">$${usdVal.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;
     if (vndVal!=null) sub += `<div style="font-size:11px;color:var(--muted2);font-weight:500;text-align:right">${Math.round(vndVal).toLocaleString('vi-VN')}đ</div>`;
@@ -1786,6 +1786,7 @@ function updatePortfolio() {
       <div style="font-size:10px;font-weight:700;color:${chainColor};margin-bottom:7px;text-transform:uppercase;letter-spacing:.1em;text-align:left">${chain}</div>
       <div class="stat-label" style="text-align:left;display:flex;align-items:center;gap:7px;font-size:11px">${cLogo(lk,20)}${label}</div>
       <div class="stat-val" style="color:${chainColor};text-align:right">${amount}</div>
+      ${badge ? `<div style="display:flex;justify-content:flex-end;margin-top:5px">${badge}</div>` : ''}
       <div style="margin-top:7px;display:flex;flex-direction:column;gap:5px">${sub}</div>
     </div>`;
   };
@@ -3774,6 +3775,31 @@ function renderTeam() {
     </div>`;
   };
   const totUsdtAvaxReal = displayWallets.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
+  // Biến động 24h theo từng token — badge trên thẻ tổng
+  const chgBadge = (getCur, getOld, dec) => {
+    let diff = 0, base = 0, up = 0, down = 0;
+    displayWallets.forEach(w => {
+      const cur = getCur(w); if (cur == null) return;
+      const st = (typeof getStoredBalance === 'function') ? getStoredBalance(w.address, '24h') : null;
+      const old = st ? getOld(st) : null;
+      if (old == null || !(old > 0)) return;
+      const d = cur - old; diff += d; base += old;
+      const p = d / old * 100;
+      if (Math.abs(p) >= 0.1) { if (d >= 0) up++; else down++; }
+    });
+    if (!(base > 0) || (up + down) === 0) return '';
+    const pct = diff / base * 100;
+    const posi = diff >= 0;
+    const col = posi ? 'var(--green)' : 'var(--red)';
+    const amt = (posi ? '+' : '') + diff.toLocaleString('vi-VN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    return `<span title="24h: ${up} ví tăng, ${down} ví giảm · ${amt}" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:${col};background:${posi?'var(--green-bg)':'var(--red-bg)'};padding:2px 8px;border-radius:99px">${posi?'▲':'▼'}${Math.abs(pct).toFixed(1)}% <span style="color:var(--muted2);font-weight:500">24h</span></span>`;
+  };
+  const bNeso     = chgBadge(w => w.neso,           st => st.neso,      0);
+  const bNxpc     = chgBadge(w => w.nxpc,           st => st.nxpc,      2);
+  const bAvax     = chgBadge(w => w.avax,           st => st.avax,      4);
+  const bNxpcAvax = chgBadge(w => w.nxpc_avax,      st => st.nxpc_avax, 2);
+  const bUsdtAvax = chgBadge(w => w.usdt_avax_real, st => st.usdt_avax, 2);
+
   // NESO 24h aggregate change — hiển thị trong thẻ tổng NESO
   let nesoChgDiff=0, nesoChgBase=0, nUp=0, nDown=0;
   displayWallets.forEach(w=>{
@@ -3836,11 +3862,11 @@ function renderTeam() {
         </div>` : `<div style="display:flex;align-items:baseline;gap:8px;margin-top:10px"><span class="stat-val" style="font-size:32px">${total}</span><span style="font-size:12px;color:var(--muted2);font-weight:600">ví</span></div><div style="font-size:11px;color:var(--muted2);margin-top:12px">Đang tải MVP...</div>`}
       </div>`;
     })()}
-    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd)}
-    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NXPC', fd2(totNxpc,2), totNxpc*nxpcRate, totNxpc*nxpcRate*usdvnd)}
-    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'AVAX', fd2(totAvax,4), totAvax*(liveAvaxUsd||0), totAvax*(liveAvaxUsd||0)*usdvnd)}
-    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), totUsdtAvax, totVndAvax)}
-    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvaxReal,2), null, totUsdtAvaxReal*usdvnd)}`;
+    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd, bNeso)}
+    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NXPC', fd2(totNxpc,2), totNxpc*nxpcRate, totNxpc*nxpcRate*usdvnd, bNxpc)}
+    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'AVAX', fd2(totAvax,4), totAvax*(liveAvaxUsd||0), totAvax*(liveAvaxUsd||0)*usdvnd, bAvax)}
+    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), totUsdtAvax, totVndAvax, bNxpcAvax)}
+    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvaxReal,2), null, totUsdtAvaxReal*usdvnd, bUsdtAvax)}`;
   // Ẩn hẳn cột thao tác (nút xoá) khi không phải admin — tránh chừa cột trống
   try {
     const isAdm = !!(teamUser && teamUser.role === 'admin');
