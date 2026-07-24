@@ -3614,18 +3614,21 @@ function renderTeam() {
   document.getElementById('team-tbody').innerHTML = displayWallets.map((w,i) => {
     const usdt = w.neso!=null ? w.neso*nesoRate : null;
     const vnd  = usdt!=null   ? usdt*usdvnd            : null;
-    // B — badge biến động NESO 24h ngay trong ô (so với snapshot đã lưu)
-    let nesoBadge = '';
-    if (typeof getStoredBalance === 'function' && w.neso != null) {
-      const _s = getStoredBalance(w.address, '24h');
-      if (_s && _s.neso > 0) {
-        const _d = w.neso - _s.neso, _p = _d / _s.neso * 100;
-        if (Math.abs(_p) >= 0.1) {
-          const _up = _d >= 0, _c = _up ? 'var(--green)' : 'var(--red)';
-          nesoBadge = `<span title="24h: ${(_up?'+':'')+Math.round(_d).toLocaleString('vi-VN')} NESO" style="display:inline-block;font-size:9px;font-weight:700;color:${_c};margin-left:6px;vertical-align:middle;white-space:nowrap">${_up?'▲':'▼'}${Math.abs(_p).toFixed(1)}%</span>`;
-        }
-      }
-    }
+    // B — badge biến động 24h ngay trong ô (so với snapshot đã lưu)
+    const _snap = (typeof getStoredBalance === 'function') ? getStoredBalance(w.address, '24h') : null;
+    const cellBadge = (cur, old, unit, dec) => {
+      if (cur == null || old == null || !(old > 0)) return '';
+      const d = cur - old, p = d / old * 100;
+      if (Math.abs(p) < 0.1) return '';
+      const up = d >= 0, c = up ? 'var(--green)' : 'var(--red)';
+      const amt = (up ? '+' : '') + d.toLocaleString('vi-VN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+      return `<span title="24h: ${amt} ${unit}" style="display:inline-block;font-size:9px;font-weight:700;color:${c};margin-left:6px;vertical-align:middle;white-space:nowrap">${up?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+    };
+    const nesoBadge     = cellBadge(w.neso,           _snap && _snap.neso,      'NESO', 0);
+    const nxpcBadge     = cellBadge(w.nxpc,           _snap && _snap.nxpc,      'NXPC', 2);
+    const avaxBadge     = cellBadge(w.avax,           _snap && _snap.avax,      'AVAX', 4);
+    const nxpcAvaxBadge = cellBadge(w.nxpc_avax,      _snap && _snap.nxpc_avax, 'NXPC', 2);
+    const usdtAvaxBadge = cellBadge(w.usdt_avax_real, _snap && _snap.usdt_avax, 'USDT', 2);
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px;color:var(--text2)">${a.slice(0,6)}...${a.slice(-4)}</span>`;
@@ -3664,10 +3667,10 @@ function renderTeam() {
       <td style="text-align:center;white-space:nowrap" id="mvp-cd-${w.address.slice(-8)}" title="Số tuần đạt Bronze+ (tối đa 13 tuần gần nhất)">${weekCellHtml(w)}</td>
       <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${f(w.neso)}</span>${nesoBadge}${convSub(usdt, vnd)}</td>
-      <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${fd2(w.nxpc,4)}</span>${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.avax!=null?fd2(w.avax,4):'—'}</span>${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</span>${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
-      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}</span>${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${fd2(w.nxpc,4)}</span>${nxpcBadge}${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.avax!=null?fd2(w.avax,4):'—'}</span>${avaxBadge}${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.nxpc_avax!=null?fd2(w.nxpc_avax,4):'—'}</span>${nxpcAvaxBadge}${(()=>{const u=w.nxpc_avax!=null?w.nxpc_avax*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
+      <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.usdt_avax_real!=null?fd2(w.usdt_avax_real,2):'—'}</span>${usdtAvaxBadge}${w.usdt_avax_real!=null?convSub(null, w.usdt_avax_real*usdvnd):''}</td>
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
@@ -4226,6 +4229,18 @@ function trackWalletChange(w) {
     if (now - stored.savedAt > ms) {
       storeBalance(addr, period, { neso: w.neso, nxpc: w.nxpc, avax: w.avax, nxpc_avax: w.nxpc_avax, usdt_avax: w.usdt_avax_real });
       return;
+    }
+
+    // Mốc cũ lưu trước khi có token Avalanche → bổ sung tại chỗ, GIỮ NGUYÊN savedAt
+    // (nếu không sẽ phải chờ hết 24h mới có số so sánh cho AVAX)
+    if (stored.avax === undefined || stored.nxpc_avax === undefined || stored.usdt_avax === undefined) {
+      const patched = Object.assign({}, stored, {
+        avax:      stored.avax      !== undefined ? stored.avax      : w.avax,
+        nxpc_avax: stored.nxpc_avax !== undefined ? stored.nxpc_avax : w.nxpc_avax,
+        usdt_avax: stored.usdt_avax !== undefined ? stored.usdt_avax : w.usdt_avax_real,
+      });
+      try { localStorage.setItem(`bal_${period}_${addr.toLowerCase()}`, JSON.stringify(patched)); } catch(e) {}
+      stored.avax = patched.avax; stored.nxpc_avax = patched.nxpc_avax; stored.usdt_avax = patched.usdt_avax;
     }
 
     // Check for significant change (>1%)
