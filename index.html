@@ -4251,18 +4251,19 @@ function trackWalletChange(w) {
       changeBatch.push({ label: w.label || w.address.slice(0,6)+'...', diff: nesoDiff, pct: nesoPct });
     }
 
-    // Token mạng Avalanche — cùng cơ chế, gom riêng để hiện chip riêng
+    // Các token còn lại — cùng cơ chế, gom riêng để hiện chip riêng
     if (period === '24h') {
       [
-        { key:'avax',      cur:w.avax,            old:stored.avax,      name:'AVAX',        dec:4 },
-        { key:'nxpc_avax', cur:w.nxpc_avax,       old:stored.nxpc_avax, name:'NXPC(avax)',  dec:2 },
-        { key:'usdt_avax', cur:w.usdt_avax_real,  old:stored.usdt_avax, name:'USDT(avax)',  dec:2 },
+        { key:'nxpc',      cur:w.nxpc,            old:stored.nxpc,      name:'NXPC',        dec:2, chain:'henesys' },
+        { key:'avax',      cur:w.avax,            old:stored.avax,      name:'AVAX',        dec:4, chain:'avax' },
+        { key:'nxpc_avax', cur:w.nxpc_avax,       old:stored.nxpc_avax, name:'NXPC(avax)',  dec:2, chain:'avax' },
+        { key:'usdt_avax', cur:w.usdt_avax_real,  old:stored.usdt_avax, name:'USDT(avax)',  dec:2, chain:'avax' },
       ].forEach(t => {
         if (t.cur == null || t.old == null || !(t.old > 0)) return;
         const d = t.cur - t.old;
         const p = d / t.old * 100;
         if (Math.abs(p) < 1) return;
-        avaxChangeBatch.push({ label: w.label || w.address.slice(0,6)+'...', token: t.name, diff: d, pct: p, dec: t.dec });
+        avaxChangeBatch.push({ label: w.label || w.address.slice(0,6)+'...', token: t.name, diff: d, pct: p, dec: t.dec, chain: t.chain });
       });
     }
   });
@@ -4332,7 +4333,7 @@ function updateChangeBar(items) {
     if (!list.length) return '';
     const byTok = new Map();
     list.forEach(c => {
-      if (!byTok.has(c.token)) byTok.set(c.token, { token:c.token, dec:c.dec, diff:0, up:0, down:0, top:null });
+      if (!byTok.has(c.token)) byTok.set(c.token, { token:c.token, dec:c.dec, chain:c.chain, diff:0, up:0, down:0, top:null });
       const o = byTok.get(c.token);
       o.diff += c.diff;
       if (c.diff >= 0) o.up++; else o.down++;
@@ -4343,7 +4344,7 @@ function updateChangeBar(items) {
       const amt = (up ? '+' : '') + o.diff.toLocaleString('vi-VN', { minimumFractionDigits:o.dec, maximumFractionDigits:o.dec });
       const tip = `${o.token}: ${o.up} ví tăng, ${o.down} ví giảm trong 24h. Biến động lớn nhất: ${o.top.label} ${(o.top.diff>=0?'+':'')+o.top.diff.toFixed(o.dec)}`;
       return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)">
-        <span style="color:#38bdf8;font-weight:600">${o.token}</span>
+        <span style="color:${o.chain==='henesys'?'var(--green)':'#38bdf8'};font-weight:600">${o.token}</span>
         <span style="color:${cc};font-weight:700">${up?'▲':'▼'} ${amt}</span>
         <span style="color:var(--muted2);font-size:10px">${o.up}↑ ${o.down}↓</span>
       </span>`;
