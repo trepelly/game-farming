@@ -647,14 +647,14 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
         <style>
           @keyframes vscroll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
-          .vfeed{flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:22px;overflow:hidden}
+          .vfeed{flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:24px;overflow:hidden;padding-left:9px;border-left:3px solid var(--vf-color,var(--border2));border-radius:2px}
           .vfeed-total{flex-shrink:0;display:flex;align-items:baseline;gap:5px;font-size:10.5px;white-space:nowrap}
-          .vfeed-scroll{flex:1;min-width:0;height:18px;overflow:hidden;position:relative;border-left:1px solid var(--border2);padding-left:9px}
+          .vfeed-scroll{flex:1;min-width:0;height:18px;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent);mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent)}
           .vfeed-track{display:flex;flex-direction:column}
           .vfeed:hover .vfeed-track{animation-play-state:paused}
           .vfeed-row{height:18px;line-height:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;white-space:nowrap}
         </style>
-        <div id="team-change-wrap" style="flex:1;min-width:260px;display:flex;align-items:center;gap:18px">
+        <div id="team-change-wrap" style="flex:1;min-width:260px;display:flex;align-items:center;gap:20px">
           <div id="vfeed-earn"  class="vfeed"></div>
           <div id="vfeed-spend" class="vfeed"></div>
           <div id="vfeed-swap"  class="vfeed"></div>
@@ -4326,6 +4326,7 @@ function updateChangeBar(items) {
   const fillFeed = (elId, title, color, rows, emptyText, unit) => {
     const el = document.getElementById(elId);
     if (!el) return;
+    el.style.setProperty('--vf-color', color);
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
     const total = list.reduce((a,b) => a + b.val, 0);
     // Bên trái: tên trường + tổng (đứng yên)
@@ -4337,11 +4338,11 @@ function updateChangeBar(items) {
       el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track"><div class="vfeed-row" style="color:var(--muted2)">${emptyText}</div></div></div>`;
       return;
     }
-    // Bên phải: các ví cuộn hướng lên
+    // Bên phải: các ví cuộn hướng lên (trôi mượt liên tục)
     const rowHtml = r => `<div class="vfeed-row"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis">${r.label}</span><span style="color:${color};font-weight:700;flex-shrink:0">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8px"> ${unit}</span></span></div>`;
     const seq = list.map(rowHtml).join('');
-    const dur = Math.max(5, list.length * 2);
-    const anim = list.length > 1 ? `animation:vscroll ${dur}s steps(${list.length}) infinite` : '';
+    const dur = Math.max(6, list.length * 2.4);
+    const anim = list.length > 1 ? `animation:vscroll ${dur}s linear infinite` : '';
     el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track" style="${anim}">${seq}${list.length>1?seq:''}</div></div>`;
   };
 
