@@ -647,12 +647,15 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
         <style>
           @keyframes vscroll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
-          .vfeed{flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:24px;overflow:hidden;padding-left:9px;border-left:3px solid var(--vf-color,var(--border2));border-radius:2px}
-          .vfeed-total{flex-shrink:0;display:flex;align-items:baseline;gap:5px;font-size:10.5px;white-space:nowrap}
-          .vfeed-scroll{flex:1;min-width:0;height:18px;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent);mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent)}
+          .vfeed{flex:1;min-width:0;display:flex;align-items:center;gap:12px;height:40px;overflow:hidden;padding-left:11px;border-left:3px solid var(--vf-color,var(--border2));border-radius:2px}
+          .vfeed-total{flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;white-space:nowrap}
+          .vfeed-top{display:flex;align-items:center;gap:6px;font-size:10.5px}
+          .vfeed-sub{font-size:9px;color:var(--muted2);padding-left:19px}
+          .vfeed-scroll{flex:1;min-width:0;height:34px;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(transparent,#000 22%,#000 78%,transparent)}
           .vfeed-track{display:flex;flex-direction:column}
           .vfeed:hover .vfeed-track{animation-play-state:paused}
-          .vfeed-row{height:18px;line-height:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;white-space:nowrap}
+          .vfeed-row{height:34px;display:flex;flex-direction:column;justify-content:center;gap:1px;white-space:nowrap}
+          .vfeed-row-main{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10.5px}
         </style>
         <div id="team-change-wrap" style="flex:1;min-width:260px;display:flex;align-items:center;gap:20px">
           <div id="vfeed-earn"  class="vfeed"></div>
@@ -4348,22 +4351,40 @@ function updateChangeBar(items) {
     el.style.setProperty('--vf-color', color);
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
     const total = list.reduce((a,b) => a + b.val, 0);
+    // % tăng/giảm nhỏ (dùng chung cho tổng và từng ví)
+    const miniPct = (cur, prev) => {
+      if (!(prev > 0)) return '';
+      const p = (cur - prev) / prev * 100;
+      if (Math.abs(p) < 0.1) return '';
+      const up = p >= 0;
+      return `<span style="color:${up?'var(--green)':'var(--red)'};font-weight:700;font-size:9px">${up?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+    };
+    // Bên trái: 2 dòng — (icon + tên + tổng + %) và (N ví hoạt động)
     const left = `<div class="vfeed-total">
-        <span style="color:${color};display:inline-flex">${ico(ICON[iconKey])}</span>
-        <span style="color:${color};font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:.03em">${title}</span>
-        ${list.length
-          ? `<b style="color:${color};font-size:11px">${fmt(total)}</b>${pctBadge(total, prevTotal)}<span style="color:var(--muted2);font-size:8.5px">${list.length} ví</span>`
-          : '<span style="color:var(--muted2);font-size:9px">—</span>'}
+        <div class="vfeed-top">
+          <span style="color:${color};display:inline-flex">${ico(ICON[iconKey])}</span>
+          <span style="color:${color};font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:.03em">${title}</span>
+          ${list.length ? `<b style="color:${color};font-size:12px">${fmt(total)}</b>${miniPct(total, prevTotal)}` : '<span style="color:var(--muted2);font-size:9px">—</span>'}
+        </div>
+        <div class="vfeed-sub">${list.length ? list.length + ' ví hoạt động' : ''}</div>
       </div>`;
     if (!list.length) {
-      el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track"><div class="vfeed-row" style="color:var(--muted2)">${emptyText}</div></div></div>`;
+      el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track"><div class="vfeed-row"><div class="vfeed-row-main" style="color:var(--muted2)">${emptyText}</div></div></div></div>`;
       return;
     }
-    const rowHtml = r => `<div class="vfeed-row"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis">${r.label}</span><span style="color:${color};font-weight:700;flex-shrink:0">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8px"> ${unit}</span></span></div>`;
+    // Bên phải: mỗi ví 1 khối — tên + số + % của riêng ví (so hôm qua)
+    const rowHtml = r => `<div class="vfeed-row">
+        <div class="vfeed-row-main">
+          <span style="color:var(--text2);font-weight:600;overflow:hidden;text-overflow:ellipsis">${r.label}</span>
+          <span style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px">
+            <span style="color:${color};font-weight:700">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8px"> ${unit}</span></span>
+            ${miniPct(r.val, r.prev)}
+          </span>
+        </div>
+      </div>`;
     const seq = list.map(rowHtml).join('');
     let anim = '';
     if (list.length > 1) {
-      // Dừng ~2s ở mỗi ví rồi trượt sang ví kế (keyframes riêng cho từng số lượng)
       const N = list.length, name = `vstep_${N}`;
       if (!document.getElementById('vstep-' + N)) {
         const HOLD = 2, MOVE = 0.45, slot = HOLD + MOVE, dur = N * slot;
@@ -4391,14 +4412,16 @@ function updateChangeBar(items) {
   // Khung 2 — Chi tiêu hôm nay
   const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
   const spentOf = r => (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0);
-  const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: spentOf(r) }));
-  const spendPrev = sd.filter(r => r.day === prevKey).reduce((a,r) => a + spentOf(r), 0);
+  const spendPrevMap = {}; sd.filter(r => r.day === prevKey).forEach(r => { spendPrevMap[r.label] = (spendPrevMap[r.label]||0) + spentOf(r); });
+  const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: spentOf(r), prev: spendPrevMap[r.label] || 0 }));
+  const spendPrev = Object.values(spendPrevMap).reduce((a,b) => a + b, 0);
   fillFeed('vfeed-spend', 'Chi tiêu', 'spend', '#f59e0b', spendRows, 'Chưa chi tiêu hôm nay', 'NESO', spendPrev);
 
   // Khung 3 — Swap out hôm nay
   const wd = (typeof swapChartData !== 'undefined' && swapChartData) ? swapChartData.rawDetail || [] : [];
-  const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0 }));
-  const swapPrev = wd.filter(r => r.day === prevKey).reduce((a,r) => a + (r.swapOut||0), 0);
+  const swapPrevMap = {}; wd.filter(r => r.day === prevKey).forEach(r => { swapPrevMap[r.label] = (swapPrevMap[r.label]||0) + (r.swapOut||0); });
+  const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0, prev: swapPrevMap[r.label] || 0 }));
+  const swapPrev = Object.values(swapPrevMap).reduce((a,b) => a + b, 0);
   fillFeed('vfeed-swap', 'Swap out', 'swap', '#38bdf8', swapRows, 'Chưa swap ra hôm nay', 'NESO', swapPrev);
 }
 
@@ -4418,15 +4441,15 @@ async function refreshNesoEarned() {
     const walletRows = allRows.map(res => res.status==='fulfilled' ? (res.value||[]) : []);
     const perWallet = [];
     walletRows.forEach((rows, wi) => {
-      let walletHasToday = false, wEarned = 0;
+      let walletHasToday = false, wEarned = 0, wEarnedPrev = 0;
       rows.forEach(r => {
         const earned = earnedOf(r);
         const day = r.day ? r.day.slice(0,10) : null;
         if (day === todayUtc) { e24 += earned; wEarned += earned; walletHasToday = true; }
-        if (day === prevUtc) { e24Prev += earned; }
+        if (day === prevUtc) { e24Prev += earned; wEarnedPrev += earned; }
         if (todayKey && day && getWeekKey(day) === todayKey) eWeek += earned;
       });
-      if (walletHasToday) { n24wallets++; if (wEarned > 0) perWallet.push({ label: wallets[wi].label || wallets[wi].address.slice(0,6)+'...', val: wEarned }); }
+      if (walletHasToday) { n24wallets++; if (wEarned > 0) perWallet.push({ label: wallets[wi].label || wallets[wi].address.slice(0,6)+'...', val: wEarned, prev: wEarnedPrev }); }
     });
     nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets, perWallet, e24Prev };
     updateChangeBar();
