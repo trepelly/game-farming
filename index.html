@@ -646,21 +646,37 @@ td:first-child{text-align:left;color:var(--muted2)}
           </div>
         </div>
         <style>
-          @keyframes vscroll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
-          .vfeed{flex:1;min-width:0;display:flex;align-items:center;gap:12px;height:40px;overflow:hidden;padding-left:11px;border-left:3px solid var(--vf-color,var(--border2));border-radius:2px}
-          .vfeed-total{flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;white-space:nowrap}
-          .vfeed-top{display:flex;align-items:center;gap:6px;font-size:10.5px}
-          .vfeed-sub{font-size:9px;color:var(--muted2);padding-left:19px}
-          .vfeed-scroll{flex:1;min-width:0;height:34px;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(transparent,#000 22%,#000 78%,transparent)}
-          .vfeed-track{display:flex;flex-direction:column}
-          .vfeed:hover .vfeed-track{animation-play-state:paused}
-          .vfeed-row{height:34px;display:flex;flex-direction:column;justify-content:center;gap:1px;white-space:nowrap}
-          .vfeed-row-main{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10.5px}
+          .tickerbar{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}
+          .tickerbar::-webkit-scrollbar{height:5px}
+          .tickerbar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+          .tk-inner{display:flex;align-items:stretch;height:56px;min-width:max-content}
+          .tk-sec{display:flex;align-items:center;gap:14px;flex:1 1 0;min-width:480px;padding:0 18px;border-right:1px solid var(--border);position:relative}
+          .tk-sec:last-child{border-right:none}
+          .tk-accent{position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px}
+          .tk-chip{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+          .tk-tot{display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
+          .tk-tot-top{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+          .tk-lbl{font-size:10.5px;letter-spacing:1.3px;font-weight:700}
+          .tk-num{font-family:'Chakra Petch',monospace;font-size:15px;font-weight:700;color:var(--text)}
+          .tk-delta{font-size:11px;font-weight:700}
+          .tk-sub{font-size:10px;color:var(--muted2);letter-spacing:.4px}
+          .tk-feed{flex:1 1 0;min-width:0;height:56px;overflow:hidden;position:relative}
+          .tk-fade{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,var(--bg2) 0%,transparent 30%,transparent 70%,var(--bg2) 100%)}
+          .tk-track{display:flex;flex-direction:column}
+          .tk-row{height:56px;display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap}
+          .tk-dot{width:6px;height:6px;border-radius:50%;opacity:.7;flex:0 0 auto}
+          .tk-name{font-size:13px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;max-width:160px}
+          .tk-amt{font-family:'Chakra Petch',monospace;font-size:14px;font-weight:700}
+          .tk-unit{font-size:10px;font-weight:600;color:var(--muted2);letter-spacing:1px}
+          .tk-pct{font-size:10px;font-weight:700}
         </style>
-        <div id="team-change-wrap" style="flex:1;min-width:260px;display:flex;align-items:center;gap:20px">
-          <div id="vfeed-earn"  class="vfeed"></div>
-          <div id="vfeed-spend" class="vfeed"></div>
-          <div id="vfeed-swap"  class="vfeed"></div>
+        <div id="team-change-wrap" class="tickerbar" style="flex:1;min-width:260px">
+          <div class="tk-inner">
+            <div class="tk-sec" id="vfeed-earn"></div>
+            <div class="tk-sec" id="vfeed-spend"></div>
+            <div class="tk-sec" id="vfeed-swap"></div>
+          </div>
+        </div>
         </div>
 
       </div>
@@ -4327,102 +4343,99 @@ function updateChangeBar(items) {
   const prevKey  = new Date(Date.now()-86400000).toISOString().slice(0,10);
   const fmt = n => Math.round(n).toLocaleString('vi-VN');
 
-  // Icon SVG line theo phong cách tab (viewBox 24, stroke 1.8)
-  const ico = p => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${p}</svg>`;
+  const ico = p => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
   const ICON = {
-    earn:  '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>',      // nhận (mũi tên xuống)
-    spend: '<path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/>',       // chi (mũi tên lên/ra)
-    swap:  '<path d="M7 3v14"/><path d="M4 6l3-3 3 3"/><path d="M17 21V7"/><path d="M14 18l3 3 3-3"/>', // swap
+    earn:  '<path d="M12 5v14"/><path d="M6 13l6 6 6-6"/>',   // ↓ nhận
+    spend: '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>',   // ↑ chi
+    swap:  '<path d="M7 4v13"/><path d="M4 7l3-3 3 3"/><path d="M17 20V7"/><path d="M14 17l3 3 3-3"/>', // ⇅ swap
   };
-
-  // Chú thích tăng/giảm % so với hôm qua (giống badge của thẻ token)
-  const pctBadge = (today, prev) => {
+  const miniPct = (cur, prev) => {
     if (!(prev > 0)) return '';
-    const p = (today - prev) / prev * 100;
+    const p = (cur - prev) / prev * 100;
     if (Math.abs(p) < 0.1) return '';
-    const up = p >= 0, c = up ? 'var(--green)' : 'var(--red)';
-    return `<span title="So với hôm qua (${fmt(prev)})" style="color:${c};font-weight:700;font-size:9px">${up?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+    const up = p >= 0;
+    return `<span class="tk-pct" style="color:${up?'var(--green)':'var(--red)'}">${up?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
   };
 
-  // Dựng 1 trường: trái = icon + tên + tổng + %; phải = ví cuộn lên, dừng 2s mỗi ví
-  const fillFeed = (elId, title, iconKey, color, rows, emptyText, unit, prevTotal) => {
+  const fillFeed = (elId, title, iconKey, color, tint, rows, emptyText, prevTotal) => {
     const el = document.getElementById(elId);
     if (!el) return;
-    el.style.setProperty('--vf-color', color);
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
     const total = list.reduce((a,b) => a + b.val, 0);
-    // % tăng/giảm nhỏ (dùng chung cho tổng và từng ví)
-    const miniPct = (cur, prev) => {
-      if (!(prev > 0)) return '';
-      const p = (cur - prev) / prev * 100;
-      if (Math.abs(p) < 0.1) return '';
-      const up = p >= 0;
-      return `<span style="color:${up?'var(--green)':'var(--red)'};font-weight:700;font-size:9px">${up?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
-    };
-    // Bên trái: 2 dòng — (icon + tên + tổng + %) và (N ví hoạt động)
-    const left = `<div class="vfeed-total">
-        <div class="vfeed-top">
-          <span style="color:${color};display:inline-flex">${ico(ICON[iconKey])}</span>
-          <span style="color:${color};font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:.03em">${title}</span>
-          ${list.length ? `<b style="color:${color};font-size:12px">${fmt(total)}</b>${miniPct(total, prevTotal)}` : '<span style="color:var(--muted2);font-size:9px">—</span>'}
+    const head = `<div class="tk-accent" style="background:${color}"></div>
+      <div class="tk-chip" style="color:${color};background:${tint}">${ico(ICON[iconKey])}</div>
+      <div class="tk-tot">
+        <div class="tk-tot-top">
+          <span class="tk-lbl" style="color:${color}">${title}</span>
+          ${list.length ? `<span class="tk-num">${fmt(total)}</span>${miniPct(total, prevTotal)}` : '<span class="tk-num" style="color:var(--muted2);font-size:12px">—</span>'}
         </div>
-        <div class="vfeed-sub">${list.length ? list.length + ' ví hoạt động' : ''}</div>
+        <div class="tk-sub">${list.length ? list.length + ' ví hoạt động' : 'không có hôm nay'}</div>
       </div>`;
     if (!list.length) {
-      el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track"><div class="vfeed-row"><div class="vfeed-row-main" style="color:var(--muted2)">${emptyText}</div></div></div></div>`;
+      el.innerHTML = head + `<div class="tk-feed"><div class="tk-fade"></div><div class="tk-track"><div class="tk-row" style="color:var(--muted2);font-size:11px">${emptyText}</div></div></div>`;
       return;
     }
-    // Bên phải: mỗi ví 1 khối — tên + số + % của riêng ví (so hôm qua)
-    const rowHtml = r => `<div class="vfeed-row">
-        <div class="vfeed-row-main">
-          <span style="color:var(--text2);font-weight:600;overflow:hidden;text-overflow:ellipsis">${r.label}</span>
-          <span style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px">
-            <span style="color:${color};font-weight:700">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8px"> ${unit}</span></span>
-            ${miniPct(r.val, r.prev)}
-          </span>
-        </div>
+    const rowHtml = r => `<div class="tk-row">
+        <span class="tk-dot" style="background:${color}"></span>
+        <span class="tk-name">${r.label}</span>
+        <span class="tk-amt" style="color:${color}">${fmt(r.val)}</span>
+        <span class="tk-unit">NESO</span>
+        ${miniPct(r.val, r.prev)}
       </div>`;
-    const seq = list.map(rowHtml).join('');
-    let anim = '';
-    if (list.length > 1) {
-      const N = list.length, name = `vstep_${N}`;
-      if (!document.getElementById('vstep-' + N)) {
-        const HOLD = 2, MOVE = 0.45, slot = HOLD + MOVE, dur = N * slot;
-        let kf = `@keyframes ${name}{`;
-        for (let k = 0; k < N; k++) {
-          const start = (k * slot) / dur * 100;
-          const holdEnd = (k * slot + HOLD) / dur * 100;
-          const posK = -(k * (50 / N));
-          kf += `${start.toFixed(3)}%{transform:translateY(${posK}%)}${holdEnd.toFixed(3)}%{transform:translateY(${posK}%)}`;
-        }
-        kf += `100%{transform:translateY(-50%)}}`;
-        const st = document.createElement('style'); st.id = 'vstep-' + N; st.textContent = kf;
-        document.head.appendChild(st);
-      }
-      anim = `animation:${name} ${(N*(2+0.45)).toFixed(2)}s infinite`;
-    }
-    el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track" style="${anim}">${seq}${list.length>1?seq:''}</div></div>`;
+    // Cuộn bước: mỗi entry cao 56px, +1 index mỗi 2.6s, transition .55s, lặp mượt bằng cách nhân đôi entry đầu
+    const seq = list.map(rowHtml).join('') + rowHtml(list[0]);
+    el.innerHTML = head + `<div class="tk-feed"><div class="tk-fade"></div><div class="tk-track" data-n="${list.length}" style="transform:translateY(0);transition:transform .55s cubic-bezier(.4,0,.2,1)">${seq}</div></div>`;
   };
 
-  // Khung 1 — NESO nhận 24h
   const earnRows = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.perWallet) ? nesoEarned.perWallet : [];
   const earnPrev = (typeof nesoEarned !== 'undefined' && nesoEarned) ? (nesoEarned.e24Prev || 0) : 0;
-  fillFeed('vfeed-earn', 'NESO nhận 24h', 'earn', 'var(--green)', earnRows, 'Chưa có NESO nhận hôm nay', 'NESO', earnPrev);
+  fillFeed('vfeed-earn', 'NESO NHẬN 24H', 'earn', 'var(--green)', 'color-mix(in srgb,var(--green) 12%,transparent)', earnRows, 'Chưa có NESO nhận hôm nay', earnPrev);
 
-  // Khung 2 — Chi tiêu hôm nay
   const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
   const spentOf = r => (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0);
   const spendPrevMap = {}; sd.filter(r => r.day === prevKey).forEach(r => { spendPrevMap[r.label] = (spendPrevMap[r.label]||0) + spentOf(r); });
   const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: spentOf(r), prev: spendPrevMap[r.label] || 0 }));
   const spendPrev = Object.values(spendPrevMap).reduce((a,b) => a + b, 0);
-  fillFeed('vfeed-spend', 'Chi tiêu', 'spend', '#f59e0b', spendRows, 'Chưa chi tiêu hôm nay', 'NESO', spendPrev);
+  fillFeed('vfeed-spend', 'CHI TIÊU', 'spend', '#ffab40', 'color-mix(in srgb,#ffab40 12%,transparent)', spendRows, 'Chưa chi tiêu hôm nay', spendPrev);
 
-  // Khung 3 — Swap out hôm nay
   const wd = (typeof swapChartData !== 'undefined' && swapChartData) ? swapChartData.rawDetail || [] : [];
   const swapPrevMap = {}; wd.filter(r => r.day === prevKey).forEach(r => { swapPrevMap[r.label] = (swapPrevMap[r.label]||0) + (r.swapOut||0); });
   const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0, prev: swapPrevMap[r.label] || 0 }));
   const swapPrev = Object.values(swapPrevMap).reduce((a,b) => a + b, 0);
-  fillFeed('vfeed-swap', 'Swap out', 'swap', '#38bdf8', swapRows, 'Chưa swap ra hôm nay', 'NESO', swapPrev);
+  fillFeed('vfeed-swap', 'SWAP OUT', 'swap', '#40c4ff', 'color-mix(in srgb,#40c4ff 12%,transparent)', swapRows, 'Chưa swap ra hôm nay', swapPrev);
+
+  startTickerScroll();
+}
+
+// Cuộn dọc theo bước cho 3 feed (một index dùng chung, dừng khi hover)
+let _tkIdx = 0, _tkTimer = null;
+function startTickerScroll() {
+  if (_tkTimer) return;
+  const wrap = document.getElementById('team-change-wrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('.tk-feed').forEach(f => {
+    f.onmouseenter = () => wrap._paused = true;
+    f.onmouseleave = () => wrap._paused = false;
+  });
+  const ROW = 56;
+  _tkTimer = setInterval(() => {
+    if (wrap._paused) return;
+    const tracks = [...wrap.querySelectorAll('.tk-track[data-n]')];
+    if (!tracks.length) return;
+    _tkIdx++;
+    tracks.forEach(t => {
+      const n = +t.getAttribute('data-n') || 1;
+      if (n <= 1) return;
+      const i = _tkIdx % (n + 1);
+      t.style.transition = 'transform .55s cubic-bezier(.4,0,.2,1)';
+      t.style.transform = `translateY(${-i * ROW}px)`;
+      if (i === n) { // vừa tới bản sao của entry đầu → snap về 0 không animation
+        setTimeout(() => { t.style.transition = 'none'; t.style.transform = 'translateY(0)'; }, 600);
+      }
+    });
+    // đồng bộ về 0 sau khi mọi feed đã snap (dùng bội số chung an toàn)
+    if (_tkIdx > 5000) _tkIdx = 0;
+  }, 2600);
 }
 
 async function refreshNesoEarned() {
