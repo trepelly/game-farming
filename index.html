@@ -640,11 +640,9 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
         <b id="team-username-display" style="display:none"></b>
         <style>
-          .tickerbar{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}
-          .tickerbar::-webkit-scrollbar{height:5px}
-          .tickerbar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-          .tk-inner{display:flex;align-items:stretch;height:56px;min-width:max-content}
-          .tk-sec{display:flex;align-items:center;gap:14px;flex:1 1 0;min-width:480px;padding:0 18px;border-right:1px solid var(--border);position:relative}
+          .tickerbar{flex:1;min-width:0;overflow:hidden}
+          .tk-inner{display:flex;align-items:stretch;height:56px;width:100%}
+          .tk-sec{display:flex;align-items:center;gap:12px;flex:1 1 0;min-width:0;padding:0 14px;border-right:1px solid var(--border);position:relative}
           .tk-sec:last-child{border-right:none}
           .tk-accent{position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px}
           .tk-chip{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
