@@ -4359,26 +4359,37 @@ function updateChangeBar(items) {
       return `<span style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">${c.label}</span><span style="color:${cc};font-weight:700">${up?'▲':'▼'}${Math.abs(c.pct).toFixed(1)}%</span><span style="color:var(--muted2)">${sgn(c.diff)}</span></span>`;
     }).join('');
 
-  // Chip hoạt động HÔM NAY (chi tiêu / chi NFT / swap out) — chỉ hiện khi có phát sinh
+  // Chip hoạt động HÔM NAY (chi tiêu / chi NFT / swap out) — từng ví rồi đến tổng, chỉ hiện khi có phát sinh
   const todayKey = new Date().toISOString().slice(0,10);
   const fmtNeso = n => Math.round(n).toLocaleString('vi-VN');
-  const actChip = (label, val, color, tip) => {
-    if (!(val > 0)) return '';
-    return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-right:1px solid var(--border)">
-        <span style="color:${color};font-weight:600">${label}</span>
-        <span style="color:var(--text2);font-weight:700">${fmtNeso(val)}</span>
-        <span style="color:var(--muted2);font-size:10px">NESO hôm nay</span>
+  // Gom hoạt động hôm nay theo ví cho một loại
+  const actGroup = (label, color, rows, tip) => {
+    const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
+    if (!list.length) return '';
+    const total = list.reduce((a,b) => a + b.val, 0);
+    const perWallet = list.map(r => `<span style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;border-right:1px solid var(--border)">
+        <span style="color:${color}">●</span>
+        <span style="color:var(--text2);font-weight:600">${r.label}</span>
+        <span style="color:${color};font-weight:700">${fmtNeso(r.val)}</span>
+      </span>`).join('');
+    const totalChip = `<span title="${tip}" style="display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-right:1px solid var(--border);background:color-mix(in srgb,${color} 10%,transparent)">
+        <span style="color:${color};font-weight:700">${label} · Tổng</span>
+        <span style="color:${color};font-weight:800">${fmtNeso(total)}</span>
+        <span style="color:var(--muted2);font-size:10px">${list.length} ví · NESO hôm nay</span>
       </span>`;
+    return perWallet + totalChip;
   };
   let activityChips = '';
   try {
-    const spendToday = (typeof spendChartData!=='undefined' && spendChartData) ? (spendChartData.byDay?.[todayKey] || 0) : 0;
-    const nftToday   = (typeof spendChartData!=='undefined' && spendChartData) ? (spendChartData.nftDay?.[todayKey] || 0) : 0;
-    const swapOutTdy = (typeof swapChartData!=='undefined'  && swapChartData)  ? (swapChartData.byDay?.[todayKey]?.out || 0) : 0;
+    const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
+    const wd = (typeof swapChartData  !== 'undefined' && swapChartData)  ? swapChartData.rawDetail  || [] : [];
+    const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0) }));
+    const nftRows   = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.nft || 0 }));
+    const swapRows  = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0 }));
     activityChips =
-        actChip('Chi tiêu',  spendToday, '#f59e0b', 'Tổng NESO đã chi hôm nay (crystal + NFT + FT + burn). Mốc ngày từ 7h sáng VN.')
-      + actChip('Chi NFT',   nftToday,   '#a78bfa', 'NESO đã chi cho NFT hôm nay.')
-      + actChip('Swap out',  swapOutTdy, '#38bdf8', 'NESO đã swap ra (rút) hôm nay.');
+        actGroup('Chi tiêu', '#f59e0b', spendRows, 'Tổng NESO đã chi hôm nay (crystal + NFT + FT + burn). Mốc ngày từ 7h sáng VN.')
+      + actGroup('Chi NFT',  '#a78bfa', nftRows,   'NESO đã chi cho NFT hôm nay, theo từng ví.')
+      + actGroup('Swap out', '#38bdf8', swapRows,  'NESO đã swap ra (rút) hôm nay, theo từng ví.');
   } catch(e) {}
 
   const chips = sumChips + avaxChips + activityChips + walletChips;
