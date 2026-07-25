@@ -4331,6 +4331,66 @@ let nesoEarnedAt = 0;
 let lastChangeItems = [];
 
 let _feedData = {};
+let _totalData = {};   // dữ liệu theo ngày cho tooltip phần tổng
+// Tooltip phần TỔNG: NESO nhận = lịch sử vài ngày; chi tiêu/swap = ngày gần nhất
+function showTotalTip(ev, elId) {
+  const d = _totalData[elId];
+  if (!d) return;
+  let tip = document.getElementById('char-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'char-tip';
+    tip.style.cssText = 'position:fixed;z-index:10001;background:var(--card);border:1px solid var(--border2);border-radius:11px;padding:11px 13px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;pointer-events:none;max-width:320px;min-width:210px';
+    document.body.appendChild(tip);
+  }
+  charTipAddr = null; nftTipAddr = null;
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  const dmy = iso => iso ? (iso.slice(8,10)+'/'+iso.slice(5,7)) : '—';
+  const todayIso = new Date().toISOString().slice(0,10);
+  const yestIso  = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  const dayName = iso => iso===todayIso ? 'Hôm nay' : iso===yestIso ? 'Hôm qua' : dmy(iso);
+
+  if (d.mode === 'history') {
+    const days = (d.byDay || []).slice(0, 7);   // vài ngày gần nhất
+    const head = `<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:7px;margin-bottom:7px;border-bottom:1px solid var(--border2)">
+        <span style="font-weight:800;color:${d.color};font-size:11px;letter-spacing:.5px">${d.title}</span>
+        <span style="font-size:10px;color:var(--muted2)">${days.length} ngày gần nhất</span>
+      </div>`;
+    if (!days.length) { tip.innerHTML = head + '<div style="font-size:11px;color:var(--muted2)">Chưa có dữ liệu</div>'; tip.style.opacity='1'; moveCharTip(ev); return; }
+    const max = Math.max(...days.map(x => x.total)) || 1;
+    const rows = days.map((x,i) => {
+      const prev = days[i+1] ? days[i+1].total : 0;
+      const p = prev > 0 ? (x.total - prev) / prev * 100 : 0;
+      const badge = (prev>0 && Math.abs(p)>=0.1) ? `<span style="color:${p>=0?'var(--green)':'var(--red)'};font-size:9px;font-weight:700">${p>=0?'▲':'▼'}${Math.abs(p).toFixed(0)}%</span>` : '';
+      return `<div style="padding:4px 0${i?';border-top:1px solid var(--border)':''}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span style="font-size:11px;color:${i===0?'var(--text)':'var(--text2)'};font-weight:${i===0?'700':'500'}">${dayName(x.day)}</span>
+            <span style="display:flex;align-items:center;gap:6px"><span style="font-family:monospace;font-size:11.5px;font-weight:700;color:${d.color}">${fmt(x.total)}</span>${badge}</span>
+          </div>
+          <div style="height:3px;border-radius:2px;margin-top:3px;background:var(--border2)"><div style="height:100%;border-radius:2px;width:${Math.round(x.total/max*100)}%;background:${d.color};opacity:.6"></div></div>
+        </div>`;
+    }).join('');
+    tip.innerHTML = head + rows;
+  } else {
+    // ngày gần nhất: ngày + tổng + các ví hôm đó
+    const day = d.latestDay, list = (d.latestRows || []).slice().sort((a,b)=>b.val-a.val);
+    const tot = list.reduce((a,b)=>a+b.val,0);
+    const head = `<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:7px;margin-bottom:7px;border-bottom:1px solid var(--border2)">
+        <span style="font-weight:800;color:${d.color};font-size:11px;letter-spacing:.5px">${d.title}</span>
+        <span style="font-size:10px;color:var(--muted2)">${day ? dayName(day) : 'gần nhất'}</span>
+      </div>`;
+    if (!list.length) { tip.innerHTML = head + '<div style="font-size:11px;color:var(--muted2)">Chưa có hoạt động</div>'; tip.style.opacity='1'; moveCharTip(ev); return; }
+    const totalRow = `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 0 6px"><span style="font-size:11px;font-weight:800;color:var(--text)">Tổng ngày</span><span style="font-family:monospace;font-size:12.5px;font-weight:800;color:${d.color}">${fmt(tot)}</span></div>`;
+    const rows = list.map((r,i) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0;border-top:1px solid var(--border)">
+        <span style="display:flex;align-items:center;gap:7px"><span style="width:12px;text-align:right;font-size:9px;color:var(--muted2);font-family:monospace">${i+1}</span><span style="font-size:11.5px;font-weight:600;color:var(--text)">${r.label}</span></span>
+        <span style="font-family:monospace;font-size:11.5px;font-weight:700;color:${d.color}">${fmt(r.val)}</span>
+      </div>`).join('');
+    tip.innerHTML = head + totalRow + rows;
+  }
+  tip.style.opacity = '1';
+  moveCharTip(ev);
+}
+
 // Tooltip liệt kê TOÀN BỘ ví của một feed khi rê chuột
 function showFeedTip(ev, elId) {
   const d = _feedData[elId];
@@ -4399,7 +4459,7 @@ function updateChangeBar(items) {
     _feedData[elId] = { title, color, list, total, prevTotal };
     const head = `<div class="tk-accent" style="background:${color}"></div>
       <div class="tk-chip" style="color:${color};background:${tint}">${ico(ICON[iconKey])}</div>
-      <div class="tk-tot">
+      <div class="tk-tot" onmouseenter="showTotalTip(event,'${elId}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()" style="cursor:help">
         <div class="tk-tot-top">
           <span class="tk-lbl" style="color:${color}">${title}</span>
           ${list.length ? `<span class="tk-num">${fmt(total)}</span>${miniPct(total, prevTotal)}` : '<span class="tk-num" style="color:var(--muted2);font-size:12px">—</span>'}
@@ -4427,6 +4487,8 @@ function updateChangeBar(items) {
 
   const earnRows = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.perWallet) ? nesoEarned.perWallet : [];
   const earnPrev = (typeof nesoEarned !== 'undefined' && nesoEarned) ? (nesoEarned.e24Prev || 0) : 0;
+  const earnByDay = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.byDay) ? nesoEarned.byDay : {};
+  _totalData['vfeed-earn'] = { mode:'history', title:'NESO NHẬN', color:'var(--green)', byDay: Object.keys(earnByDay).sort().reverse().map(day => ({ day, total: earnByDay[day] })) };
   fillFeed('vfeed-earn', 'NESO NHẬN 24H', 'earn', 'var(--green)', 'color-mix(in srgb,var(--green) 12%,transparent)', earnRows, 'Chưa có NESO nhận hôm nay', earnPrev);
 
   const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
@@ -4434,12 +4496,20 @@ function updateChangeBar(items) {
   const spendPrevMap = {}; sd.filter(r => r.day === prevKey).forEach(r => { spendPrevMap[r.label] = (spendPrevMap[r.label]||0) + spentOf(r); });
   const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: spentOf(r), prev: spendPrevMap[r.label] || 0 }));
   const spendPrev = Object.values(spendPrevMap).reduce((a,b) => a + b, 0);
+  const spendDays = [...new Set(sd.map(r => r.day))].filter(Boolean).sort().reverse();
+  const spendLatest = spendDays[0] || null;
+  _totalData['vfeed-spend'] = { mode:'latest', title:'CHI TIÊU', color:'#ffab40', latestDay: spendLatest,
+    latestRows: spendLatest ? sd.filter(r => r.day === spendLatest).map(r => ({ label:r.label, val:spentOf(r) })).filter(r => r.val > 0) : [] };
   fillFeed('vfeed-spend', 'CHI TIÊU', 'spend', '#ffab40', 'color-mix(in srgb,#ffab40 12%,transparent)', spendRows, 'Chưa chi tiêu hôm nay', spendPrev);
 
   const wd = (typeof swapChartData !== 'undefined' && swapChartData) ? swapChartData.rawDetail || [] : [];
   const swapPrevMap = {}; wd.filter(r => r.day === prevKey).forEach(r => { swapPrevMap[r.label] = (swapPrevMap[r.label]||0) + (r.swapOut||0); });
   const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0, prev: swapPrevMap[r.label] || 0 }));
   const swapPrev = Object.values(swapPrevMap).reduce((a,b) => a + b, 0);
+  const swapDays = [...new Set(wd.map(r => r.day))].filter(Boolean).sort().reverse();
+  const swapLatest = swapDays[0] || null;
+  _totalData['vfeed-swap'] = { mode:'latest', title:'SWAP OUT', color:'#40c4ff', latestDay: swapLatest,
+    latestRows: swapLatest ? wd.filter(r => r.day === swapLatest).map(r => ({ label:r.label, val:r.swapOut||0 })).filter(r => r.val > 0) : [] };
   fillFeed('vfeed-swap', 'SWAP OUT', 'swap', '#40c4ff', 'color-mix(in srgb,#40c4ff 12%,transparent)', swapRows, 'Chưa swap ra hôm nay', swapPrev);
 
   startTickerScroll();
@@ -4463,18 +4533,20 @@ async function refreshNesoEarned() {
     const allRows = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
     const walletRows = allRows.map(res => res.status==='fulfilled' ? (res.value||[]) : []);
     const perWallet = [];
+    const byDay = {};
     walletRows.forEach((rows, wi) => {
       let walletHasToday = false, wEarned = 0, wEarnedPrev = 0;
       rows.forEach(r => {
         const earned = earnedOf(r);
         const day = r.day ? r.day.slice(0,10) : null;
+        if (day) byDay[day] = (byDay[day] || 0) + earned;
         if (day === todayUtc) { e24 += earned; wEarned += earned; walletHasToday = true; }
         if (day === prevUtc) { e24Prev += earned; wEarnedPrev += earned; }
         if (todayKey && day && getWeekKey(day) === todayKey) eWeek += earned;
       });
       if (walletHasToday) { n24wallets++; if (wEarned > 0) perWallet.push({ label: wallets[wi].label || wallets[wi].address.slice(0,6)+'...', val: wEarned, prev: wEarnedPrev }); }
     });
-    nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets, perWallet, e24Prev };
+    nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets, perWallet, e24Prev, byDay };
     updateChangeBar();
   } catch (e) { /* bỏ qua lỗi mạng */ }
 }
