@@ -647,14 +647,14 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
         <style>
           @keyframes vscroll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
-          .vfeed{flex:1;min-width:0;background:var(--card);border:1px solid var(--border2);border-radius:10px;height:38px;overflow:hidden;position:relative;box-sizing:border-box}
-          .vfeed-head{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 10px;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;z-index:2;background:linear-gradient(var(--card),var(--card) 65%,transparent)}
-          .vfeed-body{position:absolute;top:15px;left:0;right:0;bottom:1px;overflow:hidden}
-          .vfeed-track{display:flex;flex-direction:column;padding:0 10px}
+          .vfeed{flex:1;min-width:0;display:flex;align-items:center;gap:9px;height:22px;overflow:hidden}
+          .vfeed-total{flex-shrink:0;display:flex;align-items:baseline;gap:5px;font-size:10.5px;white-space:nowrap}
+          .vfeed-scroll{flex:1;min-width:0;height:18px;overflow:hidden;position:relative;border-left:1px solid var(--border2);padding-left:9px}
+          .vfeed-track{display:flex;flex-direction:column}
           .vfeed:hover .vfeed-track{animation-play-state:paused}
-          .vfeed-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;line-height:18px;white-space:nowrap;min-height:18px}
+          .vfeed-row{height:18px;line-height:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;white-space:nowrap}
         </style>
-        <div id="team-change-wrap" style="flex:1;min-width:260px;display:flex;gap:8px">
+        <div id="team-change-wrap" style="flex:1;min-width:260px;display:flex;align-items:center;gap:18px">
           <div id="vfeed-earn"  class="vfeed"></div>
           <div id="vfeed-spend" class="vfeed"></div>
           <div id="vfeed-swap"  class="vfeed"></div>
@@ -4328,18 +4328,21 @@ function updateChangeBar(items) {
     if (!el) return;
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
     const total = list.reduce((a,b) => a + b.val, 0);
-    const head = `<div class="vfeed-head"><span style="color:${color}">${title}</span>` +
-      (list.length ? `<span style="color:${color};font-weight:800">${fmt(total)} <span style="color:var(--muted2);font-weight:500;font-size:8.5px">${list.length} ví</span></span>` : '') + `</div>`;
+    // Bên trái: tên trường + tổng (đứng yên)
+    const left = `<div class="vfeed-total">
+        <span style="color:${color};font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:.03em">${title}</span>
+        ${list.length ? `<b style="color:${color};font-size:11px">${fmt(total)}</b><span style="color:var(--muted2);font-size:8.5px">${list.length} ví</span>` : '<span style="color:var(--muted2);font-size:9px">—</span>'}
+      </div>`;
     if (!list.length) {
-      el.innerHTML = head + `<div class="vfeed-body"><div class="vfeed-track"><div class="vfeed-row" style="color:var(--muted2)">${emptyText}</div></div></div>`;
+      el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track"><div class="vfeed-row" style="color:var(--muted2)">${emptyText}</div></div></div>`;
       return;
     }
-    const rowHtml = r => `<div class="vfeed-row"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis">${r.label}</span><span style="color:${color};font-weight:700">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8.5px"> ${unit}</span></span></div>`;
+    // Bên phải: các ví cuộn hướng lên
+    const rowHtml = r => `<div class="vfeed-row"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis">${r.label}</span><span style="color:${color};font-weight:700;flex-shrink:0">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8px"> ${unit}</span></span></div>`;
     const seq = list.map(rowHtml).join('');
-    // Nhân đôi để cuộn liền mạch; tốc độ theo số dòng
-    const dur = Math.max(6, list.length * 2.2);
-    const anim = list.length > 1 ? `animation:vscroll ${dur}s linear infinite` : '';
-    el.innerHTML = head + `<div class="vfeed-body"><div class="vfeed-track" style="${anim}">${seq}${list.length>1?seq:''}</div></div>`;
+    const dur = Math.max(5, list.length * 2);
+    const anim = list.length > 1 ? `animation:vscroll ${dur}s steps(${list.length}) infinite` : '';
+    el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track" style="${anim}">${seq}${list.length>1?seq:''}</div></div>`;
   };
 
   // Khung 1 — NESO nhận 24h (theo ví)
