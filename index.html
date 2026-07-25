@@ -654,12 +654,14 @@ td:first-child{text-align:left;color:var(--muted2)}
           .tk-num{font-family:'Chakra Petch',monospace;font-size:15px;font-weight:700;color:var(--text)}
           .tk-delta{font-size:11px;font-weight:700}
           .tk-sub{font-size:10px;color:var(--muted2);letter-spacing:.4px}
-          .tk-feed{flex:1 1 0;min-width:0;height:56px;overflow:hidden;position:relative}
-          .tk-fade{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,var(--bg2) 0%,transparent 30%,transparent 70%,var(--bg2) 100%)}
-          .tk-track{display:flex;flex-direction:column}
-          .tk-row{height:56px;display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap}
+          .tk-feed{flex:1 1 0;min-width:0;height:56px;overflow:hidden;position:relative;display:flex;align-items:center;cursor:help}
+          .tk-fade{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(90deg,var(--bg2) 0%,transparent 8%,transparent 92%,var(--bg2) 100%)}
+          .tk-track{display:inline-flex;align-items:center;white-space:nowrap;will-change:transform}
+          .tk-feed:hover .tk-track{animation-play-state:paused}
+          @keyframes hscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+          .tk-item{display:inline-flex;align-items:center;gap:9px;padding:0 22px;border-right:1px solid var(--border)}
           .tk-dot{width:6px;height:6px;border-radius:50%;opacity:.7;flex:0 0 auto}
-          .tk-name{font-size:13px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;max-width:160px}
+          .tk-name{font-size:13px;font-weight:600;color:var(--text2)}
           .tk-amt{font-family:'Chakra Petch',monospace;font-size:14px;font-weight:700}
           .tk-unit{font-size:10px;font-weight:600;color:var(--muted2);letter-spacing:1px}
           .tk-pct{font-size:10px;font-weight:700}
@@ -4330,6 +4332,47 @@ let nesoEarned = null;       // { e24, e7 } — NESO claim từ game + bán NFT 
 let nesoEarnedAt = 0;
 let lastChangeItems = [];
 
+let _feedData = {};
+// Tooltip liệt kê TOÀN BỘ ví của một feed khi rê chuột
+function showFeedTip(ev, elId) {
+  const d = _feedData[elId];
+  if (!d || !d.list || !d.list.length) return;
+  let tip = document.getElementById('char-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'char-tip';
+    tip.style.cssText = 'position:fixed;z-index:10001;background:var(--card);border:1px solid var(--border2);border-radius:11px;padding:11px 13px;box-shadow:var(--shadow-lg);opacity:0;transition:opacity .12s;pointer-events:none;max-width:340px;min-width:230px';
+    document.body.appendChild(tip);
+  }
+  charTipAddr = null; nftTipAddr = null;   // ngắt theo dõi tooltip CP/NFT
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  const esc = t => String(t==null?'':t).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  const pctSpan = (cur, prev) => {
+    if (!(prev > 0)) return '';
+    const p = (cur - prev) / prev * 100;
+    if (Math.abs(p) < 0.1) return '';
+    const up = p >= 0;
+    return `<span style="color:${up?'var(--green)':'var(--red)'};font-weight:700;font-size:9.5px">${up?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+  };
+  const head = `<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:7px;margin-bottom:7px;border-bottom:1px solid var(--border2)">
+      <span style="font-weight:800;color:${d.color};font-size:11px;letter-spacing:.5px">${d.title}</span>
+      <span style="font-size:10px;color:var(--muted2)">${d.list.length} ví · ${fmt(d.total)}</span>
+    </div>`;
+  const rows = d.list.map((r,i) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:4px 0${i?';border-top:1px solid var(--border)':''}">
+      <span style="display:flex;align-items:center;gap:7px;min-width:0">
+        <span style="width:14px;text-align:right;font-size:9px;color:var(--muted2);font-family:monospace">${i+1}</span>
+        <span style="font-size:11.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis">${esc(r.label)}</span>
+      </span>
+      <span style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+        ${pctSpan(r.val, r.prev)}
+        <span style="font-family:monospace;font-size:11.5px;font-weight:700;color:${d.color}">${fmt(r.val)}</span>
+      </span>
+    </div>`).join('');
+  tip.innerHTML = head + rows;
+  tip.style.opacity = '1';
+  moveCharTip(ev);
+}
+
 function updateChangeBar(items) {
   if (items) lastChangeItems = items;
   const todayKey = new Date().toISOString().slice(0,10);
@@ -4355,6 +4398,7 @@ function updateChangeBar(items) {
     if (!el) return;
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
     const total = list.reduce((a,b) => a + b.val, 0);
+    _feedData[elId] = { title, color, list, total, prevTotal };
     const head = `<div class="tk-accent" style="background:${color}"></div>
       <div class="tk-chip" style="color:${color};background:${tint}">${ico(ICON[iconKey])}</div>
       <div class="tk-tot">
@@ -4365,20 +4409,23 @@ function updateChangeBar(items) {
         <div class="tk-sub">${list.length ? list.length + ' ví hoạt động' : 'không có hôm nay'}</div>
       </div>`;
     if (!list.length) {
-      el.innerHTML = head + `<div class="tk-feed"><div class="tk-fade"></div><div class="tk-track"><div class="tk-row" style="color:var(--muted2);font-size:11px">${emptyText}</div></div></div>`;
+      el.innerHTML = head + `<div class="tk-feed"><div class="tk-fade"></div><div class="tk-track"><span style="color:var(--muted2);font-size:11px;padding:0 12px">${emptyText}</span></div></div>`;
       return;
     }
-    const rowHtml = r => `<div class="tk-row">
+    const itemHtml = r => `<span class="tk-item">
         <span class="tk-dot" style="background:${color}"></span>
         <span class="tk-name">${r.label}</span>
         <span class="tk-amt" style="color:${color}">${fmt(r.val)}</span>
         <span class="tk-unit">NESO</span>
         ${miniPct(r.val, r.prev)}
-      </div>`;
-    // Cuộn bước: mỗi entry cao 56px, +1 index mỗi 2.6s, transition .55s, lặp mượt bằng cách nhân đôi entry đầu
-    const seq = list.map(rowHtml).join('') + rowHtml(list[0]);
-    el.innerHTML = head + `<div class="tk-feed"><div class="tk-fade"></div><div class="tk-track" data-n="${list.length}" style="transform:translateY(0);transition:transform .55s cubic-bezier(.4,0,.2,1)">${seq}</div></div>`;
+      </span>`;
+    const seq = list.map(itemHtml).join('');
+    // Chạy ngang: nhân đôi để lặp mượt, tốc độ theo số ví
+    const dur = Math.max(14, list.length * 4.5);
+    const anim = `animation:hscroll ${dur}s linear infinite`;
+    el.innerHTML = head + `<div class="tk-feed" onmouseenter="showFeedTip(event,'${elId}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()"><div class="tk-fade"></div><div class="tk-track" style="${anim}">${seq}${seq}</div></div>`;
   };
+
 
   const earnRows = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.perWallet) ? nesoEarned.perWallet : [];
   const earnPrev = (typeof nesoEarned !== 'undefined' && nesoEarned) ? (nesoEarned.e24Prev || 0) : 0;
@@ -4400,36 +4447,8 @@ function updateChangeBar(items) {
   startTickerScroll();
 }
 
-// Cuộn dọc theo bước cho 3 feed (một index dùng chung, dừng khi hover)
-let _tkIdx = 0, _tkTimer = null;
-function startTickerScroll() {
-  if (_tkTimer) return;
-  const wrap = document.getElementById('team-change-wrap');
-  if (!wrap) return;
-  wrap.querySelectorAll('.tk-feed').forEach(f => {
-    f.onmouseenter = () => wrap._paused = true;
-    f.onmouseleave = () => wrap._paused = false;
-  });
-  const ROW = 56;
-  _tkTimer = setInterval(() => {
-    if (wrap._paused) return;
-    const tracks = [...wrap.querySelectorAll('.tk-track[data-n]')];
-    if (!tracks.length) return;
-    _tkIdx++;
-    tracks.forEach(t => {
-      const n = +t.getAttribute('data-n') || 1;
-      if (n <= 1) return;
-      const i = _tkIdx % (n + 1);
-      t.style.transition = 'transform .55s cubic-bezier(.4,0,.2,1)';
-      t.style.transform = `translateY(${-i * ROW}px)`;
-      if (i === n) { // vừa tới bản sao của entry đầu → snap về 0 không animation
-        setTimeout(() => { t.style.transition = 'none'; t.style.transform = 'translateY(0)'; }, 600);
-      }
-    });
-    // đồng bộ về 0 sau khi mọi feed đã snap (dùng bội số chung an toàn)
-    if (_tkIdx > 5000) _tkIdx = 0;
-  }, 2600);
-}
+// Marquee ngang do CSS đảm nhiệm; hàm này giữ để tương thích lời gọi cũ.
+function startTickerScroll() {}
 
 async function refreshNesoEarned() {
   try {
