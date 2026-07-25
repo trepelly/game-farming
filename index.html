@@ -645,9 +645,19 @@ td:first-child{text-align:left;color:var(--muted2)}
             <b id="team-username-display" style="color:var(--accent)"></b>
           </div>
         </div>
-        <style>@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}#team-change-bar .ticker-track:hover{animation-play-state:paused}#team-change-bar{border:none;border-radius:10px;padding:0 12px}</style>
-        <div id="team-change-wrap" style="flex:1;min-width:160px;display:flex">
-          <div id="team-change-bar" style="flex:1;display:flex;align-items:center;font-size:11px;color:var(--muted2);height:38px;overflow:hidden;box-sizing:border-box"></div>
+        <style>
+          @keyframes vscroll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+          .vfeed{flex:1;min-width:0;background:var(--card);border:1px solid var(--border2);border-radius:10px;height:38px;overflow:hidden;position:relative;box-sizing:border-box}
+          .vfeed-head{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 10px;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;z-index:2;background:linear-gradient(var(--card),var(--card) 65%,transparent)}
+          .vfeed-body{position:absolute;top:15px;left:0;right:0;bottom:1px;overflow:hidden}
+          .vfeed-track{display:flex;flex-direction:column;padding:0 10px}
+          .vfeed:hover .vfeed-track{animation-play-state:paused}
+          .vfeed-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;line-height:18px;white-space:nowrap;min-height:18px}
+        </style>
+        <div id="team-change-wrap" style="flex:1;min-width:260px;display:flex;gap:8px">
+          <div id="vfeed-earn"  class="vfeed"></div>
+          <div id="vfeed-spend" class="vfeed"></div>
+          <div id="vfeed-swap"  class="vfeed"></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" title="Làm mới" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
@@ -4309,98 +4319,42 @@ let lastChangeItems = [];
 
 function updateChangeBar(items) {
   if (items) lastChangeItems = items;
-  const bar = document.getElementById('team-change-bar');
-  if (!bar) return;
-  const sgn = n => (n >= 0 ? '+' : '') + Math.round(n).toLocaleString('vi-VN');
-
-  const earnTip = 'NESO nhận vào (claim từ game + bán NFT character + bán FT item + nhận chuyển khoản), không tính swap. Mốc ngày tính từ 7h sáng VN (00:00 UTC), qua 7h sáng reset.';
-  const n24 = nesoEarned?.n24 || 0;
-  const totalW = (window.teamWallets||[]).length || 0;
-  // Khoảng ngày tuần game hiện tại (Thứ 5 → Thứ 4)
-  let weekRange = '';
-  if (typeof getWeekKey==='function') {
-    const thu = getWeekKey(new Date().toISOString().slice(0,10));
-    const thuD = new Date(thu+'T00:00:00Z');
-    const wed = new Date(thuD); wed.setUTCDate(thuD.getUTCDate()+6);
-    const fmt = d => ('0'+d.getUTCDate()).slice(-2)+'/'+('0'+(d.getUTCMonth()+1)).slice(-2);
-    weekRange = fmt(thuD)+'–'+fmt(wed);
-  }
-  const earnChip = (lbl, v, tip, sub) => v == null ? '' : `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border);cursor:help"><span style="color:var(--text);font-weight:800;font-size:10px;letter-spacing:.02em">NESO ${lbl}</span><span style="color:${v>=0?'var(--green)':'var(--red)'};font-weight:700">${v>=0?'▲':'▼'} ${sgn(v)}</span><span style="color:var(--muted2);font-size:9px">${sub}</span></span>`;
-  const sumChips = nesoEarned ? (earnChip('hôm nay', nesoEarned.e24, 'Hôm nay ('+(nesoEarned.day||'?')+', mốc 7h sáng VN). '+n24+'/'+totalW+' ví đã claim. '+earnTip, n24+'/'+totalW+' ví') + earnChip('tuần này', nesoEarned.e7, 'Tuần game hiện tại '+(weekRange?'('+weekRange+', Thứ 5→Thứ 4) ':'')+'· reset 7h sáng Thứ 5. '+earnTip, weekRange||'claim+bán')) : '';
-
-  // Chip biến động token mạng Avalanche (gộp theo token cho gọn)
-  const avaxChips = (() => {
-    const list = lastAvaxItems || [];
-    if (!list.length) return '';
-    const byTok = new Map();
-    list.forEach(c => {
-      if (!byTok.has(c.token)) byTok.set(c.token, { token:c.token, dec:c.dec, chain:c.chain, diff:0, up:0, down:0, top:null });
-      const o = byTok.get(c.token);
-      o.diff += c.diff;
-      if (c.diff >= 0) o.up++; else o.down++;
-      if (!o.top || Math.abs(c.diff) > Math.abs(o.top.diff)) o.top = c;
-    });
-    return [...byTok.values()].map(o => {
-      const up = o.diff >= 0, cc = up ? 'var(--green)' : 'var(--red)';
-      const amt = (up ? '+' : '') + o.diff.toLocaleString('vi-VN', { minimumFractionDigits:o.dec, maximumFractionDigits:o.dec });
-      const tip = `${o.token}: ${o.up} ví tăng, ${o.down} ví giảm trong 24h. Biến động lớn nhất: ${o.top.label} ${(o.top.diff>=0?'+':'')+o.top.diff.toFixed(o.dec)}`;
-      return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)">
-        <span style="color:${o.chain==='henesys'?'var(--green)':'#38bdf8'};font-weight:600">${o.token}</span>
-        <span style="color:${cc};font-weight:700">${up?'▲':'▼'} ${amt}</span>
-        <span style="color:var(--muted2);font-size:10px">${o.up}↑ ${o.down}↓</span>
-      </span>`;
-    }).join('');
-  })();
-
-  const walletChips = (lastChangeItems||[])
-    .sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff))
-    .map(c => {
-      const up = c.diff >= 0, cc = up ? 'var(--green)' : 'var(--red)';
-      return `<span style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">${c.label}</span><span style="color:${cc};font-weight:700">${up?'▲':'▼'}${Math.abs(c.pct).toFixed(1)}%</span><span style="color:var(--muted2)">${sgn(c.diff)}</span></span>`;
-    }).join('');
-
-  // Chip hoạt động HÔM NAY (chi tiêu / chi NFT / swap out) — từng ví rồi đến tổng, chỉ hiện khi có phát sinh
   const todayKey = new Date().toISOString().slice(0,10);
-  const fmtNeso = n => Math.round(n).toLocaleString('vi-VN');
-  // Gom hoạt động hôm nay theo ví cho một loại
-  const actGroup = (label, color, rows, tip) => {
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+
+  // Dựng 1 khung cuộn dọc: tiêu đề (tên + tổng) + danh sách từng ví cuộn lên
+  const fillFeed = (elId, title, color, rows, emptyText, unit) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
-    if (!list.length) return '';
     const total = list.reduce((a,b) => a + b.val, 0);
-    const perWallet = list.map(r => `<span style="display:inline-flex;align-items:center;gap:6px;padding:0 14px;border-right:1px solid var(--border)">
-        <span style="color:${color}">●</span>
-        <span style="color:var(--text2);font-weight:600">${r.label}</span>
-        <span style="color:${color};font-weight:700">${fmtNeso(r.val)}</span>
-      </span>`).join('');
-    const totalChip = `<span title="${tip}" style="display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-right:1px solid var(--border);background:color-mix(in srgb,${color} 10%,transparent)">
-        <span style="color:${color};font-weight:700">${label} · Tổng</span>
-        <span style="color:${color};font-weight:800">${fmtNeso(total)}</span>
-        <span style="color:var(--muted2);font-size:10px">${list.length} ví · NESO hôm nay</span>
-      </span>`;
-    return perWallet + totalChip;
+    const head = `<div class="vfeed-head"><span style="color:${color}">${title}</span>` +
+      (list.length ? `<span style="color:${color};font-weight:800">${fmt(total)} <span style="color:var(--muted2);font-weight:500;font-size:8.5px">${list.length} ví</span></span>` : '') + `</div>`;
+    if (!list.length) {
+      el.innerHTML = head + `<div class="vfeed-body"><div class="vfeed-track"><div class="vfeed-row" style="color:var(--muted2)">${emptyText}</div></div></div>`;
+      return;
+    }
+    const rowHtml = r => `<div class="vfeed-row"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis">${r.label}</span><span style="color:${color};font-weight:700">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8.5px"> ${unit}</span></span></div>`;
+    const seq = list.map(rowHtml).join('');
+    // Nhân đôi để cuộn liền mạch; tốc độ theo số dòng
+    const dur = Math.max(6, list.length * 2.2);
+    const anim = list.length > 1 ? `animation:vscroll ${dur}s linear infinite` : '';
+    el.innerHTML = head + `<div class="vfeed-body"><div class="vfeed-track" style="${anim}">${seq}${list.length>1?seq:''}</div></div>`;
   };
-  let activityChips = '';
-  try {
-    const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
-    const wd = (typeof swapChartData  !== 'undefined' && swapChartData)  ? swapChartData.rawDetail  || [] : [];
-    const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0) }));
-    const nftRows   = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.nft || 0 }));
-    const swapRows  = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0 }));
-    activityChips =
-        actGroup('Chi tiêu', '#f59e0b', spendRows, 'Tổng NESO đã chi hôm nay (crystal + NFT + FT + burn). Mốc ngày từ 7h sáng VN.')
-      + actGroup('Chi NFT',  '#a78bfa', nftRows,   'NESO đã chi cho NFT hôm nay, theo từng ví.')
-      + actGroup('Swap out', '#38bdf8', swapRows,  'NESO đã swap ra (rút) hôm nay, theo từng ví.');
-  } catch(e) {}
 
-  const chips = sumChips + avaxChips + activityChips + walletChips;
-  if (!chips) { bar.innerHTML = `<span style="color:var(--muted2);font-size:10px">Chưa có dữ liệu NESO claim</span>`; return; }
-  const cnt = (nesoEarned?2:0) + ((lastChangeItems&&lastChangeItems.length)||0);
-  const dur = Math.max(14, cnt * 5);
+  // Khung 1 — NESO nhận 24h (theo ví)
+  const earnRows = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.perWallet) ? nesoEarned.perWallet : [];
+  fillFeed('vfeed-earn', 'NESO nhận 24h', 'var(--green)', earnRows, 'Chưa có NESO nhận hôm nay', 'NESO');
 
-  bar.innerHTML = `
-    <div style="flex:1;overflow:hidden;position:relative;align-self:stretch;-webkit-mask:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);mask:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)">
-      <div class="ticker-track" style="position:absolute;left:0;top:0;height:100%;display:flex;align-items:center;white-space:nowrap;animation:ticker ${dur}s linear infinite;will-change:transform">${chips}${chips}</div>
-    </div>`;
+  // Khung 2 — Chi tiêu hôm nay (theo ví)
+  const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
+  const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0) }));
+  fillFeed('vfeed-spend', 'Chi tiêu', '#f59e0b', spendRows, 'Chưa chi tiêu hôm nay', 'NESO');
+
+  // Khung 3 — Swap out hôm nay (theo ví)
+  const wd = (typeof swapChartData !== 'undefined' && swapChartData) ? swapChartData.rawDetail || [] : [];
+  const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0 }));
+  fillFeed('vfeed-swap', 'Swap out', '#38bdf8', swapRows, 'Chưa swap ra hôm nay', 'NESO');
 }
 
 async function refreshNesoEarned() {
@@ -4416,19 +4370,18 @@ async function refreshNesoEarned() {
     const earnedOf = r => (r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
     const allRows = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
     const walletRows = allRows.map(res => res.status==='fulfilled' ? (res.value||[]) : []);
-    walletRows.forEach(rows => {
-      let walletHasToday = false;
+    const perWallet = [];
+    walletRows.forEach((rows, wi) => {
+      let walletHasToday = false, wEarned = 0;
       rows.forEach(r => {
         const earned = earnedOf(r);
         const day = r.day ? r.day.slice(0,10) : null;
-        // Hôm nay = chỉ cộng ví có data đúng ngày hôm nay (UTC/7h VN). Ví chưa claim → góp 0.
-        if (day === todayUtc) { e24 += earned; walletHasToday = true; }
-        // Tuần game hiện tại
+        if (day === todayUtc) { e24 += earned; wEarned += earned; walletHasToday = true; }
         if (todayKey && day && getWeekKey(day) === todayKey) eWeek += earned;
       });
-      if (walletHasToday) n24wallets++;
+      if (walletHasToday) { n24wallets++; if (wEarned > 0) perWallet.push({ label: wallets[wi].label || wallets[wi].address.slice(0,6)+'...', val: wEarned }); }
     });
-    nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets };
+    nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets, perWallet };
     updateChangeBar();
   } catch (e) { /* bỏ qua lỗi mạng */ }
 }
