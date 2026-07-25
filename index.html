@@ -4091,6 +4091,7 @@ async function fetchLivePrices(force=false) {
     // Re-render claim chart with updated prices (data already loaded)
     if (typeof renderClaimChart === 'function' && claimChartData) renderClaimChart();
     if (typeof renderSpendChart === 'function' && spendChartData) renderSpendChart();
+    if (typeof updateChangeBar === 'function') { try { updateChangeBar(); } catch(_){} }
     if (typeof renderSwapChart === 'function' && swapChartData) renderSwapChart();
     if (typeof renderSwapinChart === 'function' && swapChartData) renderSwapinChart();
     if (typeof renderChartDetail === 'function') ['claim','spend','revenue','swapin'].forEach(k=>{ if(chartDetailOpen[k]) renderChartDetail(k); });
@@ -4358,7 +4359,29 @@ function updateChangeBar(items) {
       return `<span style="display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">${c.label}</span><span style="color:${cc};font-weight:700">${up?'▲':'▼'}${Math.abs(c.pct).toFixed(1)}%</span><span style="color:var(--muted2)">${sgn(c.diff)}</span></span>`;
     }).join('');
 
-  const chips = sumChips + avaxChips + walletChips;
+  // Chip hoạt động HÔM NAY (chi tiêu / chi NFT / swap out) — chỉ hiện khi có phát sinh
+  const todayKey = new Date().toISOString().slice(0,10);
+  const fmtNeso = n => Math.round(n).toLocaleString('vi-VN');
+  const actChip = (label, val, color, tip) => {
+    if (!(val > 0)) return '';
+    return `<span title="${tip}" style="display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-right:1px solid var(--border)">
+        <span style="color:${color};font-weight:600">${label}</span>
+        <span style="color:var(--text2);font-weight:700">${fmtNeso(val)}</span>
+        <span style="color:var(--muted2);font-size:10px">NESO hôm nay</span>
+      </span>`;
+  };
+  let activityChips = '';
+  try {
+    const spendToday = (typeof spendChartData!=='undefined' && spendChartData) ? (spendChartData.byDay?.[todayKey] || 0) : 0;
+    const nftToday   = (typeof spendChartData!=='undefined' && spendChartData) ? (spendChartData.nftDay?.[todayKey] || 0) : 0;
+    const swapOutTdy = (typeof swapChartData!=='undefined'  && swapChartData)  ? (swapChartData.byDay?.[todayKey]?.out || 0) : 0;
+    activityChips =
+        actChip('Chi tiêu',  spendToday, '#f59e0b', 'Tổng NESO đã chi hôm nay (crystal + NFT + FT + burn). Mốc ngày từ 7h sáng VN.')
+      + actChip('Chi NFT',   nftToday,   '#a78bfa', 'NESO đã chi cho NFT hôm nay.')
+      + actChip('Swap out',  swapOutTdy, '#38bdf8', 'NESO đã swap ra (rút) hôm nay.');
+  } catch(e) {}
+
+  const chips = sumChips + avaxChips + activityChips + walletChips;
   if (!chips) { bar.innerHTML = `<span style="color:var(--muted2);font-size:10px">Chưa có dữ liệu NESO claim</span>`; return; }
   const cnt = (nesoEarned?2:0) + ((lastChangeItems&&lastChangeItems.length)||0);
   const dur = Math.max(14, cnt * 5);
@@ -5526,6 +5549,7 @@ async function loadSwapChart() {
     };
     renderSwapChart();
     if (typeof renderSwapinChart === 'function') renderSwapinChart();
+    if (typeof updateChangeBar === 'function') { try { updateChangeBar(); } catch(_){} }
   } catch(e) {
     document.getElementById('swap-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
   }
