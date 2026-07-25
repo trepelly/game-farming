@@ -638,13 +638,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- Header actions -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
-        <div>
-          <div class="section-label" style="margin-bottom:4px">Team Wallet</div>
-          <div style="font-size:11px;color:var(--muted2);display:flex;align-items:center;gap:6px">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <b id="team-username-display" style="color:var(--accent)"></b>
-          </div>
-        </div>
+        <b id="team-username-display" style="display:none"></b>
         <style>
           .tickerbar{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}
           .tickerbar::-webkit-scrollbar{height:5px}
@@ -676,7 +670,6 @@ td:first-child{text-align:left;color:var(--muted2)}
             <div class="tk-sec" id="vfeed-spend"></div>
             <div class="tk-sec" id="vfeed-swap"></div>
           </div>
-        </div>
         </div>
 
       </div>
