@@ -4321,45 +4321,85 @@ let lastChangeItems = [];
 function updateChangeBar(items) {
   if (items) lastChangeItems = items;
   const todayKey = new Date().toISOString().slice(0,10);
+  const prevKey  = new Date(Date.now()-86400000).toISOString().slice(0,10);
   const fmt = n => Math.round(n).toLocaleString('vi-VN');
 
-  // Dựng 1 khung cuộn dọc: tiêu đề (tên + tổng) + danh sách từng ví cuộn lên
-  const fillFeed = (elId, title, color, rows, emptyText, unit) => {
+  // Icon SVG line theo phong cách tab (viewBox 24, stroke 1.8)
+  const ico = p => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${p}</svg>`;
+  const ICON = {
+    earn:  '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>',      // nhận (mũi tên xuống)
+    spend: '<path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/>',       // chi (mũi tên lên/ra)
+    swap:  '<path d="M7 3v14"/><path d="M4 6l3-3 3 3"/><path d="M17 21V7"/><path d="M14 18l3 3 3-3"/>', // swap
+  };
+
+  // Chú thích tăng/giảm % so với hôm qua (giống badge của thẻ token)
+  const pctBadge = (today, prev) => {
+    if (!(prev > 0)) return '';
+    const p = (today - prev) / prev * 100;
+    if (Math.abs(p) < 0.1) return '';
+    const up = p >= 0, c = up ? 'var(--green)' : 'var(--red)';
+    return `<span title="So với hôm qua (${fmt(prev)})" style="color:${c};font-weight:700;font-size:9px">${up?'▲':'▼'}${Math.abs(p).toFixed(1)}%</span>`;
+  };
+
+  // Dựng 1 trường: trái = icon + tên + tổng + %; phải = ví cuộn lên, dừng 2s mỗi ví
+  const fillFeed = (elId, title, iconKey, color, rows, emptyText, unit, prevTotal) => {
     const el = document.getElementById(elId);
     if (!el) return;
     el.style.setProperty('--vf-color', color);
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
     const total = list.reduce((a,b) => a + b.val, 0);
-    // Bên trái: tên trường + tổng (đứng yên)
     const left = `<div class="vfeed-total">
+        <span style="color:${color};display:inline-flex">${ico(ICON[iconKey])}</span>
         <span style="color:${color};font-weight:800;text-transform:uppercase;font-size:9px;letter-spacing:.03em">${title}</span>
-        ${list.length ? `<b style="color:${color};font-size:11px">${fmt(total)}</b><span style="color:var(--muted2);font-size:8.5px">${list.length} ví</span>` : '<span style="color:var(--muted2);font-size:9px">—</span>'}
+        ${list.length
+          ? `<b style="color:${color};font-size:11px">${fmt(total)}</b>${pctBadge(total, prevTotal)}<span style="color:var(--muted2);font-size:8.5px">${list.length} ví</span>`
+          : '<span style="color:var(--muted2);font-size:9px">—</span>'}
       </div>`;
     if (!list.length) {
       el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track"><div class="vfeed-row" style="color:var(--muted2)">${emptyText}</div></div></div>`;
       return;
     }
-    // Bên phải: các ví cuộn hướng lên (trôi mượt liên tục)
     const rowHtml = r => `<div class="vfeed-row"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis">${r.label}</span><span style="color:${color};font-weight:700;flex-shrink:0">${fmt(r.val)}<span style="color:var(--muted2);font-weight:400;font-size:8px"> ${unit}</span></span></div>`;
     const seq = list.map(rowHtml).join('');
-    const dur = Math.max(6, list.length * 2.4);
-    const anim = list.length > 1 ? `animation:vscroll ${dur}s linear infinite` : '';
+    let anim = '';
+    if (list.length > 1) {
+      // Dừng ~2s ở mỗi ví rồi trượt sang ví kế (keyframes riêng cho từng số lượng)
+      const N = list.length, name = `vstep_${N}`;
+      if (!document.getElementById('vstep-' + N)) {
+        const HOLD = 2, MOVE = 0.45, slot = HOLD + MOVE, dur = N * slot;
+        let kf = `@keyframes ${name}{`;
+        for (let k = 0; k < N; k++) {
+          const start = (k * slot) / dur * 100;
+          const holdEnd = (k * slot + HOLD) / dur * 100;
+          const posK = -(k * (50 / N));
+          kf += `${start.toFixed(3)}%{transform:translateY(${posK}%)}${holdEnd.toFixed(3)}%{transform:translateY(${posK}%)}`;
+        }
+        kf += `100%{transform:translateY(-50%)}}`;
+        const st = document.createElement('style'); st.id = 'vstep-' + N; st.textContent = kf;
+        document.head.appendChild(st);
+      }
+      anim = `animation:${name} ${(N*(2+0.45)).toFixed(2)}s infinite`;
+    }
     el.innerHTML = left + `<div class="vfeed-scroll"><div class="vfeed-track" style="${anim}">${seq}${list.length>1?seq:''}</div></div>`;
   };
 
-  // Khung 1 — NESO nhận 24h (theo ví)
+  // Khung 1 — NESO nhận 24h
   const earnRows = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.perWallet) ? nesoEarned.perWallet : [];
-  fillFeed('vfeed-earn', 'NESO nhận 24h', 'var(--green)', earnRows, 'Chưa có NESO nhận hôm nay', 'NESO');
+  const earnPrev = (typeof nesoEarned !== 'undefined' && nesoEarned) ? (nesoEarned.e24Prev || 0) : 0;
+  fillFeed('vfeed-earn', 'NESO nhận 24h', 'earn', 'var(--green)', earnRows, 'Chưa có NESO nhận hôm nay', 'NESO', earnPrev);
 
-  // Khung 2 — Chi tiêu hôm nay (theo ví)
+  // Khung 2 — Chi tiêu hôm nay
   const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
-  const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0) }));
-  fillFeed('vfeed-spend', 'Chi tiêu', '#f59e0b', spendRows, 'Chưa chi tiêu hôm nay', 'NESO');
+  const spentOf = r => (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0);
+  const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: spentOf(r) }));
+  const spendPrev = sd.filter(r => r.day === prevKey).reduce((a,r) => a + spentOf(r), 0);
+  fillFeed('vfeed-spend', 'Chi tiêu', 'spend', '#f59e0b', spendRows, 'Chưa chi tiêu hôm nay', 'NESO', spendPrev);
 
-  // Khung 3 — Swap out hôm nay (theo ví)
+  // Khung 3 — Swap out hôm nay
   const wd = (typeof swapChartData !== 'undefined' && swapChartData) ? swapChartData.rawDetail || [] : [];
   const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0 }));
-  fillFeed('vfeed-swap', 'Swap out', '#38bdf8', swapRows, 'Chưa swap ra hôm nay', 'NESO');
+  const swapPrev = wd.filter(r => r.day === prevKey).reduce((a,r) => a + (r.swapOut||0), 0);
+  fillFeed('vfeed-swap', 'Swap out', 'swap', '#38bdf8', swapRows, 'Chưa swap ra hôm nay', 'NESO', swapPrev);
 }
 
 async function refreshNesoEarned() {
@@ -4368,9 +4408,10 @@ async function refreshNesoEarned() {
     if (!wallets.length || typeof fetchFlowData !== 'function') return;
     if (nesoEarned && Date.now() - nesoEarnedAt < 30000) { updateChangeBar(); return; }
     nesoEarnedAt = Date.now();
-    let e24 = 0, eWeek = 0, n24wallets = 0;
+    let e24 = 0, eWeek = 0, n24wallets = 0, e24Prev = 0;
     // Hôm nay theo lịch UTC = 7h sáng VN (mốc reset). Tuần game = tuần Thu→Wed chứa hôm nay.
     const todayUtc = new Date().toISOString().slice(0,10);
+    const prevUtc  = new Date(Date.now()-86400000).toISOString().slice(0,10);
     const todayKey = (typeof getWeekKey==='function') ? getWeekKey(todayUtc) : null;
     const earnedOf = r => (r.in_nft_amount||0)+(r.in_ft_amount||0)+(r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
     const allRows = await Promise.allSettled(wallets.map(w => fetchFlowData(w.address, 0)));
@@ -4382,11 +4423,12 @@ async function refreshNesoEarned() {
         const earned = earnedOf(r);
         const day = r.day ? r.day.slice(0,10) : null;
         if (day === todayUtc) { e24 += earned; wEarned += earned; walletHasToday = true; }
+        if (day === prevUtc) { e24Prev += earned; }
         if (todayKey && day && getWeekKey(day) === todayKey) eWeek += earned;
       });
       if (walletHasToday) { n24wallets++; if (wEarned > 0) perWallet.push({ label: wallets[wi].label || wallets[wi].address.slice(0,6)+'...', val: wEarned }); }
     });
-    nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets, perWallet };
+    nesoEarned = { e24, e7: eWeek, day: todayUtc, n24: n24wallets, perWallet, e24Prev };
     updateChangeBar();
   } catch (e) { /* bỏ qua lỗi mạng */ }
 }
