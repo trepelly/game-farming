@@ -656,7 +656,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           .tk-track{display:inline-flex;align-items:center;white-space:nowrap;will-change:transform}
           .tk-feed:hover .tk-track{animation-play-state:paused}
           @keyframes hscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-          .tk-item{display:inline-flex;align-items:center;gap:9px;padding:0 22px;border-right:1px solid var(--border)}
+          .tk-item{display:inline-flex;align-items:center;gap:9px;padding:0 20px}
           .tk-dot{width:6px;height:6px;border-radius:50%;opacity:.7;flex:0 0 auto}
           .tk-name{font-size:13px;font-weight:600;color:var(--text2)}
           .tk-amt{font-family:'Chakra Petch',monospace;font-size:14px;font-weight:700}
@@ -4495,20 +4495,18 @@ function updateChangeBar(items) {
   const spendPrevMap = {}; sd.filter(r => r.day === prevKey).forEach(r => { spendPrevMap[r.label] = (spendPrevMap[r.label]||0) + spentOf(r); });
   const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: spentOf(r), prev: spendPrevMap[r.label] || 0 }));
   const spendPrev = Object.values(spendPrevMap).reduce((a,b) => a + b, 0);
-  const spendDays = [...new Set(sd.map(r => r.day))].filter(Boolean).sort().reverse();
-  const spendLatest = spendDays[0] || null;
-  _totalData['vfeed-spend'] = { mode:'latest', title:'CHI TIÊU', color:'#ffab40', latestDay: spendLatest,
-    latestRows: spendLatest ? sd.filter(r => r.day === spendLatest).map(r => ({ label:r.label, val:spentOf(r) })).filter(r => r.val > 0) : [] };
+  const spendByDay = {}; sd.forEach(r => { if (r.day) spendByDay[r.day] = (spendByDay[r.day]||0) + spentOf(r); });
+  _totalData['vfeed-spend'] = { mode:'history', title:'CHI TIÊU', color:'#ffab40',
+    byDay: Object.keys(spendByDay).filter(d => spendByDay[d] > 0).sort().reverse().map(day => ({ day, total: spendByDay[day] })) };
   fillFeed('vfeed-spend', 'CHI TIÊU', 'spend', '#ffab40', 'color-mix(in srgb,#ffab40 12%,transparent)', spendRows, 'Chưa chi tiêu hôm nay', spendPrev);
 
   const wd = (typeof swapChartData !== 'undefined' && swapChartData) ? swapChartData.rawDetail || [] : [];
   const swapPrevMap = {}; wd.filter(r => r.day === prevKey).forEach(r => { swapPrevMap[r.label] = (swapPrevMap[r.label]||0) + (r.swapOut||0); });
   const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0, prev: swapPrevMap[r.label] || 0 }));
   const swapPrev = Object.values(swapPrevMap).reduce((a,b) => a + b, 0);
-  const swapDays = [...new Set(wd.map(r => r.day))].filter(Boolean).sort().reverse();
-  const swapLatest = swapDays[0] || null;
-  _totalData['vfeed-swap'] = { mode:'latest', title:'SWAP OUT', color:'#40c4ff', latestDay: swapLatest,
-    latestRows: swapLatest ? wd.filter(r => r.day === swapLatest).map(r => ({ label:r.label, val:r.swapOut||0 })).filter(r => r.val > 0) : [] };
+  const swapByDay = {}; wd.forEach(r => { if (r.day) swapByDay[r.day] = (swapByDay[r.day]||0) + (r.swapOut||0); });
+  _totalData['vfeed-swap'] = { mode:'history', title:'SWAP OUT', color:'#40c4ff',
+    byDay: Object.keys(swapByDay).filter(d => swapByDay[d] > 0).sort().reverse().map(day => ({ day, total: swapByDay[day] })) };
   fillFeed('vfeed-swap', 'SWAP OUT', 'swap', '#40c4ff', 'color-mix(in srgb,#40c4ff 12%,transparent)', swapRows, 'Chưa swap ra hôm nay', swapPrev);
 
   startTickerScroll();
