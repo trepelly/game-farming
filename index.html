@@ -643,7 +643,6 @@ td:first-child{text-align:left;color:var(--muted2)}
           .tickerbar{flex:1;min-width:0;overflow:hidden}
           .tk-inner{display:flex;align-items:stretch;height:56px;width:100%}
           .tk-sec{display:flex;align-items:center;gap:12px;flex:1 1 0;min-width:0;padding:0 14px;position:relative}
-          .tk-accent{position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px}
           .tk-chip{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
           .tk-tot{display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
           .tk-tot-top{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
@@ -4456,8 +4455,7 @@ function updateChangeBar(items) {
     const list = (rows || []).filter(r => r.val > 0).sort((a,b) => b.val - a.val);
     const total = list.reduce((a,b) => a + b.val, 0);
     _feedData[elId] = { title, color, list, total, prevTotal };
-    const head = `<div class="tk-accent" style="background:${color}"></div>
-      <div class="tk-chip" style="color:${color};background:${tint}">${ico(ICON[iconKey])}</div>
+    const head = `<div class="tk-chip" style="color:${color};background:${tint}">${ico(ICON[iconKey])}</div>
       <div class="tk-tot" onmouseenter="showTotalTip(event,'${elId}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()" style="cursor:help">
         <div class="tk-tot-top">
           <span class="tk-lbl" style="color:${color}">${title}</span>
