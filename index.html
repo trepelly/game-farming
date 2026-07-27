@@ -718,12 +718,31 @@ td:first-child{text-align:left;color:var(--muted2)}
             style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 32px 9px 34px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
           <span id="search-clear" onclick="clearTeamSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:14px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">✕</span>
         </div>
-                        <div id="player-filter-wrap" style="display:flex;align-items:center;gap:7px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:8px 12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted2);flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><select id="player-filter" onchange="setPlayerFilter(this.value)" title="Lọc theo người chơi được gán" style="background:transparent;border:none;color:var(--muted2);font-family:inherit;font-size:12px;font-weight:600;outline:none;cursor:pointer"><option value="all">Player: Tất cả</option></select></div>
-        <div id="world-filter-wrap" style="display:flex;align-items:center;gap:7px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:8px 12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted2);flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><select id="world-filter" onchange="setWorldFilter(this.value)" title="Lọc theo world của nhân vật mạnh nhất" style="background:transparent;border:none;color:var(--muted2);font-family:inherit;font-size:12px;font-weight:600;outline:none;cursor:pointer"><option value="all">World: Tất cả</option></select></div>
-        <select id="mvp-filter-select" onchange="setMvpFilter(this.value)" title="Lọc theo điểm MVP"
-          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">MVP: Tất cả</option><option value="bronze">MVP ≥ 30</option><option value="below">0 &lt; MVP &lt; 30</option></select>
-        <select id="week-filter" onchange="setWeekFilter(this.value)" title="Lọc theo số tuần đạt Bronze+ (Week)"
-          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">Week: Tất cả</option><option value="0">Week = 0</option><option value="1">Week ≥ 1</option><option value="2">Week ≥ 2</option><option value="3">Week ≥ 3</option><option value="4">Week ≥ 4</option><option value="5">Week ≥ 5</option><option value="6">Week ≥ 6</option><option value="7">Week ≥ 7</option><option value="8">Week ≥ 8</option><option value="9">Week ≥ 9</option><option value="10">Week ≥ 10</option><option value="11">Week ≥ 11</option><option value="12">Week ≥ 12</option><option value="13">Week ≥ 13</option><option value="full">Week = 13 (đủ)</option></select>
+                        <style>
+          .fdd{position:relative;display:inline-block;font-family:inherit}
+          .fdd-btn{display:flex;align-items:center;gap:7px;background:var(--input-bg);border:1px solid var(--border2);border-radius:9px;padding:8px 13px;font-size:12px;font-weight:600;color:var(--muted2);cursor:pointer;transition:border-color .15s,color .15s,background .15s;white-space:nowrap;line-height:1}
+          .fdd-btn:hover{border-color:var(--accent);color:var(--text2)}
+          .fdd.active .fdd-btn{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent);color:var(--text)}
+          .fdd-btn svg{flex-shrink:0}
+          .fdd-lbl{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+          .fdd-chev{margin-left:1px;transition:transform .2s;opacity:.7}
+          .fdd.open .fdd-chev{transform:rotate(180deg)}
+          .fdd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:max(100%,168px);background:var(--card);border:1px solid var(--border2);border-radius:11px;box-shadow:var(--shadow-lg);padding:5px;z-index:200;max-height:320px;overflow-y:auto;display:none}
+          .fdd.open .fdd-menu{display:block;animation:fddIn .14s cubic-bezier(.4,0,.2,1)}
+          @keyframes fddIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+          .fdd-menu::-webkit-scrollbar{width:6px}
+          .fdd-menu::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+          .fdd-opt{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;font-size:12px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background .1s}
+          .fdd-opt:hover{background:var(--input-bg)}
+          .fdd-opt.sel{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text);font-weight:600}
+          .fdd-opt .fdd-check{margin-left:auto;color:var(--accent);font-weight:800;opacity:0}
+          .fdd-opt.sel .fdd-check{opacity:1}
+          .fdd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        </style>
+        <div id="dd-player" class="fdd"></div>
+        <div id="dd-world" class="fdd"></div>
+        <div id="dd-mvp" class="fdd"></div>
+        <div id="dd-week" class="fdd"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" title="Làm mới" style="margin-left:auto;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
@@ -3149,88 +3168,86 @@ function updateColSortIcons() {
   });
 }
 let teamAlpha = 'all';
-let mvpFilter = 'all'; // 'all' | 'bronze' (≥30) | 'below' (0<x<30)
-let weekFilter = 'all'; // 'all' | '0' | '1'..'13' (≥N) | 'full' (=13)
+let playerFilter = 'all', worldFilter = 'all', mvpFilter = 'all', weekFilter = 'all';
 
-let worldFilter = 'all';
-let playerFilter = 'all';
-function setPlayerFilter(v) {
-  playerFilter = v || 'all';
-  const el = document.getElementById('player-filter');
-  if (el) {
-    const on = playerFilter !== 'all';
-    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
-    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
-    el.style.color = on ? '#fff' : 'var(--muted2)';
-  }
-  renderTeam();
-}
-function refreshPlayerOptions() {
-  const el = document.getElementById('player-filter');
-  if (!el) return;
-  // Danh sách người chơi: ưu tiên teamPlayers, kèm mọi tên đã gán trong ví
-  const names = new Set();
-  (teamPlayers || []).forEach(p => { if (p && p.name) names.add(p.name); });
-  (teamWallets || []).forEach(w => { if (w.player) names.add(w.player); });
-  const list = [...names].sort((a,b) => a.localeCompare(b, 'vi'));
-  const cur = playerFilter;
-  const has = cur === 'all' || cur === 'none' || list.includes(cur);
-  const emojiOf = n => { const p = (teamPlayers||[]).find(x => x.name === n); return p && p.emoji ? p.emoji + ' ' : ''; };
-  el.innerHTML = '<option value="all">Player: Tất cả</option><option value="none">Chưa gán</option>'
-    + list.map(n => `<option value="${n}">${emojiOf(n)}${n}</option>`).join('');
-  if (!has) playerFilter = 'all';
-  el.value = playerFilter;
-}
-function setWorldFilter(v) {
-  worldFilter = v || 'all';
-  const el = document.getElementById('world-filter');
-  if (el) {
-    const on = worldFilter !== 'all';
-    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
-    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
-    el.style.color = on ? '#fff' : 'var(--muted2)';
-  }
-  renderTeam();
-}
-function refreshWorldOptions() {
-  const el = document.getElementById('world-filter');
-  if (!el) return;
-  const worlds = [...new Set((teamWallets || []).map(w => w.maxCpWorld).filter(Boolean))].sort();
-  const cur = worldFilter;
-  const has = cur === 'all' || cur === 'none' || worlds.includes(cur);
-  el.innerHTML = '<option value="all">World: Tất cả</option><option value="none">Chưa có world</option>'
-    + worlds.map(wd => `<option value="${wd}">${wd}</option>`).join('');
-  if (!has) worldFilter = 'all';
-  el.value = worldFilter;
-}
-function setWeekFilter(v) {
-  weekFilter = v || 'all';
-  const el = document.getElementById('week-filter');
-  if (el) {
-    const on = weekFilter !== 'all';
-    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
-    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
-    el.style.color = on ? '#fff' : 'var(--muted2)';
-  }
-  renderTeam();
-}
+// ══════════ DROPDOWN LỌC TUỲ BIẾN ══════════
+const _fddIcon = {
+  user:  '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  award: '<circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"/>',
+  cal:   '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+};
+const _svg = p => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const _chev = '<svg class="fdd-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
 
-function clearTeamSearch() {
-  const inp = document.getElementById('team-search');
-  if(inp) { inp.value = ''; renderTeam(); updateSearchClear(); }
+// cấu hình mỗi dropdown: mount, icon, nhãn ngắn, lấy value, đặt value, options()
+const FDD = {
+  player: { mount:'dd-player', icon:'user',  short:'Player', get:()=>playerFilter, set:v=>{ playerFilter=v; renderTeam(); },
+    options:()=>{
+      const names=new Set(); (teamPlayers||[]).forEach(p=>{ if(p&&p.name) names.add(p.name); }); (teamWallets||[]).forEach(w=>{ if(w.player) names.add(w.player); });
+      const emojiOf=n=>{ const p=(teamPlayers||[]).find(x=>x.name===n); return p&&p.emoji?p.emoji+' ':''; };
+      const colorOf=n=>{ const p=(teamPlayers||[]).find(x=>x.name===n); return p&&p.color||null; };
+      return [{value:'all',label:'Tất cả'},{value:'none',label:'Chưa gán'}].concat([...names].sort((a,b)=>a.localeCompare(b,'vi')).map(n=>({value:n,label:emojiOf(n)+n,dot:colorOf(n)})));
+    }},
+  world:  { mount:'dd-world', icon:'globe', short:'World', get:()=>worldFilter, set:v=>{ worldFilter=v; renderTeam(); },
+    options:()=>{
+      const worlds=[...new Set((teamWallets||[]).map(w=>w.maxCpWorld).filter(Boolean))].sort();
+      return [{value:'all',label:'Tất cả'},{value:'none',label:'Chưa có world'}].concat(worlds.map(w=>({value:w,label:w})));
+    }},
+  mvp:    { mount:'dd-mvp', icon:'award', short:'MVP', get:()=>mvpFilter, set:v=>{ mvpFilter=v; renderTeam(); },
+    options:()=>[{value:'all',label:'Tất cả'},{value:'bronze',label:'MVP ≥ 30'},{value:'below',label:'0 < MVP < 30'}] },
+  week:   { mount:'dd-week', icon:'cal', short:'Week', get:()=>weekFilter, set:v=>{ weekFilter=v; renderTeam(); },
+    options:()=>{
+      const o=[{value:'all',label:'Tất cả'},{value:'0',label:'Week = 0'}];
+      for(let k=1;k<=13;k++) o.push({value:String(k),label:'Week ≥ '+k});
+      o.push({value:'full',label:'Week = 13 (đủ)'});
+      return o;
+    }},
+};
+
+let _fddOpen = null;
+function renderFdd(key) {
+  const cfg = FDD[key]; if(!cfg) return;
+  const el = document.getElementById(cfg.mount); if(!el) return;
+  const opts = cfg.options();
+  let cur = cfg.get();
+  if (!opts.some(o=>o.value===cur)) { cur='all'; cfg.set('all'); cur=cfg.get(); }
+  const active = cur !== 'all';
+  const curOpt = opts.find(o=>o.value===cur) || opts[0];
+  const btnLabel = active ? curOpt.label : cfg.short + ': Tất cả';
+  el.classList.toggle('active', active);
+  el.innerHTML =
+    `<button class="fdd-btn" onclick="fddToggle('${key}',event)">${_svg(_fddIcon[cfg.icon])}<span class="fdd-lbl">${btnLabel}</span>${_chev}</button>`
+    + `<div class="fdd-menu">` + opts.map(o=>
+        `<div class="fdd-opt${o.value===cur?' sel':''}" onclick="fddSelect('${key}','${String(o.value).replace(/'/g,"\\'")}')">`
+        + (o.dot?`<span class="fdd-dot" style="background:${o.dot}"></span>`:'')
+        + `<span>${o.label}</span><span class="fdd-check">✓</span></div>`
+      ).join('') + `</div>`;
 }
-function setMvpFilter(mode) {
-  mvpFilter = mode || 'all';
-  const el = document.getElementById('mvp-filter-select');
-  if (el) {
-    const on = mvpFilter !== 'all';
-    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
-    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
-    el.style.color = on ? '#fff' : 'var(--muted2)';
-    el.value = mvpFilter;
-  }
-  renderTeam();
+function fddToggle(key, ev) {
+  if(ev) ev.stopPropagation();
+  const el = document.getElementById(FDD[key].mount);
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.fdd.open').forEach(d=>d.classList.remove('open'));
+  if(!wasOpen){ el.classList.add('open'); _fddOpen=key; } else _fddOpen=null;
 }
+function fddSelect(key, value) {
+  const el = document.getElementById(FDD[key].mount);
+  el.classList.remove('open'); _fddOpen=null;
+  FDD[key].set(value);   // set() gọi renderTeam() -> renderFdd() cập nhật nhãn
+}
+function renderAllFdd(){ Object.keys(FDD).forEach(renderFdd); }
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.fdd')) document.querySelectorAll('.fdd.open').forEach(d=>d.classList.remove('open'));
+});
+
+// Giữ tên hàm cũ để các nơi khác gọi vẫn chạy
+function setPlayerFilter(v){ playerFilter=v||'all'; renderTeam(); }
+function setWorldFilter(v){ worldFilter=v||'all'; renderTeam(); }
+function setWeekFilter(v){ weekFilter=v||'all'; renderTeam(); }
+function refreshWorldOptions(){ renderFdd('world'); }
+function refreshPlayerOptions(){ renderFdd('player'); }
+function setMvpFilter(mode){ mvpFilter=mode||'all'; renderTeam(); }
 
 function updateSearchClear() {
   const inp = document.getElementById('team-search');
@@ -3627,8 +3644,7 @@ function renderTeam() {
   } else if (mvpFilter === 'below') {
     displayWallets = displayWallets.filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
   }
-  try { refreshWorldOptions(); } catch(e) {}
-  try { refreshPlayerOptions(); } catch(e) {}
+  try { renderAllFdd(); } catch(e) {}
   if (playerFilter !== 'all') {
     displayWallets = playerFilter === 'none'
       ? displayWallets.filter(w => !w.player)
