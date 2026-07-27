@@ -718,6 +718,10 @@ td:first-child{text-align:left;color:var(--muted2)}
             style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 32px 9px 34px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
           <span id="search-clear" onclick="clearTeamSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:14px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">✕</span>
         </div>
+                <select id="player-filter" onchange="setPlayerFilter(this.value)" title="Lọc theo người chơi được gán"
+          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">Player: Tất cả</option></select>
+        <select id="world-filter" onchange="setWorldFilter(this.value)" title="Lọc theo world của nhân vật mạnh nhất"
+          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">World: Tất cả</option></select>
         <button id="mvp-filter-btn" onclick="setMvpFilter('bronze')" title="Chỉ hiện ví đạt Bronze+ (MVP ≥ 30)"
           style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:all .15s">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
@@ -730,8 +734,6 @@ td:first-child{text-align:left;color:var(--muted2)}
         </button>
         <select id="week-filter" onchange="setWeekFilter(this.value)" title="Lọc theo số tuần đạt Bronze+ (Week)"
           style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">Week: Tất cả</option><option value="0">Week = 0</option><option value="1">Week ≥ 1</option><option value="2">Week ≥ 2</option><option value="3">Week ≥ 3</option><option value="4">Week ≥ 4</option><option value="5">Week ≥ 5</option><option value="6">Week ≥ 6</option><option value="7">Week ≥ 7</option><option value="8">Week ≥ 8</option><option value="9">Week ≥ 9</option><option value="10">Week ≥ 10</option><option value="11">Week ≥ 11</option><option value="12">Week ≥ 12</option><option value="13">Week ≥ 13</option><option value="full">Week = 13 (đủ)</option></select>
-        <select id="world-filter" onchange="setWorldFilter(this.value)" title="Lọc theo world của nhân vật mạnh nhất"
-          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">World: Tất cả</option></select>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" title="Làm mới" style="margin-left:auto;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
@@ -3161,6 +3163,34 @@ let mvpFilter = 'all'; // 'all' | 'bronze' (≥30) | 'below' (0<x<30)
 let weekFilter = 'all'; // 'all' | '0' | '1'..'13' (≥N) | 'full' (=13)
 
 let worldFilter = 'all';
+let playerFilter = 'all';
+function setPlayerFilter(v) {
+  playerFilter = v || 'all';
+  const el = document.getElementById('player-filter');
+  if (el) {
+    const on = playerFilter !== 'all';
+    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
+    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
+    el.style.color = on ? '#fff' : 'var(--muted2)';
+  }
+  renderTeam();
+}
+function refreshPlayerOptions() {
+  const el = document.getElementById('player-filter');
+  if (!el) return;
+  // Danh sách người chơi: ưu tiên teamPlayers, kèm mọi tên đã gán trong ví
+  const names = new Set();
+  (teamPlayers || []).forEach(p => { if (p && p.name) names.add(p.name); });
+  (teamWallets || []).forEach(w => { if (w.player) names.add(w.player); });
+  const list = [...names].sort((a,b) => a.localeCompare(b, 'vi'));
+  const cur = playerFilter;
+  const has = cur === 'all' || cur === 'none' || list.includes(cur);
+  const emojiOf = n => { const p = (teamPlayers||[]).find(x => x.name === n); return p && p.emoji ? p.emoji + ' ' : ''; };
+  el.innerHTML = '<option value="all">Player: Tất cả</option><option value="none">Chưa gán</option>'
+    + list.map(n => `<option value="${n}">${emojiOf(n)}${n}</option>`).join('');
+  if (!has) playerFilter = 'all';
+  el.value = playerFilter;
+}
 function setWorldFilter(v) {
   worldFilter = v || 'all';
   const el = document.getElementById('world-filter');
@@ -3606,6 +3636,12 @@ function renderTeam() {
     displayWallets = displayWallets.filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
   }
   try { refreshWorldOptions(); } catch(e) {}
+  try { refreshPlayerOptions(); } catch(e) {}
+  if (playerFilter !== 'all') {
+    displayWallets = playerFilter === 'none'
+      ? displayWallets.filter(w => !w.player)
+      : displayWallets.filter(w => w.player === playerFilter);
+  }
   if (weekFilter !== 'all') {
     displayWallets = displayWallets.filter(w => {
       const wk = w.mvpBronzeWeeks;
