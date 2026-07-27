@@ -718,20 +718,10 @@ td:first-child{text-align:left;color:var(--muted2)}
             style="width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 32px 9px 34px;font-family:inherit;font-size:12px;color:var(--text);outline:none;box-sizing:border-box"/>
           <span id="search-clear" onclick="clearTeamSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:14px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">✕</span>
         </div>
-                <select id="player-filter" onchange="setPlayerFilter(this.value)" title="Lọc theo người chơi được gán"
-          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">Player: Tất cả</option></select>
-        <select id="world-filter" onchange="setWorldFilter(this.value)" title="Lọc theo world của nhân vật mạnh nhất"
-          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">World: Tất cả</option></select>
-        <button id="mvp-filter-btn" onclick="setMvpFilter('bronze')" title="Chỉ hiện ví đạt Bronze+ (MVP ≥ 30)"
-          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:all .15s">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
-          MVP ≥ 30
-        </button>
-        <button id="mvp-filter-below-btn" onclick="setMvpFilter('below')" title="Ví có điểm nhưng chưa đạt Bronze (0 &lt; MVP &lt; 30)"
-          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:all .15s">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          0 &lt; MVP &lt; 30
-        </button>
+                        <div id="player-filter-wrap" style="display:flex;align-items:center;gap:7px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:8px 12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted2);flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><select id="player-filter" onchange="setPlayerFilter(this.value)" title="Lọc theo người chơi được gán" style="background:transparent;border:none;color:var(--muted2);font-family:inherit;font-size:12px;font-weight:600;outline:none;cursor:pointer"><option value="all">Player: Tất cả</option></select></div>
+        <div id="world-filter-wrap" style="display:flex;align-items:center;gap:7px;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:8px 12px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted2);flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><select id="world-filter" onchange="setWorldFilter(this.value)" title="Lọc theo world của nhân vật mạnh nhất" style="background:transparent;border:none;color:var(--muted2);font-family:inherit;font-size:12px;font-weight:600;outline:none;cursor:pointer"><option value="all">World: Tất cả</option></select></div>
+        <select id="mvp-filter-select" onchange="setMvpFilter(this.value)" title="Lọc theo điểm MVP"
+          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">MVP: Tất cả</option><option value="bronze">MVP ≥ 30</option><option value="below">0 &lt; MVP &lt; 30</option></select>
         <select id="week-filter" onchange="setWeekFilter(this.value)" title="Lọc theo số tuần đạt Bronze+ (Week)"
           style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">Week: Tất cả</option><option value="0">Week = 0</option><option value="1">Week ≥ 1</option><option value="2">Week ≥ 2</option><option value="3">Week ≥ 3</option><option value="4">Week ≥ 4</option><option value="5">Week ≥ 5</option><option value="6">Week ≥ 6</option><option value="7">Week ≥ 7</option><option value="8">Week ≥ 8</option><option value="9">Week ≥ 9</option><option value="10">Week ≥ 10</option><option value="11">Week ≥ 11</option><option value="12">Week ≥ 12</option><option value="13">Week ≥ 13</option><option value="full">Week = 13 (đủ)</option></select>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -3230,13 +3220,15 @@ function clearTeamSearch() {
   if(inp) { inp.value = ''; renderTeam(); updateSearchClear(); }
 }
 function setMvpFilter(mode) {
-  // Toggle: bấm lại nút đang bật → về 'all'
-  mvpFilter = (mvpFilter === mode) ? 'all' : mode;
-  const on = { background:'var(--accent)', borderColor:'var(--accent)', color:'#fff' };
-  const off = { background:'var(--input-bg)', borderColor:'var(--border2)', color:'var(--muted2)' };
-  const apply = (btn, active) => { if(!btn) return; const s = active?on:off; btn.style.background=s.background; btn.style.borderColor=s.borderColor; btn.style.color=s.color; };
-  apply(document.getElementById('mvp-filter-btn'), mvpFilter==='bronze');
-  apply(document.getElementById('mvp-filter-below-btn'), mvpFilter==='below');
+  mvpFilter = mode || 'all';
+  const el = document.getElementById('mvp-filter-select');
+  if (el) {
+    const on = mvpFilter !== 'all';
+    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
+    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
+    el.style.color = on ? '#fff' : 'var(--muted2)';
+    el.value = mvpFilter;
+  }
   renderTeam();
 }
 
