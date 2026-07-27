@@ -730,6 +730,8 @@ td:first-child{text-align:left;color:var(--muted2)}
         </button>
         <select id="week-filter" onchange="setWeekFilter(this.value)" title="Lọc theo số tuần đạt Bronze+ (Week)"
           style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">Week: Tất cả</option><option value="0">Week = 0</option><option value="1">Week ≥ 1</option><option value="2">Week ≥ 2</option><option value="3">Week ≥ 3</option><option value="4">Week ≥ 4</option><option value="5">Week ≥ 5</option><option value="6">Week ≥ 6</option><option value="7">Week ≥ 7</option><option value="8">Week ≥ 8</option><option value="9">Week ≥ 9</option><option value="10">Week ≥ 10</option><option value="11">Week ≥ 11</option><option value="12">Week ≥ 12</option><option value="13">Week ≥ 13</option><option value="full">Week = 13 (đủ)</option></select>
+        <select id="world-filter" onchange="setWorldFilter(this.value)" title="Lọc theo world của nhân vật mạnh nhất"
+          style="background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted2);outline:none;cursor:pointer"><option value="all">World: Tất cả</option></select>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" title="Làm mới" style="margin-left:auto;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
@@ -3158,6 +3160,29 @@ let teamAlpha = 'all';
 let mvpFilter = 'all'; // 'all' | 'bronze' (≥30) | 'below' (0<x<30)
 let weekFilter = 'all'; // 'all' | '0' | '1'..'13' (≥N) | 'full' (=13)
 
+let worldFilter = 'all';
+function setWorldFilter(v) {
+  worldFilter = v || 'all';
+  const el = document.getElementById('world-filter');
+  if (el) {
+    const on = worldFilter !== 'all';
+    el.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
+    el.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
+    el.style.color = on ? '#fff' : 'var(--muted2)';
+  }
+  renderTeam();
+}
+function refreshWorldOptions() {
+  const el = document.getElementById('world-filter');
+  if (!el) return;
+  const worlds = [...new Set((teamWallets || []).map(w => w.maxCpWorld).filter(Boolean))].sort();
+  const cur = worldFilter;
+  const has = cur === 'all' || cur === 'none' || worlds.includes(cur);
+  el.innerHTML = '<option value="all">World: Tất cả</option><option value="none">Chưa có world</option>'
+    + worlds.map(wd => `<option value="${wd}">${wd}</option>`).join('');
+  if (!has) worldFilter = 'all';
+  el.value = worldFilter;
+}
 function setWeekFilter(v) {
   weekFilter = v || 'all';
   const el = document.getElementById('week-filter');
@@ -3580,6 +3605,7 @@ function renderTeam() {
   } else if (mvpFilter === 'below') {
     displayWallets = displayWallets.filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
   }
+  try { refreshWorldOptions(); } catch(e) {}
   if (weekFilter !== 'all') {
     displayWallets = displayWallets.filter(w => {
       const wk = w.mvpBronzeWeeks;
@@ -3588,6 +3614,11 @@ function renderTeam() {
       if (weekFilter === 'full') return wk >= 13;
       return wk >= parseInt(weekFilter, 10);
     });
+  }
+  if (worldFilter !== 'all') {
+    displayWallets = worldFilter === 'none'
+      ? displayWallets.filter(w => !w.maxCpWorld)
+      : displayWallets.filter(w => w.maxCpWorld === worldFilter);
   }
 
   // Sort
