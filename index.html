@@ -741,6 +741,8 @@ td:first-child{text-align:left;color:var(--muted2)}
         </style>
         <div id="dd-player" class="fdd"></div>
         <div id="dd-world" class="fdd"></div>
+        <div id="dd-job" class="fdd"></div>
+        <div id="dd-level" class="fdd"></div>
         <div id="dd-mvp" class="fdd"></div>
         <div id="dd-week" class="fdd"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -772,7 +774,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <table>
           <thead>
           <tr class="grp-row">
-            <th colspan="7" style="border-bottom:none;background:var(--surface)"></th>
+            <th colspan="9" style="border-bottom:none;background:var(--surface)"></th>
             <th colspan="3" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
             <th colspan="2" style="text-align:center;color:var(--green);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--green) 16%,var(--surface))"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> Henesys</th>
             <th colspan="3" style="text-align:center;color:var(--blue);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--blue) 16%,var(--surface))"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> Avalanche</th>
@@ -786,6 +788,8 @@ td:first-child{text-align:left;color:var(--muted2)}
             <th style="color:#ffffff;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
             <th style="color:#c084fc;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('cp')" title="CP của nhân vật mạnh nhất trên ví"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/></svg> CP <span id="sort-icon-cp" style="opacity:.3">↕</span></th>
             <th style="color:#38bdf8;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('world')" title="World của nhân vật mạnh nhất"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> World <span id="sort-icon-world" style="opacity:.3">↕</span></th>
+            <th style="color:#a3e635;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('job')" title="Job của nhân vật mạnh nhất"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Job <span id="sort-icon-job" style="opacity:.3">↕</span></th>
+            <th style="color:#fbbf24;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('level')" title="Level của nhân vật mạnh nhất"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg> Lv <span id="sort-icon-level" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvp')" title="Điểm MVP">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần đạt Bronze+">Week <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
@@ -2327,7 +2331,7 @@ async function saveGist(data) {
 // Lưu toàn bộ dữ liệu team (giữ player/since/history + danh sách người chơi)
 async function saveTeamData() {
   await saveGist({
-    wallets: teamWallets.map(w=>({ address:w.address, label:w.label, player:w.player||null, since:w.since||null, history:w.history||[], maxCp:w.maxCp??null, maxCpChar:w.maxCpChar||null, maxCpWorld:w.maxCpWorld||null, chars:w.chars||[], cpTs:w.cpTs||null, mvpManual:(w.mvpManual!=null?w.mvpManual:null) })),
+    wallets: teamWallets.map(w=>({ address:w.address, label:w.label, player:w.player||null, since:w.since||null, history:w.history||[], maxCp:w.maxCp??null, maxCpChar:w.maxCpChar||null, maxCpWorld:w.maxCpWorld||null, maxCpJob:w.maxCpJob||null, maxCpLevel:w.maxCpLevel??null, chars:w.chars||[], cpTs:w.cpTs||null, mvpManual:(w.mvpManual!=null?w.mvpManual:null) })),
     players: teamPlayers,
     settings: teamSettings || {}
   });
@@ -3158,7 +3162,7 @@ function colSort(col) {
 }
 
 function updateColSortIcons() {
-  ['label','player','neso','nxpc','avax','nxpc_avax','usdt_avax','mvp','tuanmvp','mvpweek','nft','cp','world'].forEach(c => {
+  ['label','player','neso','nxpc','avax','nxpc_avax','usdt_avax','mvp','tuanmvp','mvpweek','nft','cp','world','job','level'].forEach(c => {
     const el = document.getElementById('sort-icon-'+c);
     if (!el) return;
     if (c !== teamSortCol) { el.textContent = '↕'; el.style.opacity='0.3'; el.style.color=''; return; }
@@ -3168,7 +3172,7 @@ function updateColSortIcons() {
   });
 }
 let teamAlpha = 'all';
-let playerFilter = 'all', worldFilter = 'all', mvpFilter = 'all', weekFilter = 'all';
+let playerFilter = 'all', worldFilter = 'all', mvpFilter = 'all', weekFilter = 'all', jobFilter = 'all', levelFilter = 'all';
 
 // ══════════ DROPDOWN LỌC TUỲ BIẾN ══════════
 const _fddIcon = {
@@ -3176,6 +3180,8 @@ const _fddIcon = {
   globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
   award: '<circle cx="12" cy="8" r="6"/><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"/>',
   cal:   '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/>',
 };
 const _svg = p => `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const _chev = '<svg class="fdd-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
@@ -3194,6 +3200,13 @@ const FDD = {
       const worlds=[...new Set((teamWallets||[]).map(w=>w.maxCpWorld).filter(Boolean))].sort();
       return [{value:'all',label:'Tất cả'},{value:'none',label:'Chưa có world'}].concat(worlds.map(w=>({value:w,label:w})));
     }},
+  job:    { mount:'dd-job', icon:'briefcase', short:'Job', get:()=>jobFilter, set:v=>{ jobFilter=v; renderTeam(); },
+    options:()=>{
+      const jobs=[...new Set((teamWallets||[]).map(w=>w.maxCpJob).filter(Boolean))].sort();
+      return [{value:'all',label:'Tất cả'},{value:'none',label:'Chưa có job'}].concat(jobs.map(j=>({value:j,label:j})));
+    }},
+  level:  { mount:'dd-level', icon:'chart', short:'Level', get:()=>levelFilter, set:v=>{ levelFilter=v; renderTeam(); },
+    options:()=>[{value:'all',label:'Tất cả'},{value:'300',label:'Lv ≥ 300'},{value:'280',label:'Lv ≥ 280'},{value:'260',label:'Lv ≥ 260'},{value:'240',label:'Lv ≥ 240'},{value:'220',label:'Lv ≥ 220'},{value:'200',label:'Lv ≥ 200'},{value:'below',label:'Lv < 200'},{value:'none',label:'Chưa có level'}] },
   mvp:    { mount:'dd-mvp', icon:'award', short:'MVP', get:()=>mvpFilter, set:v=>{ mvpFilter=v; renderTeam(); },
     options:()=>[{value:'all',label:'Tất cả'},{value:'bronze',label:'MVP ≥ 30'},{value:'below',label:'0 < MVP < 30'}] },
   week:   { mount:'dd-week', icon:'cal', short:'Week', get:()=>weekFilter, set:v=>{ weekFilter=v; renderTeam(); },
@@ -3333,8 +3346,8 @@ async function refreshWalletChars(addr) {
     list.sort((a, b) => (b.cp || 0) - (a.cp || 0));
     const top = list.find(c => c.cp != null) || null;
     w.chars = list; w.maxCp = top ? top.cp : null; w.maxCpChar = top ? top.name : null;
-    w.maxCpWorld = top ? (top.world || null) : null; w.cpTs = Date.now(); w.cpLoaded = true;
-    try { const c = loadCpCache(); c[addr.toLowerCase()] = { cp: w.maxCp, name: w.maxCpChar, world: w.maxCpWorld, chars: list, ts: w.cpTs }; saveCpCache(c); } catch(e) {}
+    w.maxCpWorld = top ? (top.world || null) : null; w.maxCpJob = top ? (top.job || null) : null; w.maxCpLevel = top ? (top.level ?? null) : null; w.cpTs = Date.now(); w.cpLoaded = true;
+    try { const c = loadCpCache(); c[addr.toLowerCase()] = { cp: w.maxCp, name: w.maxCpChar, world: w.maxCpWorld, job: w.maxCpJob, level: w.maxCpLevel, chars: list, ts: w.cpTs }; saveCpCache(c); } catch(e) {}
     try { renderTeam(); } catch(e) {}
     // admin lưu lên gist để cả team hưởng số mới (giãn cách tối thiểu 60s)
     if (teamUser && teamUser.role === 'admin' && Date.now() - (window.__lastCpSave || 0) > 60000) {
@@ -3664,6 +3677,20 @@ function renderTeam() {
       ? displayWallets.filter(w => !w.maxCpWorld)
       : displayWallets.filter(w => w.maxCpWorld === worldFilter);
   }
+  if (jobFilter !== 'all') {
+    displayWallets = jobFilter === 'none'
+      ? displayWallets.filter(w => !w.maxCpJob)
+      : displayWallets.filter(w => w.maxCpJob === jobFilter);
+  }
+  if (levelFilter !== 'all') {
+    displayWallets = displayWallets.filter(w => {
+      const lv = w.maxCpLevel;
+      if (levelFilter === 'none') return lv == null;
+      if (lv == null) return false;
+      if (levelFilter === 'below') return lv < 200;
+      return lv >= parseInt(levelFilter, 10);
+    });
+  }
 
   // Sort
   const nesoVal = w => w.neso ?? -1;
@@ -3684,6 +3711,8 @@ function renderTeam() {
       if (teamSortCol==='nft')        return w.nftCount ?? -1;
       if (teamSortCol==='cp')         return w.maxCp ?? -1;
       if (teamSortCol==='world')      return (w.maxCpWorld||'zzz').toLowerCase();
+      if (teamSortCol==='job')        return (w.maxCpJob||'zzz').toLowerCase();
+      if (teamSortCol==='level')      return w.maxCpLevel ?? -1;
       if (teamSortCol==='nxpc_avax') return w.nxpc_avax ?? -1;
       if (teamSortCol==='usdt_avax') return w.usdt_avax_real ?? -1;
       return 0;
@@ -3755,6 +3784,8 @@ function renderTeam() {
           ? `<span style="color:#38bdf8;font-weight:600;font-size:11px">${w.maxCpWorld}</span>${(()=>{const ws=[...new Set((w.chars||[]).map(c=>c.world).filter(Boolean))];return ws.length>1?`<div style="font-size:9px;color:var(--muted2)">+${ws.length-1} world</div>`:'';})()}`
           : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')
       }</td>
+      <td style="text-align:center;white-space:nowrap">${w.maxCpJob ? `<span style="color:#a3e635;font-weight:600;font-size:11px">${w.maxCpJob}</span>` : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')}</td>
+      <td style="text-align:center;white-space:nowrap">${w.maxCpLevel!=null ? `<span style="color:#fbbf24;font-weight:700;font-size:12px">${w.maxCpLevel}</span>` : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')}</td>
       <td style="text-align:right" data-addr="${w.address}">
         ${w.mvpPoints!=null
           ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px">${w.mvpTier?.name||''}</div>`
@@ -3770,7 +3801,7 @@ function renderTeam() {
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
-      <td colspan="16" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:var(--bg2)">
+      <td colspan="18" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:var(--bg2)">
         <div style="display:flex;gap:4px;padding:12px 16px 0;background:var(--bg2);flex-wrap:wrap;border-bottom:1px solid var(--border2);position:sticky;left:0;width:100%;box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
@@ -3797,6 +3828,8 @@ function renderTeam() {
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
     <td style="text-align:right;padding:10px 14px;color:#c084fc;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví`+subLines('CP &gt; 100k', cpUpdatedLabel(displayWallets));})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`${ws.length} world`+subLines(ws.slice(0,3).join(', '), cpUpdatedLabel(displayWallets)):'—';})()}</td>
+    <td style="text-align:center;padding:10px 14px;color:#a3e635;font-size:11px;font-weight:700">${(()=>{const js=[...new Set(displayWallets.map(w=>w.maxCpJob).filter(Boolean))];return js.length?`${js.length} job`:'—';})()}</td>
+    <td style="text-align:center;padding:10px 14px;color:#fbbf24;font-size:11px;font-weight:700">${(()=>{const lv=displayWallets.map(w=>w.maxCpLevel).filter(v=>v!=null);return lv.length?`Lv ${Math.max(...lv)}`:'—';})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700" title="Số ví đủ 13 tuần Bronze+">${(()=>{const f=displayWallets.filter(w=>w.mvpBronzeWeeks>=13).length;return f>0?f+' đủ 13w':'—';})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
@@ -6694,7 +6727,7 @@ async function loadTeamCp(force) {
     const a = (w.address || '').toLowerCase();
     const c = cache[a];
     if (!force && c && (now - c.ts) < CP_CACHE_TTL) {
-      w.maxCp = c.cp; w.maxCpChar = c.name; w.maxCpWorld = c.world || null; w.chars = c.chars || []; w.cpTs = c.ts; w.cpLoaded = true;
+      w.maxCp = c.cp; w.maxCpChar = c.name; w.maxCpWorld = c.world || null; w.maxCpJob = c.job || null; w.maxCpLevel = c.level ?? null; w.chars = c.chars || []; w.cpTs = c.ts; w.cpLoaded = true;
     } else todo.push(w);
   });
   try { renderTeam(); } catch(_) {}
@@ -6737,10 +6770,10 @@ async function loadTeamCp(force) {
       w.chars = list;
       w.maxCp = top ? top.cp : null;
       w.maxCpChar = top ? top.name : null;
-      w.maxCpWorld = top ? (top.world || null) : null;
+      w.maxCpWorld = top ? (top.world || null) : null; w.maxCpJob = top ? (top.job || null) : null; w.maxCpLevel = top ? (top.level ?? null) : null;
       w.cpTs = Date.now();
       w.cpLoaded = true;
-      cache[(w.address || '').toLowerCase()] = { cp: w.maxCp, name: w.maxCpChar, world: w.maxCpWorld, chars: list, ts: w.cpTs };
+      cache[(w.address || '').toLowerCase()] = { cp: w.maxCp, name: w.maxCpChar, world: w.maxCpWorld, job: w.maxCpJob, level: w.maxCpLevel, chars: list, ts: w.cpTs };
     } catch(e) { w.cpLoaded = true; }
     done++; setBtn();
     try { renderTeam(); } catch(_) {}
