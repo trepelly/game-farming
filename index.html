@@ -3899,9 +3899,9 @@ function renderTeam() {
         <span class="stat-val" style="color:${chainColor}">${amount}</span>
         <span style="font-size:10px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">${lk}</span>
       </div>
-      ${extraHtml}
-      <div style="height:1px;background:var(--border2);margin:12px 0 9px"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="height:36px;margin-top:12px">${extraHtml}</div>
+      <div style="height:1px;background:var(--border2);margin:9px 0"></div>
+      <div style="height:15px;display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span style="font-size:13px;font-weight:700;color:var(--text)">${vndStr}</span>
         <span style="font-size:11px;font-weight:500;color:var(--muted2)">${usdStr}</span>
       </div>
@@ -3956,36 +3956,55 @@ function renderTeam() {
       const enoughNeso = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) >= (30-w.mvpPoints)*100000).length;
       const shortNeso  = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) <  (30-w.mvpPoints)*100000).length;
       const other = Math.max(total - bp - enoughNeso - shortNeso, 0);
-      const AMBER='#f5a524', GRAY='#6b6b74', RED='#ef4444', GREEN='#22c55e';
+      const AMBER='#f5a524', GRAY='#6b6b74', RED='#ef4444', GREEN='#22c55e', PURP='#a855f7';
       const MONO = "font-family:'Chakra Petch',monospace";
-      const header = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-          <span style="width:7px;height:7px;border-radius:50%;background:#a855f7;box-shadow:0 0 8px #a855f7;flex-shrink:0"></span>
-          <span style="font-size:11px;font-weight:600;letter-spacing:.09em;color:var(--muted2)">VÍ ĐANG THEO DÕI</span>
-          <span style="margin-left:auto;display:flex;align-items:baseline;gap:5px"><span style="${MONO};font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text)">${total}</span><span style="font-size:11px;color:var(--muted2)">ví</span></span>
+
+      // Tầng 1 — header: dot + label + badge CTA
+      const badge = shortNeso>0
+        ? `<span onclick="setMvpFilter('below')" title="Lọc ${shortNeso} ví thiếu NESO" style="margin-left:auto;flex-shrink:0;font-size:11px;font-weight:600;color:${RED};background:rgba(239,68,68,.12);border-radius:5px;padding:3px 7px;white-space:nowrap;cursor:pointer">${shortNeso} thiếu →</span>`
+        : `<span style="margin-left:auto;flex-shrink:0;font-size:11px;font-weight:600;color:${GREEN};background:rgba(34,197,94,.12);border-radius:5px;padding:3px 7px;white-space:nowrap">đủ NESO</span>`;
+      const header = `<div style="display:flex;align-items:center;gap:7px">
+          <span style="width:7px;height:7px;border-radius:50%;background:${PURP};flex-shrink:0"></span>
+          <span style="font-size:11px;font-weight:700;color:${PURP};text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ví theo dõi</span>
+          ${badge}
         </div>`;
+
       if (mvpLoadedPct<=0) {
-        return `<div class="stat" style="display:flex;flex-direction:column;min-height:195px">${header}<div style="font-size:11px;color:var(--muted2)">Đang tải MVP...</div></div>`;
+        return `<div class="stat">${header}<div style="display:flex;align-items:center;gap:7px;margin-top:9px"><span style="width:22px;height:22px;border-radius:50%;background:var(--border2)"></span><span style="font-size:12px;font-weight:700;color:var(--text2)">Tổng ví</span></div><div style="display:flex;align-items:baseline;gap:6px;margin-top:13px"><span class="stat-val" style="color:${PURP}">${total}</span><span style="font-size:10px;font-weight:600;color:var(--muted2)">VÍ</span></div><div style="height:36px;margin-top:12px;display:flex;align-items:center;font-size:10px;color:var(--muted2)">Đang tải MVP...</div><div style="height:1px;background:var(--border2);margin:9px 0"></div><div style="height:15px"></div></div>`;
       }
-      // Thanh tỉ lệ xếp chồng ngang — flex theo số ví, nhóm nhỏ có min-width để đọc được
-      const seg = (label, val, color, grow, minw, alpha, center) => `<div style="flex:${grow} 1 0${minw?';min-width:'+minw+'px':''};border-top:2px solid ${color};background:color-mix(in srgb,${color} ${alpha}%,transparent);border-radius:0 0 4px 4px;padding:8px 9px;display:flex;flex-direction:column;justify-content:space-between${center?';align-items:center':''}">
-          <span style="${MONO};font-size:16px;font-weight:600;color:${color};line-height:1">${val}</span>
-          <span style="font-size:10px;color:var(--muted2);white-space:nowrap">${label}</span>
+
+      // Tầng 2 — mini donut (conic) theo tỉ lệ 4 nhóm
+      const sum4 = Math.max(bp + other + shortNeso + enoughNeso, 1);
+      const d1 = bp/sum4*360, d2 = (bp+other)/sum4*360, d3 = (bp+other+shortNeso)/sum4*360;
+      const donut = `conic-gradient(${AMBER} 0 ${d1.toFixed(1)}deg,${GRAY} ${d1.toFixed(1)}deg ${d2.toFixed(1)}deg,${RED} ${d2.toFixed(1)}deg ${d3.toFixed(1)}deg,${GREEN} ${d3.toFixed(1)}deg 360deg)`;
+      const iconRow = `<div style="display:flex;align-items:center;gap:7px;margin-top:9px">
+          <span style="width:22px;height:22px;border-radius:50%;background:${donut};flex-shrink:0;box-shadow:inset 0 0 0 4px var(--card)"></span>
+          <span style="font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.02em">Tổng ví</span>
         </div>`;
-      const bar = `<div style="display:flex;gap:3px;height:62px;margin-bottom:14px">
-          ${seg('Bronze+', bp, AMBER, bp, 0, 16, false)}
-          ${seg('Chưa có', other, GRAY, other, 0, 16, false)}
-          ${seg('Thiếu', shortNeso, RED, shortNeso+1, 64, 20, false)}
-          ${seg('Đủ', enoughNeso, GREEN, Math.max(enoughNeso,1), 26, 16, true)}
+
+      // Tầng 3 — số lớn + đơn vị
+      const bignum = `<div style="display:flex;align-items:baseline;gap:6px;margin-top:13px">
+          <span class="stat-val" style="color:${PURP}">${total}</span>
+          <span style="font-size:10px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Ví</span>
         </div>`;
-      const cta = shortNeso>0
-        ? `<div onclick="setMvpFilter('below')" title="Lọc các ví chưa đủ NESO" style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);cursor:pointer">
-            <span style="font-size:12px;color:#f0aeae;flex:1">${shortNeso} ví cần nạp thêm NESO</span>
-            <span style="font-size:12px;font-weight:600;color:#ef4444;white-space:nowrap">Xem →</span>
-          </div>`
-        : `<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25)">
-            <span style="font-size:12px;color:#7fd99a">Tất cả ví đều đủ NESO tuần này</span>
-          </div>`;
-      return `<div class="stat" style="display:flex;flex-direction:column;min-height:195px">${header}${bar}${cta}</div>`;
+
+      // Tầng 4 — thanh tỉ lệ xếp chồng (nowrap, min-width 22px), chỉ có số
+      const seg = (val, color, grow, alpha) => `<div style="flex:${grow} 1 0;min-width:22px;height:36px;border-top:2px solid ${color};background:color-mix(in srgb,${color} ${alpha}%,transparent);border-radius:0 0 4px 4px;display:flex;align-items:center;justify-content:center;overflow:hidden"><span style="${MONO};font-size:14px;font-weight:600;color:${color}">${val}</span></div>`;
+      const bar = `<div style="height:36px;margin-top:12px;display:flex;gap:3px;flex-wrap:nowrap">
+          ${seg(bp, AMBER, bp, 16)}
+          ${seg(other, GRAY, other, 16)}
+          ${seg(shortNeso, RED, shortNeso, 20)}
+          ${seg(enoughNeso, GREEN, enoughNeso, 16)}
+        </div>`;
+
+      // Tầng 5 — divider + legend 4 cột
+      const leg = (color, name) => `<span style="display:flex;align-items:center;gap:5px;min-width:0"><span style="width:6px;height:6px;border-radius:2px;background:${color};flex:none"></span><span style="font-size:10px;color:#9b9ba2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${name}</span></span>`;
+      const footer = `<div style="height:1px;background:var(--border2);margin:9px 0"></div>
+        <div style="height:15px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;align-items:center">
+          ${leg(AMBER,'Bronze+')}${leg(GRAY,'Chưa có điểm')}${leg(RED,'Thiếu NESO')}${leg(GREEN,'Đủ NESO')}
+        </div>`;
+
+      return `<div class="stat">${header}${iconRow}${bignum}${bar}${footer}</div>`;
     })()}
     ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd, bNeso)}
     ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NXPC', fd2(totNxpc,2), totNxpc*nxpcRate, totNxpc*nxpcRate*usdvnd, bNxpc)}
