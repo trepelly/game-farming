@@ -3974,7 +3974,7 @@ function renderTeam() {
       const bar = `<div style="display:flex;gap:3px;height:62px;margin-bottom:14px">
           ${seg('Bronze+', bp, AMBER, bp, 0, 16, false)}
           ${seg('Chưa có', other, GRAY, other, 0, 16, false)}
-          ${seg('Thiếu NESO', shortNeso, RED, shortNeso+1, 64, 20, false)}
+          ${seg('Thiếu', shortNeso, RED, shortNeso+1, 64, 20, false)}
           ${seg('Đủ', enoughNeso, GREEN, Math.max(enoughNeso,1), 26, 16, true)}
         </div>`;
       const cta = shortNeso>0
