@@ -704,8 +704,21 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <div class="stats-fixed team-stats-6" id="team-stats"></div>
 
-      <!-- Phân tích & Đề xuất -->
-      <div id="team-insights" style="margin-bottom:20px"></div>
+      <!-- TAB BAR (admin) -->
+      <div id="team-tabbar" style="display:flex;gap:2px;border-bottom:1px solid var(--border2);margin-bottom:20px;overflow-x:auto">
+        <button class="tw-tab" data-tab="state"   onclick="switchTeamTab('state')">Trạng thái ví</button>
+        <button class="tw-tab" data-tab="flow"    onclick="switchTeamTab('flow')">Dòng tiền</button>
+        <button class="tw-tab" data-tab="insight" onclick="switchTeamTab('insight')">Insight & Đề xuất</button>
+        <button class="tw-tab" data-tab="kpi"     onclick="switchTeamTab('kpi')">KPI & OKR</button>
+      </div>
+      <style>
+        .tw-tab{background:none;border:none;border-bottom:2px solid transparent;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-1px}
+        .tw-tab:hover{color:var(--text2)}
+        .tw-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+      </style>
+
+      <!-- TAB: Trạng thái ví -->
+      <div class="tabpanel" id="tab-state">
 
       <!-- Cần xử lý (cảnh báo) -->
       <div id="team-alerts" style="margin-bottom:16px"></div>
@@ -846,6 +859,10 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="mvp-dist-detail" style="display:none;margin-top:14px"></div>
       </div>
 
+      </div><!-- /tab-state -->
+
+      <!-- TAB: Dòng tiền -->
+      <div class="tabpanel" id="tab-flow" style="display:none">
       <!-- NESO CLAIM CHART -->
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -964,6 +981,18 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
         <div id="swapin-detail-body" style="display:none"></div>
       </div>
+      </div><!-- /tab-flow -->
+
+      <!-- TAB: Insight & Đề xuất -->
+      <div class="tabpanel" id="tab-insight" style="display:none">
+        <div id="team-insights" style="margin-bottom:20px"></div>
+        <div id="tab-insight-more" style="font-size:12px;color:var(--muted2);padding:8px 2px">Các phần đề xuất chi tiết (6 luật, thẻ tiềm năng, mô phỏng) sẽ bổ sung ở bước kế tiếp.</div>
+      </div><!-- /tab-insight -->
+
+      <!-- TAB: KPI & OKR -->
+      <div class="tabpanel" id="tab-kpi" style="display:none">
+        <div id="tab-kpi-body" style="font-size:12px;color:var(--muted2);padding:8px 2px">KPI & OKR sẽ bổ sung ở bước kế tiếp.</div>
+      </div><!-- /tab-kpi -->
 
       </div>
     </div>
@@ -2295,6 +2324,7 @@ async function unlockTeam() {
     teamUser = matched;
     document.getElementById('team-lock').style.display    = 'none';
     document.getElementById('team-content').style.display = 'block';
+    try { initTeamTabs(); } catch(e) {}
     document.getElementById('team-username-display').textContent = matched.username;
     { const _rd = document.getElementById('team-role-display'); if (_rd) _rd.textContent = matched.role === 'admin' ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M2 20h20"/><path d="M2 7l5 4 5-7 5 7 5-4-2 10H4L2 7z"/></svg> Admin' : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Member'; }
     // Show/hide admin controls
@@ -3424,6 +3454,32 @@ function renderAlertChips(list) {
   el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px">${title}<div style="display:flex;flex-wrap:wrap;gap:8px">${chips}</div>${explain}</div>`;
 }
 
+let teamTab = 'state';
+function switchTeamTab(t) {
+  teamTab = t || 'state';
+  ['state','flow','insight','kpi'].forEach(k => {
+    const p = document.getElementById('tab-'+k);
+    if (p) p.style.display = (k===teamTab) ? '' : 'none';
+  });
+  document.querySelectorAll('.tw-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab')===teamTab));
+  // vẽ lại nội dung tab cần dữ liệu động
+  try { if (teamTab==='insight') renderInsights(window._teamDisplay||teamWallets); } catch(e) {}
+  try { if (teamTab==='flow' && typeof drawAllFlowCharts==='function') drawAllFlowCharts(); } catch(e) {}
+}
+function drawAllFlowCharts() {
+  try { if (typeof renderClaimChart==='function' && typeof claimChartData!=='undefined' && claimChartData) renderClaimChart(); } catch(e){}
+  try { if (typeof renderSpendChart==='function' && typeof spendChartData!=='undefined' && spendChartData) renderSpendChart(); } catch(e){}
+  try { if (typeof renderSwapChart==='function' && typeof swapChartData!=='undefined' && swapChartData) renderSwapChart(); } catch(e){}
+  try { if (typeof renderSwapinChart==='function' && typeof swapChartData!=='undefined' && swapChartData) renderSwapinChart(); } catch(e){}
+  try { if (typeof renderUsdtChart==='function') renderUsdtChart(); } catch(e){}
+}
+function initTeamTabs() {
+  // ẩn tab bar với member (chỉ admin thấy)
+  const bar = document.getElementById('team-tabbar');
+  if (bar) bar.style.display = (teamUser && teamUser.role==='admin') ? 'flex' : 'none';
+  switchTeamTab(teamTab);
+}
+
 function renderAllFdd(){ Object.keys(FDD).forEach(renderFdd); }
 document.addEventListener('click', e=>{
   if(!e.target.closest('.fdd')) document.querySelectorAll('.fdd.open').forEach(d=>d.classList.remove('open'));
@@ -3835,6 +3891,7 @@ function renderTeam() {
   try { renderAllFdd(); } catch(e) {}
   try { renderInsights(displayWallets); } catch(e) {}
   try { renderAlertChips(displayWallets); } catch(e) {}
+  window._teamDisplay = displayWallets;
   if (alertFilter !== 'all') { displayWallets = displayWallets.filter(w => walletFlags(w).includes(alertFilter)); }
   if (playerFilter !== 'all') {
     displayWallets = playerFilter === 'none'
