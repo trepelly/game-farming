@@ -673,7 +673,13 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
 
       
+      <!-- Bản Member (chỉ hiện với member) -->
+      <div id="member-view" style="display:none;margin-bottom:20px"></div>
+
       <div class="stats-fixed team-stats-6" id="team-stats"></div>
+
+      <!-- Thanh nguồn dữ liệu -->
+      <div id="team-datasource" style="margin-bottom:16px"></div>
 
       <!-- TAB BAR (admin) -->
       <div id="team-tabbar" style="display:flex;gap:2px;border-bottom:1px solid var(--border2);margin-bottom:20px;overflow-x:auto">
@@ -3657,17 +3663,17 @@ function renderKpiTab(list) {
   const kr = (name, now, unit, base, target, dir, hasData=true) => ({ name, now, unit, base, target, dir, hasData });
   const objectives = [
     { code:'O1', name:'Tăng doanh thu rút mỗi tuần mà không tăng vốn bơm vào', krs:[
-      kr('Doanh thu rút / tuần', m.revWeek, 'NESO', 0, m.revWeek*1.1||1, 'up', m.revWeek>0),
+      (()=>{ const h=krTargetsFromHistory('revWeek','up'); return kr('Doanh thu rút / tuần', m.revWeek, 'NESO', h?h.base:0, h?h.target:(m.revWeek*1.1||1), 'up', m.revWeek>0); })(),
       kr('ROI team', null, '', 0, 0, 'up', false),
       kr('Giá bán TB vs TWAP', null, '', 0, 0, 'up', false),
     ]},
     { code:'O2', name:'Nâng chất lượng ví hiện có thay vì mở thêm ví', krs:[
-      kr('% ví đạt Silver+', m.silverPct, '%', 0, Math.max(m.silverPct*1.2, 10), 'up'),
-      kr('NESO / ví / tuần', m.nesoPerWallet, 'NESO', 0, m.nesoPerWallet*1.1||1, 'up', m.nesoWeek>0),
-      kr('Ví có character Lv200+', m.lv200Pct, '%', 0, Math.max(m.lv200Pct*1.2, 20), 'up'),
+      (()=>{ const h=krTargetsFromHistory('silverPct','up'); return kr('% ví đạt Silver+', m.silverPct, '%', h?h.base:0, h?h.target:Math.max(m.silverPct*1.2,10), 'up'); })(),
+      (()=>{ const h=krTargetsFromHistory('nesoPerWallet','up'); return kr('NESO / ví / tuần', m.nesoPerWallet, 'NESO', h?h.base:0, h?h.target:(m.nesoPerWallet*1.1||1), 'up', m.nesoWeek>0); })(),
+      (()=>{ const h=krTargetsFromHistory('lv200Pct','up'); return kr('Ví có character Lv200+', m.lv200Pct, '%', h?h.base:0, h?h.target:Math.max(m.lv200Pct*1.2,20), 'up'); })(),
     ]},
     { code:'O3', name:'Không để vốn và ví đứng yên', krs:[
-      kr('Tỉ lệ vốn nhàn rỗi', m.idleRatio, '%', 100, 0, 'down', m.totalUsdt>0),
+      (()=>{ const h=krTargetsFromHistory('idleRatio','down'); return kr('Tỉ lệ vốn nhàn rỗi', m.idleRatio, '%', h?h.base:100, h?h.target:0, 'down', m.totalUsdt>0); })(),
       kr('Ví đứng ngủ', m.idleCount, 'ví', m.n, 0, 'down'),
       kr('Ví ROI < 0.7', null, '', 0, 0, 'down', false),
     ]},
@@ -3710,12 +3716,150 @@ function renderKpiTab(list) {
 
   const note = `<div style="font-size:10.5px;color:var(--muted2);margin-top:6px;line-height:1.6;padding:12px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px">
       <b style="color:var(--text2)">Cách sinh mục tiêu:</b> Baseline = P50 (trung vị 13 tuần), Target = P75, Stretch = tuần tốt nhất. Trạng thái = <code style="font-size:10px">krStatus(now, base, target, dir)</code>, không gõ tay.
-      <br>Hiện chưa đủ lịch sử 13 tuần nên baseline/target đang dùng ước tính tạm; qua vài tuần snapshot sẽ chính xác dần. Các KR ghi "Cần dữ liệu" (ROI, giá bán vs TWAP) cần bổ sung nguồn on-chain.
+      <br>${(()=>{const k=getSnapshots().length; return k>=3?`Đang dùng <b style="color:var(--text2)">${Math.min(k,13)} tuần</b> lịch sử để sinh baseline (P50)/target (P75).`:`Mới có <b style="color:var(--text2)">${k} tuần</b> snapshot — cần ≥ 3 tuần để sinh baseline/target; hiện dùng ước tính tạm.`;})()} Các KR ghi "Cần dữ liệu" (ROI, giá bán vs TWAP) cần bổ sung nguồn on-chain.
       <br><b style="color:#f5a524">Guardrail:</b> nếu vốn bơm tăng &gt; +5%/quý, số ví vượt trần, hoặc có ví hết gas vượt trần → KR liên quan tính là "không đạt" kể cả khi con số đẹp.
     </div>`;
 
   el.innerHTML = `<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:14px">KPI & OKR — quý hiện tại</div>${toggle}${okrView}${note}`;
   el.id = 'tab-kpi-body';
+}
+
+// ══════════ Thanh nguồn dữ liệu ══════════
+let _dsOpen = false;
+function toggleDataSource(){ _dsOpen=!_dsOpen; renderDataSourceBar(window._teamDisplay||teamWallets); }
+function renderDataSourceBar(list) {
+  const el = document.getElementById('team-datasource');
+  if (!el) return;
+  const w = list || [];
+  const n = w.length || 1;
+  const pctLoaded = arr => Math.round(arr.filter(Boolean).length / n * 100);
+  const anyManualMvp = w.some(x => x.mvpManual != null);
+  const cpAt = (typeof cpLoadedAt!=='undefined' && cpLoadedAt) ? cpLoadedAt : null;
+  const rel = ts => { if(!ts) return 'chưa tải'; const s=Math.floor((Date.now()-ts)/60000); return s<1?'vừa xong':s<60?s+' phút trước':Math.floor(s/60)+' giờ trước'; };
+  // 4 nguồn
+  const sources = [
+    { name:'Số dư token', note:'NESO · NXPC · AVAX · USDT — đọc trực tiếp từ blockchain', ok: w.some(x=>x.neso!=null||x.avax!=null), live:true },
+    { name:'CP / Job / Level', note:'nhân vật mạnh nhất — quét từ msu.gg', ok: w.some(x=>x.cpLoaded), live:true, ts:cpAt },
+    { name:'NFT', note:'số NFT trong ví + trên nhân vật', ok: w.some(x=>x.nftCount!=null), live:true },
+    { name:'Điểm MVP', note: anyManualMvp ? 'có ví nhập tay ◆ — số này do người nhập, không từ blockchain' : 'từ nguồn MVP', ok: (typeof mvpLoadedPct!=='undefined'&&mvpLoadedPct>0), manual:anyManualMvp },
+  ];
+  const okCount = sources.filter(x=>x.ok).length;
+  const needCount = sources.length - okCount;
+  const summary = `Nguồn dữ liệu · ${okCount}/${sources.length} có dữ liệu` + (needCount?` · ${needCount} chưa tải`:'') + (anyManualMvp?' · có nhập tay ◆':'');
+
+  const head = `<div onclick="toggleDataSource()" style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+      <span style="display:inline-flex;color:${needCount?'#f5a524':'var(--green)'}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
+      <span style="font-size:12px;font-weight:600;color:var(--text2)">${summary}</span>
+      <span style="font-size:10.5px;color:var(--muted2);margin-left:6px">◆ = nhập tay · ≈ = ước tính, không đọc trực tiếp từ blockchain</span>
+      <span style="margin-left:auto;display:inline-flex;color:var(--muted2);transition:transform .2s;transform:rotate(${_dsOpen?180:0}deg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+    </div>`;
+  let detail = '';
+  if (_dsOpen) {
+    detail = '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">' + sources.map(sc => {
+      const col = sc.ok ? 'var(--green)' : '#f5a524';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+          <span style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></span>
+          <span style="font-size:12px;font-weight:600;color:var(--text);min-width:120px">${sc.name}${sc.manual?' <span style="color:#f5a524">◆</span>':''}</span>
+          <span style="font-size:11px;color:var(--muted2);flex:1">${sc.note}</span>
+          <span style="font-size:10.5px;color:var(--muted2);white-space:nowrap">${sc.ok?(sc.ts?rel(sc.ts):'đã tải'):'chưa tải'}</span>
+        </div>`;
+    }).join('') + '</div>';
+  }
+  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:13px 16px">${head}${detail}</div>`;
+}
+
+// ══════════ Bản Member ══════════
+// ══════════ Snapshot tuần (tích lịch sử cho KPI/recon) ══════════
+function currentWeekKey(){ try { return getWeekKey(new Date().toISOString().slice(0,10)); } catch(e){ return new Date().toISOString().slice(0,10); } }
+function getSnapshots(){ return (teamSettings && Array.isArray(teamSettings.snapshots)) ? teamSettings.snapshots : []; }
+function snapshotWeekIfNeeded(list) {
+  // chỉ admin ghi, mỗi tuần 1 lần
+  if (!teamUser || teamUser.role !== 'admin') return;
+  if (typeof mvpLoadedPct==='undefined' || mvpLoadedPct<=0) return;   // cần MVP để số có nghĩa
+  const wk = currentWeekKey();
+  const snaps = getSnapshots();
+  if (snaps.some(s => s.week === wk)) return;   // đã có snapshot tuần này
+  const m = computeKpiMetrics(list||[]);
+  const snap = { week: wk, ts: Date.now(),
+    n: m.n, silverPct: +m.silverPct.toFixed(2), lv200Pct: +m.lv200Pct.toFixed(2),
+    nesoPerWallet: Math.round(m.nesoPerWallet), nesoWeek: Math.round(m.nesoWeek),
+    idleRatio: +m.idleRatio.toFixed(2), idleCount: m.idleCount, revWeek: Math.round(m.revWeek),
+    totalUsdt: Math.round(m.totalUsdt) };
+  teamSettings = teamSettings || {};
+  teamSettings.snapshots = [...snaps, snap].slice(-26);   // giữ tối đa ~2 chu kỳ
+  try { if (typeof saveTeamData==='function') saveTeamData(); } catch(e){}
+}
+// P50 / P75 từ mảng số
+function _percentile(arr, p){
+  const a = arr.filter(v=>v!=null).slice().sort((x,y)=>x-y);
+  if (!a.length) return null;
+  const idx = Math.min(a.length-1, Math.floor(p/100*a.length));
+  return a[idx];
+}
+// baseline/target cho một chỉ số từ snapshots (13 tuần gần nhất); null nếu chưa đủ
+function krTargetsFromHistory(field, dir){
+  const snaps = getSnapshots().slice(-13).map(s=>s[field]).filter(v=>v!=null);
+  if (snaps.length < 3) return null;   // cần tối thiểu vài tuần
+  const base = _percentile(snaps, 50);
+  let target = _percentile(snaps, 75);
+  const max = Math.max(...snaps), min = Math.min(...snaps);
+  if (dir==='down') { target = _percentile(snaps, 25); }  // giảm thì target là mốc thấp
+  return { base, target, weeks: snaps.length };
+}
+
+function renderMemberView(list) {
+  const el = document.getElementById('member-view');
+  if (!el) return;
+  if (!teamUser || teamUser.role !== 'member') { el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display = '';
+  const w = list || [];
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  const mine = (teamUser.players && teamUser.players.length) ? teamUser.players : (teamUser.player ? [teamUser.player] : []);
+  // hạng cao nhất
+  const tierRank = { Unranked:0, Bronze:1, Silver:2, Gold:3, Diamond:4, Black:5 };
+  let topTier = null;
+  w.forEach(x => { if (x.mvpPoints!=null){ const t=getTier(x.mvpPoints); if(!topTier||tierRank[t.name]>tierRank[topTier.name]) topTier=t; } });
+  const totNeso = w.reduce((s,x)=>s+(x.neso||0),0);
+  const totUsdt = w.reduce((s,x)=>s+(x.usdt_avax_real||0),0);
+
+  const card = `<div style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,var(--bg2)),var(--bg2));border:1px solid var(--border2);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+      <div style="flex:0 0 auto">
+        <div style="font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tài khoản</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:4px">${teamUser.username||'—'}</div>
+        <div style="font-size:11px;color:var(--muted2);margin-top:2px">${mine.length?('Người chơi: '+mine.join(', ')):'Chưa gán người chơi'}</div>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;margin-left:auto">
+        <div><div style="font-size:10px;color:var(--muted2);text-transform:uppercase">Ví đang giữ</div><div style="font-family:'Chakra Petch',monospace;font-size:20px;font-weight:700;color:var(--text)">${w.length}</div></div>
+        <div><div style="font-size:10px;color:var(--muted2);text-transform:uppercase">Hạng cao nhất</div><div style="font-size:16px;font-weight:700;color:${topTier?topTier.color:'var(--muted2)'};margin-top:3px">${topTier?topTier.name:'—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted2);text-transform:uppercase">NESO</div><div style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:600;color:var(--green)">${fmt(totNeso)}</div></div>
+        <div><div style="font-size:10px;color:var(--muted2);text-transform:uppercase">USDT</div><div style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:600;color:var(--blue)">$${fmt(totUsdt)}</div></div>
+      </div>
+    </div>`;
+
+  // Việc của bạn tuần này = ví của bạn có cờ cảnh báo
+  const tasks = [];
+  w.forEach(x => {
+    const fs = (typeof walletFlags==='function') ? walletFlags(x) : [];
+    fs.filter(k=>k!=='unassign').forEach(k => {
+      const d = WALLET_FLAG_DEF[k];
+      tasks.push({ w:x, k, label:d.label, color:d.color, title:d.title });
+    });
+  });
+  // ưu tiên đỏ trước
+  tasks.sort((a,b)=> (a.color==='#ef4444'?0:1) - (b.color==='#ef4444'?0:1));
+  const taskHtml = tasks.length ? tasks.map(t => `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border)">
+        <span style="width:8px;height:8px;border-radius:50%;background:${t.color};flex-shrink:0"></span>
+        <span style="font-size:12px;font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis">${t.w.label||(t.w.address||'').slice(0,6)}</span>
+        <span style="font-size:10.5px;font-weight:700;color:${t.color};background:color-mix(in srgb,${t.color} 14%,transparent);padding:2px 8px;border-radius:20px">${t.label}</span>
+        <span style="font-size:11px;color:var(--muted2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${t.title}</span>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:var(--muted2);padding:10px 0">Không có việc cần xử lý — các ví của bạn đang ổn.</div>';
+  const tasksBlock = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;margin-top:16px">
+      <div style="font-size:12.5px;font-weight:800;color:var(--text);margin-bottom:6px">Việc của bạn tuần này ${tasks.length?`<span style="font-size:10px;color:var(--muted2);font-weight:600">${tasks.length} việc</span>`:''}</div>
+      ${taskHtml}
+    </div>`;
+
+  el.innerHTML = card + tasksBlock;
 }
 
 function renderInsightTab(list) {
@@ -4112,6 +4256,10 @@ function renderTeam() {
 
   // Filter by search
   let displayWallets = teamWallets.map((w,i) => ({...w, origIdx: i}));
+  if (teamUser && teamUser.role === 'member' && !teamUser.viewAll) {
+    const mine = (teamUser.players && teamUser.players.length) ? teamUser.players : (teamUser.player ? [teamUser.player] : []);
+    displayWallets = displayWallets.filter(w => mine.includes(w.player));
+  }
   if (query) {
     displayWallets = displayWallets.filter(w =>
       (w.label||'').toLowerCase().includes(query) ||
@@ -4136,6 +4284,9 @@ function renderTeam() {
   try { renderInsights(displayWallets); } catch(e) {}
   try { renderAlertChips(displayWallets); } catch(e) {}
   window._teamDisplay = displayWallets;
+  try { renderDataSourceBar(displayWallets); } catch(e) {}
+  try { renderMemberView(displayWallets); } catch(e) {}
+  try { snapshotWeekIfNeeded(displayWallets); } catch(e) {}
   if (alertFilter !== 'all') { displayWallets = displayWallets.filter(w => walletFlags(w).includes(alertFilter)); }
   if (playerFilter !== 'all') {
     displayWallets = playerFilter === 'none'
