@@ -3480,8 +3480,8 @@ function renderAlertChips(list) {
     const d = WALLET_FLAG_DEF[alertFilter];
     explain = `<div style="margin-top:10px;font-size:11.5px;color:var(--muted2);line-height:1.5"><b style="color:${d.color}">${d.label}:</b> ${d.title}.</div>`;
   }
-  const title = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="display:inline-flex;color:#f5a524"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span style="font-size:12.5px;font-weight:800;color:var(--text)">Cần xử lý</span><span style="font-size:10.5px;color:var(--muted2)">${anyFlagged} ví có cảnh báo</span></div>`;
-  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px">${title}<div style="display:flex;flex-wrap:wrap;gap:8px">${chips}</div>${explain}</div>`;
+  const title = `<div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span style="display:inline-flex;color:#f5a524"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span style="font-size:12.5px;font-weight:800;color:var(--text)">Cần xử lý</span><span style="font-size:10.5px;color:var(--muted2)">${anyFlagged} ví có cảnh báo</span></div>`;
+  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px"><div style="display:flex;align-items:center;gap:14px;flex-wrap:nowrap;overflow-x:auto">${title}<div style="display:flex;gap:8px;flex-shrink:0">${chips}</div></div>${explain}</div>`;
 }
 
 let teamTab = 'state';
@@ -3551,9 +3551,16 @@ function drawAllFlowCharts() {
   try { renderFlowPeriodBar(); renderFlowNet(); } catch(e){}
 }
 function initTeamTabs() {
-  // ẩn tab bar với member (chỉ admin thấy)
   const bar = document.getElementById('team-tabbar');
-  if (bar) bar.style.display = (effUser().role==='admin') ? 'flex' : 'none';
+  const isAdmin = effUser().role === 'admin';
+  if (bar) {
+    bar.style.display = 'flex';               // hiện cho cả member
+    bar.querySelectorAll('.tw-tab').forEach(b => {
+      const t = b.getAttribute('data-tab');
+      b.style.display = (isAdmin || t === 'state') ? '' : 'none';   // member chỉ thấy "Trạng thái ví"
+    });
+    if (!isAdmin) teamTab = 'state';
+  }
   switchTeamTab(teamTab);
 }
 
@@ -3957,7 +3964,18 @@ function renderMemberView(list) {
     const fs = (typeof walletFlags==='function') ? walletFlags(x) : [];
     fs.filter(k=>k!=='unassign').forEach(k => {
       const d = WALLET_FLAG_DEF[k];
-      tasks.push({ w:x, k, label:d.label, color:d.color, title:d.title });
+      let action = d.title;   // mặc định
+      if (k === 'gas') {
+        action = `Nạp thêm AVAX để có phí giao dịch (hiện ${(x.avax!=null?x.avax:0).toFixed(3)} < 0.05)`;
+      } else if (k === 'near') {
+        const nt = getNextTier(x.mvpPoints);
+        const gap = nt ? (nt.min - x.mvpPoints) : 0;
+        const nesoNeed = gap * (typeof MVP_NESO_PER_POINT!=='undefined'?MVP_NESO_PER_POINT:100000);
+        action = `Còn thiếu ${gap} điểm để lên ${nt?nt.name:'hạng kế'} — cần ~${Math.round(nesoNeed).toLocaleString('vi-VN')} NESO`;
+      } else if (k === 'idle') {
+        action = `Ví chưa tích điểm MVP tuần này — kiểm tra xem có đang farm không`;
+      }
+      tasks.push({ w:x, k, label:d.label, color:d.color, title:action });
     });
   });
   // ưu tiên đỏ trước
