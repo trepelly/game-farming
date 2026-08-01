@@ -3849,6 +3849,15 @@ function renderDataSourceBar(list) {
 let _viewAs = null;   // null = xem như admin; hoặc {role,username,players,viewAll}
 function effUser(){ return _viewAs || teamUser || {}; }
 function isRealAdmin(){ return teamUser && teamUser.role === 'admin'; }
+function effectiveWallets(){
+  const all = (typeof teamWallets!=='undefined' && teamWallets) ? teamWallets : [];
+  const eu = effUser();
+  if (eu.role === 'member' && !eu.viewAll) {
+    const mine = (eu.players && eu.players.length) ? eu.players : (eu.player ? [eu.player] : []);
+    return all.filter(w => mine.includes(w.player));
+  }
+  return all;
+}
 function applyRoleUI(u){
   const isAdmin = !!(u && u.role === 'admin');
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
@@ -3868,6 +3877,12 @@ async function setViewAs(username){
   }
   applyRoleUI(effUser());
   renderViewAsBar();
+  // rebuild dữ liệu tổng hợp theo scope mới
+  try { if (typeof nesoEarnedAt!=='undefined') nesoEarnedAt = 0; } catch(e){}
+  try { if (typeof loadClaimChart==='function') loadClaimChart().catch(()=>{}); } catch(e){}
+  try { if (typeof loadSpendChart==='function') loadSpendChart().catch(()=>{}); } catch(e){}
+  try { if (typeof loadSwapChart==='function') loadSwapChart().catch(()=>{}); } catch(e){}
+  try { if (typeof refreshNesoEarned==='function') refreshNesoEarned().catch(()=>{}); } catch(e){}
   try { if (typeof renderTeam === 'function') renderTeam(); } catch(e){}
   try { if (typeof initTeamTabs === 'function') initTeamTabs(); } catch(e){}
 }
@@ -4626,7 +4641,7 @@ function renderTeam() {
     `<div class="stat" style="background:transparent;border-color:transparent;box-shadow:none"></div>`;
 
   // MVP stats
-  const mvpLoaded    = teamWallets.filter(w=>w.mvpPoints!=null);
+  const mvpLoaded    = effectiveWallets().filter(w=>w.mvpPoints!=null);
   const mvpBronzePlus = mvpLoaded.filter(w=>w.mvpPoints>=30).length;
   const mvpLoadedPct  = mvpLoaded.length;
 
@@ -4726,7 +4741,7 @@ function renderTeam() {
     : '';
   if (statsEl) statsEl.innerHTML = `
     ${(()=>{
-      const total = teamWallets.length;
+      const total = effectiveWallets().length;
       const bp = mvpLoadedPct>0 ? mvpBronzePlus : 0;
       const enoughNeso = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) >= (30-w.mvpPoints)*100000).length;
       const shortNeso  = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) <  (30-w.mvpPoints)*100000).length;
@@ -5410,7 +5425,7 @@ function startTickerScroll() {}
 
 async function refreshNesoEarned() {
   try {
-    const wallets = (window.teamWallets) || (typeof teamWallets!=='undefined'?teamWallets:[]) || [];
+    const wallets = effectiveWallets();
     if (!wallets.length || typeof fetchFlowData !== 'function') return;
     if (nesoEarned && Date.now() - nesoEarnedAt < 30000) { updateChangeBar(); return; }
     nesoEarnedAt = Date.now();
@@ -5659,7 +5674,7 @@ function setClaimChartMode(mode) {
 async function loadClaimChart() {
   const wrap = document.getElementById('claim-chart-wrap');
   if (!wrap) return;
-  const wallets = teamWallets || [];
+  const wallets = effectiveWallets();
   if (!wallets.length) { wrap.style.display='none'; return; }
   wrap.style.display = 'block';
 
@@ -5914,7 +5929,7 @@ function setSpendChartMode(mode) {
 async function loadSpendChart() {
   const wrap = document.getElementById('spend-chart-wrap');
   if (!wrap) return;
-  const wallets = teamWallets || [];
+  const wallets = effectiveWallets();
   if (!wallets.length) { wrap.style.display='none'; return; }
   wrap.style.display = 'block';
 
@@ -6526,7 +6541,7 @@ function renderUsdtChart() {
 async function loadSwapChart() {
   const wrap = document.getElementById('swap-chart-wrap');
   if (!wrap) return;
-  const wallets = teamWallets || [];
+  const wallets = effectiveWallets();
   if (!wallets.length) { wrap.style.display='none'; return; }
   wrap.style.display = 'block';
 
@@ -7848,7 +7863,7 @@ function mvpNesoNeed(w){ return Math.max(0, (30 - mvpPtsOf(w)) * 100000); }     
 function mvpNesoDeficit(w){ return Math.max(0, mvpNesoNeed(w) - (w.neso||0)); }   // NESO còn thiếu
 
 function computeMvpBuckets() {
-  const ws = (teamWallets || []).slice();
+  const ws = effectiveWallets().slice();
   const defs = [
     { label:'Chưa farm',     icon:'🕳️', color:'var(--muted2)', sub:'0 điểm',   pre:true, test:p=>p<=0 },
     { label:'Đang tích luỹ', icon:'⏳', color:'#9a9aab',       sub:'0<MVP<30', pre:true, test:p=>p>0 && p<30 },
