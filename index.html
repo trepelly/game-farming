@@ -5341,6 +5341,11 @@ function showFeedTip(ev, elId) {
 
 function updateChangeBar(items) {
   if (items) lastChangeItems = items;
+  // Lọc hiển thị theo ví hiệu lực (member chỉ thấy ví mình, không lẫn admin/người khác)
+  const _scopeWs = (typeof effectiveWallets==='function') ? effectiveWallets() : (typeof teamWallets!=='undefined'?teamWallets:[]);
+  const _okLabel = new Set(_scopeWs.map(w=>w.label));
+  const _okAddr  = new Set(_scopeWs.map(w=>(w.address||'').toLowerCase()));
+  const _inScope = r => _okLabel.has(r.label) || (r.address && _okAddr.has((r.address||'').toLowerCase()));
   const todayKey = new Date().toISOString().slice(0,10);
   const prevKey  = new Date(Date.now()-86400000).toISOString().slice(0,10);
   const fmt = n => Math.round(n).toLocaleString('vi-VN');
@@ -5392,7 +5397,7 @@ function updateChangeBar(items) {
   };
 
 
-  const earnRows = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.perWallet) ? nesoEarned.perWallet : [];
+  const earnRows = ((typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.perWallet) ? nesoEarned.perWallet : []).filter(_inScope);
   const earnPrev = (typeof nesoEarned !== 'undefined' && nesoEarned) ? (nesoEarned.e24Prev || 0) : 0;
   const earnByDay = (typeof nesoEarned !== 'undefined' && nesoEarned && nesoEarned.byDay) ? nesoEarned.byDay : {};
   _totalData['vfeed-earn'] = { mode:'history', title:'NESO NHẬN', color:'var(--green)', byDay: Object.keys(earnByDay).sort().reverse().map(day => ({ day, total: earnByDay[day] })) };
@@ -5400,19 +5405,19 @@ function updateChangeBar(items) {
 
   const sd = (typeof spendChartData !== 'undefined' && spendChartData) ? spendChartData.rawDetail || [] : [];
   const spentOf = r => (r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0);
-  const spendPrevMap = {}; sd.filter(r => r.day === prevKey).forEach(r => { spendPrevMap[r.label] = (spendPrevMap[r.label]||0) + spentOf(r); });
-  const spendRows = sd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: spentOf(r), prev: spendPrevMap[r.label] || 0 }));
+  const spendPrevMap = {}; sd.filter(r => r.day === prevKey && _inScope(r)).forEach(r => { spendPrevMap[r.label] = (spendPrevMap[r.label]||0) + spentOf(r); });
+  const spendRows = sd.filter(r => r.day === todayKey && _inScope(r)).map(r => ({ label: r.label, val: spentOf(r), prev: spendPrevMap[r.label] || 0 }));
   const spendPrev = Object.values(spendPrevMap).reduce((a,b) => a + b, 0);
-  const spendByDay = {}; sd.forEach(r => { if (r.day) spendByDay[r.day] = (spendByDay[r.day]||0) + spentOf(r); });
+  const spendByDay = {}; sd.filter(_inScope).forEach(r => { if (r.day) spendByDay[r.day] = (spendByDay[r.day]||0) + spentOf(r); });
   _totalData['vfeed-spend'] = { mode:'history', title:'CHI TIÊU', color:'#ffab40',
     byDay: Object.keys(spendByDay).filter(d => spendByDay[d] > 0).sort().reverse().map(day => ({ day, total: spendByDay[day] })) };
   fillFeed('vfeed-spend', 'CHI TIÊU', 'spend', '#ffab40', 'color-mix(in srgb,#ffab40 12%,transparent)', spendRows, 'Chưa chi tiêu hôm nay', spendPrev);
 
   const wd = (typeof swapChartData !== 'undefined' && swapChartData) ? swapChartData.rawDetail || [] : [];
-  const swapPrevMap = {}; wd.filter(r => r.day === prevKey).forEach(r => { swapPrevMap[r.label] = (swapPrevMap[r.label]||0) + (r.swapOut||0); });
-  const swapRows = wd.filter(r => r.day === todayKey).map(r => ({ label: r.label, val: r.swapOut || 0, prev: swapPrevMap[r.label] || 0 }));
+  const swapPrevMap = {}; wd.filter(r => r.day === prevKey && _inScope(r)).forEach(r => { swapPrevMap[r.label] = (swapPrevMap[r.label]||0) + (r.swapOut||0); });
+  const swapRows = wd.filter(r => r.day === todayKey && _inScope(r)).map(r => ({ label: r.label, val: r.swapOut || 0, prev: swapPrevMap[r.label] || 0 }));
   const swapPrev = Object.values(swapPrevMap).reduce((a,b) => a + b, 0);
-  const swapByDay = {}; wd.forEach(r => { if (r.day) swapByDay[r.day] = (swapByDay[r.day]||0) + (r.swapOut||0); });
+  const swapByDay = {}; wd.filter(_inScope).forEach(r => { if (r.day) swapByDay[r.day] = (swapByDay[r.day]||0) + (r.swapOut||0); });
   _totalData['vfeed-swap'] = { mode:'history', title:'SWAP OUT', color:'#40c4ff',
     byDay: Object.keys(swapByDay).filter(d => swapByDay[d] > 0).sort().reverse().map(day => ({ day, total: swapByDay[day] })) };
   fillFeed('vfeed-swap', 'SWAP OUT', 'swap', '#40c4ff', 'color-mix(in srgb,#40c4ff 12%,transparent)', swapRows, 'Chưa swap ra hôm nay', swapPrev);
@@ -5723,6 +5728,7 @@ async function loadClaimChart() {
       totalWallets: wallets.length, perWallet, rawDetail
     };
     renderClaimChart();
+    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); } catch(e){}
   } catch(e) {
     document.getElementById('claim-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
   }
@@ -5984,6 +5990,7 @@ async function loadSpendChart() {
       totalWallets:wallets.length, perWallet, rawDetail
     };
     renderSpendChart();
+    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); } catch(e){}
   } catch(e) {
     document.getElementById('spend-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
   }
@@ -6582,6 +6589,7 @@ async function loadSwapChart() {
       totalWallets:wallets.length, perWallet, rawDetail
     };
     renderSwapChart();
+    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); } catch(e){}
     if (typeof renderSwapinChart === 'function') renderSwapinChart();
     if (typeof updateChangeBar === 'function') { try { updateChangeBar(); } catch(_){} }
   } catch(e) {
