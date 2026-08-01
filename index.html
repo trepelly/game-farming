@@ -707,6 +707,9 @@ td:first-child{text-align:left;color:var(--muted2)}
       <!-- Phân tích & Đề xuất -->
       <div id="team-insights" style="margin-bottom:20px"></div>
 
+      <!-- Cần xử lý (cảnh báo) -->
+      <div id="team-alerts" style="margin-bottom:16px"></div>
+
       <!-- Team wallet table -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
         <div class="section-label" style="margin-bottom:0">Danh sách ví team</div>
@@ -777,7 +780,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <table>
           <thead>
           <tr class="grp-row">
-            <th colspan="5" style="border-bottom:none;background:var(--surface)"></th>
+            <th colspan="6" style="border-bottom:none;background:var(--surface)"></th>
             <th colspan="4" style="text-align:center;color:#2dd4bf;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,#2dd4bf 14%,var(--surface))">Character</th>
             <th colspan="3" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
             <th colspan="2" style="text-align:center;color:var(--green);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--green) 16%,var(--surface))"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> Henesys</th>
@@ -787,6 +790,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <tr>
             <th style="text-align:center">#</th>
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
+            <th style="text-align:left;white-space:nowrap">Cảnh báo</th>
             <th style="text-align:left">Địa chỉ</th>
             <th style="text-align:left;cursor:pointer;user-select:none;color:var(--accent)" onclick="colSort('player')" title="Người chơi đang giữ ví"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Player <span id="sort-icon-player" style="opacity:.3">↕</span></th>
             <th style="color:#ffffff;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
@@ -3369,6 +3373,57 @@ function renderInsights(dw) {
   el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px 18px">${head}${cards}${recList}${note}</div>`;
 }
 
+// ── Cờ cảnh báo mỗi ví (theo spec) ──
+const WALLET_FLAG_DEF = {
+  gas:      { label:'Hết gas',  color:'#ef4444', title:'AVAX dưới 0.05 — giao dịch sẽ fail, không claim/chi được' },
+  near:     { label:'Sát ngưỡng', color:'#f5a524', title:'Cách ngưỡng hạng kế tiếp ≤ 100 điểm — cơ hội lên hạng rõ nhất tuần này' },
+  idle:     { label:'Đứng yên', color:'#f5a524', title:'Chưa tích điểm MVP — vốn có thể đang nằm không' },
+  unassign: { label:'Chưa gán', color:'#6b6b74', title:'Chưa gán người chơi — cần dọn dữ liệu' },
+};
+const WALLET_FLAG_ORDER = ['gas','near','idle','unassign'];
+function walletFlags(w) {
+  const f = [];
+  if (w.avax != null && w.avax < 0.05) f.push('gas');
+  if (w.mvpPoints != null) {
+    const nt = getNextTier(w.mvpPoints);
+    if (nt && (nt.min - w.mvpPoints) <= 100 && (nt.min - w.mvpPoints) > 0) f.push('near');
+  }
+  if (w.cpLoaded && (w.mvpPoints == null || w.mvpPoints === 0)) f.push('idle');
+  if (!w.player) f.push('unassign');
+  return f;
+}
+function walletFlagPills(w) {
+  const fs = walletFlags(w);
+  if (!fs.length) return '<span style="color:var(--muted2);font-size:10px">—</span>';
+  return fs.map(k => { const d = WALLET_FLAG_DEF[k];
+    return `<span title="${d.title}" style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:600;color:${d.color};background:color-mix(in srgb,${d.color} 14%,transparent);border:1px solid color-mix(in srgb,${d.color} 38%,transparent);white-space:nowrap;margin:1px 2px 1px 0">${d.label}</span>`;
+  }).join('');
+}
+// đỏ = mất tiền nếu không xử lý tuần này
+function walletHasRed(w){ return walletFlags(w).some(k => WALLET_FLAG_DEF[k].color==='#ef4444'); }
+
+let alertFilter = 'all';
+function setAlertFilter(k){ alertFilter = (alertFilter===k) ? 'all' : k; renderTeam(); }
+function renderAlertChips(list) {
+  const el = document.getElementById('team-alerts');
+  if (!el) return;
+  const counts = {}; WALLET_FLAG_ORDER.forEach(k => counts[k]=0);
+  let anyFlagged = 0;
+  (list||[]).forEach(w => { const fs = walletFlags(w); if (fs.length) anyFlagged++; fs.forEach(k => counts[k]++); });
+  const chip = (key, label, color, count, active) => `<button onclick="setAlertFilter('${key}')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:20px;font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;color:${active?color:'var(--text2)'};background:${active?`color-mix(in srgb,${color} 16%,transparent)`:'var(--card)'};border:1px solid ${active?`color-mix(in srgb,${color} 60%,transparent)`:'var(--border2)'}">
+      <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>${label}<span style="font-family:'Chakra Petch',monospace;color:var(--muted2)">${count}</span></button>`;
+  const chips = [chip('all','Tất cả ví','var(--muted2)', (list||[]).length, alertFilter==='all')]
+    .concat(WALLET_FLAG_ORDER.map(k => chip(k, WALLET_FLAG_DEF[k].label, WALLET_FLAG_DEF[k].color, counts[k], alertFilter===k)))
+    .join('');
+  let explain = '';
+  if (alertFilter !== 'all' && WALLET_FLAG_DEF[alertFilter]) {
+    const d = WALLET_FLAG_DEF[alertFilter];
+    explain = `<div style="margin-top:10px;font-size:11.5px;color:var(--muted2);line-height:1.5"><b style="color:${d.color}">${d.label}:</b> ${d.title}.</div>`;
+  }
+  const title = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:11px"><span style="display:inline-flex;color:#f5a524"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span style="font-size:12.5px;font-weight:800;color:var(--text)">Cần xử lý</span><span style="font-size:10.5px;color:var(--muted2)">${anyFlagged} ví có cảnh báo</span></div>`;
+  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px">${title}<div style="display:flex;flex-wrap:wrap;gap:8px">${chips}</div>${explain}</div>`;
+}
+
 function renderAllFdd(){ Object.keys(FDD).forEach(renderFdd); }
 document.addEventListener('click', e=>{
   if(!e.target.closest('.fdd')) document.querySelectorAll('.fdd.open').forEach(d=>d.classList.remove('open'));
@@ -3779,6 +3834,8 @@ function renderTeam() {
   }
   try { renderAllFdd(); } catch(e) {}
   try { renderInsights(displayWallets); } catch(e) {}
+  try { renderAlertChips(displayWallets); } catch(e) {}
+  if (alertFilter !== 'all') { displayWallets = displayWallets.filter(w => walletFlags(w).includes(alertFilter)); }
   if (playerFilter !== 'all') {
     displayWallets = playerFilter === 'none'
       ? displayWallets.filter(w => !w.player)
@@ -3878,7 +3935,7 @@ function renderTeam() {
     if(w.nxpc!=null) totNxpc+=w.nxpc;
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px;color:var(--text2)">${a.slice(0,6)}...${a.slice(-4)}</span>`;
-    return `<tr id="flow-main-${w.address.slice(-8)}" class="team-row">
+    return `<tr id="flow-main-${w.address.slice(-8)}" class="team-row"${walletHasRed(w)?' style="box-shadow:inset 2px 0 0 #ef4444;background:color-mix(in srgb,#ef4444 5%,transparent)"':''}>
       <td style="text-align:center;color:var(--text);font-size:12px;font-weight:600">${i+1}</td>
       <td style="text-align:left">
         <div style="display:flex;align-items:center;gap:6px">
@@ -3889,6 +3946,7 @@ function renderTeam() {
             style="cursor:pointer;font-size:10px;color:var(--muted2);margin-left:4px;user-select:none" title="Copy tên">⎘</span>
         </div>
       </td>
+      <td style="text-align:left;white-space:nowrap;max-width:150px">${walletFlagPills(w)}</td>
       <td style="text-align:left">${short(w.address)}
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
         <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
@@ -3922,7 +3980,7 @@ function renderTeam() {
       <td class="admin-only">${isAdmin ? `<button onclick="removeTeamWallet(${w.origIdx})" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:6px;padding:4px 10px;color:var(--red);font-family:inherit;font-size:10px;cursor:pointer">✕</button>` : ''}</td>
     </tr>
     <tr id="flow-expand-${w.address.slice(-8)}" class="flow-expand-row" style="display:none">
-      <td colspan="18" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:var(--bg2)">
+      <td colspan="19" style="padding:0;border-bottom:2px solid var(--accent);position:sticky;top:90px;left:0;z-index:18;background:var(--bg2)">
         <div style="display:flex;gap:4px;padding:12px 16px 0;background:var(--bg2);flex-wrap:wrap;border-bottom:1px solid var(--border2);position:sticky;left:0;width:100%;box-sizing:border-box">
           <button onclick="switchExpandTab('${w.address}','flow')" id="etab-flow-${w.address.slice(-8)}" class="etab-btn etab-active">💸 NESO Flow</button>
           <button onclick="switchExpandTab('${w.address}','mvp')" id="etab-mvp-${w.address.slice(-8)}" class="etab-btn">🏅 MVP</button>
@@ -3945,7 +4003,7 @@ function renderTeam() {
   const mvpWallets = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>=30);
   const mvpCount   = mvpWallets.length;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
-    <td colspan="4" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
+    <td colspan="5" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
     <td style="text-align:right;padding:10px 14px;color:#c084fc;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví`+subLines('CP &gt; 100k', cpUpdatedLabel(displayWallets));})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`${ws.length} world`+subLines(ws.slice(0,3).join(', '), cpUpdatedLabel(displayWallets)):'—';})()}</td>
