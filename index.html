@@ -848,7 +848,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <!-- Dải Net -->
       <div id="flow-net" class="stats-fixed" style="margin-bottom:16px"></div>
       <!-- NESO CLAIM CHART -->
-      <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-bottom:0!important}</style><div class="flow-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px">
+      <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-bottom:0!important;min-width:0!important}.flow-grid [id$="-chart-body"]{overflow-x:auto;max-width:100%}</style><div class="flow-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px">
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -3515,10 +3515,11 @@ function renderFlowPeriodBar() {
   el.innerHTML = opts.map(([v,l]) => `<button onclick="setFlowPeriod('${v}')" style="padding:6px 13px;border-radius:7px;border:1px solid ${flowPeriod===v?'var(--accent)':'var(--border2)'};background:${flowPeriod===v?'color-mix(in srgb,var(--accent) 14%,transparent)':'var(--card)'};color:${flowPeriod===v?'var(--accent)':'var(--muted2)'};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">${l}</button>`).join('');
 }
 // tổng của một chuỗi dữ liệu chart trong kỳ hiện tại
-function _sumChart(data) {
+function _sumChart(data, period) {
   try { if (!data) return 0;
-    if (Array.isArray(data.values)) return data.values.reduce((a,b)=>a+(+b||0),0);
-    if (Array.isArray(data.data)) return data.data.reduce((a,b)=>a+(+b||0),0);
+    const key = 'by' + (period||'month').charAt(0).toUpperCase() + (period||'month').slice(1);
+    const obj = data[key] || data.byMonth || data.byDay;
+    if (obj && typeof obj === 'object') return Object.values(obj).reduce((a,b)=>a+(+b||0),0);
   } catch(e){}
   return 0;
 }
@@ -3526,9 +3527,9 @@ function renderFlowNet() {
   const el = document.getElementById('flow-net');
   if (!el) return;
   const fmt = n => { const a=Math.abs(n); if(a>=1e9)return (n/1e9).toFixed(1)+'B'; if(a>=1e6)return (n/1e6).toFixed(1)+'M'; if(a>=1e3)return (n/1e3).toFixed(1)+'K'; return Math.round(n).toLocaleString('vi-VN'); };
-  const claim = _sumChart(typeof claimChartData!=='undefined'?claimChartData:null);
-  const spend = _sumChart(typeof spendChartData!=='undefined'?spendChartData:null);
-  const swapOut = _sumChart(typeof swapChartData!=='undefined'?swapChartData:null);
+  const claim = _sumChart(typeof claimChartData!=='undefined'?claimChartData:null, flowPeriod);
+  const spend = _sumChart(typeof spendChartData!=='undefined'?spendChartData:null, flowPeriod);
+  const swapOut = _sumChart(typeof swapChartData!=='undefined'?swapChartData:null, flowPeriod);
   const net = claim - spend;
   const cell = (label, val, sub, color, sign) => `<div class="stat" style="min-height:0">
       <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">${label}</div>
