@@ -685,6 +685,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div id="team-tabbar" style="display:flex;gap:2px;border-bottom:1px solid var(--border2);margin-bottom:20px;overflow-x:auto">
         <button class="tw-tab" data-tab="state"   onclick="switchTeamTab('state')">Trạng thái ví</button>
         <button class="tw-tab" data-tab="flow"    onclick="switchTeamTab('flow')">Dòng tiền</button>
+        <button class="tw-tab" data-tab="tasks"   onclick="switchTeamTab('tasks')">Việc tuần này</button>
         <button class="tw-tab" data-tab="insight" onclick="switchTeamTab('insight')">Insight & Đề xuất</button>
         <button class="tw-tab" data-tab="kpi"     onclick="switchTeamTab('kpi')">KPI & OKR</button>
         <button class="tw-tab" data-tab="addwallet" onclick="switchTeamTab('addwallet')">Thêm ví</button>
@@ -1022,6 +1023,11 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div class="tabpanel" id="tab-datasource" style="display:none">
         <div id="team-datasource"></div>
       </div><!-- /tab-datasource -->
+
+      <!-- TAB: Việc tuần này (member) -->
+      <div class="tabpanel" id="tab-tasks" style="display:none">
+        <div id="member-tasks"></div>
+      </div><!-- /tab-tasks -->
 
       </div>
     </div>
@@ -3487,7 +3493,7 @@ function renderAlertChips(list) {
 let teamTab = 'state';
 function switchTeamTab(t) {
   teamTab = t || 'state';
-  ['state','flow','insight','kpi','addwallet','datasource'].forEach(k => {
+  ['state','flow','insight','kpi','addwallet','datasource','tasks'].forEach(k => {
     const p = document.getElementById('tab-'+k);
     if (p) p.style.display = (k===teamTab) ? '' : 'none';
   });
@@ -3497,6 +3503,7 @@ function switchTeamTab(t) {
   try { if (teamTab==='flow' && typeof drawAllFlowCharts==='function') drawAllFlowCharts(); } catch(e) {}
   try { if (teamTab==='kpi') renderKpiTab(window._teamDisplay||teamWallets); } catch(e) {}
   try { if (teamTab==='datasource') { _dsOpen=true; renderDataSourceBar(window._teamDisplay||teamWallets); } } catch(e) {}
+  try { if (teamTab==='tasks') renderMemberView(window._teamDisplay||teamWallets); } catch(e) {}
 }
 let flowPeriod = 'month';   // day|week|month|year
 function setFlowPeriod(p) {
@@ -3555,11 +3562,13 @@ function initTeamTabs() {
   const isAdmin = effUser().role === 'admin';
   if (bar) {
     bar.style.display = 'flex';               // hiện cho cả member
+    const memberTabs = ['state','flow','tasks'];
     bar.querySelectorAll('.tw-tab').forEach(b => {
       const t = b.getAttribute('data-tab');
-      b.style.display = (isAdmin || t === 'state') ? '' : 'none';   // member chỉ thấy "Trạng thái ví"
+      const show = isAdmin ? (t !== 'tasks') : memberTabs.includes(t);
+      b.style.display = show ? '' : 'none';
     });
-    if (!isAdmin) teamTab = 'state';
+    if (!isAdmin && !memberTabs.includes(teamTab)) teamTab = 'state';
   }
   switchTeamTab(teamTab);
 }
@@ -3932,7 +3941,7 @@ function renderMemberView(list) {
   const el = document.getElementById('member-view');
   if (!el) return;
   const eu = effUser();
-  if (eu.role !== 'member') { el.style.display='none'; el.innerHTML=''; return; }
+  if (eu.role !== 'member') { el.style.display='none'; el.innerHTML=''; const tt0=document.getElementById('member-tasks'); if(tt0) tt0.innerHTML=''; return; }
   el.style.display = '';
   const w = list || [];
   const fmt = n => Math.round(n).toLocaleString('vi-VN');
@@ -3992,7 +4001,9 @@ function renderMemberView(list) {
       ${taskHtml}
     </div>`;
 
-  el.innerHTML = card + tasksBlock;
+  el.innerHTML = card;
+  const tt = document.getElementById('member-tasks');
+  if (tt) tt.innerHTML = tasksBlock;
 }
 
 function renderInsightTab(list) {
