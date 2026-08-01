@@ -704,6 +704,9 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <div class="stats-fixed team-stats-6" id="team-stats"></div>
 
+      <!-- Phân tích & Đề xuất -->
+      <div id="team-insights" style="margin-bottom:20px"></div>
+
       <!-- Team wallet table -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
         <div class="section-label" style="margin-bottom:0">Danh sách ví team</div>
@@ -3250,6 +3253,122 @@ function fddSelect(key, value) {
   el.classList.remove('open'); _fddOpen=null;
   FDD[key].set(value);   // set() gọi renderTeam() -> renderFdd() cập nhật nhãn
 }
+let _insightsOpen = true;
+function toggleInsights(){ _insightsOpen = !_insightsOpen; renderInsights(); }
+function renderInsights(dw) {
+  const el = document.getElementById('team-insights');
+  if (!el) return;
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  const wallets = (dw && dw.length) ? dw : (teamWallets || []);
+  if (!wallets.length) { el.innerHTML=''; return; }
+
+  // ── Xu hướng NESO nhận theo ngày ──
+  const byDay = (typeof nesoEarned!=='undefined' && nesoEarned && nesoEarned.byDay) ? nesoEarned.byDay : {};
+  const days = Object.keys(byDay).sort();               // cũ -> mới
+  const recent = days.slice(-7);
+  const dailyVals = recent.map(d => byDay[d]);
+  const avgDaily = dailyVals.length ? dailyVals.reduce((a,b)=>a+b,0)/dailyVals.length : 0;
+  const projMonth = avgDaily * 30;
+  // xu hướng: 3 ngày gần nhất vs 3 ngày trước đó
+  const last3 = recent.slice(-3), prev3 = recent.slice(-6,-3);
+  const a1 = last3.length ? last3.reduce((a,d)=>a+byDay[d],0)/last3.length : 0;
+  const a0 = prev3.length ? prev3.reduce((a,d)=>a+byDay[d],0)/prev3.length : 0;
+  const trendPct = a0>0 ? (a1-a0)/a0*100 : 0;
+
+  // ── Trạng thái MVP / cơ hội Bronze+ ──
+  const NEED_PER_PT = 100000;   // NESO cho mỗi điểm MVP (tới ngưỡng 30)
+  const bronzePlus = wallets.filter(w => w.mvpPoints!=null && w.mvpPoints>=30).length;
+  const near = wallets.filter(w => w.mvpPoints!=null && w.mvpPoints>=20 && w.mvpPoints<30)
+                      .map(w => ({ w, need:(30-w.mvpPoints)*NEED_PER_PT, gap:(30-w.mvpPoints) }))
+                      .sort((a,b)=>a.need-b.need);
+  const nearNeed = near.reduce((s,x)=>s+x.need,0);
+  const short = wallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) < (30-w.mvpPoints)*NEED_PER_PT);
+  const shortNeed = short.reduce((s,w)=>s+Math.max((30-w.mvpPoints)*NEED_PER_PT-(w.neso||0),0),0);
+  const idle = wallets.filter(w => w.cpLoaded && (w.mvpPoints==null || w.mvpPoints===0));
+  const noData = wallets.filter(w => !w.cpLoaded).length;
+
+  // ── Level thấp (giới hạn hiệu suất farm) ──
+  const lowLv = wallets.filter(w => w.maxCpLevel!=null && w.maxCpLevel < 200);
+
+  // helper card
+  const tone = { good:'var(--green)', warn:'#f5a524', bad:'#ef4444', info:'var(--accent)' };
+  const card = (icon, title, big, sub, color) => `<div style="flex:1;min-width:190px;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">
+        <span style="color:${color};display:inline-flex">${icon}</span>${title}</div>
+      <div style="font-family:'Chakra Petch',monospace;font-size:22px;font-weight:700;color:${color};margin-top:8px;line-height:1">${big}</div>
+      <div style="font-size:11px;color:var(--muted2);margin-top:5px;line-height:1.5">${sub}</div>
+    </div>`;
+  const ic = p => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const I = {
+    trend: trendPct>=0 ? '<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>' : '<path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/>',
+    star:'<path d="M12 2l3 7 7 .5-5.5 4.5L18 21l-6-4-6 4 1.5-7L2 9.5 9 9z"/>',
+    coin:'<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1 1.3-1.5 3-1.5s3 .5 3 1.7-1.5 1.5-3 1.8-3 .8-3 1.8 1.3 1.7 3 1.7 3-.5 3-1.5"/>',
+    sleep:'<path d="M18 5h4l-4 6h4"/><path d="M2 12a7 7 0 0 0 13 3A9 9 0 0 1 9 4a7 7 0 0 0-7 8z"/>',
+  };
+
+  // ── Đề xuất ưu tiên ──
+  const recs = [];
+  if (near.length) {
+    const top = near.slice(0,3).map(x=>x.w.label||(x.w.address||'').slice(0,6)).join(', ');
+    recs.push({ c:tone.good, t:`Ưu tiên nạp NESO cho ${near.length} ví sắp đạt Bronze+`,
+      d:`Chỉ cần thêm ~${fmt(nearNeed)} NESO là ${near.length} ví (gần nhất: ${top}) lên Bronze+ — đây là cách rẻ nhất để tăng phần thưởng tuần.` });
+  }
+  if (short.length) {
+    recs.push({ c:tone.warn, t:`Bù ${fmt(shortNeed)} NESO cho ${short.length} ví còn thiếu`,
+      d:`Phân bổ NESO dư từ các ví đã đủ sang ${short.length} ví thiếu để không ví nào lỡ mốc Bronze+ tuần này.` });
+  }
+  if (idle.length) {
+    recs.push({ c:tone.bad, t:`Kích hoạt ${idle.length} ví đang không có điểm MVP`,
+      d:`${idle.length} ví đã tải nhưng MVP = 0 — kiểm tra xem có đang farm không; mỗi ví hồi phục là thêm nguồn thu đều.` });
+  }
+  if (lowLv.length) {
+    recs.push({ c:tone.info, t:`Lên cấp ${lowLv.length} nhân vật dưới Lv200`,
+      d:`Nhân vật level thấp farm kém hiệu quả; đẩy lên mốc cao hơn để tăng NESO/ngày ở tháng tới.` });
+  }
+  if (trendPct < -5) {
+    recs.push({ c:tone.warn, t:`NESO/ngày đang giảm ${Math.abs(trendPct).toFixed(0)}%`,
+      d:`Ba ngày gần nhất thấp hơn trước đó — rà lại lịch farm/claim để giữ nhịp thu cho tháng tới.` });
+  } else if (trendPct > 5) {
+    recs.push({ c:tone.good, t:`NESO/ngày đang tăng ${trendPct.toFixed(0)}% — giữ nhịp`,
+      d:`Đà đang tốt; duy trì lịch hiện tại, dự kiến tháng tới ~${fmt(projMonth)} NESO nếu giữ mức này.` });
+  }
+  if (noData) {
+    recs.push({ c:tone.info, t:`Tải CP cho ${noData} ví chưa có dữ liệu`,
+      d:`${noData} ví chưa tải CP/Job/Level nên chưa vào phân tích — admin bấm "Tải CP" để đủ bức tranh.` });
+  }
+  if (!recs.length) recs.push({ c:tone.good, t:'Mọi chỉ số đang ổn', d:'Không có việc cần xử lý gấp — duy trì lịch farm và theo dõi xu hướng NESO.' });
+
+  const trendCol = trendPct>=0 ? tone.good : tone.bad;
+  const head = `<div onclick="toggleInsights()" style="display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;margin-bottom:${_insightsOpen?'14px':'0'}">
+      <span style="display:inline-flex;color:var(--accent)">${ic('<path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/>')}</span>
+      <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Phân tích & Đề xuất tháng tới</span>
+      <span style="font-size:10px;color:var(--muted2);background:var(--surface);padding:2px 8px;border-radius:99px">${recs.length} đề xuất</span>
+      <span style="margin-left:auto;display:inline-flex;color:var(--muted2);transition:transform .2s;transform:rotate(${_insightsOpen?180:0}deg)">${ic('<path d="M6 9l6 6 6-6"/>')}</span>
+    </div>`;
+  if (!_insightsOpen) { el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px 18px">${head}</div>`; return; }
+
+  const cards = `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      ${card(ic(I.trend), 'NESO/ngày (7d)', fmt(avgDaily), `Dự kiến tháng tới <b style="color:${tone.info}">~${fmt(projMonth)}</b> · xu hướng <b style="color:${trendCol}">${trendPct>=0?'▲':'▼'}${Math.abs(trendPct).toFixed(0)}%</b>`, tone.info)}
+      ${card(ic(I.star), 'Bronze+ hiện tại', `${bronzePlus}/${wallets.length}`, near.length?`${near.length} ví sắp đạt, cần ~${fmt(nearNeed)} NESO`:'Chưa có ví nào sắp đạt thêm', tone.good)}
+      ${card(ic(I.coin), 'NESO cần bù tuần', fmt(shortNeed), `${short.length} ví chưa đủ NESO cho mốc Bronze+`, tone.warn)}
+      ${card(ic(I.sleep), 'Ví cần chú ý', String(idle.length+lowLv.length), `${idle.length} ví MVP=0 · ${lowLv.length} nhân vật &lt;Lv200`, tone.bad)}
+    </div>`;
+
+  const recList = `<div style="display:flex;flex-direction:column;gap:8px">
+      ${recs.map((r,i)=>`<div style="display:flex;gap:11px;background:var(--card);border:1px solid var(--border2);border-left:3px solid ${r.c};border-radius:10px;padding:11px 14px">
+          <span style="font-family:'Chakra Petch',monospace;font-size:12px;font-weight:700;color:${r.c};flex-shrink:0">${i+1}</span>
+          <div style="min-width:0">
+            <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px">${r.t}</div>
+            <div style="font-size:11.5px;color:var(--muted2);line-height:1.55">${r.d}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+
+  const note = `<div style="font-size:10px;color:var(--muted2);margin-top:11px;line-height:1.5">Phân tích dựa trên dữ liệu ${wallets.length} ví hiện có và lịch sử NESO ${recent.length} ngày gần nhất. Dự phóng chỉ mang tính tham khảo.</div>`;
+
+  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px 18px">${head}${cards}${recList}${note}</div>`;
+}
+
 function renderAllFdd(){ Object.keys(FDD).forEach(renderFdd); }
 document.addEventListener('click', e=>{
   if(!e.target.closest('.fdd')) document.querySelectorAll('.fdd.open').forEach(d=>d.classList.remove('open'));
@@ -3659,6 +3778,7 @@ function renderTeam() {
     displayWallets = displayWallets.filter(w => w.mvpPoints != null && w.mvpPoints > 0 && w.mvpPoints < 30);
   }
   try { renderAllFdd(); } catch(e) {}
+  try { renderInsights(displayWallets); } catch(e) {}
   if (playerFilter !== 'all') {
     displayWallets = playerFilter === 'none'
       ? displayWallets.filter(w => !w.player)
