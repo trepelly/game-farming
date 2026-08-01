@@ -986,7 +986,8 @@ td:first-child{text-align:left;color:var(--muted2)}
       <!-- TAB: Insight & Đề xuất -->
       <div class="tabpanel" id="tab-insight" style="display:none">
         <div id="team-insights" style="margin-bottom:20px"></div>
-        <div id="tab-insight-more" style="font-size:12px;color:var(--muted2);padding:8px 2px">Các phần đề xuất chi tiết (6 luật, thẻ tiềm năng, mô phỏng) sẽ bổ sung ở bước kế tiếp.</div>
+        <div id="insight-potential" style="margin-bottom:16px"></div>
+        <div id="insight-sim"></div>
       </div><!-- /tab-insight -->
 
       <!-- TAB: KPI & OKR -->
@@ -1943,6 +1944,10 @@ const MVP_TIERS = [
   { name:'Diamond',  min:3500, max:6999, color:'#60a5fa',       icon:'💎', bg:'#60a5fa18' },
   { name:'Black',    min:7000, max:Infinity, color:'#f1f0ff',   icon:'⚫', bg:'#ffffff12' },
 ];
+// ── Hằng số nghiệp vụ (chỉnh 1 chỗ khi biết số thật) ──
+const MVP_NESO_PER_POINT = 100000;   // 1 điểm MVP = 100.000 NESO chi ra
+const VALUE_PER_UPGRADE  = 413;      // USD ước tính thu thêm mỗi lần 1 ví lên hạng (cần hiệu chỉnh)
+const RECON_RATIO        = 1;        // hệ số hiệu chỉnh (=1 tới khi có dữ liệu tuần thật)
 function getTier(pts) { return MVP_TIERS.find(t=>pts>=t.min&&pts<=t.max)||MVP_TIERS[0]; }
 function getNextTier(pts) {
   const idx=MVP_TIERS.findIndex(t=>pts>=t.min&&pts<=t.max);
@@ -3463,7 +3468,7 @@ function switchTeamTab(t) {
   });
   document.querySelectorAll('.tw-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab')===teamTab));
   // vẽ lại nội dung tab cần dữ liệu động
-  try { if (teamTab==='insight') renderInsights(window._teamDisplay||teamWallets); } catch(e) {}
+  try { if (teamTab==='insight') renderInsightTab(window._teamDisplay||teamWallets); } catch(e) {}
   try { if (teamTab==='flow' && typeof drawAllFlowCharts==='function') drawAllFlowCharts(); } catch(e) {}
 }
 function drawAllFlowCharts() {
@@ -3478,6 +3483,121 @@ function initTeamTabs() {
   const bar = document.getElementById('team-tabbar');
   if (bar) bar.style.display = (teamUser && teamUser.role==='admin') ? 'flex' : 'none';
   switchTeamTab(teamTab);
+}
+
+// ══════════ TAB INSIGHT: thẻ tiềm năng + mô phỏng "nếu chi thêm" ══════════
+let simSpend = 2000000, simMode = 'cheap';   // cheap = ví rẻ nhất trước, tier = hạng cao trước
+function setSimSpend(v){ simSpend = Math.max(0, +v||0); renderInsightSim(); }
+function setSimMode(m){ simMode = m; renderInsightSim(); }
+
+function gapToNextTier(w){
+  if (w.mvpPoints == null) return null;
+  const nt = getNextTier(w.mvpPoints);
+  return nt ? Math.max(nt.min - w.mvpPoints, 0) : null;
+}
+
+function renderInsightPotential(list) {
+  const el = document.getElementById('insight-potential');
+  if (!el) return;
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  const wallets = list || [];
+  // Nâng hạng MVP: ví sắp đạt (gap ≤ 100) — mỗi ví lên hạng ≈ VALUE_PER_UPGRADE
+  const near = wallets.filter(w => { const g = gapToNextTier(w); return g != null && g > 0 && g <= 100; });
+  const upgradeVal = near.length * VALUE_PER_UPGRADE * RECON_RATIO;
+  // Vốn nằm không: USDT ở ví chưa gán / không tích điểm
+  const idleCap = wallets.filter(w => !w.player || (w.cpLoaded && (w.mvpPoints==null||w.mvpPoints===0)))
+                         .reduce((s,w)=>s+(w.usdt_avax_real||0),0);
+  const total = upgradeVal + idleCap;
+  const part = (label, val, sub, color) => `<div style="flex:1;min-width:150px">
+      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">${label}</div>
+      <div style="font-family:'Chakra Petch',monospace;font-size:18px;font-weight:700;color:${color};margin-top:5px">$${fmt(val)}</div>
+      <div style="font-size:10.5px;color:var(--muted2);margin-top:3px">${sub}</div>
+    </div>`;
+  el.innerHTML = `<div style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 12%,var(--bg2)),var(--bg2));border:1px solid var(--border2);border-radius:14px;padding:16px 18px">
+      <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">
+        <div style="flex:0 0 auto">
+          <div style="font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tiềm năng tháng tới (ước tính)</div>
+          <div style="font-family:'Chakra Petch',monospace;font-size:38px;font-weight:700;color:var(--accent);line-height:1.05;margin-top:6px">$${fmt(total)}</div>
+        </div>
+        <div style="flex:1;display:flex;gap:18px;flex-wrap:wrap;min-width:220px;align-items:flex-start;padding-top:6px">
+          ${part('Nâng hạng MVP', upgradeVal, near.length+' ví sắp đạt × $'+VALUE_PER_UPGRADE, 'var(--green)')}
+          ${part('Vốn nằm không', idleCap, 'USDT ở ví nhàn rỗi/chưa gán', '#f5a524')}
+          ${part('Cắt lỗ ví kém', 0, 'Cần dữ liệu ROI 13 tuần', 'var(--muted2)')}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:11px;line-height:1.5">Tổng = nâng hạng + vốn nhàn rỗi. Con số nhân hệ số hiệu chỉnh (hiện = ${RECON_RATIO}); phần "cắt lỗ" cần bổ sung dữ liệu ROI để tính.</div>
+    </div>`;
+}
+
+function renderInsightSim(list) {
+  const el = document.getElementById('insight-sim');
+  if (!el) return;
+  const wallets = list || window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[]) || [];
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  // ứng viên: ví còn khoảng cách hạng > 0
+  let cand = wallets.map(w => ({ w, gap: gapToNextTier(w) })).filter(x => x.gap != null && x.gap > 0);
+  // thứ tự ưu tiên
+  cand.sort((a,b) => simMode==='cheap' ? a.gap - b.gap
+                    : (getNextTier(b.w.mvpPoints)?.min||0) - (getNextTier(a.w.mvpPoints)?.min||0));
+  // tham lam: đổi NESO -> điểm, trừ dần gap
+  let pointsLeft = Math.floor(simSpend / MVP_NESO_PER_POINT);
+  const upgraded = [];
+  for (const x of cand) {
+    if (pointsLeft >= x.gap) { pointsLeft -= x.gap; upgraded.push(x); }
+  }
+  const pointsBought = Math.floor(simSpend / MVP_NESO_PER_POINT) - pointsLeft;
+  const nesoLeft = simSpend - pointsBought * MVP_NESO_PER_POINT;
+  const extraVal = upgraded.length * VALUE_PER_UPGRADE * RECON_RATIO;
+
+  const slider = `<div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">NESO chi thêm</span>
+        <span style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:700;color:var(--accent)">${fmt(simSpend)}</span>
+      </div>
+      <input type="range" min="0" max="10000000" step="100000" value="${simSpend}" oninput="setSimSpend(this.value)" style="width:100%;accent-color:var(--accent)">
+      <div style="display:flex;gap:6px;margin-top:12px">
+        <button onclick="setSimMode('cheap')" style="flex:1;padding:7px;border-radius:7px;border:1px solid ${simMode==='cheap'?'var(--accent)':'var(--border2)'};background:${simMode==='cheap'?'color-mix(in srgb,var(--accent) 14%,transparent)':'var(--card)'};color:${simMode==='cheap'?'var(--accent)':'var(--muted2)'};font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">Ví rẻ nhất trước</button>
+        <button onclick="setSimMode('tier')" style="flex:1;padding:7px;border-radius:7px;border:1px solid ${simMode==='tier'?'var(--accent)':'var(--border2)'};background:${simMode==='tier'?'color-mix(in srgb,var(--accent) 14%,transparent)':'var(--card)'};color:${simMode==='tier'?'var(--accent)':'var(--muted2)'};font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">Ví hạng cao trước</button>
+      </div>
+    </div>`;
+
+  const rows = cand.slice(0,40).map(x => {
+    const up = upgraded.includes(x);
+    const nt = getNextTier(x.w.mvpPoints);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border)">
+        <span style="display:flex;align-items:center;gap:7px;min-width:0">
+          <span style="width:7px;height:7px;border-radius:50%;background:${up?'var(--green)':'var(--border2)'};flex-shrink:0"></span>
+          <span style="font-size:11.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis">${x.w.label||(x.w.address||'').slice(0,6)}</span>
+          <span style="font-size:10px;color:var(--muted2)">→ ${nt?nt.name:'—'}</span>
+        </span>
+        <span style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-family:'Chakra Petch',monospace;font-size:10.5px;color:var(--muted2)">cần ${x.gap}đ</span>
+          <span style="font-size:10px;font-weight:700;color:${up?'var(--green)':'var(--muted2)'}">${up?'Lên hạng':'Chưa đủ'}</span>
+        </span>
+      </div>`;
+  }).join('');
+
+  const right = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+      <div><div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase">Ví lên hạng</div><div style="font-family:'Chakra Petch',monospace;font-size:26px;font-weight:700;color:var(--green)">${upgraded.length}</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase">Điểm mua được</div><div style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:600;color:var(--text)">${fmt(pointsBought)} điểm</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase">Giá trị thu thêm</div><div style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:600;color:var(--accent)">~$${fmt(extraVal)}</div></div>
+      <div style="border-top:1px solid var(--border2);padding-top:10px"><div style="font-size:10px;font-weight:700;color:${nesoLeft>0?'#f5a524':'var(--muted2)'};text-transform:uppercase">NESO còn dư</div><div style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:600;color:${nesoLeft>0?'#f5a524':'var(--muted2)'}">${fmt(nesoLeft)}</div><div style="font-size:9.5px;color:var(--muted2);margin-top:3px;line-height:1.4">NESO còn dư không sinh điểm — chi lẻ không đủ ngưỡng là lãng phí.</div></div>
+    </div>`;
+
+  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px 18px">
+      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:14px">Mô phỏng: nếu chi thêm NESO</div>
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start">
+        <div>${slider}<div style="margin-top:14px;max-height:280px;overflow-y:auto">${cand.length?rows:'<div style="font-size:11px;color:var(--muted2);padding:10px 0">Không có ví nào còn khoảng cách hạng để mô phỏng.</div>'}</div></div>
+        ${right}
+      </div>
+    </div>
+    <style>#insight-sim [style*="grid-template-columns:1fr 300px"]{}@media(max-width:720px){#insight-sim [style*="grid-template-columns:1fr 300px"]{grid-template-columns:1fr!important}}</style>`;
+}
+
+function renderInsightTab(list) {
+  renderInsights(list);
+  renderInsightPotential(list);
+  renderInsightSim(list);
 }
 
 function renderAllFdd(){ Object.keys(FDD).forEach(renderFdd); }
