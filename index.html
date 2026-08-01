@@ -673,6 +673,9 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
 
       
+      <!-- Xem với quyền (admin) -->
+      <div id="team-viewas" style="display:none;margin-bottom:16px"></div>
+
       <!-- Bản Member (chỉ hiện với member) -->
       <div id="member-view" style="display:none;margin-bottom:20px"></div>
 
@@ -2355,15 +2358,12 @@ async function unlockTeam() {
     document.getElementById('team-lock').style.display    = 'none';
     document.getElementById('team-content').style.display = 'block';
     try { initTeamTabs(); } catch(e) {}
+    try { renderViewAsBar(); } catch(e) {}
     document.getElementById('team-username-display').textContent = matched.username;
     { const _rd = document.getElementById('team-role-display'); if (_rd) _rd.textContent = matched.role === 'admin' ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M2 20h20"/><path d="M2 7l5 4 5-7 5 7 5-4-2 10H4L2 7z"/></svg> Admin' : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Member'; }
     // Show/hide admin controls
-    document.querySelectorAll('.admin-only').forEach(el =>
-      el.style.display = matched.role === 'admin' ? '' : 'none'
-    );
-    // Show/hide "view all" features (player summary tab)
-    { const canAll = matched.role === 'admin' || !!matched.viewAll;
-      document.querySelectorAll('.viewall-only').forEach(el => el.style.display = canAll ? '' : 'none'); }
+    _viewAs = null;
+    applyRoleUI(matched);
     err.textContent = '';
     loadTeamWallets();
   } catch(e) {
@@ -3553,7 +3553,7 @@ function drawAllFlowCharts() {
 function initTeamTabs() {
   // ẩn tab bar với member (chỉ admin thấy)
   const bar = document.getElementById('team-tabbar');
-  if (bar) bar.style.display = (teamUser && teamUser.role==='admin') ? 'flex' : 'none';
+  if (bar) bar.style.display = (effUser().role==='admin') ? 'flex' : 'none';
   switchTeamTab(teamTab);
 }
 
@@ -3829,13 +3829,66 @@ function renderDataSourceBar(list) {
   el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:13px 16px">${head}${detail}</div>`;
 }
 
+// ══════════ Xem với quyền (admin preview as member) ══════════
+let _viewAs = null;   // null = xem như admin; hoặc {role,username,players,viewAll}
+function effUser(){ return _viewAs || teamUser || {}; }
+function isRealAdmin(){ return teamUser && teamUser.role === 'admin'; }
+function applyRoleUI(u){
+  const isAdmin = !!(u && u.role === 'admin');
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+  const canAll = isAdmin || !!(u && u.viewAll);
+  document.querySelectorAll('.viewall-only').forEach(el => el.style.display = canAll ? '' : 'none');
+}
+async function setViewAs(username){
+  if (!isRealAdmin()) return;
+  if (!username || username === '__admin__') {
+    _viewAs = null;
+  } else {
+    if (!teamUsersCache || !teamUsersCache.length) { try { teamUsersCache = await fetchUsers(); } catch(e){ teamUsersCache = teamUsersCache||[]; } }
+    const u = (teamUsersCache||[]).find(x => x.username === username);
+    if (u) _viewAs = { role: u.role || 'member', username: u.username,
+      players: (u.players && u.players.length) ? u.players : (u.player ? [u.player] : []),
+      viewAll: !!u.viewAll };
+  }
+  applyRoleUI(effUser());
+  renderViewAsBar();
+  try { if (typeof renderTeam === 'function') renderTeam(); } catch(e){}
+  try { if (typeof initTeamTabs === 'function') initTeamTabs(); } catch(e){}
+}
+async function renderViewAsBar(){
+  const el = document.getElementById('team-viewas');
+  if (!el) return;
+  if (!isRealAdmin()) { el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display = '';
+  if (!teamUsersCache || !teamUsersCache.length) { try { teamUsersCache = await fetchUsers(); } catch(e){ teamUsersCache = teamUsersCache||[]; } }
+  const members = (teamUsersCache||[]).filter(u => u.role !== 'admin');
+  const cur = _viewAs ? _viewAs.username : '__admin__';
+  const pill = (val,label,active,color) => `<button onclick="setViewAs('${val}')" style="padding:6px 13px;border-radius:8px;border:1px solid ${active?(color||'var(--accent)'):'var(--border2)'};background:${active?`color-mix(in srgb,${color||'var(--accent)'} 15%,transparent)`:'var(--card)'};color:${active?(color||'var(--accent)'):'var(--muted2)'};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">${label}</button>`;
+  const memberPills = members.length
+    ? members.map(u => pill(u.username, u.username + (u.viewAll?' (xem tất cả)':''), cur===u.username, '#f5a524')).join('')
+    : '<span style="font-size:11px;color:var(--muted2)">Chưa có tài khoản member nào</span>';
+  const banner = _viewAs
+    ? `<span style="margin-left:auto;font-size:11px;font-weight:600;color:#f5a524;background:color-mix(in srgb,#f5a524 14%,transparent);padding:4px 10px;border-radius:20px">Đang xem như member — không thay đổi dữ liệu</span>`
+    : '';
+  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="display:inline-flex;color:var(--accent)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Xem với quyền</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${pill('__admin__','Admin', cur==='__admin__', 'var(--accent)')}
+        <span style="width:1px;height:20px;background:var(--border2);margin:0 2px"></span>
+        ${memberPills}
+      </div>
+      ${banner}
+    </div>`;
+}
+
 // ══════════ Bản Member ══════════
 // ══════════ Snapshot tuần (tích lịch sử cho KPI/recon) ══════════
 function currentWeekKey(){ try { return getWeekKey(new Date().toISOString().slice(0,10)); } catch(e){ return new Date().toISOString().slice(0,10); } }
 function getSnapshots(){ return (teamSettings && Array.isArray(teamSettings.snapshots)) ? teamSettings.snapshots : []; }
 function snapshotWeekIfNeeded(list) {
   // chỉ admin ghi, mỗi tuần 1 lần
-  if (!teamUser || teamUser.role !== 'admin') return;
+  if (!teamUser || teamUser.role !== 'admin' || _viewAs) return;
   if (typeof mvpLoadedPct==='undefined' || mvpLoadedPct<=0) return;   // cần MVP để số có nghĩa
   const wk = currentWeekKey();
   const snaps = getSnapshots();
@@ -3871,11 +3924,12 @@ function krTargetsFromHistory(field, dir){
 function renderMemberView(list) {
   const el = document.getElementById('member-view');
   if (!el) return;
-  if (!teamUser || teamUser.role !== 'member') { el.style.display='none'; el.innerHTML=''; return; }
+  const eu = effUser();
+  if (eu.role !== 'member') { el.style.display='none'; el.innerHTML=''; return; }
   el.style.display = '';
   const w = list || [];
   const fmt = n => Math.round(n).toLocaleString('vi-VN');
-  const mine = (teamUser.players && teamUser.players.length) ? teamUser.players : (teamUser.player ? [teamUser.player] : []);
+  const mine = (eu.players && eu.players.length) ? eu.players : (eu.player ? [eu.player] : []);
   // hạng cao nhất
   const tierRank = { Unranked:0, Bronze:1, Silver:2, Gold:3, Diamond:4, Black:5 };
   let topTier = null;
@@ -3886,7 +3940,7 @@ function renderMemberView(list) {
   const card = `<div style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,var(--bg2)),var(--bg2));border:1px solid var(--border2);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
       <div style="flex:0 0 auto">
         <div style="font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tài khoản</div>
-        <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:4px">${teamUser.username||'—'}</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:4px">${eu.username||'—'}</div>
         <div style="font-size:11px;color:var(--muted2);margin-top:2px">${mine.length?('Người chơi: '+mine.join(', ')):'Chưa gán người chơi'}</div>
       </div>
       <div style="display:flex;gap:24px;flex-wrap:wrap;margin-left:auto">
@@ -4317,10 +4371,11 @@ function renderTeam() {
 
   // Filter by search
   let displayWallets = teamWallets.map((w,i) => ({...w, origIdx: i}));
-  if (teamUser && teamUser.role === 'member' && !teamUser.viewAll) {
-    const mine = (teamUser.players && teamUser.players.length) ? teamUser.players : (teamUser.player ? [teamUser.player] : []);
-    displayWallets = displayWallets.filter(w => mine.includes(w.player));
-  }
+  { const eu = effUser();
+    if (eu.role === 'member' && !eu.viewAll) {
+      const mine = (eu.players && eu.players.length) ? eu.players : (eu.player ? [eu.player] : []);
+      displayWallets = displayWallets.filter(w => mine.includes(w.player));
+    } }
   if (query) {
     displayWallets = displayWallets.filter(w =>
       (w.label||'').toLowerCase().includes(query) ||
@@ -4422,7 +4477,7 @@ function renderTeam() {
     const filtering = query || teamSortMode !== 'default' || mvpFilter !== 'all' || weekFilter !== 'all';
     countEl.textContent = filtering
       ? `Hiển thị ${displayWallets.length} / ${teamWallets.length} ví`
-      : `${teamWallets.length} ví`;
+      : '';
   }
 
   let totNxpc=0, totNeso=0;
@@ -4704,7 +4759,7 @@ function renderTeam() {
     ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvaxReal,2), null, totUsdtAvaxReal*usdvnd, bUsdtAvax)}`;
   // Ẩn hẳn cột thao tác (nút xoá) khi không phải admin — tránh chừa cột trống
   try {
-    const isAdm = !!(teamUser && teamUser.role === 'admin');
+    const isAdm = !!(effUser().role === 'admin');
     document.querySelectorAll('#team-table-wrap .admin-only').forEach(el => { el.style.display = isAdm ? '' : 'none'; });
   } catch(e) {}
   setTimeout(()=>{ updateWalletCountdowns(); reapplyExpandContent(); }, 50);
