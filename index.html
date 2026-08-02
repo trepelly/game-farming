@@ -682,7 +682,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div class="stats-fixed team-stats-6" id="team-stats"></div>
 
       <!-- TAB BAR (admin) -->
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border2);margin-bottom:20px;flex-wrap:wrap">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border2);margin-bottom:14px;flex-wrap:wrap">
         <div id="team-tabbar" style="display:flex;gap:2px;overflow-x:auto">
         <button class="tw-tab" data-tab="state"   onclick="switchTeamTab('state')">Trạng thái ví</button>
         <button class="tw-tab" data-tab="flow"    onclick="switchTeamTab('flow')">Dòng tiền</button>
@@ -718,13 +718,10 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div class="tabpanel" id="tab-state">
 
       <!-- Cần xử lý (cảnh báo) -->
-      <div id="team-alerts" style="margin-bottom:16px"></div>
+      <div id="team-alerts" style="margin-bottom:10px"></div>
 
       <!-- Team wallet table -->
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-        <div></div>
-        <div style="font-size:11px;color:var(--muted2)" id="team-filter-count"></div>
-      </div>
+      <div id="team-filter-count" style="font-size:11px;color:var(--muted2);text-align:right;margin-bottom:8px;min-height:0;line-height:1.4"></div>
       <!-- Search + alphabet filter (one row, aligned with table) -->
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center;width:100%">
         <div style="position:relative;flex:1;min-width:220px">
@@ -4916,10 +4913,6 @@ function renderTeam() {
             <div style="flex:0 0 auto">
               <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Ví theo dõi</div>
               <div style="display:flex;align-items:baseline;gap:5px;margin-top:6px"><span style="font-family:'Inter',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.02em;color:#a855f7;line-height:1">${_ew2.length}</span><span style="font-size:11px;color:var(--muted2)">ví</span></div>
-            </div>
-            <div style="flex:0 0 auto">
-              <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Hạng cao nhất</div>
-              <div style="font-size:20px;font-weight:800;color:${_topH?_topH.color:'var(--muted2)'};margin-top:6px;line-height:1">${_topH?_topH.name:'—'}</div>
             </div>
             <div style="display:flex;gap:6px;flex:0 0 auto;align-items:center">${_chip(_bpH,'Bronze','#f5a524')}${_chip(_otherH,'Chưa','#6b6b74')}${_chip(_shortH,'Thiếu','#ef4444')}${_chip(_enoughH,'Đủ','#22c55e')}</div>
             ${_cta}
