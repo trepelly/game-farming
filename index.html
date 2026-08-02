@@ -2434,7 +2434,7 @@ function playerBadge(name, opts={}) {
 function renderPlayerCell(w, isAdmin) {
   const cur = w.player || null;
   const nameHtml = cur
-    ? `${playerBadge(cur,{size:12})}<div style="font-size:9px;color:var(--muted2);margin-top:1px;white-space:normal;line-height:1.4">từ ${fmtDate(w.since)}</div>`
+    ? `<span data-tip="Gán từ ${fmtDate(w.since)}" style="cursor:default">${playerBadge(cur,{size:12})}</span>`
     : `<span style="color:var(--muted2);font-size:11px;font-style:italic">chưa gán</span>`;
   if (!isAdmin) return nameHtml;
   // Admin: nút mở popup gán + xem lịch sử
@@ -3461,9 +3461,10 @@ function walletFlags(w) {
 function walletFlagPills(w) {
   const fs = walletFlags(w);
   if (!fs.length) return '<span style="color:var(--muted2);font-size:10px">—</span>';
-  return fs.map(k => { const d = WALLET_FLAG_DEF[k];
-    return `<span data-tip="${d.title}" style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:600;color:${d.color};background:color-mix(in srgb,${d.color} 14%,transparent);border:1px solid color-mix(in srgb,${d.color} 38%,transparent);white-space:nowrap;margin:1px 2px 1px 0">${d.label}</span>`;
+  const pills = fs.map(k => { const d = WALLET_FLAG_DEF[k];
+    return `<span data-tip="${d.title}" style="display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:600;color:${d.color};background:color-mix(in srgb,${d.color} 14%,transparent);border:1px solid color-mix(in srgb,${d.color} 38%,transparent);white-space:nowrap">${d.label}</span>`;
   }).join('');
+  return `<div style="display:grid;grid-template-columns:repeat(2,max-content);gap:3px 4px;width:max-content">${pills}</div>`;
 }
 // đỏ = mất tiền nếu không xử lý tuần này
 function walletHasRed(w){ return walletFlags(w).some(k => WALLET_FLAG_DEF[k].color==='#ef4444'); }
@@ -4874,7 +4875,7 @@ function renderTeam() {
       const _mine = (_eu.players&&_eu.players.length)?_eu.players:(_eu.player?[_eu.player]:[]);
       const _acctSub = _mine.length ? ('Người chơi: '+_mine.join(', ')) : 'Chưa gán người chơi';
       const _fv = n => Math.round(n||0).toLocaleString('vi-VN');
-      const _chip = (n,lb,c) => `<div style="border:1px solid color-mix(in srgb,${c} 40%,transparent);background:color-mix(in srgb,${c} 10%,transparent);border-radius:8px;padding:5px 11px;text-align:center;min-width:46px"><div style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:700;color:${c};line-height:1">${n}</div><div style="font-size:8px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.04em;margin-top:2px">${lb}</div></div>`;
+      const _chip = (n,lb,c) => `<div style="border:1px solid color-mix(in srgb,${c} 40%,transparent);background:color-mix(in srgb,${c} 10%,transparent);border-radius:8px;padding:5px 11px;text-align:center;min-width:46px"><div style="font-family:'Inter',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.02em;color:${c};line-height:1">${n}</div><div style="font-size:8px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.04em;margin-top:2px">${lb}</div></div>`;
       const _cta = _shortH>0 ? `<span onclick="setMvpFilter('below')" data-tip="Lọc ${_shortH} ví thiếu NESO" style="flex:0 0 auto;font-size:11px;font-weight:600;color:#ef4444;background:rgba(239,68,68,.12);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap">${_shortH} thiếu →</span>` : '';
       const _header = `<div style="padding:18px 22px;display:flex;align-items:center;gap:26px;flex-wrap:wrap">
           <div style="flex:0 0 auto">
@@ -4882,19 +4883,21 @@ function renderTeam() {
             <div style="font-size:26px;font-weight:800;color:var(--text);line-height:1.1;margin-top:3px">${_acctName}</div>
             <div style="font-size:11px;color:var(--muted2);margin-top:3px">${_acctSub}</div>
           </div>
-          <div style="flex:0 0 auto">
-            <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Ví theo dõi</div>
-            <div style="display:flex;align-items:baseline;gap:5px;margin-top:6px"><span style="font-family:'Chakra Petch',monospace;font-size:28px;font-weight:700;color:#a855f7;line-height:1">${_ew2.length}</span><span style="font-size:11px;color:var(--muted2)">ví</span></div>
+          <div style="display:flex;align-items:center;gap:26px;flex-wrap:wrap;flex:1 1 auto">
+            <div style="flex:0 0 auto">
+              <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Ví theo dõi</div>
+              <div style="display:flex;align-items:baseline;gap:5px;margin-top:6px"><span style="font-family:'Inter',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.02em;color:#a855f7;line-height:1">${_ew2.length}</span><span style="font-size:11px;color:var(--muted2)">ví</span></div>
+            </div>
+            <div style="flex:0 0 auto">
+              <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Hạng cao nhất</div>
+              <div style="font-size:20px;font-weight:800;color:${_topH?_topH.color:'var(--muted2)'};margin-top:6px;line-height:1">${_topH?_topH.name:'—'}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex:0 0 auto;align-items:center">${_chip(_bpH,'Bronze','#f5a524')}${_chip(_otherH,'Chưa','#6b6b74')}${_chip(_shortH,'Thiếu','#ef4444')}${_chip(_enoughH,'Đủ','#22c55e')}</div>
+            ${_cta}
           </div>
-          <div style="flex:0 0 auto">
-            <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Hạng cao nhất</div>
-            <div style="font-size:20px;font-weight:800;color:${_topH?_topH.color:'var(--muted2)'};margin-top:6px;line-height:1">${_topH?_topH.name:'—'}</div>
-          </div>
-          <div style="display:flex;gap:6px;flex:0 0 auto">${_chip(_bpH,'Bronze','#f5a524')}${_chip(_otherH,'Chưa','#6b6b74')}${_chip(_shortH,'Thiếu','#ef4444')}${_chip(_enoughH,'Đủ','#22c55e')}</div>
-          ${_cta}
           <div style="margin-left:auto;flex:0 0 auto;text-align:right">
             <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Tổng tài sản</div>
-            <div style="font-family:'Chakra Petch',monospace;font-size:26px;font-weight:700;color:var(--text);margin-top:4px;line-height:1">${_fv(_totalVndH)}đ</div>
+            <div style="font-family:'Inter',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--text);margin-top:4px;line-height:1">${_fv(_totalVndH)}đ</div>
             <div style="font-size:11px;color:var(--muted2);margin-top:2px">$${(_totalUsdH||0).toFixed(2)}</div>
           </div>
         </div>`;
