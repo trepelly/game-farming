@@ -682,7 +682,8 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div class="stats-fixed team-stats-6" id="team-stats"></div>
 
       <!-- TAB BAR (admin) -->
-      <div id="team-tabbar" style="display:flex;gap:2px;border-bottom:1px solid var(--border2);margin-bottom:20px;overflow-x:auto">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border2);margin-bottom:20px;flex-wrap:wrap">
+        <div id="team-tabbar" style="display:flex;gap:2px;overflow-x:auto">
         <button class="tw-tab" data-tab="state"   onclick="switchTeamTab('state')">Trạng thái ví</button>
         <button class="tw-tab" data-tab="flow"    onclick="switchTeamTab('flow')">Dòng tiền</button>
         <button class="tw-tab" data-tab="tasks"   onclick="switchTeamTab('tasks')">Việc tuần này</button>
@@ -690,6 +691,22 @@ td:first-child{text-align:left;color:var(--muted2)}
         <button class="tw-tab" data-tab="kpi"     onclick="switchTeamTab('kpi')">KPI & OKR</button>
         <button class="tw-tab" data-tab="addwallet" onclick="switchTeamTab('addwallet')">Thêm ví</button>
         <button class="tw-tab" data-tab="datasource" onclick="switchTeamTab('datasource')">Nguồn dữ liệu</button>
+        </div>
+        <div id="team-actions" style="padding-bottom:8px"><div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="refreshTeam()" title="Làm mới" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted2)"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <select id="auto-refresh-select" onchange="setAutoRefresh(+this.value)" style="background:transparent;border:none;color:var(--text);font-family:inherit;font-size:11px;font-weight:600;outline:none;cursor:pointer">
+              <option value="0">Tắt</option>
+              <option value="60">1 phút</option>
+              <option value="300" selected>5 phút</option>
+              <option value="600">10 phút</option>
+              <option value="1800">30 phút</option>
+            </select>
+            <span id="auto-refresh-countdown" style="font-size:10px;color:var(--accent);font-weight:600;min-width:32px"></span>
+          </div>
+          <button onclick="lockTeam()" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🔒 Khoá</button>
+        </div></div>
       </div>
       <style>
         .tw-tab{background:none;border:none;border-bottom:2px solid transparent;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-1px}
@@ -744,21 +761,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="dd-level" class="fdd"></div>
         <div id="dd-mvp" class="fdd"></div>
         <div id="dd-week" class="fdd"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button onclick="refreshTeam()" title="Làm mới" style="margin-left:auto;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
-          <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted2)"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            <select id="auto-refresh-select" onchange="setAutoRefresh(+this.value)" style="background:transparent;border:none;color:var(--text);font-family:inherit;font-size:11px;font-weight:600;outline:none;cursor:pointer">
-              <option value="0">Tắt</option>
-              <option value="60">1 phút</option>
-              <option value="300" selected>5 phút</option>
-              <option value="600">10 phút</option>
-              <option value="1800">30 phút</option>
-            </select>
-            <span id="auto-refresh-countdown" style="font-size:10px;color:var(--accent);font-weight:600;min-width:32px"></span>
-          </div>
-          <button onclick="lockTeam()" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🔒 Khoá</button>
-        </div>
+        
       </div>
 
       <div id="team-loading" style="text-align:center;padding:40px;color:var(--muted2);font-size:13px;display:none">
@@ -4692,8 +4695,8 @@ function renderTeam() {
   const mvpWallets = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>=30);
   const mvpCount   = mvpWallets.length;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
-    <td colspan="4" class="frz frz1" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td><td style="background:var(--surface)"></td>
-    <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
+    <td colspan="4" class="frz frz1" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
+    <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td><td style="background:var(--surface)"></td>
     <td style="text-align:right;padding:10px 14px;color:#c084fc;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `<span data-tip="${cpUpdatedTip(displayWallets)}">${n} ví${subLines('CP &gt; 100k')}</span>`;})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`<span data-tip="${cpUpdatedTip(displayWallets)}">${ws.length} world${subLines(ws.slice(0,3).join(', '))}</span>`:'—';})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#a3e635;font-size:11px;font-weight:700">${(()=>{const js=[...new Set(displayWallets.map(w=>w.maxCpJob).filter(Boolean))];return js.length?`${js.length} job`:'—';})()}</td>
