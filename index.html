@@ -2434,7 +2434,7 @@ function playerBadge(name, opts={}) {
 function renderPlayerCell(w, isAdmin) {
   const cur = w.player || null;
   const nameHtml = cur
-    ? `${playerBadge(cur,{size:12})}<div style="font-size:9px;color:var(--muted2);margin-top:1px">từ ${fmtDate(w.since)}</div>`
+    ? `${playerBadge(cur,{size:12})}<div style="font-size:9px;color:var(--muted2);margin-top:1px;white-space:normal;line-height:1.4">từ ${fmtDate(w.since)}</div>`
     : `<span style="color:var(--muted2);font-size:11px;font-style:italic">chưa gán</span>`;
   if (!isAdmin) return nameHtml;
   // Admin: nút mở popup gán + xem lịch sử
@@ -4568,7 +4568,7 @@ function renderTeam() {
       <td style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" title="Nhấp để copy địa chỉ" style="cursor:pointer">${short(w.address)}</span>
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
       </td>
-      <td style="text-align:left;white-space:nowrap">${renderPlayerCell(w, isAdmin)}</td>
+      <td style="text-align:left;white-space:normal;max-width:140px">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500;cursor:help" id="nft-${w.address.slice(-8)}" onmouseenter="showNftTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
       <td style="text-align:right;white-space:nowrap;cursor:${(w.chars||[]).length?'help':'default'}" id="cp-${w.address.slice(-8)}" onmouseenter="showCharTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${
         w.maxCp!=null
