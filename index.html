@@ -582,9 +582,9 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div class="table-wrap" style="max-height:520px;overflow-y:auto;margin-bottom:28px">
         <table>
           <thead><tr>
-            <th style="text-align:center">#</th>
+            <th class="frz frz1 cw1" style="text-align:center">#</th>
             <th style="text-align:left;cursor:pointer;user-select:none" onclick="wColSort('label')">Tên <span id="wsort-label" style="opacity:.3">↕</span></th>
-            <th style="text-align:left">Địa chỉ</th>
+            <th class="frz frz3 cw3" style="text-align:left">Địa chỉ</th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('neso')" title="NESO + quy đổi">NESO <span id="wsort-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="wColSort('nxpc')" title="NXPC Henesys + quy đổi">NXPC <span id="wsort-nxpc" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--blue)" onclick="wColSort('avax')" title="AVAX + quy đổi">AVAX <span id="wsort-avax" style="opacity:.3">↕</span></th>
@@ -768,12 +768,23 @@ td:first-child{text-align:left;color:var(--muted2)}
       <style>
         #team-table-wrap thead tr.grp-row th{top:0;z-index:4;height:33px}
         #team-table-wrap thead tr:not(.grp-row) th{top:33px;z-index:3}
+        #team-table-wrap .frz{position:sticky;background:var(--card);z-index:2}
+        #team-table-wrap thead .frz{background:var(--surface);z-index:6}
+        #team-table-wrap tfoot .frz{background:var(--surface);z-index:5}
+        #team-table-wrap .frz1{left:0}
+        #team-table-wrap .frz2{left:44px}
+        #team-table-wrap .frz3{left:174px}
+        #team-table-wrap .frz4{left:314px;box-shadow:2px 0 0 var(--border2)}
+        #team-table-wrap .cw1{width:44px;min-width:44px;max-width:44px}
+        #team-table-wrap .cw2{width:130px;min-width:130px}
+        #team-table-wrap .cw3{width:140px;min-width:140px}
+        #team-table-wrap .cw4{width:120px;min-width:120px}
       </style>
       <div class="table-wrap" id="team-table-wrap" style="display:none;max-height:480px;overflow-y:auto">
         <table>
           <thead>
           <tr class="grp-row">
-            <th colspan="6" style="border-bottom:none;background:var(--surface)"></th>
+            <th colspan="4" class="frz frz1" style="border-bottom:none;background:var(--surface)"></th><th colspan="2" style="border-bottom:none;background:var(--surface)"></th>
             <th colspan="4" style="text-align:center;color:#2dd4bf;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,#2dd4bf 14%,var(--surface))">Character</th>
             <th colspan="3" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
             <th colspan="2" style="text-align:center;color:var(--green);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--green) 16%,var(--surface))"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> Henesys</th>
@@ -781,12 +792,12 @@ td:first-child{text-align:left;color:var(--muted2)}
             <th class="admin-only" style="border-bottom:none;background:var(--surface)"></th>
           </tr>
           <tr>
-            <th style="text-align:center">#</th>
-            <th style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
-            <th style="text-align:left;white-space:nowrap">Cảnh báo</th>
-            <th style="text-align:left">Địa chỉ</th>
-            <th style="text-align:left;cursor:pointer;user-select:none;color:var(--accent)" onclick="colSort('player')" title="Người chơi đang giữ ví"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Player <span id="sort-icon-player" style="opacity:.3">↕</span></th>
+            <th class="frz frz1 cw1" style="text-align:center">#</th>
+            <th class="frz frz2 cw2" style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
+            <th class="frz frz3 cw3" style="text-align:left">Địa chỉ</th>
+            <th class="frz frz4 cw4" style="text-align:left;cursor:pointer;user-select:none;color:var(--accent)" onclick="colSort('player')" title="Người chơi đang giữ ví"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Player <span id="sort-icon-player" style="opacity:.3">↕</span></th>
             <th style="color:#ffffff;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
+            <th style="text-align:left;white-space:nowrap">Cảnh báo</th>
             <th style="color:#c084fc;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('cp')" title="CP của nhân vật mạnh nhất trên ví"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/></svg> CP <span id="sort-icon-cp" style="opacity:.3">↕</span></th>
             <th style="color:#38bdf8;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('world')" title="World của nhân vật mạnh nhất"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> World <span id="sort-icon-world" style="opacity:.3">↕</span></th>
             <th style="color:#a3e635;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('job')" title="Job của nhân vật mạnh nhất"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Job <span id="sort-icon-job" style="opacity:.3">↕</span></th>
@@ -4603,19 +4614,20 @@ function renderTeam() {
     if(w.neso!=null) totNeso+=w.neso;
     const short = a=>`<span title="${a}" style="font-family:monospace;font-size:11px;color:var(--text2)">${a.slice(0,6)}...${a.slice(-4)}</span>`;
     return `<tr id="flow-main-${w.address.slice(-8)}" class="team-row"${walletHasRed(w)?' style="box-shadow:inset 2px 0 0 #ef4444;background:color-mix(in srgb,#ef4444 5%,transparent)"':''}>
-      <td style="text-align:center;color:var(--text);font-size:12px;font-weight:600">${i+1}</td>
-      <td style="text-align:left">
+      <td class="frz frz1 cw1" style="text-align:center;color:var(--text);font-size:12px;font-weight:600">${i+1}</td>
+      <td class="frz frz2 cw2" style="text-align:left">
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
             style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
           <span onclick="copyFlash(this,'${w.label||''}')" data-tip="Nhấp vào để copy" style="font-weight:600;color:var(--text);cursor:pointer">${w.label||'—'}</span>
         </div>
       </td>
-      <td style="text-align:left;white-space:normal;max-width:160px;line-height:1.7">${walletFlagPills(w)}</td>
-      <td style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp vào để copy" style="cursor:pointer">${short(w.address)}</span>
+
+      <td class="frz frz3 cw3" style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp vào để copy" style="cursor:pointer">${short(w.address)}</span>
       </td>
-      <td style="text-align:left;white-space:normal;max-width:140px">${renderPlayerCell(w, isAdmin)}</td>
+      <td class="frz frz4 cw4" style="text-align:left;white-space:normal;max-width:120px">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500;cursor:help" id="nft-${w.address.slice(-8)}" onmouseenter="showNftTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
+      <td style="text-align:left;white-space:normal;max-width:160px;line-height:1.7">${walletFlagPills(w)}</td>
       <td style="text-align:right;white-space:nowrap;cursor:${(w.chars||[]).length?'help':'default'}" id="cp-${w.address.slice(-8)}" onmouseenter="showCharTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${
         w.maxCp!=null
           ? `<span style="color:#c084fc;font-weight:700;font-size:13px">${Math.round(w.maxCp).toLocaleString('vi-VN')}</span>${w.maxCpChar?`<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px;max-width:92px;overflow:hidden;text-overflow:ellipsis">${w.maxCpChar}</div>`:''}`
@@ -4666,7 +4678,7 @@ function renderTeam() {
   const mvpWallets = displayWallets.filter(w=>w.mvpPoints!=null&&w.mvpPoints>=30);
   const mvpCount   = mvpWallets.length;
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
-    <td colspan="5" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td>
+    <td colspan="4" class="frz frz1" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td><td style="background:var(--surface)"></td>
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
     <td style="text-align:right;padding:10px 14px;color:#c084fc;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví`+subLines('CP &gt; 100k', cpUpdatedLabel(displayWallets));})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`${ws.length} world`+subLines(ws.slice(0,3).join(', '), cpUpdatedLabel(displayWallets)):'—';})()}</td>
