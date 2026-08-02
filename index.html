@@ -3467,6 +3467,14 @@ function walletFlagPills(w) {
 }
 // đỏ = mất tiền nếu không xử lý tuần này
 function walletHasRed(w){ return walletFlags(w).some(k => WALLET_FLAG_DEF[k].color==='#ef4444'); }
+function copyFlash(el, text){
+  try { navigator.clipboard.writeText(text); } catch(e){}
+  const o = el.style.color, ob = el.style.background;
+  el.style.color = 'var(--green)';
+  el.setAttribute('data-copied','1');
+  clearTimeout(el._cpT);
+  el._cpT = setTimeout(()=>{ el.style.color = o; el.removeAttribute('data-copied'); }, 800);
+}
 
 let alertFilter = 'all';
 function setAlertFilter(k){ alertFilter = (alertFilter===k) ? 'all' : k; renderTeam(); }
@@ -4553,15 +4561,12 @@ function renderTeam() {
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
             style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
-          <span style="font-weight:600;color:var(--text)">${w.label||'—'}</span>
-          <span onclick="navigator.clipboard.writeText('${w.label||''}');this.textContent='✓';setTimeout(()=>this.textContent='⎘',1000)"
-            style="cursor:pointer;font-size:10px;color:var(--muted2);margin-left:4px;user-select:none" title="Copy tên">⎘</span>
+          <span onclick="copyFlash(this,'${w.label||''}')" title="Nhấp để copy tên" style="font-weight:600;color:var(--text);cursor:pointer">${w.label||'—'}</span>
         </div>
       </td>
       <td style="text-align:left;white-space:nowrap;max-width:150px">${walletFlagPills(w)}</td>
-      <td style="text-align:left">${short(w.address)}
+      <td style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" title="Nhấp để copy địa chỉ" style="cursor:pointer">${short(w.address)}</span>
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
-        <span style="margin-left:4px;cursor:pointer;font-size:11px;color:var(--muted2)" onclick="navigator.clipboard.writeText('${w.address}')">⎘</span>
       </td>
       <td style="text-align:left;white-space:nowrap">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500;cursor:help" id="nft-${w.address.slice(-8)}" onmouseenter="showNftTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
