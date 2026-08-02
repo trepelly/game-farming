@@ -3924,7 +3924,7 @@ async function renderViewAsBar(){
   const banner = _viewAs
     ? `<span style="margin-left:auto;font-size:11px;font-weight:600;color:#f5a524;background:color-mix(in srgb,#f5a524 14%,transparent);padding:4px 10px;border-radius:20px">Đang xem như member — không thay đổi dữ liệu</span>`
     : '';
-  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  el.innerHTML = `<div style="padding:2px 0 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="display:inline-flex;color:var(--accent)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
       <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Xem với quyền</span>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
