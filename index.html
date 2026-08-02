@@ -4102,6 +4102,17 @@ function cpUpdatedLabel(list) {
   return `<span title="Cập nhật ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> ${rel}</span>`;
 }
 
+function cpUpdatedTip(list) {
+  const ts = (list || []).map(w => w.cpTs).filter(t => t && isFinite(t));
+  if (!ts.length) return 'Chưa tải CP';
+  const d = new Date(Math.max(...ts));
+  const p = n => ('0' + n).slice(-2);
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  const rel = mins < 1 ? 'vừa xong' : mins < 60 ? mins + ' phút trước'
+            : mins < 1440 ? Math.floor(mins/60) + ' giờ trước' : Math.floor(mins/1440) + ' ngày trước';
+  return `CP cập nhật ${rel} · ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 // Khối phụ dưới số chính — cùng phong cách với convSub của các cột token
 function subLines(...lines) {
   const ls = lines.filter(Boolean);
@@ -4683,8 +4694,8 @@ function renderTeam() {
   document.getElementById('team-tfoot').innerHTML = `<tr style="font-weight:700;background:var(--surface);position:sticky;bottom:0">
     <td colspan="4" class="frz frz1" style="text-align:left;padding:10px 14px;color:var(--muted2)">TỔNG (${displayWallets.length} ví)</td><td style="background:var(--surface)"></td>
     <td style="text-align:right;padding:10px 14px;color:#ffffff;font-size:11px;font-weight:700">${displayWallets.reduce((s,w)=>s+(w.nftCount||0),0)}</td>
-    <td style="text-align:right;padding:10px 14px;color:#c084fc;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `${n} ví`+subLines('CP &gt; 100k', cpUpdatedLabel(displayWallets));})()}</td>
-    <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`${ws.length} world`+subLines(ws.slice(0,3).join(', '), cpUpdatedLabel(displayWallets)):'—';})()}</td>
+    <td style="text-align:right;padding:10px 14px;color:#c084fc;font-weight:700" title="Số ví có CP (nhân vật mạnh nhất) trên 100.000">${(()=>{const cps=displayWallets.map(w=>w.maxCp).filter(v=>v!=null&&v>0);if(!cps.length)return '—';const n=cps.filter(v=>v>100000).length;return `<span data-tip="${cpUpdatedTip(displayWallets)}">${n} ví${subLines('CP &gt; 100k')}</span>`;})()}</td>
+    <td style="text-align:center;padding:10px 14px;color:#38bdf8;font-weight:700">${(()=>{const ws=[...new Set(displayWallets.map(w=>w.maxCpWorld).filter(Boolean))];return ws.length?`<span data-tip="${cpUpdatedTip(displayWallets)}">${ws.length} world${subLines(ws.slice(0,3).join(', '))}</span>`:'—';})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#a3e635;font-size:11px;font-weight:700">${(()=>{const js=[...new Set(displayWallets.map(w=>w.maxCpJob).filter(Boolean))];return js.length?`${js.length} job`:'—';})()}</td>
     <td style="text-align:center;padding:10px 14px;color:#fbbf24;font-size:11px;font-weight:700">${(()=>{const lv=displayWallets.map(w=>w.maxCpLevel).filter(v=>v!=null);return lv.length?`Lv ${Math.max(...lv)}`:'—';})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
