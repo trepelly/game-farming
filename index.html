@@ -673,16 +673,10 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
 
       
-      <!-- Xem với quyền (admin) -->
-      <div id="team-viewas" style="display:none;margin-bottom:16px"></div>
 
       <!-- Bản Member (chỉ hiện với member) -->
-      <div id="member-view" style="display:none;margin-bottom:20px"></div>
-
-      <div class="stats-fixed team-stats-6" id="team-stats"></div>
-
-      <!-- TAB BAR (admin) -->
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border2);margin-bottom:14px;flex-wrap:wrap">
+<!-- TAB BAR (admin) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border2);margin-bottom:16px;flex-wrap:wrap">
         <div id="team-tabbar" style="display:flex;gap:2px;overflow-x:auto">
         <button class="tw-tab" data-tab="state"   onclick="switchTeamTab('state')">Trạng thái ví</button>
         <button class="tw-tab" data-tab="flow"    onclick="switchTeamTab('flow')">Dòng tiền</button>
@@ -692,7 +686,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <button class="tw-tab" data-tab="addwallet" onclick="switchTeamTab('addwallet')">Thêm ví</button>
         <button class="tw-tab" data-tab="datasource" onclick="switchTeamTab('datasource')">Nguồn dữ liệu</button>
         </div>
-        <div id="team-actions" style="padding-bottom:8px"><div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px;padding-bottom:8px;flex-wrap:wrap"><div id="team-viewas" style="display:none"></div><div id="team-actions"><div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" title="Làm mới" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
           <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:6px 12px">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted2)"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -707,7 +701,13 @@ td:first-child{text-align:left;color:var(--muted2)}
           </div>
           <button onclick="lockTeam()" style="background:var(--red-bg);border:1px solid var(--red)25;border-radius:8px;padding:8px 14px;color:var(--red);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🔒 Khoá</button>
         </div></div>
-      </div>
+      </div></div>
+
+      <div id="member-view" style="display:none;margin-bottom:20px"></div>
+
+      <div class="stats-fixed team-stats-6" id="team-stats"></div>
+
+      
       <style>
         .tw-tab{background:none;border:none;border-bottom:2px solid transparent;padding:9px 15px;font-family:inherit;font-size:13px;font-weight:600;color:var(--muted2);cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;margin-bottom:-1px}
         .tw-tab:hover{color:var(--text2)}
@@ -3917,24 +3917,21 @@ async function renderViewAsBar(){
   if (!teamUsersCache || !teamUsersCache.length) { try { teamUsersCache = await fetchUsers(); } catch(e){ teamUsersCache = teamUsersCache||[]; } }
   const members = (teamUsersCache||[]).filter(u => u.role !== 'admin');
   const cur = _viewAs ? _viewAs.username : '__admin__';
-  const pill = (val,label,active,color) => `<button onclick="setViewAs('${val}')" style="padding:6px 13px;border-radius:8px;border:1px solid ${active?(color||'var(--accent)'):'var(--border2)'};background:${active?`color-mix(in srgb,${color||'var(--accent)'} 15%,transparent)`:'var(--card)'};color:${active?(color||'var(--accent)'):'var(--muted2)'};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">${label}</button>`;
-  const memberPills = members.length
-    ? members.map(u => pill(u.username, u.username + (u.viewAll?' (xem tất cả)':''), cur===u.username, '#f5a524')).join('')
-    : '<span style="font-size:11px;color:var(--muted2)">Chưa có tài khoản member nào</span>';
-  const banner = _viewAs
-    ? `<span style="margin-left:auto;font-size:11px;font-weight:600;color:#f5a524;background:color-mix(in srgb,#f5a524 14%,transparent);padding:4px 10px;border-radius:20px">Đang xem như member — không thay đổi dữ liệu</span>`
-    : '';
-  el.innerHTML = `<div style="padding:2px 0 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="display:inline-flex;color:var(--accent)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
-      <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Xem với quyền</span>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        ${pill('__admin__','Admin', cur==='__admin__', 'var(--accent)')}
-        <span style="width:1px;height:20px;background:var(--border2);margin:0 2px"></span>
-        ${memberPills}
-      </div>
-      ${banner}
+  const curLabel = _viewAs ? _viewAs.username : 'Admin';
+  const opts = [{v:'__admin__',l:'Admin',c:'var(--accent)'}].concat(members.map(u => ({ v:u.username, l:u.username+(u.viewAll?' (xem tất cả)':''), c:'#f5a524' })));
+  const menu = opts.map(o => `<div onclick="setViewAs('${o.v}');_hideViewAsMenu()" style="display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;color:${cur===o.v?o.c:'var(--text2)'};background:${cur===o.v?`color-mix(in srgb,${o.c} 12%,transparent)`:'transparent'}" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background='${cur===o.v?`color-mix(in srgb,${o.c} 12%,transparent)`:'transparent'}'"><span style="width:6px;height:6px;border-radius:50%;background:${o.c};flex-shrink:0"></span>${o.l}</div>`).join('');
+  const isViewing = !!_viewAs;
+  el.innerHTML = `<div style="position:relative">
+      <button onclick="_toggleViewAsMenu(event)" style="display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:8px;border:1px solid ${isViewing?'#f5a524':'var(--border2)'};background:${isViewing?'color-mix(in srgb,#f5a524 12%,transparent)':'var(--card)'};color:${isViewing?'#f5a524':'var(--text2)'};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Xem: <b style="font-weight:800">${curLabel}</b></span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div id="viewas-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:180px;background:var(--card);border:1px solid var(--border2);border-radius:10px;box-shadow:var(--shadow-lg);z-index:50;overflow:hidden;padding:4px 0">${menu}</div>
     </div>`;
 }
+function _toggleViewAsMenu(ev){ ev.stopPropagation(); const m=document.getElementById('viewas-menu'); if(m){ const open=m.style.display!=='none'; m.style.display=open?'none':'block'; if(!open){ setTimeout(()=>document.addEventListener('click',_hideViewAsMenu,{once:true}),0); } } }
+function _hideViewAsMenu(){ const m=document.getElementById('viewas-menu'); if(m) m.style.display='none'; }
 
 // ══════════ Bản Member ══════════
 // ══════════ Snapshot tuần (tích lịch sử cho KPI/recon) ══════════
