@@ -4024,7 +4024,9 @@ function renderMemberView(list) {
       ${taskHtml}
     </div>`;
 
-  el.innerHTML = card;
+  // Thẻ tài khoản đã gộp vào card overview (member-overview) — ẩn khối này
+  el.style.display = 'none';
+  el.innerHTML = '';
   const tt = document.getElementById('member-tasks');
   if (tt) tt.innerHTML = tasksBlock;
 }
@@ -4787,8 +4789,8 @@ function renderTeam() {
   const nesoChgExtra = nesoHasChg
     ? `<div style="display:flex;align-items:center;gap:8px;margin-top:9px;font-size:10px"><span style="color:var(--green);font-weight:700">📈 ${nUp}</span><span style="color:var(--red);font-weight:700">📉 ${nDown}</span><span style="color:var(--muted2)">24h</span><span style="margin-left:auto;color:${nesoChgCol};font-weight:700">${nesoChgDiff>=0?'+':''}${Math.round(nesoChgDiff).toLocaleString('vi-VN')}</span></div>`
     : '';
-  if (statsEl) statsEl.innerHTML = `
-    ${(()=>{
+  const _isMember = (typeof effUser==='function') && effUser().role === 'member';
+  const _walletCard = `${(()=>{
       const total = effectiveWallets().length;
       const bp = mvpLoadedPct>0 ? mvpBronzePlus : 0;
       const enoughNeso = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) >= (30-w.mvpPoints)*100000).length;
@@ -4843,12 +4845,70 @@ function renderTeam() {
         </div>`;
 
       return `<div class="stat">${header}${iconRow}${bignum}${bar}${footer}</div>`;
-    })()}
-    ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd, bNeso)}
+    })()}`;
+  const _tokenRow = `${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NESO', f(totNeso), totUsdt, totVnd, bNeso)}
     ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> HENESYS', G, 'NXPC', fd2(totNxpc,2), totNxpc*nxpcRate, totNxpc*nxpcRate*usdvnd, bNxpc)}
     ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'AVAX', fd2(totAvax,4), totAvax*(liveAvaxUsd||0), totAvax*(liveAvaxUsd||0)*usdvnd, bAvax)}
     ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'NXPC(AVAX)', fd2(totNxpcAvax,2), totUsdtAvax, totVndAvax, bNxpcAvax)}
     ${tokenCard('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 3 2.5 20h19L12 3z"/></svg> AVALANCHE', B, 'USDT(AVAX)', fd2(totUsdtAvaxReal,2), null, totUsdtAvaxReal*usdvnd, bUsdtAvax)}`;
+  if (statsEl) {
+    if (!_isMember) {
+      statsEl.classList.add('team-stats-6');
+      statsEl.style.gridTemplateColumns = '';
+      statsEl.innerHTML = _walletCard + _tokenRow;
+    } else {
+      // ===== Card gộp cho member: header tài khoản + 5 cột token =====
+      const _ew2 = effectiveWallets();
+      const NP = 100000;
+      const _bpH = mvpLoadedPct>0 ? mvpBronzePlus : 0;
+      const _enoughH = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) >= (30-w.mvpPoints)*NP).length;
+      const _shortH  = displayWallets.filter(w => w.mvpPoints!=null && w.mvpPoints>0 && w.mvpPoints<30 && (w.neso||0) <  (30-w.mvpPoints)*NP).length;
+      const _otherH  = Math.max(_ew2.length - _bpH - _enoughH - _shortH, 0);
+      const _tr = { Unranked:0, Bronze:1, Silver:2, Gold:3, Diamond:4, Black:5 };
+      let _topH = null;
+      _ew2.forEach(w => { if (w.mvpPoints!=null){ const t=getTier(w.mvpPoints); if(!_topH||_tr[t.name]>_tr[_topH.name]) _topH=t; } });
+      const _totalUsdH = totUsdt + totNxpc*nxpcRate + totAvax*(liveAvaxUsd||0) + totUsdtAvax + totUsdtAvaxReal;
+      const _totalVndH = totVnd + totNxpc*nxpcRate*usdvnd + totAvax*(liveAvaxUsd||0)*usdvnd + totVndAvax + totUsdtAvaxReal*usdvnd;
+      const _eu = effUser();
+      const _acctName = _eu.username || 'Tài khoản';
+      const _mine = (_eu.players&&_eu.players.length)?_eu.players:(_eu.player?[_eu.player]:[]);
+      const _acctSub = _mine.length ? ('Người chơi: '+_mine.join(', ')) : 'Chưa gán người chơi';
+      const _fv = n => Math.round(n||0).toLocaleString('vi-VN');
+      const _chip = (n,lb,c) => `<div style="border:1px solid color-mix(in srgb,${c} 40%,transparent);background:color-mix(in srgb,${c} 10%,transparent);border-radius:8px;padding:5px 11px;text-align:center;min-width:46px"><div style="font-family:'Chakra Petch',monospace;font-size:16px;font-weight:700;color:${c};line-height:1">${n}</div><div style="font-size:8px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.04em;margin-top:2px">${lb}</div></div>`;
+      const _cta = _shortH>0 ? `<span onclick="setMvpFilter('below')" data-tip="Lọc ${_shortH} ví thiếu NESO" style="flex:0 0 auto;font-size:11px;font-weight:600;color:#ef4444;background:rgba(239,68,68,.12);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap">${_shortH} thiếu →</span>` : '';
+      const _header = `<div style="padding:18px 22px;display:flex;align-items:center;gap:26px;flex-wrap:wrap">
+          <div style="flex:0 0 auto">
+            <div style="font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tài khoản</div>
+            <div style="font-size:26px;font-weight:800;color:var(--text);line-height:1.1;margin-top:3px">${_acctName}</div>
+            <div style="font-size:11px;color:var(--muted2);margin-top:3px">${_acctSub}</div>
+          </div>
+          <div style="flex:0 0 auto">
+            <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Ví theo dõi</div>
+            <div style="display:flex;align-items:baseline;gap:5px;margin-top:6px"><span style="font-family:'Chakra Petch',monospace;font-size:28px;font-weight:700;color:#a855f7;line-height:1">${_ew2.length}</span><span style="font-size:11px;color:var(--muted2)">ví</span></div>
+          </div>
+          <div style="flex:0 0 auto">
+            <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Hạng cao nhất</div>
+            <div style="font-size:20px;font-weight:800;color:${_topH?_topH.color:'var(--muted2)'};margin-top:6px;line-height:1">${_topH?_topH.name:'—'}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex:0 0 auto">${_chip(_bpH,'Bronze','#f5a524')}${_chip(_otherH,'Chưa','#6b6b74')}${_chip(_shortH,'Thiếu','#ef4444')}${_chip(_enoughH,'Đủ','#22c55e')}</div>
+          ${_cta}
+          <div style="margin-left:auto;flex:0 0 auto;text-align:right">
+            <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Tổng tài sản</div>
+            <div style="font-family:'Chakra Petch',monospace;font-size:26px;font-weight:700;color:var(--text);margin-top:4px;line-height:1">${_fv(_totalVndH)}đ</div>
+            <div style="font-size:11px;color:var(--muted2);margin-top:2px">$${(_totalUsdH||0).toFixed(2)}</div>
+          </div>
+        </div>`;
+      statsEl.classList.remove('team-stats-6');
+      statsEl.style.gridTemplateColumns = '1fr';
+      statsEl.innerHTML = `<style>
+        .member-token-row .stat{border:none!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;border-right:1px solid var(--border2)!important}
+        .member-token-row .stat:last-child{border-right:none!important}
+        .member-token-row .stat:hover{transform:none!important}
+        .member-token-row .stat > div[style*="height:36px"]{display:none!important}
+        @media(max-width:820px){.member-token-row{grid-template-columns:repeat(2,1fr)!important}.member-overview [style*="margin-left:auto"]{margin-left:0!important;text-align:left!important}}
+      </style><div class="member-overview" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">${_header}<div class="member-token-row" style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border2)">${_tokenRow}</div></div>`;
+    }
+  }
   // Ẩn hẳn cột thao tác (nút xoá) khi không phải admin — tránh chừa cột trống
   try {
     const isAdm = !!(effUser().role === 'admin');
