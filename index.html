@@ -3462,7 +3462,7 @@ function walletFlagPills(w) {
   const fs = walletFlags(w);
   if (!fs.length) return '<span style="color:var(--muted2);font-size:10px">—</span>';
   return fs.map(k => { const d = WALLET_FLAG_DEF[k];
-    return `<span title="${d.title}" style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:600;color:${d.color};background:color-mix(in srgb,${d.color} 14%,transparent);border:1px solid color-mix(in srgb,${d.color} 38%,transparent);white-space:nowrap;margin:1px 2px 1px 0">${d.label}</span>`;
+    return `<span data-tip="${d.title}" style="display:inline-block;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:600;color:${d.color};background:color-mix(in srgb,${d.color} 14%,transparent);border:1px solid color-mix(in srgb,${d.color} 38%,transparent);white-space:nowrap;margin:1px 2px 1px 0">${d.label}</span>`;
   }).join('');
 }
 // đỏ = mất tiền nếu không xử lý tuần này
@@ -3495,7 +3495,7 @@ function renderAlertChips(list) {
     explain = `<div style="margin-top:10px;font-size:11.5px;color:var(--muted2);line-height:1.5"><b style="color:${d.color}">${d.label}:</b> ${d.title}.</div>`;
   }
   const title = `<div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span style="display:inline-flex;color:#f5a524"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span style="font-size:12.5px;font-weight:800;color:var(--text)">Cần xử lý</span><span style="font-size:10.5px;color:var(--muted2)">${anyFlagged} ví có cảnh báo</span></div>`;
-  el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px"><div style="display:flex;align-items:center;gap:14px;flex-wrap:nowrap;overflow-x:auto">${title}<div style="display:flex;gap:8px;flex-shrink:0">${chips}</div></div>${explain}</div>`;
+  el.innerHTML = `<div style="padding:2px 0 4px"><div style="display:flex;align-items:center;gap:14px;flex-wrap:nowrap;overflow-x:auto">${title}<div style="display:flex;gap:8px;flex-shrink:0">${chips}</div></div>${explain}</div>`;
 }
 
 let teamTab = 'state';
@@ -4359,6 +4359,50 @@ function moveCharTip(ev) {
   tip.style.left = x + 'px';
   tip.style.top = y + 'px';
 }
+function _uiTipEl(){
+  let t = document.getElementById('ui-tip');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'ui-tip';
+    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 10px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.5;max-width:260px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:normal';
+    document.body.appendChild(t);
+  }
+  return t;
+}
+function showTip(ev, text){
+  if (!text) return;
+  const t = _uiTipEl();
+  t.textContent = text;
+  t.style.opacity = '1';
+  t.style.transform = 'translateY(0)';
+  moveTip(ev);
+}
+function moveTip(ev){
+  const t = document.getElementById('ui-tip');
+  if (!t || t.style.opacity === '0') return;
+  const r = t.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 16;
+  if (x + r.width  > window.innerWidth  - 10) x = ev.clientX - r.width - 12;
+  if (y + r.height > window.innerHeight - 10) y = ev.clientY - r.height - 12;
+  t.style.left = Math.max(8,x) + 'px';
+  t.style.top  = Math.max(8,y) + 'px';
+}
+function hideTip(){ const t = document.getElementById('ui-tip'); if (t){ t.style.opacity='0'; t.style.transform='translateY(4px)'; } }
+// Gắn tooltip đồng bộ cho mọi phần tử có data-tip (uỷ quyền sự kiện, một lần)
+(function initTipDelegation(){
+  const bind = () => {
+    if (window._tipBound) return; window._tipBound = true;
+    document.addEventListener('mouseover', e => {
+      let el = e.target.closest && e.target.closest('[data-tip]');
+      if (!el && e.target.closest) { const tl = e.target.closest('[title]'); if (tl && tl.getAttribute('title')) { tl.setAttribute('data-tip', tl.getAttribute('title')); tl.removeAttribute('title'); el = tl; } }
+      if (el) showTip(e, el.getAttribute('data-tip'));
+    });
+    document.addEventListener('mousemove', e => { const t = document.getElementById('ui-tip'); if (t && t.style.opacity === '1') moveTip(e); });
+    document.addEventListener('mouseout',  e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) hideTip(); });
+    document.addEventListener('click',     e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) hideTip(); });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
 function hideCharTip() { const t = document.getElementById('char-tip'); if (t) t.style.opacity = '0'; charTipAddr = null; nftTipAddr = null; }
 
 function weekCellHtml(w) {
@@ -4561,12 +4605,11 @@ function renderTeam() {
         <div style="display:flex;align-items:center;gap:6px">
           <button onclick="toggleFlowExpand('${w.address}')" id="flow-btn-${w.address.slice(-8)}"
             style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
-          <span onclick="copyFlash(this,'${w.label||''}')" title="Nhấp để copy tên" style="font-weight:600;color:var(--text);cursor:pointer">${w.label||'—'}</span>
+          <span onclick="copyFlash(this,'${w.label||''}')" data-tip="Nhấp vào để copy" style="font-weight:600;color:var(--text);cursor:pointer">${w.label||'—'}</span>
         </div>
       </td>
       <td style="text-align:left;white-space:normal;max-width:160px;line-height:1.7">${walletFlagPills(w)}</td>
-      <td style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" title="Nhấp để copy địa chỉ" style="cursor:pointer">${short(w.address)}</span>
-        <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
+      <td style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp vào để copy" style="cursor:pointer">${short(w.address)}</span>
       </td>
       <td style="text-align:left;white-space:normal;max-width:140px">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500;cursor:help" id="nft-${w.address.slice(-8)}" onmouseenter="showNftTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
