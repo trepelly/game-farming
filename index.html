@@ -4564,7 +4564,7 @@ function renderTeam() {
           <span onclick="copyFlash(this,'${w.label||''}')" title="Nhấp để copy tên" style="font-weight:600;color:var(--text);cursor:pointer">${w.label||'—'}</span>
         </div>
       </td>
-      <td style="text-align:left;white-space:nowrap;max-width:150px">${walletFlagPills(w)}</td>
+      <td style="text-align:left;white-space:normal;max-width:160px;line-height:1.7">${walletFlagPills(w)}</td>
       <td style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" title="Nhấp để copy địa chỉ" style="cursor:pointer">${short(w.address)}</span>
         <a href="https://maplen.gg/assets?address=${w.address}" target="_blank" style="margin-left:6px;font-size:10px;color:var(--blue);text-decoration:none">↗</a>
       </td>
