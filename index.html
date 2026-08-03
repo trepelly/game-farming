@@ -3725,7 +3725,7 @@ function insightActions(wallets){
     acts.push({ id:'farm30', type:'MVP', color:'#22c55e', urgency:'Cao',
       title:`Đưa ${under.length} ví đủ 30 điểm để farm`,
       why:`${under.length} ví chưa đủ 30 điểm MVP nên chưa farm được. Chi tổng ${_fviI(nesoNeed)} NESO để tất cả đạt 30 điểm — mở khoá farm, ước thu ~$${_fviI(gain)}.`,
-      items: under.map(w=>({ label:w.label||'—', player:w.player||'', note:`còn ${gapTo30(w)}đ` })),
+      items: under.map(w=>({ label:w.label||'—', player:w.player||'', note:`còn ${gapTo30(w)}đ`, val:gapTo30(w) })),
       cost:`${_fviI(nesoNeed)} NESO`, gain:`$${_fviI(gain)}`, effort:'Thấp',
       cta:"setMvpFilter('below');switchTeamTab('state')", ctaLabel:`Xem ${under.length} ví`,
       score: gain });
@@ -3737,7 +3737,7 @@ function insightActions(wallets){
     acts.push({ id:'idle', type:'Vốn', color:'#f5a524', urgency:'TB',
       title:'Kích hoạt vốn nằm không',
       why:`${idle.length} ví giữ tổng $${_fviI(idleCap)} USDT nhưng chưa gán / chưa farm — vốn nằm không. Điều phối sang ví đang farm hoặc tái đầu tư.`,
-      items: idle.sort((a,b)=>(b.usdt_avax_real||0)-(a.usdt_avax_real||0)).map(w=>({ label:w.label||'—', player:w.player||'', note:`$${_fviI(w.usdt_avax_real)}` })),
+      items: idle.sort((a,b)=>(b.usdt_avax_real||0)-(a.usdt_avax_real||0)).map(w=>({ label:w.label||'—', player:w.player||'', note:`$${_fviI(w.usdt_avax_real)}`, val:w.usdt_avax_real||0 })),
       cost:'—', gain:`$${_fviI(idleCap)}`, effort:'TB',
       cta:"setAlertFilter('idle');switchTeamTab('state')", ctaLabel:`Xem ${idle.length} ví`,
       score: idleCap/2 });
@@ -3748,7 +3748,7 @@ function insightActions(wallets){
     acts.push({ id:'gas', type:'Hiệu quả', color:'#e0625c', urgency:'Cao',
       title:`Nạp gas cho ${gas.length} ví`,
       why:`${gas.length} ví có AVAX dưới ${gt} — giao dịch fail, không claim/chi được, mất doanh thu tới khi nạp gas.`,
-      items: gas.map(w=>({ label:w.label||'—', player:w.player||'', note:`${(w.avax||0).toFixed(3)} AVAX` })),
+      items: gas.map(w=>({ label:w.label||'—', player:w.player||'', note:`${(w.avax||0).toFixed(3)} AVAX`, val:w.avax||0 })),
       cost:'phí gas', gain:'khôi phục farm', effort:'Thấp',
       cta:"setAlertFilter('gas');switchTeamTab('state')", ctaLabel:`Xem ${gas.length} ví`,
       score: gas.length * 60 });
@@ -3759,7 +3759,7 @@ function insightActions(wallets){
     acts.push({ id:'unassign', type:'Hiệu quả', color:'#8b7bd8', urgency:'Thấp',
       title:`Gán người chơi cho ${un.length} ví`,
       why:`${un.length} ví chưa gán người chơi — thiếu dữ liệu tính hiệu quả theo người và phân việc.`,
-      items: un.map(w=>({ label:w.label||'—', player:'', note:'chưa gán' })),
+      items: un.map(w=>({ label:w.label||'—', player:'', note:'chưa gán', val:0 })),
       cost:'—', gain:'dữ liệu sạch', effort:'Thấp',
       cta:"setAlertFilter('unassign');switchTeamTab('state')", ctaLabel:`Xem ${un.length} ví`,
       score: un.length * 15 });
@@ -3851,6 +3851,15 @@ function renderInsightPotential(list) {
 // ===== Khối 3 — Việc nên làm (dạng cột, cuộn ngang) =====
 let insightFilter = 'all';
 function setInsightFilter(f){ insightFilter = f || 'all'; renderInsightActions(window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[])); }
+let insightSort = 'default';
+function setInsightSort(k){ insightSort = k || 'default'; renderInsightActions(window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[])); }
+function _sortItems(items){
+  const a = items.slice();
+  if (insightSort === 'name')   a.sort((x,y)=>(x.label||'').localeCompare(y.label||''));
+  else if (insightSort === 'player') a.sort((x,y)=>(x.player||'zzz').localeCompare(y.player||'zzz'));
+  else if (insightSort === 'value')  a.sort((x,y)=>(y.val||0)-(x.val||0));
+  return a;   // 'default' giữ nguyên thứ tự ưu tiên
+}
 function actionAssignee(id){ const m = (typeof teamSettings!=='undefined' && teamSettings && teamSettings.actionAssignees) || {}; return m[id] || ''; }
 async function setActionAssignee(id, player){
   if (typeof teamSettings==='undefined' || !teamSettings) teamSettings = {};
@@ -3882,7 +3891,7 @@ function renderInsightActions(list){
         </div>
         <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 6px">Ví cần xử lý (${a.items.length})</div>
         <div style="flex:1;min-height:120px;max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
-          ${a.items.map(it=>`<div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:5px 8px;background:var(--bg2);border-radius:6px"><span onclick="copyFlash(this,'${(it.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer">${it.label}</span><span data-tip="Người quản lý" style="font-size:9.5px;font-weight:600;color:${it.player?'var(--accent)':'var(--muted2)'};white-space:nowrap;max-width:74px;overflow:hidden;text-overflow:ellipsis">${it.player||'—'}</span><span style="font-size:10px;color:var(--muted2);white-space:nowrap;flex-shrink:0">${it.note}</span></div>`).join('')}
+          ${_sortItems(a.items).map(it=>`<div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:5px 8px;background:var(--bg2);border-radius:6px"><span onclick="copyFlash(this,'${(it.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy tên ví" style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer">${it.label}</span><span ${it.player?`onclick="copyFlash(this,'${it.player.replace(/'/g,"")}')" data-tip="Nhấp để copy người chơi" style="cursor:pointer;`:'data-tip="Chưa gán" style="'}font-size:9.5px;font-weight:600;color:${it.player?'var(--accent)':'var(--muted2)'};white-space:nowrap;max-width:74px;overflow:hidden;text-overflow:ellipsis">${it.player||'—'}</span><span style="font-size:10px;color:var(--muted2);white-space:nowrap;flex-shrink:0">${it.note}</span></div>`).join('')}
         </div>
         ${(()=>{ const cur=actionAssignee(a.id); const players=(typeof teamPlayers!=='undefined'?teamPlayers:[])||[]; const admin=(typeof isRealAdmin==='function'&&isRealAdmin());
           return `<div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border2)">
@@ -3893,10 +3902,13 @@ function renderInsightActions(list){
           </div>`; })()}
       </div>`;
   const cols = acts.length ? acts.map(col).join('') : `<div style="font-size:12px;color:var(--muted2);padding:16px">Không có việc nào ${insightFilter!=='all'?'thuộc nhóm này':'cần xử lý'} — mọi ví đang ổn.</div>`;
+  const sorts = [['default','Ưu tiên'],['name','Tên'],['player','Người'],['value','Giá trị']];
+  const sbar = sorts.map(([k,l]) => `<button onclick="setInsightSort('${k}')" style="padding:4px 10px;border-radius:14px;border:1px solid ${insightSort===k?'var(--accent)':'var(--border2)'};background:${insightSort===k?'color-mix(in srgb,var(--accent) 12%,transparent)':'var(--card)'};color:${insightSort===k?'var(--accent)':'var(--muted2)'};font-family:inherit;font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap">${l}</button>`).join('');
   el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-      <div style="font-size:13px;font-weight:800;color:var(--text)">Việc nên làm <span style="font-size:11px;font-weight:600;color:var(--muted2)">· xếp theo giá trị · cuộn ngang →</span></div>
+      <div style="font-size:13px;font-weight:800;color:var(--text)">Việc nên làm <span style="font-size:11px;font-weight:600;color:var(--muted2)">· cuộn ngang →</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${fbar}</div>
     </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Sắp xếp ví</span><div style="display:flex;gap:5px;flex-wrap:wrap">${sbar}</div></div>
     <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;align-items:stretch">${cols}</div>`;
 }
 
