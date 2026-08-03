@@ -3461,22 +3461,96 @@ const WALLET_FLAG_DEF = {
   unassign: { label:'Chưa gán', color:'#6b6b74', title:'Chưa gán người chơi — cần dọn dữ liệu' },
 };
 const WALLET_FLAG_ORDER = ['gas','near','idle','unassign'];
+function alertCfg(){
+  const c = (typeof teamSettings!=='undefined' && teamSettings && teamSettings.alertConfig) || {};
+  const on = (o) => !o || o.on !== false;
+  return {
+    gas:      { on: on(c.gas),      threshold: (c.gas && c.gas.threshold != null) ? c.gas.threshold : 0.05 },
+    near:     { on: on(c.near),     threshold: (c.near && c.near.threshold != null) ? c.near.threshold : 100 },
+    idle:     { on: on(c.idle) },
+    unassign: { on: on(c.unassign) },
+  };
+}
+function flagTitle(k){
+  const cfg = alertCfg();
+  if (k === 'gas')  return `AVAX dưới ${cfg.gas.threshold} — giao dịch sẽ fail, không claim/chi được`;
+  if (k === 'near') return `Cách ngưỡng hạng kế tiếp ≤ ${cfg.near.threshold} điểm — cơ hội lên hạng rẻ nhất tuần này`;
+  return WALLET_FLAG_DEF[k].title;
+}
+function openAlertConfig(){
+  if (!isRealAdmin()) return;
+  const cfg = alertCfg();
+  let ov = document.getElementById('alert-cfg-modal');
+  if (!ov){ ov = document.createElement('div'); ov.id='alert-cfg-modal'; document.body.appendChild(ov); }
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  const sw = (id,on) => `<label style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="_acfgSync()" style="opacity:0;width:0;height:0"><span class="acfg-slider" style="position:absolute;inset:0;background:${on?'var(--accent)':'var(--border2)'};border-radius:22px;transition:.2s;cursor:pointer"></span><span class="acfg-knob" style="position:absolute;top:3px;left:${on?'21px':'3px'};width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;pointer-events:none"></span></label>`;
+  const row = (key,color,label,desc,on,thr) => `<div style="display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px solid var(--border2)">
+      <span style="width:9px;height:9px;border-radius:50%;background:${color};margin-top:5px;flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${label}</div>
+        <div style="font-size:11px;color:var(--muted2);margin-top:2px">${desc}</div>
+        ${thr!==null ? `<div style="display:flex;align-items:center;gap:8px;margin-top:9px"><span style="font-size:11px;color:var(--muted2)">${key==='gas'?'Ngưỡng AVAX':'Điểm cách hạng'}</span><input type="number" id="acfg-${key}-thr" value="${thr}" step="${key==='gas'?'0.01':'10'}" min="0" style="width:90px;padding:5px 8px;border-radius:7px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:12px"></div>` : ''}
+      </div>
+      ${sw('acfg-'+key+'-on', on)}
+    </div>`;
+  ov.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;max-width:470px;width:100%;padding:22px 24px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:16px;font-weight:800;color:var(--text)">Cấu hình cảnh báo</div>
+        <button onclick="closeAlertConfig()" style="background:none;border:none;color:var(--muted2);font-size:20px;cursor:pointer;line-height:1;padding:0 4px">×</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted2);margin-bottom:8px">Bật/tắt từng loại cảnh báo và chỉnh ngưỡng theo ý bạn. Áp dụng cho toàn team.</div>
+      ${row('gas','#ef4444','Hết gas','AVAX thấp hơn ngưỡng — giao dịch sẽ fail',cfg.gas.on,cfg.gas.threshold)}
+      ${row('near','#f5a524','Sát ngưỡng','Cách hạng kế tiếp trong khoảng N điểm',cfg.near.on,cfg.near.threshold)}
+      ${row('idle','#f5a524','Đứng yên','Đã tải CP nhưng chưa tích điểm MVP',cfg.idle.on,null)}
+      ${row('unassign','#6b6b74','Chưa gán','Ví chưa gán người chơi',cfg.unassign.on,null)}
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+        <button onclick="closeAlertConfig()" style="padding:9px 16px;border-radius:9px;border:1px solid var(--border2);background:var(--card);color:var(--text2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer">Huỷ</button>
+        <button onclick="saveAlertConfig()" style="padding:9px 18px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Lưu</button>
+      </div>
+    </div>`;
+  ov.onclick = (e) => { if (e.target === ov) closeAlertConfig(); };
+  _acfgSync();
+}
+function _acfgSync(){
+  ['gas','near','idle','unassign'].forEach(k => {
+    const cb = document.getElementById('acfg-'+k+'-on'); if (!cb) return;
+    const sl = cb.parentElement.querySelector('.acfg-slider'), kn = cb.parentElement.querySelector('.acfg-knob');
+    if (sl) sl.style.background = cb.checked ? 'var(--accent)' : 'var(--border2)';
+    if (kn) kn.style.left = cb.checked ? '21px' : '3px';
+    const thr = document.getElementById('acfg-'+k+'-thr'); if (thr) thr.disabled = !cb.checked, thr.style.opacity = cb.checked ? '1' : '.45';
+  });
+}
+function closeAlertConfig(){ const ov=document.getElementById('alert-cfg-modal'); if(ov) ov.style.display='none'; }
+async function saveAlertConfig(){
+  const g = id => document.getElementById(id);
+  if (typeof teamSettings === 'undefined' || !teamSettings) teamSettings = {};
+  teamSettings.alertConfig = {
+    gas:      { on: g('acfg-gas-on').checked,      threshold: parseFloat(g('acfg-gas-thr').value) || 0.05 },
+    near:     { on: g('acfg-near-on').checked,     threshold: parseInt(g('acfg-near-thr').value, 10) || 100 },
+    idle:     { on: g('acfg-idle-on').checked },
+    unassign: { on: g('acfg-unassign-on').checked },
+  };
+  closeAlertConfig();
+  try { renderTeam(); } catch(e){}
+  try { await saveTeamData(); } catch(e){ console.warn('Lưu cấu hình cảnh báo lỗi', e); }
+}
 function walletFlags(w) {
+  const cfg = alertCfg();
   const f = [];
-  if (w.avax != null && w.avax < 0.05) f.push('gas');
-  if (w.mvpPoints != null) {
+  if (cfg.gas.on && w.avax != null && w.avax < cfg.gas.threshold) f.push('gas');
+  if (cfg.near.on && w.mvpPoints != null) {
     const nt = getNextTier(w.mvpPoints);
-    if (nt && (nt.min - w.mvpPoints) <= 100 && (nt.min - w.mvpPoints) > 0) f.push('near');
+    if (nt && (nt.min - w.mvpPoints) <= cfg.near.threshold && (nt.min - w.mvpPoints) > 0) f.push('near');
   }
-  if (w.cpLoaded && (w.mvpPoints == null || w.mvpPoints === 0)) f.push('idle');
-  if (!w.player) f.push('unassign');
+  if (cfg.idle.on && w.cpLoaded && (w.mvpPoints == null || w.mvpPoints === 0)) f.push('idle');
+  if (cfg.unassign.on && !w.player) f.push('unassign');
   return f;
 }
 function walletFlagPills(w) {
   const fs = walletFlags(w);
   if (!fs.length) return '<span style="color:var(--muted2);font-size:10px">—</span>';
   const pills = fs.map(k => { const d = WALLET_FLAG_DEF[k];
-    return `<span data-tip="${d.title}" style="display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:600;color:${d.color};background:color-mix(in srgb,${d.color} 14%,transparent);border:1px solid color-mix(in srgb,${d.color} 38%,transparent);white-space:nowrap">${d.label}</span>`;
+    return `<span data-tip="${flagTitle(k)}" style="display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border-radius:5px;font-size:9.5px;font-weight:600;color:${d.color};background:color-mix(in srgb,${d.color} 14%,transparent);border:1px solid color-mix(in srgb,${d.color} 38%,transparent);white-space:nowrap">${d.label}</span>`;
   }).join('');
   return `<div style="display:grid;grid-template-columns:repeat(2,max-content);gap:3px 4px;width:max-content">${pills}</div>`;
 }
@@ -3510,7 +3584,8 @@ function renderAlertChips(list) {
     explain = `<div style="margin-top:10px;font-size:11.5px;color:var(--muted2);line-height:1.5"><b style="color:${d.color}">${d.label}:</b> ${d.title}.</div>`;
   }
   const title = `<div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span style="display:inline-flex;color:#f5a524"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span style="font-size:12.5px;font-weight:800;color:var(--text)">Cần xử lý</span><span style="font-size:10.5px;color:var(--muted2)">${anyFlagged} ví có cảnh báo</span></div>`;
-  el.innerHTML = `<div style="padding:2px 0 4px"><div style="display:flex;align-items:center;gap:14px;flex-wrap:nowrap;overflow-x:auto">${title}<div style="display:flex;gap:8px;flex-shrink:0">${chips}</div></div>${explain}</div>`;
+  const cfgBtn = isRealAdmin() ? `<button onclick="openAlertConfig()" data-tip="Cấu hình cảnh báo" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--card);color:var(--text2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-left:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Cấu hình</button>` : '';
+  el.innerHTML = `<div style="padding:2px 0 4px"><div style="display:flex;align-items:center;gap:14px;flex-wrap:nowrap;overflow-x:auto">${title}<div style="display:flex;gap:8px;flex-shrink:0;align-items:center">${chips}${cfgBtn}</div></div>${explain}</div>`;
 }
 
 let teamTab = 'state';
