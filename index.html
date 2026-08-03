@@ -865,7 +865,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <!-- Dải Net -->
       <div id="flow-net" class="stats-fixed" style="margin-bottom:16px"></div>
       <!-- NESO CLAIM CHART -->
-      <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-top:0!important;margin-bottom:0!important;min-width:0!important}.flow-grid [id$="-chart-body"]{overflow-x:auto;max-width:100%}</style><div class="flow-grid" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px">
+      <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}@media(max-width:640px){.insight-diag-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-top:0!important;margin-bottom:0!important;min-width:0!important}.flow-grid [id$="-chart-body"]{overflow-x:auto;max-width:100%}</style><div class="flow-grid" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px">
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -989,9 +989,12 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- TAB: Insight & Đề xuất -->
       <div class="tabpanel" id="tab-insight" style="display:none">
-        <div id="team-insights" style="margin-bottom:20px"></div>
+        <div id="insight-recon" style="margin-bottom:16px"></div>
         <div id="insight-potential" style="margin-bottom:16px"></div>
-        <div id="insight-sim"></div>
+        <div id="insight-actions" style="margin-bottom:16px"></div>
+        <div id="insight-diag" style="margin-bottom:16px"></div>
+        <div id="insight-sim" style="margin-bottom:16px"></div>
+        <div id="insight-formula"></div>
       </div><!-- /tab-insight -->
 
       <!-- TAB: KPI & OKR -->
@@ -3698,38 +3701,184 @@ function gapToNextTier(w){
   return nt ? Math.max(nt.min - w.mvpPoints, 0) : null;
 }
 
-function renderInsightPotential(list) {
-  const el = document.getElementById('insight-potential');
-  if (!el) return;
-  const fmt = n => Math.round(n).toLocaleString('vi-VN');
-  const wallets = list || [];
-  // Nâng hạng MVP: ví sắp đạt (gap ≤ 100) — mỗi ví lên hạng ≈ VALUE_PER_UPGRADE
-  const near = wallets.filter(w => { const g = gapToNextTier(w); return g != null && g > 0 && g <= 100; });
-  const upgradeVal = near.length * VALUE_PER_UPGRADE * RECON_RATIO;
-  // Vốn nằm không: USDT ở ví chưa gán / không tích điểm
-  const idleCap = wallets.filter(w => !w.player || (w.cpLoaded && (w.mvpPoints==null||w.mvpPoints===0)))
-                         .reduce((s,w)=>s+(w.usdt_avax_real||0),0);
-  const total = upgradeVal + idleCap;
-  const part = (label, val, sub, color) => `<div style="flex:1;min-width:150px">
-      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">${label}</div>
-      <div style="font-family:'Chakra Petch',monospace;font-size:18px;font-weight:700;color:${color};margin-top:5px">$${fmt(val)}</div>
-      <div style="font-size:10.5px;color:var(--muted2);margin-top:3px">${sub}</div>
-    </div>`;
-  el.innerHTML = `<div style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 12%,var(--bg2)),var(--bg2));border:1px solid var(--border2);border-radius:14px;padding:16px 18px">
-      <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">
-        <div style="flex:0 0 auto">
-          <div style="font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tiềm năng tháng tới (ước tính)</div>
-          <div style="font-family:'Chakra Petch',monospace;font-size:38px;font-weight:700;color:var(--accent);line-height:1.05;margin-top:6px">$${fmt(total)}</div>
-        </div>
-        <div style="flex:1;display:flex;gap:18px;flex-wrap:wrap;min-width:220px;align-items:flex-start;padding-top:6px">
-          ${part('Nâng hạng MVP', upgradeVal, near.length+' ví sắp đạt × $'+VALUE_PER_UPGRADE, 'var(--green)')}
-          ${part('Vốn nằm không', idleCap, 'USDT ở ví nhàn rỗi/chưa gán', '#f5a524')}
-          ${part('Cắt lỗ ví kém', 0, 'Cần dữ liệu ROI 13 tuần', 'var(--muted2)')}
-        </div>
+function _fviI(n){ return Math.round(n||0).toLocaleString('vi-VN'); }
+function reconRatio(){ const r = (typeof teamSettings!=='undefined' && teamSettings && teamSettings.reconRatio); return (typeof r==='number' && r>0) ? r : 1; }
+
+// ===== Sinh danh sách việc nên làm (từ dữ liệu on-chain sẵn có) =====
+function insightActions(wallets){
+  const NP = MVP_NESO_PER_POINT, R = reconRatio();
+  const gt = (typeof alertCfg==='function') ? alertCfg().gas.threshold : 0.05;
+  const acts = [];
+  // Luật 1 — Khoảng cách hạng MVP (gap ≤ 100)
+  const near = wallets.filter(w => { const g=gapToNextTier(w); return g!=null && g>0 && g<=100; });
+  if (near.length){
+    const nesoNeed = near.reduce((s,w)=>s+gapToNextTier(w)*NP,0);
+    const gain = near.length * VALUE_PER_UPGRADE * R;
+    acts.push({ type:'MVP', color:'#22c55e', urgency:'Cao',
+      title:`Nâng hạng ${near.length} ví sát ngưỡng`,
+      why:`${near.length} ví chỉ còn ≤100 điểm nữa là lên hạng. Chi tổng ${_fviI(nesoNeed)} NESO tuần này để cả nhóm lên hạng — ước thu thêm ~$${_fviI(gain)} (mỗi ví ~$${VALUE_PER_UPGRADE}).`,
+      chips: near.slice(0,12).map(w=>`${w.label||'—'} +${gapToNextTier(w)}đ`),
+      cost:`${_fviI(nesoNeed)} NESO`, gain:`$${_fviI(gain)}`, effort:'Thấp',
+      cta:"setMvpFilter('below');switchTeamTab('state')", ctaLabel:`Xem ${near.length} ví`,
+      score: gain });
+  }
+  // Luật 3 — Vốn nằm không (USDT ở ví chưa gán / không tích điểm)
+  const idle = wallets.filter(w => (w.usdt_avax_real||0) > 0 && (!w.player || (w.cpLoaded && (w.mvpPoints==null||w.mvpPoints===0))));
+  const idleCap = idle.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
+  if (idle.length && idleCap > 0){
+    acts.push({ type:'Vốn', color:'#f5a524', urgency:'TB',
+      title:'Kích hoạt vốn nằm không',
+      why:`${idle.length} ví đang giữ tổng $${_fviI(idleCap)} USDT nhưng chưa gán hoặc chưa tích điểm — vốn nằm không, không sinh lời. Điều phối sang ví đang farm hoặc swap tái đầu tư.`,
+      chips: idle.slice(0,12).map(w=>`${w.label||'—'} $${_fviI(w.usdt_avax_real)}`),
+      cost:'—', gain:`$${_fviI(idleCap)}`, effort:'TB',
+      cta:"setAlertFilter('idle');switchTeamTab('state')", ctaLabel:`Xem ${idle.length} ví`,
+      score: idleCap/2 });
+  }
+  // Rủi ro — Hết gas (chặn farm)
+  const gas = wallets.filter(w => w.avax!=null && w.avax < gt);
+  if (gas.length){
+    acts.push({ type:'Hiệu quả', color:'#e0625c', urgency:'Cao',
+      title:`Nạp gas cho ${gas.length} ví`,
+      why:`${gas.length} ví có AVAX dưới ${gt} — giao dịch sẽ fail, không claim/chi được, mất doanh thu cho tới khi nạp gas.`,
+      chips: gas.slice(0,12).map(w=>`${w.label||'—'} ${(w.avax||0).toFixed(3)}`),
+      cost:'phí gas', gain:'khôi phục farm', effort:'Thấp',
+      cta:"setAlertFilter('gas');switchTeamTab('state')", ctaLabel:`Xem ${gas.length} ví`,
+      score: gas.length * 60 });
+  }
+  // Hiệu quả — Chưa gán người chơi (dữ liệu sạch)
+  const un = wallets.filter(w => !w.player);
+  if (un.length){
+    acts.push({ type:'Hiệu quả', color:'#8b7bd8', urgency:'Thấp',
+      title:`Gán người chơi cho ${un.length} ví`,
+      why:`${un.length} ví chưa gán người chơi — thiếu dữ liệu để tính ROI theo người và phân việc chính xác.`,
+      chips: un.slice(0,12).map(w=>`${w.label||'—'}`),
+      cost:'—', gain:'dữ liệu sạch', effort:'Thấp',
+      cta:"setAlertFilter('unassign');switchTeamTab('state')", ctaLabel:`Xem ${un.length} ví`,
+      score: un.length * 15 });
+  }
+  return acts.sort((a,b)=>b.score-a.score);
+}
+
+// ===== Khối 1 — Đối chiếu tuần trước =====
+function renderInsightRecon(list){
+  const el = document.getElementById('insight-recon'); if(!el) return;
+  const R = reconRatio();
+  const hasHistory = false; // cần bảng action_plan + kết quả thật (backend) — chưa có
+  el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em">Đối chiếu tuần trước</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Hệ số hiệu chỉnh</span><span style="font-family:'Inter',sans-serif;font-size:15px;font-weight:800;color:var(--accent)">${R.toFixed(2)}×</span></div>
       </div>
-      <div style="font-size:10px;color:var(--muted2);margin-top:11px;line-height:1.5">Tổng = nâng hạng + vốn nhàn rỗi. Con số nhân hệ số hiệu chỉnh (hiện = ${RECON_RATIO}); phần "cắt lỗ" cần bổ sung dữ liệu ROI để tính.</div>
+      <div style="font-size:11.5px;color:var(--muted2);margin-top:8px;line-height:1.6">${hasHistory ? '' : 'Chưa có dữ liệu đối chiếu — cần tích luỹ ít nhất 1 tuần việc đã "Xong" để so ước tính với kết quả thật. Trong lúc đó hệ số hiệu chỉnh = 1.00× (mọi con số ước tính bên dưới chưa được điều chỉnh). <b style="color:var(--text2)">Cần backend</b>: bảng lưu việc + chốt kết quả thứ Năm hàng tuần.'}</div>
     </div>`;
 }
+
+function renderInsightPotential(list) {
+  const el = document.getElementById('insight-potential'); if (!el) return;
+  const wallets = list || [];
+  const R = reconRatio();
+  const near = wallets.filter(w => { const g=gapToNextTier(w); return g!=null && g>0 && g<=100; });
+  const upgradeVal = near.length * VALUE_PER_UPGRADE * R;
+  const idle = wallets.filter(w => (w.usdt_avax_real||0) > 0 && (!w.player || (w.cpLoaded && (w.mvpPoints==null||w.mvpPoints===0))));
+  const idleCap = idle.reduce((s,w)=>s+(w.usdt_avax_real||0),0);
+  const cutLoss = null; // cần ROI 13 tuần
+  const total = upgradeVal + idleCap;
+  const part = (label, valStr, sub, color) => `<div style="flex:1;min-width:140px">
+      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">${label}</div>
+      <div style="font-family:'Inter',sans-serif;font-size:19px;font-weight:800;letter-spacing:-.02em;color:${color};margin-top:5px">${valStr}</div>
+      <div style="font-size:10.5px;color:var(--muted2);margin-top:3px">${sub}</div>
+    </div>`;
+  el.innerHTML = `<div style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 13%,var(--bg2)),var(--bg2));border:1px solid var(--border2);border-radius:14px;padding:16px 18px">
+      <div style="display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap">
+        <div style="flex:0 0 auto">
+          <div style="font-size:10.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Tiềm năng tuần này (đã hiệu chỉnh)</div>
+          <div style="font-family:'Inter',sans-serif;font-size:40px;font-weight:800;letter-spacing:-.03em;color:var(--accent);line-height:1.05;margin-top:6px">$${_fviI(total)}</div>
+        </div>
+        <div style="flex:1;display:flex;gap:18px;flex-wrap:wrap;min-width:240px;align-items:flex-start;padding-top:6px">
+          ${part('Nâng hạng MVP', '$'+_fviI(upgradeVal), near.length+' ví sát ngưỡng', 'var(--green)')}
+          ${part('Vốn nằm không', '$'+_fviI(idleCap), idle.length+' ví nhàn rỗi', '#f5a524')}
+          ${part('Cắt lỗ ví kém', 'Cần dữ liệu', 'ROI 13 tuần', 'var(--muted2)')}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:11px;line-height:1.5">Tổng = Nâng hạng MVP + Vốn nằm không (× hệ số hiệu chỉnh ${R.toFixed(2)}). "Cắt lỗ" cần dữ liệu ROI 13 tuần để tính.</div>
+    </div>`;
+}
+
+// ===== Khối 3 — Danh sách việc nên làm =====
+let insightFilter = 'all';
+function setInsightFilter(f){ insightFilter = f || 'all'; renderInsightActions(window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[])); }
+function renderInsightActions(list){
+  const el = document.getElementById('insight-actions'); if(!el) return;
+  const wallets = list || [];
+  let acts = insightActions(wallets);
+  const FT = { all:null, MVP:'MVP', 'Vốn':'Vốn', 'Hiệu quả':'Hiệu quả' };
+  if (insightFilter !== 'all') acts = acts.filter(a => a.type === insightFilter);
+  const filters = ['all','MVP','Vốn','Hiệu quả'];
+  const fbar = filters.map(f => `<button onclick="setInsightFilter('${f}')" style="padding:5px 12px;border-radius:16px;border:1px solid ${insightFilter===f?'var(--accent)':'var(--border2)'};background:${insightFilter===f?'color-mix(in srgb,var(--accent) 14%,transparent)':'var(--card)'};color:${insightFilter===f?'var(--accent)':'var(--text2)'};font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">${f==='all'?'Tất cả':f}</button>`).join('');
+  const urgColor = u => u==='Cao'?'#e0625c':u==='TB'?'#d8a44f':'var(--muted2)';
+  const cards = acts.length ? acts.map((a,i)=>`<div style="background:var(--card);border:1px solid var(--border2);border-left:3px solid ${a.color};border-radius:12px;padding:14px 16px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-family:'Inter',sans-serif;font-size:12px;font-weight:800;color:var(--muted2)">#${i+1}</span>
+              <span style="font-size:13.5px;font-weight:800;color:var(--text)">${a.title}</span>
+              <span style="font-size:9.5px;font-weight:700;color:${a.color};background:color-mix(in srgb,${a.color} 14%,transparent);border:1px solid color-mix(in srgb,${a.color} 34%,transparent);border-radius:5px;padding:2px 7px">${a.type}</span>
+              <span style="font-size:9.5px;font-weight:700;color:${urgColor(a.urgency)}">● ${a.urgency}</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--text2);margin-top:8px;line-height:1.6">${a.why}</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:9px">${a.chips.map(c=>`<span style="font-size:10px;color:var(--muted2);background:var(--bg2);border:1px solid var(--border2);border-radius:5px;padding:2px 7px;white-space:nowrap">${c}</span>`).join('')}</div>
+            <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:11px">
+              <div><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase">Cần chi</div><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-top:2px">${a.cost}</div></div>
+              <div><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase">Ước thu</div><div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:800;color:var(--green);margin-top:2px">${a.gain}</div></div>
+              <div><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase">Công sức</div><div style="font-size:13px;font-weight:700;color:var(--text2);margin-top:2px">${a.effort}</div></div>
+            </div>
+          </div>
+          <button onclick="${a.cta}" style="flex-shrink:0;align-self:center;padding:8px 14px;border-radius:9px;border:1px solid ${a.color};background:color-mix(in srgb,${a.color} 12%,transparent);color:${a.color};font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${a.ctaLabel} →</button>
+        </div>
+      </div>`).join('') : `<div style="font-size:12px;color:var(--muted2);padding:16px;text-align:center">Không có việc nào ${insightFilter!=='all'?'thuộc nhóm này':'cần xử lý'} — mọi ví đang ổn.</div>`;
+  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:800;color:var(--text)">Việc nên làm <span style="font-size:11px;font-weight:600;color:var(--muted2)">· xếp theo giá trị</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${fbar}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">${cards}</div>`;
+}
+
+// ===== Khối 4 — Chẩn đoán =====
+function renderInsightDiag(list){
+  const el = document.getElementById('insight-diag'); if(!el) return;
+  const wallets = list || [];
+  const counts = {}; (typeof WALLET_FLAG_ORDER!=='undefined'?WALLET_FLAG_ORDER:[]).forEach(k=>counts[k]=0);
+  wallets.forEach(w => walletFlags(w).forEach(k => counts[k]=(counts[k]||0)+1));
+  const alertRow = (k) => { const d=WALLET_FLAG_DEF[k]; return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border2)"><span style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)"><span style="width:8px;height:8px;border-radius:50%;background:${d.color}"></span>${d.label}</span><span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${counts[k]?d.color:'var(--muted2)'}">${counts[k]||0}</span></div>`; };
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px" class="insight-diag-grid">
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">ROI theo người chơi</div>
+        <div style="font-size:11.5px;color:var(--muted2);line-height:1.6">Cần dữ liệu ROI 13 tuần (claim ÷ vốn+swap-in) để tính hiệu quả từng người. <b style="color:var(--text2)">Cần dữ liệu đầu tư/swap-in</b> tích luỹ theo tuần.</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Cảnh báo</div>
+        ${(typeof WALLET_FLAG_ORDER!=='undefined'?WALLET_FLAG_ORDER:[]).map(alertRow).join('')}
+        <div onclick="switchTeamTab('state')" style="font-size:10.5px;color:var(--accent);margin-top:8px;cursor:pointer">Xem chi tiết ở tab Trạng thái ví →</div>
+      </div>
+    </div>`;
+}
+
+// ===== Khối 6 — Đề xuất được tính từ đâu =====
+function renderInsightFormula(){
+  const el = document.getElementById('insight-formula'); if(!el) return;
+  const gt = (typeof alertCfg==='function') ? alertCfg().gas.threshold : 0.05;
+  const box = (title, body) => `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:13px 15px">
+      <div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:6px">${title}</div>
+      <div style="font-size:11px;color:var(--muted2);line-height:1.6">${body}</div></div>`;
+  el.innerHTML = `<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:10px">Đề xuất được tính từ đâu</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px" class="insight-diag-grid">
+      ${box('Nâng hạng MVP', `(ngưỡng hạng kế − điểm hiện tại) × ${_fviI(MVP_NESO_PER_POINT)} = NESO cần chi. Chỉ đề xuất khi còn ≤ 100 điểm. Ước thu = số ví × $${VALUE_PER_UPGRADE} × hệ số hiệu chỉnh.`)}
+      ${box('Vốn nằm không', 'USDT ở ví chưa gán hoặc chưa tích điểm MVP = vốn nhàn rỗi, tính chi phí cơ hội. (Ngưỡng ≥14 ngày cần dữ liệu lịch sử.)')}
+      ${box('Hết gas', `AVAX < ${gt} → giao dịch fail, chặn farm. Ngưỡng chỉnh ở nút "Cấu hình" tab Trạng thái ví.`)}
+      ${box('Hệ số hiệu chỉnh', 'reconRatio = tổng thực tế ÷ tổng ước tính của các việc đã "Xong" tuần trước. Nhân vào mọi ước tính để tự sửa sai. (Hiện = 1.00 khi chưa có dữ liệu.)')}
+    </div>`;
+}
+
 
 function renderInsightSim(list) {
   const el = document.getElementById('insight-sim');
@@ -4137,9 +4286,13 @@ function renderMemberView(list) {
 }
 
 function renderInsightTab(list) {
-  renderInsights(list);
-  renderInsightPotential(list);
-  renderInsightSim(list);
+  const wallets = list || window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[]) || [];
+  try { renderInsightRecon(wallets); } catch(e){}
+  try { renderInsightPotential(wallets); } catch(e){}
+  try { renderInsightActions(wallets); } catch(e){}
+  try { renderInsightDiag(wallets); } catch(e){}
+  try { renderInsightSim(wallets); } catch(e){}
+  try { renderInsightFormula(); } catch(e){}
 }
 
 function renderAllFdd(){ Object.keys(FDD).forEach(renderFdd); }
