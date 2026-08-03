@@ -963,9 +963,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
         <div id="swapin-detail-body" style="display:none"></div>
       </div>
-      </div><!-- /flow-grid -->
-
-      <div id="usdt-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:20px;display:none">
+      <div id="usdt-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)margin-top:0;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--blue);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
@@ -986,6 +984,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
         <div id="usdt-detail-body" style="display:none"></div>
       </div>
+      </div><!-- /flow-grid -->
       </div><!-- /tab-flow -->
 
       <!-- TAB: Insight & Đề xuất -->
@@ -3617,11 +3616,11 @@ function setFlowPeriod(p) {
   renderFlowNet();
 }
 const FLOW_CHARTS = [
-  { k:'claim',  wrap:'claim-chart-wrap',  label:'NESO Claim', color:'#22c55e' },
-  { k:'spend',  wrap:'spend-chart-wrap',  label:'Chi tiêu',   color:'#ef4444' },
-  { k:'swap',   wrap:'swap-chart-wrap',   label:'Swap out',   color:'#f5a524' },
-  { k:'swapin', wrap:'swapin-chart-wrap', label:'Swap in',    color:'#38bdf8' },
-  { k:'usdt',   wrap:'usdt-chart-wrap',   label:'USDT',       color:'#a855f7' },
+  { k:'claim',  wrap:'claim-chart-wrap',  label:'NESO Claim', color:'#22c55e', render:'renderClaimChart' },
+  { k:'spend',  wrap:'spend-chart-wrap',  label:'Chi tiêu',   color:'#ef4444', render:'renderSpendChart' },
+  { k:'swap',   wrap:'swap-chart-wrap',   label:'Swap out',   color:'#f5a524', render:'renderSwapChart' },
+  { k:'swapin', wrap:'swapin-chart-wrap', label:'Swap in',    color:'#38bdf8', render:'renderSwapinChart' },
+  { k:'usdt',   wrap:'usdt-chart-wrap',   label:'USDT',       color:'#a855f7', render:'renderUsdtChart' },
 ];
 let flowChart = 'claim';
 function setFlowChart(k){ flowChart = k; renderFlowPeriodBar(); }
@@ -3632,6 +3631,9 @@ function renderFlowPeriodBar() {
   }
   // Chỉ hiện bảng đang chọn (nhấp nút = xem bảng đó)
   FLOW_CHARTS.forEach(c => { const w = document.getElementById(c.wrap); if (w) w.style.display = (c.k === flowChart) ? 'block' : 'none'; });
+  // Vẽ lại bảng đang chọn để đúng kích thước (Chart.js vẽ sai trong div ẩn)
+  const cur = FLOW_CHARTS.find(c => c.k === flowChart);
+  if (cur) setTimeout(() => { try { if (typeof window[cur.render] === 'function') window[cur.render](); } catch(e){} }, 0);
 }
 // tổng của một chuỗi dữ liệu chart trong kỳ hiện tại
 function _sumChart(data, period) {
