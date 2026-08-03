@@ -3852,7 +3852,7 @@ function renderInsightPotential(list) {
 let insightFilter = 'all';
 function setInsightFilter(f){ insightFilter = f || 'all'; renderInsightActions(window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[])); }
 let insightSort = 'default';
-function setInsightSort(k){ insightSort = k || 'default'; renderInsightActions(window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[])); }
+function setInsightSort(k){ insightSort = (insightSort === k) ? 'default' : (k||'default'); renderInsightActions(window._teamDisplay || (typeof teamWallets!=='undefined'?teamWallets:[])); }
 function _sortItems(items){
   const a = items.slice();
   if (insightSort === 'name')   a.sort((x,y)=>(x.label||'').localeCompare(y.label||''));
@@ -3889,8 +3889,10 @@ function renderInsightActions(list){
           <div><div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase">Ước thu</div><div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:800;color:var(--green);margin-top:2px">${a.gain}</div></div>
           <div><div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase">Công sức</div><div style="font-size:12px;font-weight:700;color:var(--text2);margin-top:2px">${a.effort}</div></div>
         </div>
-        <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 6px">Ví cần xử lý (${a.items.length})</div>
-        <div style="flex:1;min-height:120px;max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+        <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 5px">Ví cần xử lý (${a.items.length})</div>
+        ${(()=>{ const sc=(k,l)=>`<span onclick="setInsightSort('${k}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;color:${insightSort===k?'var(--accent)':'var(--muted2)'}">${l}${insightSort===k?' ↓':''}</span>`;
+          return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;padding:0 8px 5px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">${sc('name','Tên')}${sc('player','Người')}${sc('value','Số')}</div>`; })()}
+        <div style="flex:1;min-height:120px;max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-top:4px">
           ${_sortItems(a.items).map(it=>`<div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:5px 8px;background:var(--bg2);border-radius:6px"><span onclick="copyFlash(this,'${(it.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy tên ví" style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer">${it.label}</span><span ${it.player?`onclick="copyFlash(this,'${it.player.replace(/'/g,"")}')" data-tip="Nhấp để copy người chơi" style="cursor:pointer;`:'data-tip="Chưa gán" style="'}font-size:9.5px;font-weight:600;color:${it.player?'var(--accent)':'var(--muted2)'};white-space:nowrap;max-width:74px;overflow:hidden;text-overflow:ellipsis">${it.player||'—'}</span><span style="font-size:10px;color:var(--muted2);white-space:nowrap;flex-shrink:0">${it.note}</span></div>`).join('')}
         </div>
         ${(()=>{ const cur=actionAssignee(a.id); const players=(typeof teamPlayers!=='undefined'?teamPlayers:[])||[]; const admin=(typeof isRealAdmin==='function'&&isRealAdmin());
@@ -3902,13 +3904,10 @@ function renderInsightActions(list){
           </div>`; })()}
       </div>`;
   const cols = acts.length ? acts.map(col).join('') : `<div style="font-size:12px;color:var(--muted2);padding:16px">Không có việc nào ${insightFilter!=='all'?'thuộc nhóm này':'cần xử lý'} — mọi ví đang ổn.</div>`;
-  const sorts = [['default','Ưu tiên'],['name','Tên'],['player','Người'],['value','Giá trị']];
-  const sbar = sorts.map(([k,l]) => `<button onclick="setInsightSort('${k}')" style="padding:4px 10px;border-radius:14px;border:1px solid ${insightSort===k?'var(--accent)':'var(--border2)'};background:${insightSort===k?'color-mix(in srgb,var(--accent) 12%,transparent)':'var(--card)'};color:${insightSort===k?'var(--accent)':'var(--muted2)'};font-family:inherit;font-size:10.5px;font-weight:600;cursor:pointer;white-space:nowrap">${l}</button>`).join('');
   el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div style="font-size:13px;font-weight:800;color:var(--text)">Việc nên làm <span style="font-size:11px;font-weight:600;color:var(--muted2)">· cuộn ngang →</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${fbar}</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Sắp xếp ví</span><div style="display:flex;gap:5px;flex-wrap:wrap">${sbar}</div></div>
     <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;align-items:stretch">${cols}</div>`;
 }
 
