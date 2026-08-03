@@ -3943,7 +3943,9 @@ function renderDataSourceBar(list) {
 }
 
 // ══════════ Xem với quyền (admin preview as member) ══════════
-let _viewAs = null;   // null = xem như admin; hoặc {role,username,players,viewAll}
+let _viewAs = null;
+let _overviewCollapsed = (()=>{ try { return localStorage.getItem('msuOverviewCollapsed') !== '0'; } catch(e){ return true; } })();
+function toggleOverview(){ _overviewCollapsed = !_overviewCollapsed; try { localStorage.setItem('msuOverviewCollapsed', _overviewCollapsed ? '1' : '0'); } catch(e){} try { renderTeam(); } catch(e){} }   // null = xem như admin; hoặc {role,username,players,viewAll}
 function effUser(){ return _viewAs || teamUser || {}; }
 function isRealAdmin(){ return teamUser && teamUser.role === 'admin'; }
 function effectiveWallets(){
@@ -4984,13 +4986,17 @@ function renderTeam() {
         </div>`;
       statsEl.classList.remove('team-stats-6');
       statsEl.style.gridTemplateColumns = '1fr';
+      const _chev = (down) => `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${down?0:180}deg)"><path d="M6 9l6 6 6-6"/></svg>`;
+      const _toggleBtn = (extra) => `<button onclick="event.stopPropagation();toggleOverview()" data-tip="${_overviewCollapsed?'Hiện chi tiết tài khoản':'Thu gọn'}" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);cursor:pointer;flex-shrink:0;${extra||''}">${_chev(_overviewCollapsed)}</button>`;
+      const _collapsedBar = `<div onclick="toggleOverview()" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;flex-wrap:wrap">${_toggleBtn()}<span style="font-size:13px;font-weight:800;color:var(--text)">${_acctName}</span><span style="font-size:11px;color:var(--muted2)">${_ew2.length} ví${_shortH>0?` · <span style=&quot;color:#ef4444;font-weight:600&quot;>${_shortH} thiếu</span>`:''}</span><span style="margin-left:auto;display:flex;align-items:baseline;gap:6px"><span style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase">Tổng</span><span style="font-family:'Inter',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)">${_fv(_totalVndH)}đ</span></span></div>`;
+      const _headerFull = `<div style="position:relative">${_header}${_toggleBtn('position:absolute;top:14px;right:16px;z-index:2')}</div>`;
       statsEl.innerHTML = `<style>
         .member-token-row .stat{border:none!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;border-right:1px solid var(--border2)!important}
         .member-token-row .stat:last-child{border-right:none!important}
         .member-token-row .stat:hover{transform:none!important}
         .member-token-row .stat > div[style*="height:36px"]{display:none!important}
         @media(max-width:820px){.member-token-row{grid-template-columns:repeat(2,1fr)!important}.member-overview [style*="margin-left:auto"]{margin-left:0!important;text-align:left!important}}
-      </style><div class="member-overview" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">${_header}<div class="member-token-row" style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border2)">${_tokenRow}</div></div>`;
+      </style><div class="member-overview" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">${_overviewCollapsed ? _collapsedBar : _headerFull}<div class="member-token-row" style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border2)">${_tokenRow}</div></div>`;
     }
   }
   // Ẩn hẳn cột thao tác (nút xoá) khi không phải admin — tránh chừa cột trống
