@@ -6057,7 +6057,7 @@ async function loadClaimChart() {
   if (!wrap) return;
   const wallets = effectiveWallets();
   if (!wallets.length) { wrap.style.display='none'; return; }
-  wrap.style.display = 'block';
+  wrap.style.display = (typeof flowChart==='undefined' || flowChart==='claim') ? 'block' : 'none';
 
   // Tách nguồn: claim game (mint+crystal+transfer) vs bán NFT/FT (nft+ft)
   const claimOf = r => (r.in_mint_amount||0)+(r.in_crystal_amount||0)+(r.in_transfer_amount||0);
@@ -6313,7 +6313,7 @@ async function loadSpendChart() {
   if (!wrap) return;
   const wallets = effectiveWallets();
   if (!wallets.length) { wrap.style.display='none'; return; }
-  wrap.style.display = 'block';
+  wrap.style.display = (typeof flowChart==='undefined' || flowChart==='spend') ? 'block' : 'none';
 
   // NESO chi ra = crystal + nft + ft + burn (KHÔNG tính swap out, transfer out)
   const crystalOf = r => (r.out_crystal_amount||0);
@@ -6818,7 +6818,7 @@ function renderUsdtChart() {
   if (!wrap || !body) return;
   const ws = teamWallets || [];
   if (!ws.length) { wrap.style.display='none'; return; }
-  wrap.style.display = 'block';
+  wrap.style.display = (typeof flowChart==='undefined' || flowChart==='usdt') ? 'block' : 'none';
 
   const loaded = ws.filter(w => w.usdt_avax_real != null);
   const rows = usdtRows();
@@ -6926,7 +6926,7 @@ async function loadSwapChart() {
   if (!wrap) return;
   const wallets = effectiveWallets();
   if (!wallets.length) { wrap.style.display='none'; return; }
-  wrap.style.display = 'block';
+  wrap.style.display = (typeof flowChart==='undefined' || flowChart==='swap') ? 'block' : 'none';
 
   const inOf  = r => (r.in_swap_amount||0);
   const outOf = r => (r.out_swap_amount||0);
@@ -7120,7 +7120,7 @@ function renderSwapinChart() {
   const body = document.getElementById('swapin-chart-body');
   if (!wrap || !body) return;
   if (!swapChartData) { wrap.style.display='none'; return; }
-  wrap.style.display = 'block';
+  wrap.style.display = (typeof flowChart==='undefined' || flowChart==='swapin') ? 'block' : 'none';
 
   const M = SWAP_MODES[swapinChartMode];
   const src = swapChartData[M.src] || {};
