@@ -859,7 +859,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <!-- Bộ chọn kỳ chung -->
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;margin-bottom:16px">
         <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Kỳ xem</span>
-        <div id="flow-period" style="display:flex;gap:4px"></div>
+        <div id="flow-period" style="display:flex;gap:8px;flex-wrap:wrap"></div>
         <span style="font-size:11px;color:var(--muted2)">Áp dụng cho cả 4 khối bên dưới</span>
       </div>
       <!-- Dải Net -->
@@ -873,7 +873,7 @@ td:first-child{text-align:left;color:var(--muted2)}
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">NESO Claim</span>
             <span style="font-size:10px;color:var(--muted2)">claim + bán NFT/FT (trừ swap)</span>
           </div>
-          <div style="display:none;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+          <div style="display:inline-flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="claim-mode-day" onclick="setClaimChartMode('day')" class="claim-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
             <button id="claim-mode-week" onclick="setClaimChartMode('week')" class="claim-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tuần</button>
             <button id="claim-mode-month" onclick="setClaimChartMode('month')" class="claim-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tháng</button>
@@ -897,7 +897,7 @@ td:first-child{text-align:left;color:var(--muted2)}
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Đầu tư (Investment)</span>
             <span style="font-size:10px;color:var(--muted2)">crystal + mua NFT/FT + burn (+ bơm vốn swap in)</span>
           </div>
-          <div style="display:none;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+          <div style="display:inline-flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="spend-mode-day" onclick="setSpendChartMode('day')" class="spend-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
             <button id="spend-mode-week" onclick="setSpendChartMode('week')" class="spend-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tuần</button>
             <button id="spend-mode-month" onclick="setSpendChartMode('month')" class="spend-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tháng</button>
@@ -921,7 +921,7 @@ td:first-child{text-align:left;color:var(--muted2)}
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Doanh thu (Revenue)</span>
             <span style="font-size:10px;color:var(--muted2)">NESO đổi ra token khác — rút doanh thu (Swap Out)</span>
           </div>
-          <div style="display:none;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+          <div style="display:inline-flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="swap-mode-day" onclick="setSwapChartMode('day')" class="swap-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
             <button id="swap-mode-week" onclick="setSwapChartMode('week')" class="swap-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tuần</button>
             <button id="swap-mode-month" onclick="setSwapChartMode('month')" class="swap-mode-btn" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tháng</button>
@@ -948,7 +948,7 @@ td:first-child{text-align:left;color:var(--muted2)}
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Swap In (Bơm vốn)</span>
             <span style="font-size:10px;color:var(--muted2)">NESO nhận vào từ swap — đổi token khác → NESO (bơm vốn vào)</span>
           </div>
-          <div style="display:none;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
+          <div style="display:inline-flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="swapin-mode-day" onclick="setSwapinChartMode('day')" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
             <button id="swapin-mode-week" onclick="setSwapinChartMode('week')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tuần</button>
             <button id="swapin-mode-month" onclick="setSwapinChartMode('month')" style="background:transparent;border:none;border-radius:6px;padding:6px 12px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Tháng</button>
@@ -3616,11 +3616,22 @@ function setFlowPeriod(p) {
   renderFlowPeriodBar();
   renderFlowNet();
 }
+const FLOW_CHARTS = [
+  { k:'claim',  wrap:'claim-chart-wrap',  label:'NESO Claim', color:'#22c55e' },
+  { k:'spend',  wrap:'spend-chart-wrap',  label:'Chi tiêu',   color:'#ef4444' },
+  { k:'swap',   wrap:'swap-chart-wrap',   label:'Swap out',   color:'#f5a524' },
+  { k:'swapin', wrap:'swapin-chart-wrap', label:'Swap in',    color:'#38bdf8' },
+  { k:'usdt',   wrap:'usdt-chart-wrap',   label:'USDT',       color:'#a855f7' },
+];
+let flowChart = 'claim';
+function setFlowChart(k){ flowChart = k; renderFlowPeriodBar(); }
 function renderFlowPeriodBar() {
   const el = document.getElementById('flow-period');
-  if (!el) return;
-  const opts = [['day','Ngày'],['week','Tuần'],['month','Tháng'],['year','Năm']];
-  el.innerHTML = opts.map(([v,l]) => `<button onclick="setFlowPeriod('${v}')" style="padding:6px 13px;border-radius:7px;border:1px solid ${flowPeriod===v?'var(--accent)':'var(--border2)'};background:${flowPeriod===v?'color-mix(in srgb,var(--accent) 14%,transparent)':'var(--card)'};color:${flowPeriod===v?'var(--accent)':'var(--muted2)'};font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">${l}</button>`).join('');
+  if (el) {
+    el.innerHTML = FLOW_CHARTS.map(c => `<button onclick="setFlowChart('${c.k}')" style="padding:7px 14px;border-radius:8px;border:1px solid ${c.k===flowChart?c.color:'var(--border2)'};background:${c.k===flowChart?`color-mix(in srgb,${c.color} 15%,transparent)`:'var(--card)'};color:${c.k===flowChart?c.color:'var(--text2)'};font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${c.label}</button>`).join('');
+  }
+  // Chỉ hiện bảng đang chọn (nhấp nút = xem bảng đó)
+  FLOW_CHARTS.forEach(c => { const w = document.getElementById(c.wrap); if (w) w.style.display = (c.k === flowChart) ? 'block' : 'none'; });
 }
 // tổng của một chuỗi dữ liệu chart trong kỳ hiện tại
 function _sumChart(data, period) {
