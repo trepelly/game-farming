@@ -721,7 +721,6 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div id="team-alerts" style="margin-bottom:10px"></div>
 
       <!-- Team wallet table -->
-      <div id="team-filter-count" style="font-size:11px;color:var(--muted2);text-align:right;margin-bottom:8px;min-height:0;line-height:1.4"></div>
       <!-- Search + alphabet filter (one row, aligned with table) -->
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center;width:100%">
         <div style="position:relative;flex:1;min-width:220px">
@@ -4667,14 +4666,6 @@ function renderTeam() {
   }
 
   updateColSortIcons();
-  // Update count
-  const countEl = document.getElementById('team-filter-count');
-  if (countEl) {
-    const filtering = query || teamSortMode !== 'default' || mvpFilter !== 'all' || weekFilter !== 'all';
-    countEl.textContent = filtering
-      ? `Hiển thị ${displayWallets.length} / ${teamWallets.length} ví`
-      : '';
-  }
 
   let totNxpc=0, totNeso=0;
 
