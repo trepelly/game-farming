@@ -3595,6 +3595,10 @@ function switchTeamTab(t) {
     if (p) p.style.display = (k===teamTab) ? '' : 'none';
   });
   document.querySelectorAll('.tw-tab').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab')===teamTab));
+  // Bảng tổng (overview) chỉ hiện ở tab "Trạng thái ví"
+  const _ovShow = (teamTab === 'state');
+  const _ov = document.getElementById('team-stats'); if (_ov) _ov.style.display = _ovShow ? '' : 'none';
+  const _mv = document.getElementById('member-view'); if (_mv && _mv.innerHTML.trim()) _mv.style.display = _ovShow ? '' : 'none';
   // vẽ lại nội dung tab cần dữ liệu động
   try { if (teamTab==='insight') renderInsightTab(window._teamDisplay||teamWallets); } catch(e) {}
   try { if (teamTab==='flow' && typeof drawAllFlowCharts==='function') drawAllFlowCharts(); } catch(e) {}
