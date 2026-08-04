@@ -3904,31 +3904,25 @@ function renderInsightActions(list){
           </div>`; })()}
       </div>`;
   let cols = acts.map(col).join('');
-  // 2 thẻ chẩn đoán (cùng kích thước card việc, chỉ hiện khi không lọc)
-  if (insightFilter === 'all') {
-    const farming = wallets.filter(w => w.mvpPoints!=null && w.mvpPoints>=MVP_FARM).length;
-    const loaded  = wallets.filter(w => w.mvpPoints!=null).length;
-    const pct = loaded ? Math.round(farming/loaded*100) : 0;
-    const counts = {}; (typeof WALLET_FLAG_ORDER!=='undefined'?WALLET_FLAG_ORDER:[]).forEach(k=>counts[k]=0);
-    wallets.forEach(w => walletFlags(w).forEach(k => counts[k]=(counts[k]||0)+1));
-    const aRow = (k) => { const d=WALLET_FLAG_DEF[k]; return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2)"><span style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)"><span style="width:8px;height:8px;border-radius:50%;background:${d.color}"></span>${d.label}</span><span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${counts[k]?d.color:'var(--muted2)'}">${counts[k]||0}</span></div>`; };
-    const progCard = `<div style="flex:0 0 300px;max-width:300px;background:var(--card);border:1px solid var(--border2);border-top:3px solid var(--green);border-radius:12px;padding:14px 15px;display:flex;flex-direction:column">
-        <div style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em">Tiến độ farm (≥30 điểm)</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-top:14px"><span style="font-family:'Inter',sans-serif;font-size:40px;font-weight:800;letter-spacing:-.03em;color:var(--green);line-height:1">${pct}%</span></div>
-        <div style="font-size:11px;color:var(--muted2);margin-top:6px">${farming}/${loaded} ví đã farm được (≥30 điểm)</div>
-        <div style="height:9px;background:var(--bg2);border-radius:5px;margin-top:12px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--green);border-radius:5px"></div></div>
-        <div style="flex:1"></div>
-        <div style="font-size:10.5px;color:var(--muted2);margin-top:12px;line-height:1.5">Còn ${loaded-farming} ví chưa đủ 30 điểm — xem việc "Đưa ví đủ 30 điểm" ở đầu hàng.</div>
-      </div>`;
-    const alertCard = `<div style="flex:0 0 300px;max-width:300px;background:var(--card);border:1px solid var(--border2);border-top:3px solid #f5a524;border-radius:12px;padding:14px 15px;display:flex;flex-direction:column">
-        <div style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Cảnh báo</div>
-        ${(typeof WALLET_FLAG_ORDER!=='undefined'?WALLET_FLAG_ORDER:[]).map(aRow).join('')}
-        <div style="flex:1"></div>
-        <div onclick="switchTeamTab('state')" style="font-size:11px;color:var(--accent);margin-top:12px;cursor:pointer">Xem chi tiết ở tab Trạng thái ví →</div>
-      </div>`;
-    cols += progCard + alertCard;
-  }
-  if (!cols) cols = `<div style="font-size:12px;color:var(--muted2);padding:16px">Không có việc nào ${insightFilter!=='all'?'thuộc nhóm này':'cần xử lý'} — mọi ví đang ổn.</div>`;
+  // Thẻ tổng quan CỐ ĐỊNH (ghim trái) — gộp Tiến độ farm + Cảnh báo
+  const farming = wallets.filter(w => w.mvpPoints!=null && w.mvpPoints>=MVP_FARM).length;
+  const loaded  = wallets.filter(w => w.mvpPoints!=null).length;
+  const pct = loaded ? Math.round(farming/loaded*100) : 0;
+  const counts = {}; (typeof WALLET_FLAG_ORDER!=='undefined'?WALLET_FLAG_ORDER:[]).forEach(k=>counts[k]=0);
+  wallets.forEach(w => walletFlags(w).forEach(k => counts[k]=(counts[k]||0)+1));
+  const aRow = (k) => { const d=WALLET_FLAG_DEF[k]; return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text2)"><span style="width:8px;height:8px;border-radius:50%;background:${d.color}"></span>${d.label}</span><span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:800;color:${counts[k]?d.color:'var(--muted2)'}">${counts[k]||0}</span></div>`; };
+  const fixedCard = `<div style="flex:0 0 280px;max-width:280px;position:sticky;left:0;z-index:3;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 15px;display:flex;flex-direction:column;box-shadow:6px 0 14px -8px rgba(0,0,0,.55)">
+      <div style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em">Tiến độ farm (≥30 điểm)</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px"><span style="font-family:'Inter',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.03em;color:var(--green);line-height:1">${pct}%</span><span style="font-size:11px;color:var(--muted2)">${farming}/${loaded} ví</span></div>
+      <div style="height:9px;background:var(--bg2);border-radius:5px;margin-top:10px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--green);border-radius:5px"></div></div>
+      <div style="border-top:1px solid var(--border2);margin:14px 0 10px"></div>
+      <div style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Cảnh báo</div>
+      ${(typeof WALLET_FLAG_ORDER!=='undefined'?WALLET_FLAG_ORDER:[]).map(aRow).join('')}
+      <div style="flex:1"></div>
+      <div onclick="switchTeamTab('state')" style="font-size:11px;color:var(--accent);margin-top:12px;cursor:pointer">Xem chi tiết ở tab Trạng thái ví →</div>
+    </div>`;
+  cols = fixedCard + cols;
+  if (!acts.length) cols += `<div style="flex:0 0 auto;font-size:12px;color:var(--muted2);padding:16px;align-self:center">Không có việc nào ${insightFilter!=='all'?'thuộc nhóm này':'cần xử lý'} — mọi ví đang ổn.</div>`;
   el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       <div style="font-size:13px;font-weight:800;color:var(--text)">Việc nên làm <span style="font-size:11px;font-weight:600;color:var(--muted2)">· cuộn ngang →</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${fbar}</div>
