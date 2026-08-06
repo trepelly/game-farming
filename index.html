@@ -3648,55 +3648,73 @@ function _sumChart(data, period) {
   } catch(e){}
   return 0;
 }
+let flowPlayerView = 'all';
+function setFlowPlayerView(p){ flowPlayerView = p || 'all'; renderFlowPlayers(); }
 function renderFlowPlayers(){
   const el = document.getElementById('flow-players'); if(!el) return;
   const ws = (typeof effectiveWallets==='function') ? effectiveWallets() : (typeof teamWallets!=='undefined'?teamWallets:[]);
-  // map address/label -> player
   const byAddr = {}, byLabel = {};
   ws.forEach(w => { if(w.address) byAddr[(w.address||'').toLowerCase()] = w.player||''; if(w.label) byLabel[w.label] = w.player||''; });
   const playerOf = r => { const a=(r.address||'').toLowerCase(); return (a && byAddr[a]!=null) ? byAddr[a] : (byLabel[r.label]||''); };
-  // gộp thu/chi/swap theo player
-  const P = {};
-  const bump = (pl,f,v) => { pl = pl || '(chưa gán)'; (P[pl] = P[pl] || {thu:0,chi:0,swap:0,vi:new Set()}); P[pl][f]+=v; };
   const claimRD = (typeof claimChartData!=='undefined' && claimChartData && claimChartData.rawDetail) || [];
   const spendRD = (typeof spendChartData!=='undefined' && spendChartData && spendChartData.rawDetail) || [];
   const swapRD  = (typeof swapChartData!=='undefined'  && swapChartData  && swapChartData.rawDetail)  || [];
-  claimRD.forEach(r => { const pl=playerOf(r); bump(pl,'thu',(r.claimGame||0)+(r.sellNft||0)+(r.sellFt||0)); (P[pl||'(chưa gán)'].vi).add(r.label); });
-  spendRD.forEach(r => { const pl=playerOf(r); bump(pl,'chi',(r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0)); });
-  swapRD.forEach(r  => { const pl=playerOf(r); bump(pl,'swap',(r.swapOut||0)); });
-  const players = Object.keys(P).sort((a,b)=>(P[b].thu-P[b].chi)-(P[a].thu-P[a].chi));
   const fv = n => Math.round(n||0).toLocaleString('vi-VN');
-  const tot = players.reduce((t,pl)=>{ t.thu+=P[pl].thu; t.chi+=P[pl].chi; t.swap+=P[pl].swap; return t; }, {thu:0,chi:0,swap:0});
   if (!claimRD.length && !spendRD.length && !swapRD.length){
     el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;font-size:11.5px;color:var(--muted2)">Đang tải dòng tiền theo người chơi…</div>`;
     return;
   }
+  // gộp theo player (P) và theo ví (W)
+  const P = {}, W = {};
+  const bumpP = (pl,f,v) => { pl = pl || '(chưa gán)'; (P[pl] = P[pl] || {thu:0,chi:0,swap:0}); P[pl][f]+=v; };
+  const bumpW = (r,f,v) => { const k=r.label||r.address||'—'; (W[k] = W[k] || {thu:0,chi:0,swap:0,player:playerOf(r)||'(chưa gán)',label:k}); W[k][f]+=v; };
+  claimRD.forEach(r => { const t=(r.claimGame||0)+(r.sellNft||0)+(r.sellFt||0); bumpP(playerOf(r),'thu',t); bumpW(r,'thu',t); });
+  spendRD.forEach(r => { const c=(r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0); bumpP(playerOf(r),'chi',c); bumpW(r,'chi',c); });
+  swapRD.forEach(r  => { const sw=(r.swapOut||0); bumpP(playerOf(r),'swap',sw); bumpW(r,'swap',sw); });
+  const playersList = Object.keys(P).sort((a,b)=>(P[b].thu-P[b].chi)-(P[a].thu-P[a].chi));
+
+  // bộ chọn người
+  const opts = ['all'].concat(playersList).map(p => `<option value="${p==='all'?'all':p.replace(/"/g,'')}" ${flowPlayerView===p?'selected':''}>${p==='all'?'Tất cả người chơi':p}</option>`).join('');
+  const selector = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px 4px">
+      <span style="font-size:12px;font-weight:800;color:var(--text)">Dòng tiền theo người chơi</span>
+      <span style="font-size:10.5px;color:var(--muted2)">· NESO</span>
+      <select onchange="setFlowPlayerView(this.value)" style="margin-left:auto;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;max-width:200px">${opts}</select>
+    </div>`;
+
+  const th = `<thead><tr style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em">
+      <th style="text-align:left;padding:6px 12px">${flowPlayerView==='all'?'Người chơi':'Ví'}</th>
+      <th style="text-align:right;padding:6px 12px">Thu (claim)</th>
+      <th style="text-align:right;padding:6px 12px">Chi tiêu</th>
+      <th style="text-align:right;padding:6px 12px">Swap out</th>
+      <th style="text-align:right;padding:6px 12px">Net</th>
+    </tr></thead>`;
   const netCol = n => `<span style="font-family:'Inter',sans-serif;font-weight:700;color:${n>=0?'var(--green)':'#e0625c'}">${n>=0?'+':''}${fv(n)}</span>`;
-  const row = (name, d, isTot) => `<tr style="${isTot?'font-weight:700;background:var(--surface)':''}">
-      <td style="text-align:left;padding:8px 12px;color:${isTot?'var(--text)':'var(--text2)'};font-weight:${isTot?'700':'600'};white-space:nowrap">${name}${isTot&&d.vi?` <span style="font-size:10px;color:var(--muted2);font-weight:600">(${d.vi} ví)</span>`:''}</td>
+  const dataRow = (name, d, isTot, clickPlayer, copyName) => `<tr style="${isTot?'font-weight:700;background:var(--surface)':''}">
+      <td style="text-align:left;padding:8px 12px;color:${isTot?'var(--text)':'var(--text2)'};font-weight:${isTot?'700':'600'};white-space:nowrap">${clickPlayer?`<span onclick="setFlowPlayerView('${(name||'').replace(/'/g,"")}')" data-tip="Xem chi tiết ví" style="cursor:pointer">${name}</span>`:(copyName?`<span onclick="copyFlash(this,'${(name||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${name}</span>`:name)}</td>
       <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:var(--green)">${fv(d.thu)}</td>
       <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:#e0625c">${fv(d.chi)}</td>
       <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:var(--muted2)">${fv(d.swap)}</td>
       <td style="text-align:right;padding:8px 12px">${netCol(d.thu-d.chi)}</td>
     </tr>`;
-  const totViCount = ws.length;
+
+  let body, sub;
+  if (flowPlayerView === 'all'){
+    const tot = playersList.reduce((t,pl)=>{ t.thu+=P[pl].thu; t.chi+=P[pl].chi; t.swap+=P[pl].swap; return t; }, {thu:0,chi:0,swap:0});
+    body = dataRow('TỔNG', tot, true, false, false) + playersList.map(pl => dataRow(pl, P[pl], false, true, false)).join('');
+    sub = `<div style="font-size:10px;color:var(--muted2);padding:2px 16px 10px">Nhấp tên người chơi để xem chi tiết từng ví của họ.</div>`;
+  } else {
+    const mine = Object.values(W).filter(w => w.player === flowPlayerView).sort((a,b)=>(b.thu-b.chi)-(a.thu-a.chi));
+    const tot = mine.reduce((t,w)=>{ t.thu+=w.thu; t.chi+=w.chi; t.swap+=w.swap; return t; }, {thu:0,chi:0,swap:0});
+    body = dataRow(`TỔNG · ${flowPlayerView} (${mine.length} ví)`, tot, true, false, false) + mine.map(w => dataRow(w.label, w, false, false, true)).join('');
+    sub = `<div style="padding:2px 16px 10px"><span onclick="setFlowPlayerView('all')" style="font-size:11px;color:var(--accent);cursor:pointer">← Về tất cả người chơi</span></div>`;
+  }
   el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;overflow:hidden">
-      <div style="padding:12px 16px 8px;font-size:12px;font-weight:800;color:var(--text)">Dòng tiền theo người chơi <span style="font-size:10.5px;font-weight:600;color:var(--muted2)">· NESO · tổng &amp; từng người</span></div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">
-        <thead><tr style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em">
-          <th style="text-align:left;padding:6px 12px">Người chơi</th>
-          <th style="text-align:right;padding:6px 12px">Thu (claim)</th>
-          <th style="text-align:right;padding:6px 12px">Chi tiêu</th>
-          <th style="text-align:right;padding:6px 12px">Swap out</th>
-          <th style="text-align:right;padding:6px 12px">Net</th>
-        </tr></thead>
-        <tbody>
-          ${row('TỔNG', {thu:tot.thu,chi:tot.chi,swap:tot.swap,vi:totViCount}, true)}
-          ${players.map(pl => row(pl, P[pl], false)).join('')}
-        </tbody>
-      </table></div>
+      ${selector}
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">${th}<tbody>${body}</tbody></table></div>
+      ${sub}
     </div>`;
 }
+
 function renderFlowNet() {
   const el = document.getElementById('flow-net');
   if (!el) return;
