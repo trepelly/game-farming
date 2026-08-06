@@ -864,6 +864,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
       <!-- Dải Net -->
       <div id="flow-net" class="stats-fixed" style="margin-bottom:16px"></div>
+      <div id="flow-players" style="margin-bottom:16px"></div>
       <!-- NESO CLAIM CHART -->
       <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}#flow-net{grid-template-columns:repeat(4,1fr)!important;margin-bottom:16px!important}@media(max-width:680px){#flow-net{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:640px){.insight-diag-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-top:0!important;margin-bottom:0!important;min-width:0!important}.flow-grid [id$="-chart-body"]{overflow-x:auto;max-width:100%}</style><div class="flow-grid" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px">
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
@@ -3647,6 +3648,55 @@ function _sumChart(data, period) {
   } catch(e){}
   return 0;
 }
+function renderFlowPlayers(){
+  const el = document.getElementById('flow-players'); if(!el) return;
+  const ws = (typeof effectiveWallets==='function') ? effectiveWallets() : (typeof teamWallets!=='undefined'?teamWallets:[]);
+  // map address/label -> player
+  const byAddr = {}, byLabel = {};
+  ws.forEach(w => { if(w.address) byAddr[(w.address||'').toLowerCase()] = w.player||''; if(w.label) byLabel[w.label] = w.player||''; });
+  const playerOf = r => { const a=(r.address||'').toLowerCase(); return (a && byAddr[a]!=null) ? byAddr[a] : (byLabel[r.label]||''); };
+  // gộp thu/chi/swap theo player
+  const P = {};
+  const bump = (pl,f,v) => { pl = pl || '(chưa gán)'; (P[pl] = P[pl] || {thu:0,chi:0,swap:0,vi:new Set()}); P[pl][f]+=v; };
+  const claimRD = (typeof claimChartData!=='undefined' && claimChartData && claimChartData.rawDetail) || [];
+  const spendRD = (typeof spendChartData!=='undefined' && spendChartData && spendChartData.rawDetail) || [];
+  const swapRD  = (typeof swapChartData!=='undefined'  && swapChartData  && swapChartData.rawDetail)  || [];
+  claimRD.forEach(r => { const pl=playerOf(r); bump(pl,'thu',(r.claimGame||0)+(r.sellNft||0)+(r.sellFt||0)); (P[pl||'(chưa gán)'].vi).add(r.label); });
+  spendRD.forEach(r => { const pl=playerOf(r); bump(pl,'chi',(r.crystal||0)+(r.nft||0)+(r.ft||0)+(r.burn||0)); });
+  swapRD.forEach(r  => { const pl=playerOf(r); bump(pl,'swap',(r.swapOut||0)); });
+  const players = Object.keys(P).sort((a,b)=>(P[b].thu-P[b].chi)-(P[a].thu-P[a].chi));
+  const fv = n => Math.round(n||0).toLocaleString('vi-VN');
+  const tot = players.reduce((t,pl)=>{ t.thu+=P[pl].thu; t.chi+=P[pl].chi; t.swap+=P[pl].swap; return t; }, {thu:0,chi:0,swap:0});
+  if (!claimRD.length && !spendRD.length && !swapRD.length){
+    el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;font-size:11.5px;color:var(--muted2)">Đang tải dòng tiền theo người chơi…</div>`;
+    return;
+  }
+  const netCol = n => `<span style="font-family:'Inter',sans-serif;font-weight:700;color:${n>=0?'var(--green)':'#e0625c'}">${n>=0?'+':''}${fv(n)}</span>`;
+  const row = (name, d, isTot) => `<tr style="${isTot?'font-weight:700;background:var(--surface)':''}">
+      <td style="text-align:left;padding:8px 12px;color:${isTot?'var(--text)':'var(--text2)'};font-weight:${isTot?'700':'600'};white-space:nowrap">${name}${isTot&&d.vi?` <span style="font-size:10px;color:var(--muted2);font-weight:600">(${d.vi} ví)</span>`:''}</td>
+      <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:var(--green)">${fv(d.thu)}</td>
+      <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:#e0625c">${fv(d.chi)}</td>
+      <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:var(--muted2)">${fv(d.swap)}</td>
+      <td style="text-align:right;padding:8px 12px">${netCol(d.thu-d.chi)}</td>
+    </tr>`;
+  const totViCount = ws.length;
+  el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;overflow:hidden">
+      <div style="padding:12px 16px 8px;font-size:12px;font-weight:800;color:var(--text)">Dòng tiền theo người chơi <span style="font-size:10.5px;font-weight:600;color:var(--muted2)">· NESO · tổng &amp; từng người</span></div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">
+        <thead><tr style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em">
+          <th style="text-align:left;padding:6px 12px">Người chơi</th>
+          <th style="text-align:right;padding:6px 12px">Thu (claim)</th>
+          <th style="text-align:right;padding:6px 12px">Chi tiêu</th>
+          <th style="text-align:right;padding:6px 12px">Swap out</th>
+          <th style="text-align:right;padding:6px 12px">Net</th>
+        </tr></thead>
+        <tbody>
+          ${row('TỔNG', {thu:tot.thu,chi:tot.chi,swap:tot.swap,vi:totViCount}, true)}
+          ${players.map(pl => row(pl, P[pl], false)).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+}
 function renderFlowNet() {
   const el = document.getElementById('flow-net');
   if (!el) return;
@@ -3672,7 +3722,7 @@ function drawAllFlowCharts() {
   try { if (typeof renderSwapChart==='function' && typeof swapChartData!=='undefined' && swapChartData) renderSwapChart(); } catch(e){}
   try { if (typeof renderSwapinChart==='function' && typeof swapChartData!=='undefined' && swapChartData) renderSwapinChart(); } catch(e){}
   try { if (typeof renderUsdtChart==='function') renderUsdtChart(); } catch(e){}
-  try { renderFlowPeriodBar(); renderFlowNet(); } catch(e){}
+  try { renderFlowPeriodBar(); renderFlowNet(); renderFlowPlayers(); } catch(e){}
 }
 function initTeamTabs() {
   const bar = document.getElementById('team-tabbar');
@@ -6168,7 +6218,7 @@ async function loadClaimChart() {
       totalWallets: wallets.length, perWallet, rawDetail
     };
     renderClaimChart();
-    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); } catch(e){}
+    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); if (typeof renderFlowPlayers==='function') renderFlowPlayers(); } catch(e){}
   } catch(e) {
     document.getElementById('claim-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
   }
@@ -6430,7 +6480,7 @@ async function loadSpendChart() {
       totalWallets:wallets.length, perWallet, rawDetail
     };
     renderSpendChart();
-    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); } catch(e){}
+    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); if (typeof renderFlowPlayers==='function') renderFlowPlayers(); } catch(e){}
   } catch(e) {
     document.getElementById('spend-chart-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">Lỗi tải dữ liệu</div>';
   }
@@ -7029,7 +7079,7 @@ async function loadSwapChart() {
       totalWallets:wallets.length, perWallet, rawDetail
     };
     renderSwapChart();
-    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); } catch(e){}
+    try { if (typeof renderFlowNet==='function') renderFlowNet(); if (typeof renderFlowPeriodBar==='function') renderFlowPeriodBar(); if (typeof renderFlowPlayers==='function') renderFlowPlayers(); } catch(e){}
     if (typeof renderSwapinChart === 'function') renderSwapinChart();
     if (typeof updateChangeBar === 'function') { try { updateChangeBar(); } catch(_){} }
   } catch(e) {
