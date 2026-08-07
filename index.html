@@ -859,7 +859,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.mvp-lrow{display:grid;grid-template-columns:26px 1fr 84px 66px 108px 118px;gap:8px;align-items:center;padding:8px 12px;font-size:11.5px}
+.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -8601,8 +8601,8 @@ function renderMvpList(){
   const rows = b.wallets.slice().sort((x,y)=>{ const a=kf(x), c=kf(y); let r = (typeof a==='string') ? a.localeCompare(c) : (a-c); return mvpSort.dir==='desc' ? -r : r; });
   const nt = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; if(!t) return '<span style="color:var(--muted2)">— tối đa</span>'; const gap=t.min-mvpPtsOf(w); return `<span class="mvp-num" style="color:var(--muted2)">còn ${_mvpFmt(gap)} → ${_mvpEsc(t.name)}</span>`; };
   const arw = c => mvpSort.col===c ? (mvpSort.dir==='desc'?' ↓':' ↑') : '';
-  const hc = (c,label,align) => `<div onclick="setMvpSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${align||'left'};color:${mvpSort.col===c?'var(--accent)':'inherit'}">${label}${arw(c)}</div>`;
-  const head=`<div class="mvp-lrow head"><div>#</div>${hc('name','Tên ví')}<div class="mvp-hide-sm">${hc('player','Player').replace('<div ','<span ').replace('</div>','</span>')}</div>${hc('pts','Điểm 13W','right')}${hc('neso','NESO hiện có','right')}<div class="mvp-hide-sm">${hc('next','Kế tiếp','right').replace('<div ','<span ').replace('</div>','</span>')}</div></div>`;
+  const hc = (c,label,align) => `<div onclick="setMvpSort('${c}')" data-tip="Bấm để sắp xếp" class="${(c==='player'||c==='next')?'mvp-hide-sm':''}" style="cursor:pointer;text-align:${align||'left'};color:${mvpSort.col===c?'var(--accent)':'inherit'}">${label}${arw(c)}</div>`;
+  const head=`<div class="mvp-lrow head"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('pts','Điểm 13W','right')}${hc('neso','NESO hiện có','right')}${hc('next','Kế tiếp','right')}</div>`;
   const body = rows.length ? rows.map((w,i)=>`<div class="mvp-lrow">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
       <div style="display:flex;align-items:center;gap:8px;min-width:0">
@@ -8620,7 +8620,8 @@ function renderMvpList(){
         <span style="font-size:11px;color:var(--muted2)" class="mvp-num">· ${b.wallets.length} ví${who}</span>
         <button onclick="setMvpTier(${mvpTier})" style="margin-left:auto;background:none;border:1px solid var(--border2);border-radius:7px;color:var(--muted2);font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer">✕ Đóng</button>
       </div>
-      ${head}${body}
+      ${head}
+      <div style="max-height:52vh;overflow-y:auto">${body}</div>
     </div>`;
 }
 function renderMvpWalletTable(el, wallets, title, color) {
