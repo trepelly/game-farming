@@ -8583,26 +8583,40 @@ function renderMvpTiers(){
       <div style="display:flex;gap:8px;align-items:stretch">${cells}</div>
     </div>`;
 }
+let mvpSort = {col:'pts', dir:'desc'};
+function setMvpSort(c){
+  if (mvpSort.col===c) mvpSort.dir = (mvpSort.dir==='desc'?'asc':'desc');
+  else mvpSort = {col:c, dir:(c==='name'||c==='player')?'asc':'desc'};
+  try{ renderMvpList(); }catch(e){}
+}
 function renderMvpList(){
   const el=document.getElementById('mvp-list'); if(!el) return;
   const bk=mvpDistBuckets||[];
   const b = (mvpTier!=null) ? bk[mvpTier] : null;
   if(!b){ el.innerHTML=''; return; }
-  const who = mvpPlayer==='all' ? '' : ` · <span style="color:var(--accent)">${mvpPlayer}</span>`;
-  const rows = b.wallets.slice().sort((x,y)=>mvpPtsOf(y)-mvpPtsOf(x));
-  const nt = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; if(!t) return '<span style="color:var(--muted2)">— tối đa</span>'; const gap=t.min-mvpPtsOf(w); return `<span class="mvp-num" style="color:var(--muted2)">còn ${_mvpFmt(gap)} → ${t.name}</span>`; };
-  const head=`<div class="mvp-lrow head"><div>#</div><div>Tên ví</div><div class="mvp-hide-sm">Player</div><div style="text-align:right">Điểm 13W</div><div style="text-align:right">NESO hiện có</div><div class="mvp-hide-sm" style="text-align:right">Kế tiếp</div></div>`;
+  const who = mvpPlayer==='all' ? '' : ` · <span style="color:var(--accent)">${_mvpEsc(mvpPlayer)}</span>`;
+  const gapOf = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; return t? (t.min-mvpPtsOf(w)) : -1; };
+  const keys = { name: w=>(w.label||'').toLowerCase(), player: w=>(w.player||'zzz').toLowerCase(), pts: w=>mvpPtsOf(w), neso: w=>(w.neso!=null?w.neso:-1), next: w=>gapOf(w) };
+  const kf = keys[mvpSort.col] || keys.pts;
+  const rows = b.wallets.slice().sort((x,y)=>{ const a=kf(x), c=kf(y); let r = (typeof a==='string') ? a.localeCompare(c) : (a-c); return mvpSort.dir==='desc' ? -r : r; });
+  const nt = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; if(!t) return '<span style="color:var(--muted2)">— tối đa</span>'; const gap=t.min-mvpPtsOf(w); return `<span class="mvp-num" style="color:var(--muted2)">còn ${_mvpFmt(gap)} → ${_mvpEsc(t.name)}</span>`; };
+  const arw = c => mvpSort.col===c ? (mvpSort.dir==='desc'?' ↓':' ↑') : '';
+  const hc = (c,label,align) => `<div onclick="setMvpSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${align||'left'};color:${mvpSort.col===c?'var(--accent)':'inherit'}">${label}${arw(c)}</div>`;
+  const head=`<div class="mvp-lrow head"><div>#</div>${hc('name','Tên ví')}<div class="mvp-hide-sm">${hc('player','Player').replace('<div ','<span ').replace('</div>','</span>')}</div>${hc('pts','Điểm 13W','right')}${hc('neso','NESO hiện có','right')}<div class="mvp-hide-sm">${hc('next','Kế tiếp','right').replace('<div ','<span ').replace('</div>','</span>')}</div></div>`;
   const body = rows.length ? rows.map((w,i)=>`<div class="mvp-lrow">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
-      <div style="min-width:0"><div style="font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${w.label||'—'}</span></div><div class="mvp-num" style="font-size:9.5px;color:var(--muted2);opacity:.75">${_mvpShortAddr(w.address)}</div></div>
-      <div class="mvp-hide-sm">${w.player?`<span style="font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${w.player}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy tên" style="cursor:pointer;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.label||'—')}</span>
+        ${w.address?`<span class="mvp-num" onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ ví" style="cursor:pointer;font-size:9.5px;color:var(--muted2);opacity:.8;white-space:nowrap;flex-shrink:0">${_mvpShortAddr(w.address)}</span>`:''}
+      </div>
+      <div class="mvp-hide-sm">${w.player?`<span onclick="copyFlash(this,'${(w.player||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer;font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_mvpFmt(mvpPtsOf(w))}</div>
       <div class="mvp-num" style="text-align:right;color:#7fd88f">${w.neso!=null?_mvpFmt(w.neso):'—'}</div>
       <div class="mvp-hide-sm" style="text-align:right">${nt(w)}</div>
     </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví ở hạng này.</div>';
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border2)">
-        <span style="font-size:14px">${b.icon||'•'}</span><span style="font-size:12.5px;font-weight:800;color:var(--text)">${b.label}</span>
+        <span style="font-size:14px">${b.icon||'•'}</span><span style="font-size:12.5px;font-weight:800;color:var(--text)">${_mvpEsc(b.label)}</span>
         <span style="font-size:11px;color:var(--muted2)" class="mvp-num">· ${b.wallets.length} ví${who}</span>
         <button onclick="setMvpTier(${mvpTier})" style="margin-left:auto;background:none;border:1px solid var(--border2);border-radius:7px;color:var(--muted2);font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer">✕ Đóng</button>
       </div>
