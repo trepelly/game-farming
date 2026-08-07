@@ -850,16 +850,15 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- TAB: Dòng tiền -->
       <div class="tabpanel" id="tab-flow" style="display:none">
+      <div id="flow-players" style="margin-bottom:16px"></div>
       <!-- Bộ chọn kỳ chung -->
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;margin-bottom:16px">
         <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Kỳ xem</span>
-        <div id="flow-period" style="display:flex;gap:8px;flex-wrap:wrap"></div><div id="flow-player-select" style="margin-left:auto;display:flex;align-items:center;gap:8px"></div>
+        <div id="flow-period" style="display:flex;gap:8px;flex-wrap:wrap"></div>
         <span style="font-size:11px;color:var(--muted2)">Áp dụng cho cả 4 khối bên dưới</span>
       </div>
       <!-- Dải Net -->
       <div id="flow-net" class="stats-fixed" style="margin-bottom:16px"></div>
-      <div class="flow-2col">
-      <div id="flow-players" style="margin-bottom:16px"></div>
       <!-- NESO CLAIM CHART -->
       <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}#flow-net{grid-template-columns:repeat(4,1fr)!important;margin-bottom:16px!important}.flow-2col{display:grid;grid-template-columns:minmax(300px,40%) 1fr;gap:16px;align-items:start}.mvp-2col{display:grid;grid-template-columns:minmax(300px,40%) 1fr;gap:16px;align-items:start}.mvp-2col #mvp-dist-wrap{margin-top:0!important}@media(max-width:960px){.mvp-2col{grid-template-columns:1fr}}.flow-2col #flow-players{margin-bottom:0!important}.flow-2col .flow-grid{margin-bottom:0!important}@media(max-width:960px){.flow-2col{grid-template-columns:1fr}}@media(max-width:680px){#flow-net{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:640px){.insight-diag-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-top:0!important;margin-bottom:0!important;min-width:0!important}.flow-grid [id$="-chart-body"]{overflow-x:auto;max-width:100%}</style><div class="flow-grid" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px">
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
@@ -981,7 +980,6 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="usdt-detail-body" style="display:none"></div>
       </div>
       </div><!-- /flow-grid -->
-      </div><!-- /flow-2col -->
       </div><!-- /tab-flow -->
 
       <!-- TAB: Insight & Đề xuất -->
@@ -3796,7 +3794,7 @@ function drawAllFlowCharts() {
   try { if (typeof renderSwapChart==='function' && typeof swapChartData!=='undefined' && swapChartData) renderSwapChart(); } catch(e){}
   try { if (typeof renderSwapinChart==='function' && typeof swapChartData!=='undefined' && swapChartData) renderSwapinChart(); } catch(e){}
   try { if (typeof renderUsdtChart==='function') renderUsdtChart(); } catch(e){}
-  try { renderFlowPeriodBar(); renderFlowNet(); renderFlowPlayers(); renderFlowPlayerSelect(); } catch(e){}
+  try { renderFlowPeriodBar(); renderFlowNet(); renderFlowPlayers(); } catch(e){}
 }
 function initTeamTabs() {
   const bar = document.getElementById('team-tabbar');
