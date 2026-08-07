@@ -8452,10 +8452,12 @@ function computeMvpBuckets() {
     { label:'Chưa farm',     icon:'🕳️', color:'var(--muted2)', sub:'0 điểm',   pre:true, test:p=>p<=0 },
     { label:'Đang tích luỹ', icon:'⏳', color:'#9a9aab',       sub:'0<MVP<30', pre:true, test:p=>p>0 && p<30 },
   ];
-  MVP_TIERS.filter(t=>t.name!=='Unranked').forEach(t=>{
+  const _tiers = MVP_TIERS.filter(t=>t.name!=='Unranked' && t.name!=='Black');  // 6 ô: bỏ Black, gộp vào Diamond
+  _tiers.forEach((t,_ti)=>{
+    const _last = _ti===_tiers.length-1;
     defs.push({ label:t.name, icon:t.icon, color:t.color,
       sub: t.max===Infinity ? ('≥'+t.min) : (t.min+'–'+t.max),
-      pre:false, test:p=>p>=t.min && p<=t.max });
+      pre:false, test: _last ? (p=>p>=t.min) : (p=>p>=t.min && p<=t.max) });
   });
   return defs.map(d=>{
     const wallets = ws.filter(w=>d.test(mvpPtsOf(w)));
