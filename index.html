@@ -832,7 +832,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div class="tabpanel" id="tab-mvp" style="display:none">
 <div class="mvp-2col">
 <div id="mvp-players"></div>
-<div id="mvp-main">
+<div id="mvp-main" style="min-width:0">
         <div id="mvp-kpi"></div>
         <div id="mvp-tiers" style="margin-top:14px"></div>
         <div id="mvp-list" style="margin-top:14px"></div>
@@ -853,7 +853,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div id="flow-net" class="stats-fixed" style="margin-bottom:16px"></div>
       <!-- NESO CLAIM CHART -->
       <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}#flow-net{grid-template-columns:repeat(4,1fr)!important;margin-bottom:16px!important}.flow-2col{display:grid;grid-template-columns:minmax(300px,40%) 1fr;gap:16px;align-items:start}.mvp-2col{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
-.mvp-tier-cell{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:11px 10px;cursor:pointer;transition:.12s;text-align:center}
+.mvp-tier-cell{flex:1 1 0;min-width:0;background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:11px 10px;cursor:pointer;transition:.12s;text-align:center}
 .mvp-tier-cell:hover{border-color:var(--border3)}
 .mvp-tier-cell.on{border-color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,var(--card))}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
@@ -8567,7 +8567,7 @@ function renderMvpTiers(){
   const el=document.getElementById('mvp-tiers'); if(!el) return;
   const bk=mvpDistBuckets||[];
   const maxV=Math.max(...bk.map(b=>b.wallets.length),1);
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(${bk.length},1fr);gap:8px">
+  el.innerHTML=`<div style="display:flex;gap:8px;align-items:stretch">
       ${bk.map((b,i)=>{ const v=b.wallets.length; const on=mvpTier===i; const pct=Math.round(v/maxV*100);
         return `<div class="mvp-tier-cell ${on?'on':''}" onclick="setMvpTier(${i})">
           <div style="font-size:15px;line-height:1">${b.icon||'•'}</div>
