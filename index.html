@@ -3748,15 +3748,18 @@ function renderMvpPlayers(){
   const players = Object.keys(P).sort((a,b)=> P[b].farm - P[a].farm || P[a].gap - P[b].gap);
   const fv = n => Math.round(n||0).toLocaleString('vi-VN');
   const tot = players.reduce((t,pl)=>{ t.vi+=P[pl].vi; t.farm+=P[pl].farm; t.need+=P[pl].need; t.gap+=P[pl].gap; return t; }, {vi:0,farm:0,need:0,gap:0});
-  const row = (name, d, isTot) => { const sel = (!isTot && name===mvpPlayer); return `<tr style="${isTot?'font-weight:700;background:var(--surface)':(sel?'background:color-mix(in srgb,var(--accent) 12%,transparent)':'')}">
-      <td style="text-align:left;padding:8px 12px;color:${isTot?'var(--text)':(sel?'var(--accent)':'var(--text2)')};font-weight:${isTot?'700':'600'};white-space:nowrap">${isTot?name:`<span onclick="setMvpPlayer('${(name||'').replace(/'/g,"")}')" data-tip="Nhấp để xem phân bổ của người này" style="cursor:pointer">${name}</span>`}</td>
+  const row = (name, d, isTot) => { const sel = (!isTot && name===mvpPlayer);
+    const clickAttr = isTot ? `onclick="setMvpPlayer('all')"` : `onclick="setMvpPlayer('${(name||'').replace(/'/g,"")}')"`;
+    const badge = sel ? ` <span style="font-size:9px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border:1px solid color-mix(in srgb,var(--accent) 34%,transparent);border-radius:5px;padding:1px 6px;margin-left:6px;white-space:nowrap">đang xem ✕</span>` : '';
+    return `<tr ${clickAttr} data-tip="${isTot?'Nhấp để xem tất cả':'Nhấp cả hàng để lọc biểu đồ theo người này'}" style="cursor:pointer;${isTot?'font-weight:700;background:var(--surface)':(sel?'background:color-mix(in srgb,var(--accent) 12%,transparent)':'')}">
+      <td style="text-align:left;padding:8px 12px;color:${isTot?'var(--text)':(sel?'var(--accent)':'var(--text2)')};font-weight:${isTot?'700':'600'};white-space:nowrap">${name}${badge}</td>
       <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:var(--muted2)">${d.vi}</td>
       <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:var(--green);font-weight:700">${d.farm}</td>
       <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:${d.need?'#f5a524':'var(--muted2)'}">${d.need}</td>
       <td style="text-align:right;padding:8px 12px;font-family:'Inter',sans-serif;color:${d.gap?'#e0625c':'var(--muted2)'}">${d.gap?fv(d.gap)+'đ':'—'}</td>
     </tr>`; };
   el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
-      <div style="padding:14px 16px 8px"><div style="font-size:13px;font-weight:800;color:var(--text)">Phân bổ theo người chơi</div><div style="font-size:10.5px;color:var(--muted2);margin-top:2px">Nhấp tên người chơi để lọc biểu đồ bên phải · ai đủ 30 để farm</div>${mvpPlayer!=='all'?`<div style="margin-top:6px"><span style="font-size:11px;color:var(--accent);font-weight:600">Đang xem: ${mvpPlayer}</span> <span onclick="setMvpPlayer('all')" style="font-size:11px;color:var(--muted2);cursor:pointer;margin-left:8px">✕ Tất cả</span></div>`:''}</div>
+      <div style="padding:14px 16px 8px"><div style="font-size:13px;font-weight:800;color:var(--text)">Phân bổ theo người chơi</div><div style="font-size:10.5px;color:var(--muted2);margin-top:2px">Nhấp cả hàng để lọc biểu đồ bên phải · ai đủ 30 để farm</div></div>
       <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">
         <thead><tr style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em">
           <th style="text-align:left;padding:6px 12px">Người chơi</th>
