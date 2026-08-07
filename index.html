@@ -679,6 +679,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border2);margin-bottom:16px;flex-wrap:wrap">
         <div id="team-tabbar" style="display:flex;gap:2px;overflow-x:auto">
         <button class="tw-tab" data-tab="state"   onclick="switchTeamTab('state')">Trạng thái ví</button>
+        <button class="tw-tab" data-tab="mvp"     onclick="switchTeamTab('mvp')">Phân bổ MVP</button>
         <button class="tw-tab" data-tab="flow"    onclick="switchTeamTab('flow')">Dòng tiền</button>
         <button class="tw-tab" data-tab="tasks"   onclick="switchTeamTab('tasks')">Việc tuần này</button>
         <button class="tw-tab" data-tab="insight" onclick="switchTeamTab('insight')">Insight & Đề xuất</button>
@@ -820,25 +821,16 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
 
       <!-- TỔNG HỢP NGƯỜI CHƠI (admin / view-all) — ngay dưới danh sách ví -->
-      <div id="player-summary-wrap" class="viewall-only" style="display:none;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 20px;box-shadow:var(--shadow);margin-top:20px">
-        <div onclick="togglePlayerSummary()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="color:var(--text);display:inline-flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-            <span style="font-size:13px;font-weight:800;color:var(--text)">Tổng hợp người chơi</span>
-            <span style="font-size:10px;color:var(--muted2)">gom chỉ số theo từng người · nhấp tên để xem ví</span>
-          </div>
-          <span id="player-summary-caret" style="color:var(--muted2);font-size:12px">▼</span>
-        </div>
-        <div id="player-summary-collapse" style="margin-top:14px">
-          <div id="player-summary-body">
-            <div style="text-align:center;padding:40px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu...</div>
-          </div>
-          <div id="player-detail" style="display:none;margin-top:16px"></div>
-        </div>
-      </div>
+      
 
       <!-- MVP DISTRIBUTION CHART (gộp: phân bố hạng + đủ/thiếu NESO) -->
-      <div id="mvp-dist-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:8px;display:none">
+      
+
+      </div><!-- /tab-state -->
+
+      <!-- TAB: Phân bổ MVP -->
+      <div class="tabpanel" id="tab-mvp" style="display:none">
+<div id="mvp-dist-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:8px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.7 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg></span>
@@ -851,8 +843,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
         <div id="mvp-dist-detail" style="display:none;margin-top:14px"></div>
       </div>
-
-      </div><!-- /tab-state -->
+      </div><!-- /tab-mvp -->
 
       <!-- TAB: Dòng tiền -->
       <div class="tabpanel" id="tab-flow" style="display:none">
@@ -1037,6 +1028,22 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- TAB: Nguồn dữ liệu -->
       <div class="tabpanel" id="tab-datasource" style="display:none">
+<div id="player-summary-wrap" class="viewall-only" style="display:none;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 20px;box-shadow:var(--shadow);margin-top:20px">
+        <div onclick="togglePlayerSummary()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="color:var(--text);display:inline-flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span style="font-size:13px;font-weight:800;color:var(--text)">Tổng hợp người chơi</span>
+            <span style="font-size:10px;color:var(--muted2)">gom chỉ số theo từng người · nhấp tên để xem ví</span>
+          </div>
+          <span id="player-summary-caret" style="color:var(--muted2);font-size:12px">▼</span>
+        </div>
+        <div id="player-summary-collapse" style="margin-top:14px">
+          <div id="player-summary-body">
+            <div style="text-align:center;padding:40px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu...</div>
+          </div>
+          <div id="player-detail" style="display:none;margin-top:16px"></div>
+        </div>
+      </div>
         <div id="team-datasource"></div>
       </div><!-- /tab-datasource -->
 
@@ -3593,7 +3600,7 @@ function renderAlertChips(list) {
 let teamTab = 'state';
 function switchTeamTab(t) {
   teamTab = t || 'state';
-  ['state','flow','insight','kpi','addwallet','datasource','tasks'].forEach(k => {
+  ['state','mvp','flow','insight','kpi','addwallet','datasource','tasks'].forEach(k => {
     const p = document.getElementById('tab-'+k);
     if (p) p.style.display = (k===teamTab) ? '' : 'none';
   });
@@ -3603,6 +3610,8 @@ function switchTeamTab(t) {
   const _ov = document.getElementById('team-stats'); if (_ov) _ov.style.display = _ovShow ? '' : 'none';
   const _mv = document.getElementById('member-view'); if (_mv && _mv.innerHTML.trim()) _mv.style.display = _ovShow ? '' : 'none';
   // vẽ lại nội dung tab cần dữ liệu động
+  try { if (teamTab==='mvp' && typeof renderMvpDistChart==='function') renderMvpDistChart(); } catch(e) {}
+  try { if (teamTab==='datasource' && typeof renderPlayerSummary==='function') renderPlayerSummary(); } catch(e) {}
   try { if (teamTab==='insight') renderInsightTab(window._teamDisplay||teamWallets); } catch(e) {}
   try { if (teamTab==='flow' && typeof drawAllFlowCharts==='function') drawAllFlowCharts(); } catch(e) {}
   try { if (teamTab==='kpi') renderKpiTab(window._teamDisplay||teamWallets); } catch(e) {}
@@ -3753,7 +3762,7 @@ function initTeamTabs() {
   const isAdmin = effUser().role === 'admin';
   if (bar) {
     bar.style.display = 'flex';               // hiện cho cả member
-    const memberTabs = ['state','flow','tasks'];
+    const memberTabs = ['state','mvp','flow','tasks'];
     bar.querySelectorAll('.tw-tab').forEach(b => {
       const t = b.getAttribute('data-tab');
       const show = isAdmin ? (t !== 'tasks') : memberTabs.includes(t);
