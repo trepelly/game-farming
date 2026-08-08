@@ -8640,8 +8640,17 @@ function renderMvpList(){
         <button onclick="setMvpTier(${mvpTier})" style="margin-left:auto;background:none;border:1px solid var(--border2);border-radius:7px;color:var(--muted2);font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer">✕ Đóng</button>
       </div>
       ${head}
-      <div style="max-height:456px;overflow-y:auto">${body}</div>
+      <div id="mvp-list-scroll" style="max-height:400px;overflow-y:auto">${body}</div>
     </div>`;
+  // giới hạn đúng 12 hàng: đo chiều cao hàng thật
+  try {
+    const sc = document.getElementById('mvp-list-scroll');
+    const r0 = sc && sc.querySelector('.mvp-lrow');
+    if (sc && r0) {
+      const rh = r0.getBoundingClientRect().height || 33;
+      sc.style.maxHeight = Math.round(rh * 12) + 'px';
+    }
+  } catch(e){}
 }
 function renderMvpWalletTable(el, wallets, title, color) {
   _mvpTbl = { el, wallets: wallets.slice(), title, color, sortCol:_mvpTbl.sortCol, sortDir:_mvpTbl.sortDir };
