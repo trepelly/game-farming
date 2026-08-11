@@ -6500,10 +6500,14 @@ function renderClaimChart() {
     up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
     users:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   };
-  const stat = (lbl, v, color, icon, extra) => `<div>
+  const stat = (lbl, v, color, icon, extra) => {
+    // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
+    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
-      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
+      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
+  };
 
   const _legend = `<div style="display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap">
       <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block"></span>Claim game</span>
@@ -6753,10 +6757,14 @@ function renderSpendChart() {
     up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
     users:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   };
-  const stat = (lbl, v, color, icon, extra) => `<div>
+  const stat = (lbl, v, color, icon, extra) => {
+    // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
+    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
-      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
+      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
+  };
   const dot = c => `<span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block"></span>`;
 
   body.innerHTML = `
@@ -7154,10 +7162,10 @@ function renderUsdtChart() {
     </g>`;
   });
 
-  const stat = (lbl, v, color, sub) => `<div>
+  const stat = (lbl, v, color, sub) => `<div ${sub?`data-tip="${lbl}: ${v} ${String(sub).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()}"`:''}>
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em">${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
-      ${sub?`<div style="font-size:10px;color:var(--muted2)">${sub}</div>`:''}
+      
     </div>`;
   const topRow = rows[0];
   const pending = ws.length - loaded.length;
@@ -7335,10 +7343,14 @@ function renderSwapChart() {
     up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
     users:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   };
-  const stat = (lbl, v, color, icon, extra) => `<div>
+  const stat = (lbl, v, color, icon, extra) => {
+    // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
+    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
-      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
+      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
+  };
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">${trendChip}
@@ -7481,10 +7493,14 @@ function renderSwapinChart() {
     up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
     users:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   };
-  const stat = (lbl, v, color, icon, extra) => `<div>
+  const stat = (lbl, v, color, icon, extra) => {
+    // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
+    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
-      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}${extra||''}</div>
+      <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
+  };
 
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">${trendChip}
