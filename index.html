@@ -861,7 +861,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 110px 110px 110px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -3687,6 +3687,61 @@ function renderFlowPlayerSelect(){
   const opts = ['all'].concat(players).map(p => `<option value="${p==='all'?'all':p.replace(/"/g,'')}" ${flowPlayer===p?'selected':''}>${p==='all'?'Tất cả người chơi':p}</option>`).join('');
   el.innerHTML = `<span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">Xem theo</span><select onchange="setFlowPlayer(this.value)" style="padding:6px 10px;border-radius:8px;border:1px solid ${flowPlayer!=='all'?'var(--accent)':'var(--border2)'};background:${flowPlayer!=='all'?'color-mix(in srgb,var(--accent) 10%,var(--card))':'var(--card)'};color:var(--text);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;max-width:190px">${opts}</select>`;
 }
+let mvpPQuery = '';
+let mvpPSort = {col:'farm', dir:'desc'};
+function setMvpPQuery(v){ mvpPQuery = (v||'').toLowerCase(); renderMvpPlayers(); const inp=document.getElementById('mvp-psearch'); if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); } }
+function setMvpPSort(c){ if(mvpPSort.col===c) mvpPSort.dir=(mvpPSort.dir==='desc'?'asc':'desc'); else mvpPSort={col:c, dir:(c==='name'?'asc':'desc')}; renderMvpPlayers(); }
+function renderMvpPlayers(){
+  const el = document.getElementById('mvp-players'); if(!el) return;
+  const ws = (typeof effectiveWallets==='function') ? effectiveWallets() : (typeof teamWallets!=='undefined'?teamWallets:[]);
+  const P = {};
+  ws.forEach(w => {
+    const pl = w.player || '(chưa gán)';
+    (P[pl] = P[pl] || {vi:0, farm:0, need:0});
+    P[pl].vi++;
+    const pts = mvpPtsOf(w);
+    if (w.mvpPoints!=null || w.mvpManual!=null){ if (pts>=30) P[pl].farm++; else P[pl].need++; }
+  });
+  const all = Object.keys(P);
+  const tot = all.reduce((t,pl)=>{ t.vi+=P[pl].vi; t.farm+=P[pl].farm; t.need+=P[pl].need; return t; }, {vi:0,farm:0,need:0});
+  let players = all.filter(pl => !mvpPQuery || pl.toLowerCase().includes(mvpPQuery));
+  const keys = { name: pl=>pl.toLowerCase(), vi: pl=>P[pl].vi, farm: pl=>P[pl].farm };
+  const kf = keys[mvpPSort.col] || keys.farm;
+  players.sort((a,b)=>{ const x=kf(a), y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return mvpPSort.dir==='desc'?-r:r; });
+  const bar = (d) => { const done = d.farm+d.need>0 ? Math.round(d.farm/(d.farm+d.need)*100) : (d.vi?100:0);
+    return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${done}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:var(--muted2);white-space:nowrap">${d.farm}<span style="opacity:.6">/${d.farm+d.need}</span></span></div>`; };
+  const totRow = `<div class="mvp-prow ${mvpPlayer==='all'?'on':''}" onclick="setMvpPlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${mvpPlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${tot.vi} ví</span></div>
+        ${bar(tot)}
+      </div>
+    </div>`;
+  const arw = c => mvpPSort.col===c ? (mvpPSort.dir==='desc'?' ↓':' ↑') : '';
+  const hc = (c,l,al) => `<span onclick="event.stopPropagation();setMvpPSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${mvpPSort.col===c?'var(--accent)':'inherit'}">${l}${arw(c)}</span>`;
+  const rowHtml = (name, d, idx) => {
+    const sel = (name===mvpPlayer);
+    const badge = sel ? `<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>` : '';
+    return `<div class="mvp-prow ${sel?'on':''}" onclick="setMvpPlayer('${(name||'').replace(/'/g,"")}')">
+        <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${badge}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi} ví</span></div>
+          ${bar(d)}
+        </div>
+      </div>`;
+  };
+  el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
+      <div style="padding:0 4px 8px"><div style="font-size:13px;font-weight:800;color:var(--text)">Phân bổ theo người chơi</div><div style="font-size:10px;color:var(--muted2);margin-top:2px">Bấm 1 dòng để lọc bên phải · thanh = đã farm/cần</div></div>
+      ${totRow}
+      <div style="padding:9px 2px 6px"><input id="mvp-psearch" type="text" value="${_mvpEsc(mvpPQuery)}" oninput="setMvpPQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">
+        <span style="width:16px">#</span>${hc('name','Người chơi')}<span style="margin-left:auto">${hc('vi','Ví')}</span><span>${hc('farm','Đã farm')}</span>
+      </div>
+      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:4px">
+        ${players.length ? players.map((pl,i)=>rowHtml(pl, P[pl], i+1)).join('') : '<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}
+      </div>
+    </div>`;
+}
+
 let flowPQuery = '';
 let flowPSort = {col:'net', dir:'desc'};
 function setFlowPQuery(v){ flowPQuery=(v||'').toLowerCase(); renderFlowPlayers(); const i=document.getElementById('flow-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
