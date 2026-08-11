@@ -884,9 +884,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu claim...</div>
         </div>
         <div style="text-align:left;margin-top:12px">
-          <button id="claim-detail-btn" onclick="toggleChartDetail('claim')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
-        <div id="claim-detail-body" style="display:none"></div>
       </div>
 
       <!-- NESO SPEND CHART -->
@@ -908,9 +906,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu spend...</div>
         </div>
         <div style="text-align:left;margin-top:12px">
-          <button id="spend-detail-btn" onclick="toggleChartDetail('spend')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
-        <div id="spend-detail-body" style="display:none"></div>
       </div>
 
       <!-- NESO SWAP CHART -->
@@ -932,9 +928,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu swap...</div>
         </div>
         <div style="text-align:left;margin-top:12px">
-          <button id="revenue-detail-btn" onclick="toggleChartDetail('revenue')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
-        <div id="revenue-detail-body" style="display:none"></div>
       </div>
 
       <!-- USDT TRÊN VÍ (Avalanche) — số dư thật, không ước tính -->
@@ -959,9 +953,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="text-align:center;padding:60px 0;color:var(--muted2);font-size:12px">Đang tải dữ liệu swap in...</div>
         </div>
         <div style="text-align:left;margin-top:12px">
-          <button id="swapin-detail-btn" onclick="toggleChartDetail('swapin')" style="background:transparent;border:1px solid var(--border2);border-radius:8px;padding:7px 16px;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted2)';this.style.borderColor='var(--border2)'">▼ Xem thêm chi tiết theo ví</button>
         </div>
-        <div id="swapin-detail-body" style="display:none"></div>
       </div>
       <div id="usdt-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)margin-top:0;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -986,6 +978,12 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div>
       </div><!-- /flow-grid -->
       <div id="flow-wallets"></div>
+      <div id="flow-detail" style="margin-top:14px">
+        <div id="claim-detail-body" style="display:none"></div>
+        <div id="spend-detail-body" style="display:none"></div>
+        <div id="revenue-detail-body" style="display:none"></div>
+        <div id="swapin-detail-body" style="display:none"></div>
+      </div>
       </div><!-- /flow-main -->
       </div><!-- /flow-2col -->
       </div><!-- /tab-flow -->
@@ -3659,6 +3657,7 @@ function renderFlowPeriodBar() {
   // Vẽ lại bảng đang chọn để đúng kích thước (Chart.js vẽ sai trong div ẩn)
   const cur = FLOW_CHARTS.find(c => c.k === flowChart);
   if (cur) setTimeout(() => { try { if (typeof window[cur.render] === 'function') window[cur.render](); } catch(e){} }, 0);
+  try { syncFlowDetail(); } catch(e){}
 }
 // tổng của một chuỗi dữ liệu chart trong kỳ hiện tại
 function _sumChart(data, period) {
@@ -3814,6 +3813,18 @@ function renderFlowPlayers(){
     </div>`;
   renderFlowWallets();
   try{ renderChartPlayerBadges(); }catch(e){}
+}
+function _flowDetailKey(){ return flowChart==='swap' ? 'revenue' : flowChart; }   // chart "Swap out" dùng key revenue
+function syncFlowDetail(){
+  const keys=['claim','spend','revenue','swapin'];
+  const cur=_flowDetailKey();
+  keys.forEach(k=>{
+    const el=document.getElementById(k+'-detail-body'); if(!el) return;
+    if (k===cur){ chartDetailOpen[k]=true; try{ renderChartDetail(k); }catch(e){} el.style.display='block'; }
+    else { chartDetailOpen[k]=false; el.style.display='none'; el.innerHTML=''; }
+  });
+  const wrap=document.getElementById('flow-detail');
+  if (wrap) wrap.style.display = keys.includes(cur) ? '' : 'none';   // USDT không có chi tiết theo ví
 }
 function renderFlowWallets(){
   const el=document.getElementById('flow-wallets'); if(!el) return;
@@ -6306,6 +6317,7 @@ function setClaimChartMode(mode) {
     if (b) { b.style.background = m===mode ? 'var(--accent)' : 'transparent'; b.style.color = m===mode ? '#fff' : 'var(--muted2)'; }
   });
   renderClaimChart();
+  try { syncFlowDetail(); } catch(e){}
 }
 
 async function loadClaimChart() {
@@ -6564,6 +6576,7 @@ function setSpendChartMode(mode) {
     if (b) { b.style.background = m===mode ? 'var(--accent)' : 'transparent'; b.style.color = m===mode ? '#fff' : 'var(--muted2)'; }
   });
   renderSpendChart();
+  try { syncFlowDetail(); } catch(e){}
 }
 
 async function loadSpendChart() {
@@ -6822,6 +6835,7 @@ function setSwapChartMode(mode) {
     if (b) { b.style.background = m===mode ? 'var(--accent)' : 'transparent'; b.style.color = m===mode ? '#fff' : 'var(--muted2)'; }
   });
   renderSwapChart();
+  try { syncFlowDetail(); } catch(e){}
 }
 
 // ══════════════ USDT TRÊN VÍ (Avalanche) — số dư thật ══════════════
@@ -7373,6 +7387,7 @@ function setSwapinChartMode(mode) {
     if (b) { b.style.background = m===mode ? 'var(--accent)' : 'transparent'; b.style.color = m===mode ? '#fff' : 'var(--muted2)'; }
   });
   renderSwapinChart();
+  try { syncFlowDetail(); } catch(e){}
 }
 
 // Dùng chung dữ liệu swapChartData (đã có in/out). Chỉ đọc .in
