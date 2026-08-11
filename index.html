@@ -849,7 +849,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;margin-bottom:16px">
         <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Kỳ xem</span>
         <div id="flow-period" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        <span style="font-size:11px;color:var(--muted2)">Áp dụng cho cả 4 khối bên dưới</span>
+        <span id="flow-period-ic"></span>
       </div>
       <!-- Dải Net -->
       <div id="flow-net" class="stats-fixed" style="margin-bottom:16px"></div>
@@ -915,7 +915,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Doanh thu (Revenue)</span>
-            <span style="font-size:10px;color:var(--muted2)">NESO đổi ra token khác — rút doanh thu (Swap Out)</span><span id="swap-player-badge"></span>
+            <span style="font-size:10px;color:var(--muted2)">NESO đổi ra token khác</span><span id="revenue-note-ic"></span><span id="swap-player-badge"></span>
           </div>
           <div style="display:inline-flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="swap-mode-day" onclick="setSwapChartMode('day')" class="swap-mode-btn" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
@@ -940,7 +940,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--text);display:inline-flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
             <span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em">Swap In (Bơm vốn)</span>
-            <span style="font-size:10px;color:var(--muted2)">NESO nhận vào từ swap — đổi token khác → NESO (bơm vốn vào)</span><span id="swapin-player-badge"></span>
+            <span style="font-size:10px;color:var(--muted2)">NESO nhận vào từ swap</span><span id="swapin-note-ic"></span><span style="display:none"></span><span id="swapin-player-badge"></span>
           </div>
           <div style="display:inline-flex;gap:4px;background:var(--input-bg);border-radius:8px;padding:3px;border:1px solid var(--border2)">
             <button id="swapin-mode-day" onclick="setSwapinChartMode('day')" style="background:var(--accent);border:none;border-radius:6px;padding:6px 12px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Ngày</button>
@@ -1042,7 +1042,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span style="color:var(--text);display:inline-flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
             <span style="font-size:13px;font-weight:800;color:var(--text)">Tổng hợp người chơi</span>
-            <span style="font-size:10px;color:var(--muted2)">gom chỉ số theo từng người · nhấp tên để xem ví</span>
+            ${infoIcon('Gom chỉ số theo từng người chơi · nhấp tên để xem chi tiết các ví của họ')}
           </div>
           <span id="player-summary-caret" style="color:var(--muted2);font-size:12px">▼</span>
         </div>
@@ -3658,6 +3658,14 @@ function renderFlowPeriodBar() {
   const cur = FLOW_CHARTS.find(c => c.k === flowChart);
   if (cur) setTimeout(() => { try { if (typeof window[cur.render] === 'function') window[cur.render](); } catch(e){} }, 0);
   try { syncFlowDetail(); } catch(e){}
+  try {
+    const ic1=document.getElementById('flow-period-ic');
+    if (ic1 && !ic1.innerHTML) ic1.innerHTML = infoIcon('Chọn bảng để xem: kỳ xem (Ngày/Tuần/Tháng/Năm) của từng bảng chỉnh riêng ở góc phải mỗi biểu đồ');
+    const ic2=document.getElementById('revenue-note-ic');
+    if (ic2 && !ic2.innerHTML) ic2.innerHTML = infoIcon('Doanh thu = NESO rút ra qua swap (đổi sang token khác)');
+    const ic3=document.getElementById('swapin-note-ic');
+    if (ic3 && !ic3.innerHTML) ic3.innerHTML = infoIcon('Bơm vốn = NESO nhận vào qua swap (đổi token khác lấy NESO)');
+  } catch(e){}
 }
 // tổng của một chuỗi dữ liệu chart trong kỳ hiện tại
 function _sumChart(data, period) {
@@ -3729,7 +3737,7 @@ function renderMvpPlayers(){
       </div>`;
   };
   el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
-      <div style="padding:0 4px 8px"><div style="font-size:13px;font-weight:800;color:var(--text)">Phân bổ theo người chơi</div><div style="font-size:10px;color:var(--muted2);margin-top:2px">Bấm 1 dòng để lọc bên phải · thanh = đã farm/cần</div></div>
+      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Phân bổ theo người chơi${infoIcon('Bấm 1 dòng để lọc toàn bộ bên phải theo người chơi đó · thanh màu = số ví đã farm / tổng cần')}</div></div>
       ${totRow}
       <div style="padding:9px 2px 6px"><input id="mvp-psearch" type="text" value="${_mvpEsc(mvpPQuery)}" oninput="setMvpPQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
       <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">
@@ -3801,7 +3809,7 @@ function renderFlowPlayers(){
         </div>
       </div>`; };
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
-      <div style="padding:0 4px 8px"><div style="font-size:13px;font-weight:800;color:var(--text)">Dòng tiền theo người chơi</div><div style="font-size:10px;color:var(--muted2);margin-top:2px">Bấm 1 dòng để lọc biểu đồ · thanh = NESO hiện có trong ví</div></div>
+      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Dòng tiền theo người chơi${infoIcon('Bấm 1 dòng để lọc biểu đồ theo người chơi đó · thanh màu = NESO hiện có trong ví')}</div></div>
       ${totRow}
       <div style="padding:9px 2px 6px"><input id="flow-psearch" type="text" value="${_mvpEsc(flowPQuery)}" oninput="setFlowPQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
       <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">
@@ -7354,7 +7362,6 @@ function renderSwapChart() {
   };
 
   body.innerHTML = `
-    <div style="font-size:10px;color:var(--muted2);margin-bottom:10px">Doanh thu = NESO rút ra qua swap (đổi sang token khác)</div>
     <div style="display:flex;gap:22px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-start">
       ${trendChip?`<div style="align-self:center">${trendChip}</div>`:''}
       ${stat('Tổng doanh thu ('+keys.length+' '+M.unit+')', fmtFull(total), 'var(--green)', I.layers, ' <span style="font-size:9px;color:var(--muted2)">NESO</span><div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:1px">'+fmtUsd(total)+'</div><div style="font-size:10px;color:var(--muted2)">'+fmtVnd(total)+'</div>')}
@@ -8662,6 +8669,9 @@ function renderMvpKpi(){
       </div>
     </div>`;
 }
+function infoIcon(text){
+  return `<span data-tip="${String(text||'').replace(/"/g,'&quot;')}" style="display:inline-flex;align-items:center;justify-content:center;color:var(--muted2);cursor:help;flex-shrink:0;margin-left:5px;opacity:.65"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>`;
+}
 function _mvpEsc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function renderMvpTiers(){
   const el=document.getElementById('mvp-tiers'); if(!el) return;
@@ -8677,7 +8687,7 @@ function renderMvpTiers(){
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:13px 14px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <span style="font-size:12px;font-weight:700;color:var(--text)">Phân bổ theo hạng</span>
-        <span style="margin-left:auto;font-size:10px;color:var(--muted2)">nhấp một hạng để xem danh sách</span>
+        <span style="margin-left:auto">${infoIcon('Nhấp một hạng để xem danh sách ví thuộc hạng đó')}</span>
       </div>
       <div style="display:flex;gap:8px;align-items:stretch">${cells}</div>
     </div>`;
@@ -8948,7 +8958,7 @@ function renderPlayerSummary(){
         </table>
       </div>
     </div>
-    <div style="font-size:10px;color:var(--muted2);margin-top:8px;text-align:center">↑ Nhấp một người chơi để xem chi tiết các ví của họ</div>`;
+    `;
 }
 
 function sortPlayerSummary(col){
