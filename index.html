@@ -861,11 +861,11 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
-@media(max-width:960px){.mvp-2col{grid-template-columns:1fr}.mvp-lrow{grid-template-columns:22px 1fr 70px 90px}.mvp-lrow .mvp-hide-sm{display:none}}.mvp-2col #mvp-dist-wrap{margin-top:0!important}@media(max-width:960px){.mvp-2col{grid-template-columns:1fr}}.flow-2col #flow-players{margin-bottom:0!important}.flow-2col .flow-grid{margin-bottom:0!important}@media(max-width:960px){.flow-2col{grid-template-columns:1fr}}@media(max-width:680px){#flow-net{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:640px){.insight-diag-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-top:0!important;margin-bottom:0!important;min-width:0!important}.flow-grid [id$="-chart-body"]{overflow-x:auto;max-width:100%}</style><div class="flow-grid" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px">
+@media(max-width:960px){.mvp-2col{grid-template-columns:1fr}.mvp-lrow{grid-template-columns:22px 1fr 60px 90px}.mvp-lrow .mvp-hide-sm{display:none}}.mvp-2col #mvp-dist-wrap{margin-top:0!important}@media(max-width:960px){.mvp-2col{grid-template-columns:1fr}}.flow-2col #flow-players{margin-bottom:0!important}.flow-2col .flow-grid{margin-bottom:0!important}@media(max-width:960px){.flow-2col{grid-template-columns:1fr}}@media(max-width:680px){#flow-net{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:640px){.insight-diag-grid{grid-template-columns:1fr!important}}.flow-grid > div{margin-top:0!important;margin-bottom:0!important;min-width:0!important}.flow-grid [id$="-chart-body"]{overflow-x:auto;max-width:100%}</style><div class="flow-grid" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px">
       <div id="claim-chart-wrap" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-top:24px;display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -8664,13 +8664,13 @@ function renderMvpList(){
   if(!b){ el.innerHTML=''; return; }
   const who = mvpPlayer==='all' ? '' : ` · <span style="color:var(--accent)">${_mvpEsc(mvpPlayer)}</span>`;
   const gapOf = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; return t? (t.min-mvpPtsOf(w)) : -1; };
-  const keys = { name: w=>(w.label||'').toLowerCase(), player: w=>(w.player||'zzz').toLowerCase(), pts: w=>mvpPtsOf(w), neso: w=>(w.neso!=null?w.neso:-1), next: w=>gapOf(w) };
+  const keys = { name: w=>(w.label||'').toLowerCase(), player: w=>(w.player||'zzz').toLowerCase(), weeks: w=>(w.mvpBronzeWeeks!=null?w.mvpBronzeWeeks:-1), pts: w=>mvpPtsOf(w), neso: w=>(w.neso!=null?w.neso:-1), next: w=>gapOf(w) };
   const kf = keys[mvpSort.col] || keys.pts;
   const rows = b.wallets.slice().sort((x,y)=>{ const a=kf(x), c=kf(y); let r = (typeof a==='string') ? a.localeCompare(c) : (a-c); return mvpSort.dir==='desc' ? -r : r; });
   const nt = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; if(!t) return '<span style="color:var(--muted2)">— tối đa</span>'; const gap=t.min-mvpPtsOf(w); return `<span class="mvp-num" style="color:var(--muted2)">còn ${_mvpFmt(gap)} → ${_mvpEsc(t.name)}</span>`; };
   const arw = c => mvpSort.col===c ? (mvpSort.dir==='desc'?' ↓':' ↑') : '';
   const hc = (c,label,align) => `<div onclick="setMvpSort('${c}')" data-tip="Bấm để sắp xếp" class="${(c==='player'||c==='next')?'mvp-hide-sm':''}" style="cursor:pointer;text-align:${align||'left'};color:${mvpSort.col===c?'var(--accent)':'inherit'}">${label}${arw(c)}</div>`;
-  const head=`<div class="mvp-lrow head"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('pts','Điểm 13W','right')}${hc('neso','NESO hiện có','right')}${hc('next','Kế tiếp','right')}</div>`;
+  const head=`<div class="mvp-lrow head"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm 13W','right')}${hc('neso','NESO hiện có','right')}${hc('next','Kế tiếp','right')}</div>`;
   const body = rows.length ? rows.map((w,i)=>`<div class="mvp-lrow">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
       <div style="display:flex;align-items:center;gap:8px;min-width:0">
@@ -8678,6 +8678,7 @@ function renderMvpList(){
         ${w.address?`<span class="mvp-num" onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ ví" style="cursor:pointer;font-size:9.5px;color:var(--muted2);opacity:.8;white-space:nowrap;flex-shrink:0">${_mvpShortAddr(w.address)}</span>`:''}
       </div>
       <div class="mvp-hide-sm">${w.player?`<span onclick="copyFlash(this,'${(w.player||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer;font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
+      <div class="mvp-num" style="text-align:right" data-tip="Số tuần được tính MVP trong 13 tuần gần nhất">${w.mvpBronzeWeeks!=null?`<span style="font-weight:700;color:${w.mvpBronzeWeeks>=13?'#7fd88f':(w.mvpBronzeWeeks>0?'#d8a44f':'var(--muted2)')}">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_mvpFmt(mvpPtsOf(w))}</div>
       <div class="mvp-num" style="text-align:right;color:#7fd88f">${w.neso!=null?_mvpFmt(w.neso):'—'}</div>
       <div class="mvp-hide-sm" style="text-align:right">${nt(w)}</div>
