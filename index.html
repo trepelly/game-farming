@@ -3791,7 +3791,7 @@ function renderFlowPlayers(){
   players.sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return flowPSort.dir==='desc'?-r:r; });
   const maxNeso=Math.max(...all.map(pl=>P[pl].neso||0),1);
   const bar=(d)=>{ const pct=Math.min(100,Math.round((d.neso||0)/maxNeso*100));
-    return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:#7fd88f;white-space:nowrap">${fv(d.neso||0)}</span></div>`; };
+    return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" data-tip="${_nesoTip(d.neso||0)}" style="font-size:9px;color:#7fd88f;white-space:nowrap;cursor:help">${fv(d.neso||0)}</span></div>`; };
   const totRow=`<div class="mvp-prow ${flowPlayer==='all'?'on':''}" onclick="setFlowPlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${flowPlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${tot.vi} ví</span></div>
@@ -3844,10 +3844,10 @@ function renderFlowWallets(){
   const body=rows.length?rows.map((w,i)=>{ const net=w.thu-w.chi; return `<div class="flow-wrow">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
       <div style="display:flex;align-items:center;gap:8px;min-width:0"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy tên" style="cursor:pointer;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.label)}</span>${w.address?`<span class="mvp-num" onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer;font-size:9.5px;color:var(--muted2);opacity:.8;white-space:nowrap;flex-shrink:0">${_mvpShortAddr(w.address)}</span>`:''}</div>
-      <div class="mvp-num" style="text-align:right;color:var(--green)">${fv(w.thu)}</div>
-      <div class="mvp-num" style="text-align:right;color:#e0625c">${fv(w.chi)}</div>
-      <div class="mvp-num" style="text-align:right;color:var(--muted2)">${fv(w.swap)}</div>
-      <div class="mvp-num" style="text-align:right;font-weight:700;color:${net>=0?'#7fd88f':'#e0625c'}">${net>=0?'+':''}${fv(net)}</div>
+      <div class="mvp-num" style="text-align:right;color:var(--green)" data-tip="Thu: ${_nesoTip(w.thu)}">${fv(w.thu)}</div>
+      <div class="mvp-num" style="text-align:right;color:#e0625c" data-tip="Chi: ${_nesoTip(w.chi)}">${fv(w.chi)}</div>
+      <div class="mvp-num" style="text-align:right;color:var(--muted2)" data-tip="Swap out: ${_nesoTip(w.swap)}">${fv(w.swap)}</div>
+      <div class="mvp-num" style="text-align:right;font-weight:700;color:${net>=0?'#7fd88f':'#e0625c'}" data-tip="Net: ${_nesoTip(net)}">${net>=0?'+':''}${fv(net)}</div>
     </div>`; }).join(''):'<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">Chưa có giao dịch trong kỳ.</div>';
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden;margin-top:14px">
       <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border2)">
@@ -8669,6 +8669,15 @@ function renderMvpKpi(){
       </div>
     </div>`;
 }
+function _nesoTip(n){
+  const rate = (typeof liveNesoUsd!=='undefined' && liveNesoUsd) ? liveNesoUsd : ((typeof liveNxpcUsd!=='undefined' && liveNxpcUsd) ? liveNxpcUsd/100000 : 0);
+  const vnd = (typeof liveUsdVnd!=='undefined' && liveUsdVnd) ? liveUsdVnd : 0;
+  const usd = (n||0)*rate;
+  const parts = [Math.round(n||0).toLocaleString('vi-VN')+' NESO'];
+  if (rate) parts.push('$'+usd.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}));
+  if (rate && vnd) parts.push(Math.round(usd*vnd).toLocaleString('vi-VN')+'đ');
+  return parts.join(' · ');
+}
 function infoIcon(text){
   return `<span data-tip="${String(text||'').replace(/"/g,'&quot;')}" style="display:inline-flex;align-items:center;justify-content:center;color:var(--muted2);cursor:help;flex-shrink:0;margin-left:5px;opacity:.65"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>`;
 }
@@ -8721,7 +8730,7 @@ function renderMvpList(){
       <div class="mvp-hide-sm">${w.player?`<span onclick="copyFlash(this,'${(w.player||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer;font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right" data-tip="Số tuần được tính MVP trong 13 tuần gần nhất">${w.mvpBronzeWeeks!=null?`<span style="font-weight:700;color:${w.mvpBronzeWeeks>=13?'#7fd88f':(w.mvpBronzeWeeks>0?'#d8a44f':'var(--muted2)')}">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_mvpFmt(mvpPtsOf(w))}</div>
-      <div class="mvp-num" style="text-align:right;color:#7fd88f">${w.neso!=null?_mvpFmt(w.neso):'—'}</div>
+      <div class="mvp-num" style="text-align:right;color:#7fd88f" ${w.neso!=null?`data-tip="${_nesoTip(w.neso)}"`:''}>${w.neso!=null?_mvpFmt(w.neso):'—'}</div>
       <div class="mvp-hide-sm" style="text-align:right">${nt(w)}</div>
     </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví ở hạng này.</div>';
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
@@ -8743,7 +8752,7 @@ function renderMvpList(){
           <div class="mvp-hide-sm"></div>
           <div class="mvp-num" style="text-align:right" data-tip="Tổng số tuần được tính MVP của ${twN} ví (tối đa ${twN*13})">${twN?`<span style="color:var(--text)">${_mvpFmt(tw)}</span><span style="font-size:9px;color:var(--muted2)">/${twN*13}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${_mvpFmt(tp)}</div>
-          <div class="mvp-num" style="text-align:right;color:#7fd88f">${_mvpFmt(tn)}</div>
+          <div class="mvp-num" style="text-align:right;color:#7fd88f" data-tip="Tổng NESO hiện có: ${_nesoTip(tn)}">${_mvpFmt(tn)}</div>
           <div class="mvp-hide-sm" style="text-align:right;font-weight:600;color:var(--muted2);font-size:10px">TB ${_mvpFmt(tp/rows.length)} điểm/ví</div>
         </div>`; })()}
     </div>`;
