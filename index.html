@@ -6392,6 +6392,10 @@ async function loadClaimChart() {
 
 // Tooltip element (created once)
 function claimTip() {
+  // Tooltip cột biểu đồ đã tắt (bị chồng lên tooltip chung) — trả về phần tử ẩn để các listener chạy vô hại
+  return { style:{}, innerHTML:'', getBoundingClientRect:()=>({width:0,height:0}) };
+}
+function _claimTipDisabled() {
   let t = document.getElementById('claim-tip');
   if (!t) {
     t = document.createElement('div');
