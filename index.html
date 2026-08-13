@@ -3844,10 +3844,10 @@ function renderFlowWallets(){
   const body=rows.length?rows.map((w,i)=>{ const net=w.thu-w.chi; return `<div class="flow-wrow">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
       <div style="display:flex;align-items:center;gap:8px;min-width:0"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy tên" style="cursor:pointer;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.label)}</span>${w.address?`<span class="mvp-num" onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer;font-size:9.5px;color:var(--muted2);opacity:.8;white-space:nowrap;flex-shrink:0">${_mvpShortAddr(w.address)}</span>`:''}</div>
-      <div class="mvp-num" style="text-align:right;color:var(--green)" data-tip="Thu: ${_nesoTip(w.thu)}">${fv(w.thu)}</div>
-      <div class="mvp-num" style="text-align:right;color:#e0625c" data-tip="Chi: ${_nesoTip(w.chi)}">${fv(w.chi)}</div>
-      <div class="mvp-num" style="text-align:right;color:var(--muted2)" data-tip="Swap out: ${_nesoTip(w.swap)}">${fv(w.swap)}</div>
-      <div class="mvp-num" style="text-align:right;font-weight:700;color:${net>=0?'#7fd88f':'#e0625c'}" data-tip="Net: ${_nesoTip(net)}">${net>=0?'+':''}${fv(net)}</div>
+      <div class="mvp-num" style="text-align:right;color:var(--green)" data-tip="Thu&#10;${_nesoTip(w.thu)}">${fv(w.thu)}</div>
+      <div class="mvp-num" style="text-align:right;color:#e0625c" data-tip="Chi&#10;${_nesoTip(w.chi)}">${fv(w.chi)}</div>
+      <div class="mvp-num" style="text-align:right;color:var(--muted2)" data-tip="Swap out&#10;${_nesoTip(w.swap)}">${fv(w.swap)}</div>
+      <div class="mvp-num" style="text-align:right;font-weight:700;color:${net>=0?'#7fd88f':'#e0625c'}" data-tip="Net&#10;${_nesoTip(net)}">${net>=0?'+':''}${fv(net)}</div>
     </div>`; }).join(''):'<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">Chưa có giao dịch trong kỳ.</div>';
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden;margin-top:14px">
       <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border2)">
@@ -4918,7 +4918,7 @@ function _uiTipEl(){
   if (!t) {
     t = document.createElement('div');
     t.id = 'ui-tip';
-    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 10px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.5;max-width:260px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:normal';
+    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 10px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.5;max-width:260px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:pre-line';
     document.body.appendChild(t);
   }
   return t;
@@ -6510,8 +6510,10 @@ function renderClaimChart() {
   };
   const stat = (lbl, v, color, icon, extra) => {
     // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
-    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
-    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
+    const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
+    const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
+    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
@@ -6767,8 +6769,10 @@ function renderSpendChart() {
   };
   const stat = (lbl, v, color, icon, extra) => {
     // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
-    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
-    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
+    const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
+    const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
+    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
@@ -7354,8 +7358,10 @@ function renderSwapChart() {
   };
   const stat = (lbl, v, color, icon, extra) => {
     // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
-    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
-    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
+    const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
+    const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
+    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
@@ -7502,8 +7508,10 @@ function renderSwapinChart() {
   };
   const stat = (lbl, v, color, icon, extra) => {
     // Gọn: chỉ hiện số; đơn vị/USD/VND đưa vào tooltip khi rê chuột
-    const tip = (extra||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
-    return `<div ${tip?`data-tip="${lbl}: ${v} ${tip}"`:''} style="${tip?'cursor:default':''}">
+    const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
+    const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
+    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
@@ -8673,10 +8681,10 @@ function _nesoTip(n){
   const rate = (typeof liveNesoUsd!=='undefined' && liveNesoUsd) ? liveNesoUsd : ((typeof liveNxpcUsd!=='undefined' && liveNxpcUsd) ? liveNxpcUsd/100000 : 0);
   const vnd = (typeof liveUsdVnd!=='undefined' && liveUsdVnd) ? liveUsdVnd : 0;
   const usd = (n||0)*rate;
-  const parts = [Math.round(n||0).toLocaleString('vi-VN')+' NESO'];
-  if (rate) parts.push('$'+usd.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}));
-  if (rate && vnd) parts.push(Math.round(usd*vnd).toLocaleString('vi-VN')+'đ');
-  return parts.join(' · ');
+  const parts = ['NESO: '+Math.round(n||0).toLocaleString('vi-VN')];
+  if (rate) parts.push('USD: $'+usd.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}));
+  if (rate && vnd) parts.push('VND: '+Math.round(usd*vnd).toLocaleString('vi-VN')+'đ');
+  return parts.join('\n');
 }
 function infoIcon(text){
   return `<span data-tip="${String(text||'').replace(/"/g,'&quot;')}" style="display:inline-flex;align-items:center;justify-content:center;color:var(--muted2);cursor:help;flex-shrink:0;margin-left:5px;opacity:.65"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>`;
@@ -8752,7 +8760,7 @@ function renderMvpList(){
           <div class="mvp-hide-sm"></div>
           <div class="mvp-num" style="text-align:right" data-tip="Tổng số tuần được tính MVP của ${twN} ví (tối đa ${twN*13})">${twN?`<span style="color:var(--text)">${_mvpFmt(tw)}</span><span style="font-size:9px;color:var(--muted2)">/${twN*13}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${_mvpFmt(tp)}</div>
-          <div class="mvp-num" style="text-align:right;color:#7fd88f" data-tip="Tổng NESO hiện có: ${_nesoTip(tn)}">${_mvpFmt(tn)}</div>
+          <div class="mvp-num" style="text-align:right;color:#7fd88f" data-tip="Tổng NESO hiện có&#10;${_nesoTip(tn)}">${_mvpFmt(tn)}</div>
           <div class="mvp-hide-sm" style="text-align:right;font-weight:600;color:var(--muted2);font-size:10px">TB ${_mvpFmt(tp/rows.length)} điểm/ví</div>
         </div>`; })()}
     </div>`;
