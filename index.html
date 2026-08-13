@@ -845,14 +845,14 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div class="flow-2col">
       <div id="flow-players"></div>
       <div id="flow-main" style="min-width:0">
-      <!-- Bộ chọn kỳ chung -->
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;margin-bottom:16px">
-        <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Kỳ xem</span>
-        <div id="flow-period" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        <span id="flow-period-ic"></span>
+      <!-- Bộ chọn bảng + KPI tổng (gộp 1 thẻ) -->
+      <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding-right:18px;flex-shrink:0">
+          <div style="display:flex;align-items:center;font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Xem theo<span id="flow-period-ic"></span></div>
+          <div id="flow-period" style="display:flex;gap:6px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:4px"></div>
+        </div>
+        <div id="flow-net" style="flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,1fr)"></div>
       </div>
-      <!-- Dải Net -->
-      <div id="flow-net" class="stats-fixed" style="margin-bottom:16px"></div>
       <!-- NESO CLAIM CHART -->
       <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}#flow-net{grid-template-columns:repeat(4,1fr)!important;margin-bottom:16px!important}.mvp-2col,.flow-2col{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
 .mvp-tier-cell{flex:1 1 0;min-width:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 12px;cursor:pointer;transition:.12s}
@@ -3866,15 +3866,15 @@ function renderFlowNet() {
   const spend = _sumChart(typeof spendChartData!=='undefined'?spendChartData:null, flowPeriod);
   const swapOut = _sumChart(typeof swapChartData!=='undefined'?swapChartData:null, flowPeriod);
   const net = claim - spend;
-  const cell = (label, val, sub, color, sign) => `<div class="stat" style="min-height:0">
-      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">${label}</div>
-      <div style="font-family:'Chakra Petch',monospace;font-size:22px;font-weight:700;color:${color};margin-top:6px;line-height:1">${sign||''}${fmt(val)}</div>
-      <div style="font-size:10.5px;color:var(--muted2);margin-top:5px">${sub}</div>
+  const cell = (label, val, sub, color, sign, raw) => `<div style="padding:0 16px;border-left:1px solid var(--border2);min-width:0" ${raw!=null?`data-tip="${label}&#10;${_nesoTip(raw)}"`:''}>
+      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
+      <div style="font-family:'Chakra Petch',monospace;font-size:22px;font-weight:700;color:${color};margin-top:5px;line-height:1">${sign||''}${fmt(val)}</div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub}</div>
     </div>`;
-  el.innerHTML = cell('Tổng thu (Claim)', claim, 'NESO', 'var(--green)')
-    + cell('Tổng đầu tư', spend, 'NESO · crystal + NFT/FT + burn', '#ef4444')
-    + cell('Doanh thu rút', swapOut, 'Swap Out', '#f5a524')
-    + cell('Net', net, 'NESO còn lại trong kỳ', net>=0?'var(--green)':'#ef4444', net>=0?'+':'');
+  el.innerHTML = cell('Tổng thu (Claim)', claim, 'NESO', 'var(--green)', '', claim)
+    + cell('Tổng đầu tư', spend, 'crystal + NFT/FT + burn', '#ef4444', '', spend)
+    + cell('Doanh thu rút', swapOut, 'Swap Out', '#f5a524', '', swapOut)
+    + cell('Net', net, 'NESO còn lại trong kỳ', net>=0?'var(--green)':'#ef4444', net>=0?'+':'', net);
 }
 
 function drawAllFlowCharts() {
