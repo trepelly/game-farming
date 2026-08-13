@@ -861,7 +861,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -6264,51 +6264,59 @@ function renderChartDetail(key) {
 
   // Banner kỳ đã chọn
   const banner = selPeriod
-    ? `<div style="display:flex;align-items:center;gap:8px;margin-top:14px;margin-bottom:2px;flex-wrap:wrap">
-         <span style="font-size:11px;color:var(--accent);font-weight:700;background:var(--accent-glow,var(--surface));border:1px solid var(--accent);border-radius:6px;padding:3px 10px">📅 ${periodLabelOf(selPeriod, mode)}</span>
-         <button onclick="clearChartPeriod('${key}')" style="background:transparent;border:1px solid var(--border2);border-radius:6px;padding:3px 10px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">✕ Xem tất cả</button>
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
+         <span style="font-size:12.5px;font-weight:800;color:var(--text)">Chi tiết theo ví</span>
+         <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${data.length} ví · <span style="color:var(--accent)">${periodLabelOf(selPeriod, mode)}</span></span>
+         <button onclick="clearChartPeriod('${key}')" style="margin-left:auto;background:none;border:1px solid var(--border2);border-radius:7px;color:var(--muted2);font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer">✕ Xem tất cả</button>
        </div>`
-    : `<div style="font-size:10px;color:var(--muted2);margin-top:14px;margin-bottom:2px">Tổng tất cả các kỳ · <span style="color:var(--accent)">bấm 1 cột trong biểu đồ để xem riêng kỳ đó</span></div>`;
+    : `<div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
+         <span style="font-size:12.5px;font-weight:800;color:var(--text)">Chi tiết theo ví</span>
+         <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${data.length} ví · tổng tất cả các kỳ</span>
+         ${infoIcon('Bấm 1 cột trong biểu đồ để xem riêng kỳ đó')}
+       </div>`;
 
   if (!data.length) { body.innerHTML = banner + '<div style="text-align:center;padding:20px;color:var(--muted2);font-size:12px">Không có ví nào có hoạt động này'+(selPeriod?' trong kỳ đã chọn':'')+'</div>'; return; }
 
   const arrow = c => (sc===c ? (sd==='asc'?' ↑':' ↓') : '');
-  const thSort = (col, label, color, align) => `<th onclick="sortChartDetail('${key}','${col}')" title="Bấm để sắp xếp" style="padding:6px 8px;text-align:${align};color:${color||'var(--muted2)'};font-size:10px;white-space:nowrap;cursor:pointer;user-select:none">${label}<span style="opacity:.6">${arrow(col)}</span></th>`;
+  const gridCols = `30px minmax(0,1fr) 132px ${cols.map(()=>'112px').join(' ')}`;
+  const thSort = (col, label, color, align) => `<div onclick="sortChartDetail('${key}','${col}')" data-tip="Bấm để sắp xếp" style="text-align:${align};color:${sc===col?'var(--accent)':(color||'var(--muted2)')};cursor:pointer;user-select:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}${arrow(col)}</div>`;
   const headCells = cols.map(c => thSort(c.k, c.label, c.color, 'right')).join('');
   const rows = data.map((w,i) => {
     const cells = cols.map(c => {
       const v = w[c.k]||0;
       const cntStr = c.cnt && w[c.cnt]>0 ? ` <span style="font-size:9px;color:var(--muted2)">(${f(w[c.cnt])})</span>` : '';
-      return `<td style="padding:6px 8px;text-align:right;color:${c.color};font-weight:${c.strong?'700':'500'}" title="${vndOf(v)}">${f(v)}${cntStr}</td>`;
+      return `<div class="mvp-num" style="text-align:right;color:${c.color};font-weight:${c.strong?'700':'500'}" data-tip="${c.label}&#10;${_nesoTip(v)}">${f(v)}${cntStr}</div>`;
     }).join('');
-    return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:6px 8px;text-align:center;color:var(--muted2);font-size:10px">${i+1}</td>
-      <td style="padding:6px 8px;text-align:left;color:var(--text);font-weight:600;white-space:nowrap">${w.label||'—'}${w.label?chartDetailCopyBtn(w.label,'Copy tên'):''}</td>
-      <td style="padding:6px 8px;text-align:left;color:var(--muted2);font-family:monospace;font-size:10px;white-space:nowrap">${shortAddr(w.address)}${chartDetailCopyBtn(w.address,'Copy địa chỉ')}</td>
+    return `<div class="cd-row" style="grid-template-columns:${gridCols}">
+      <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
+      <div style="display:flex;align-items:center;gap:8px;min-width:0"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy tên" style="cursor:pointer;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${w.label||'—'}</span></div>
+      <div class="mvp-num" ${w.address?`onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer;font-size:9.5px;color:var(--muted2);opacity:.8;white-space:nowrap"`:'style="color:var(--muted2)"'}>${shortAddr(w.address)}</div>
       ${cells}
-    </tr>`;
+    </div>`;
   }).join('');
   const totals = cols.map(c => {
     const sum = data.reduce((s,w)=>s+(w[c.k]||0),0);
-    return `<td style="padding:7px 8px;text-align:right;color:${c.color};font-weight:700">${f(sum)}</td>`;
+    return `<div class="mvp-num" style="text-align:right;color:${c.color};font-weight:700" data-tip="Tổng ${c.label}&#10;${_nesoTip(sum)}">${f(sum)}</div>`;
   }).join('');
 
-  body.innerHTML = banner + `
-    <div style="overflow-x:auto;margin-top:8px;border-top:1px dashed var(--border2);padding-top:12px">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:${420+cols.length*90}px">
-      <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
-        <th style="padding:6px 8px;text-align:center;color:var(--muted2);font-size:10px;width:32px">#</th>
-        ${thSort('label','Tên ví',null,'left')}
-        ${thSort('address','Địa chỉ',null,'left')}
-        ${headCells}
-      </tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr style="border-top:2px solid var(--border2);font-weight:700">
-        <td colspan="3" style="padding:7px 8px;text-align:left;color:var(--muted2);font-size:11px">Tổng ${data.length} ví</td>
-        ${totals}
-      </tr></tfoot>
-    </table>
+  body.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
+      ${banner}
+      <div style="overflow-x:auto">
+        <div style="min-width:${472+cols.length*112}px">
+          <div class="cd-row head" style="grid-template-columns:${gridCols}">
+            <div>#</div>${thSort('label','Tên ví',null,'left')}${thSort('address','Địa chỉ',null,'left')}${headCells}
+          </div>
+          <div id="cd-scroll-${key}" style="max-height:400px;overflow-y:auto">${rows}</div>
+          <div class="cd-row" style="grid-template-columns:${gridCols};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
+            <div style="color:var(--muted2)">Σ</div>
+            <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${data.length} ví</span></div>
+            <div></div>
+            ${totals}
+          </div>
+        </div>
+      </div>
     </div>`;
+  try { const sc2=document.getElementById('cd-scroll-'+key); const r0=sc2&&sc2.querySelector('.cd-row'); if(sc2&&r0){ sc2.style.maxHeight=Math.round((r0.getBoundingClientRect().height||33)*12)+'px'; } } catch(e){}
 }
 
 let claimChartMode = 'day';
