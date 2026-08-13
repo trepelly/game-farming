@@ -6392,10 +6392,6 @@ async function loadClaimChart() {
 
 // Tooltip element (created once)
 function claimTip() {
-  // Tooltip cột biểu đồ đã tắt (bị chồng lên tooltip chung) — trả về phần tử ẩn để các listener chạy vô hại
-  return { style:{}, innerHTML:'', getBoundingClientRect:()=>({width:0,height:0}) };
-}
-function _claimTipDisabled() {
   let t = document.getElementById('claim-tip');
   if (!t) {
     t = document.createElement('div');
@@ -6520,7 +6516,7 @@ function renderClaimChart() {
     const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
     const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
     const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
-    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
+    return `<div style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
@@ -6779,7 +6775,7 @@ function renderSpendChart() {
     const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
     const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
     const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
-    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
+    return `<div style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
@@ -7368,7 +7364,7 @@ function renderSwapChart() {
     const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
     const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
     const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
-    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
+    return `<div style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
@@ -7518,7 +7514,7 @@ function renderSwapinChart() {
     const _raw = (extra||'').replace(/<\/div>/g,'\n').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ');
     const _lines = _raw.split('\n').map(x=>x.replace(/^\s*NESO\s*/,'').replace(/\s+/g,' ').trim()).filter(Boolean);
     const tip = _lines.length ? `${lbl}\nNESO: ${v}${_lines.map(x=>{ const m=x.match(/\$[\d.,]+/); if(m) return '\nUSD: '+m[0]; const d=x.match(/[\d.,]+đ/); if(d) return '\nVND: '+d[0]; return '\n'+x; }).join('')}` : '';
-    return `<div ${tip?`data-tip="${tip.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}"`:''} style="${tip?'cursor:default':''}">
+    return `<div style="${tip?'cursor:default':''}">
       <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center">${ic(icon)}${lbl}</div>
       <div style="font-size:15px;font-weight:800;color:${color};margin-top:2px">${v}</div>
     </div>`;
