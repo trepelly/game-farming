@@ -3650,7 +3650,10 @@ function setFlowChart(k){ flowChart = k; renderFlowPeriodBar(); }
 function renderFlowPeriodBar() {
   const el = document.getElementById('flow-period');
   if (el) {
-    el.innerHTML = FLOW_CHARTS.map(c => `<button onclick="setFlowChart('${c.k}')" style="padding:7px 14px;border-radius:8px;border:1px solid ${c.k===flowChart?c.color:'var(--border2)'};background:${c.k===flowChart?`color-mix(in srgb,${c.color} 15%,transparent)`:'var(--card)'};color:${c.k===flowChart?c.color:'var(--text2)'};font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${c.label}</button>`).join('');
+    const btn = c => `<button onclick="setFlowChart('${c.k}')" style="padding:6px 13px;border-radius:7px;border:1px solid ${c.k===flowChart?c.color:'transparent'};background:${c.k===flowChart?`color-mix(in srgb,${c.color} 15%,transparent)`:'transparent'};color:${c.k===flowChart?c.color:'var(--text2)'};font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${c.label}</button>`;
+    // 3 nhóm: (Claim, Chi tiêu) | (Swap out, Swap in) | (USDT)
+    const GROUPS = [['claim','spend'], ['swap','swapin'], ['usdt']];
+    el.innerHTML = GROUPS.map((g,gi) => `<div style="display:flex;gap:4px;${gi?'border-left:1px solid var(--border2);padding-left:8px;margin-left:4px':''}">${g.map(k=>{ const c=FLOW_CHARTS.find(x=>x.k===k); return c?btn(c):''; }).join('')}</div>`).join('');
   }
   // Chỉ hiện bảng đang chọn (nhấp nút = xem bảng đó)
   FLOW_CHARTS.forEach(c => { const w = document.getElementById(c.wrap); if (w) w.style.display = (c.k === flowChart) ? 'block' : 'none'; });
