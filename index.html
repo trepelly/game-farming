@@ -8732,6 +8732,20 @@ function renderMvpList(){
       </div>
       ${head}
       <div id="mvp-list-scroll" style="max-height:400px;overflow-y:auto">${body}</div>
+      ${(()=>{ if(!rows.length) return '';
+        const tw = rows.filter(w=>w.mvpBronzeWeeks!=null).reduce((a,w)=>a+w.mvpBronzeWeeks,0);
+        const twN = rows.filter(w=>w.mvpBronzeWeeks!=null).length;
+        const tp = rows.reduce((a,w)=>a+mvpPtsOf(w),0);
+        const tn = rows.filter(w=>w.neso!=null).reduce((a,w)=>a+(w.neso||0),0);
+        return `<div class="mvp-lrow" style="border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
+          <div style="color:var(--muted2)">Σ</div>
+          <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${rows.length} ví</span></div>
+          <div class="mvp-hide-sm"></div>
+          <div class="mvp-num" style="text-align:right" data-tip="Tổng số tuần được tính MVP của ${twN} ví (tối đa ${twN*13})">${twN?`<span style="color:var(--text)">${_mvpFmt(tw)}</span><span style="font-size:9px;color:var(--muted2)">/${twN*13}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
+          <div class="mvp-num" style="text-align:right;color:var(--text)">${_mvpFmt(tp)}</div>
+          <div class="mvp-num" style="text-align:right;color:#7fd88f">${_mvpFmt(tn)}</div>
+          <div class="mvp-hide-sm" style="text-align:right;font-weight:600;color:var(--muted2);font-size:10px">TB ${_mvpFmt(tp/rows.length)} điểm/ví</div>
+        </div>`; })()}
     </div>`;
   // giới hạn đúng 12 hàng: đo chiều cao hàng thật
   try {
