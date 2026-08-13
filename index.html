@@ -847,9 +847,9 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div id="flow-main" style="min-width:0">
       <!-- Bộ chọn bảng + KPI tổng (gộp 1 thẻ) -->
       <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:16px">
-        <div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding-right:18px;flex-shrink:0">
-          <div style="display:flex;align-items:center;font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em">Xem theo<span id="flow-period-ic"></span></div>
-          <div id="flow-period" style="display:flex;gap:6px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:4px"></div>
+        <div style="display:flex;flex-direction:column;padding-right:18px;flex-shrink:0">
+          <div style="display:flex;align-items:center;font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;height:14px">Xem theo<span id="flow-period-ic"></span></div>
+          <div id="flow-period" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px"></div>
         </div>
         <div id="flow-net" style="flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,1fr)"></div>
       </div>
@@ -3653,7 +3653,7 @@ function renderFlowPeriodBar() {
     const btn = c => `<button onclick="setFlowChart('${c.k}')" style="padding:6px 13px;border-radius:7px;border:1px solid ${c.k===flowChart?c.color:'transparent'};background:${c.k===flowChart?`color-mix(in srgb,${c.color} 15%,transparent)`:'transparent'};color:${c.k===flowChart?c.color:'var(--text2)'};font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;text-align:left;width:100%">${c.label}</button>`;
     // 3 nhóm: (Claim, Chi tiêu) | (Swap out, Swap in) | (USDT)
     const GROUPS = [['claim','spend'], ['swap','swapin'], ['usdt']];
-    el.innerHTML = GROUPS.map((g,gi) => `<div style="display:flex;flex-direction:column;gap:4px;justify-content:center;${gi?'border-left:1px solid var(--border2);padding-left:8px;margin-left:4px':''}">${g.map(k=>{ const c=FLOW_CHARTS.find(x=>x.k===k); return c?btn(c):''; }).join('')}</div>`).join('');
+    el.innerHTML = GROUPS.map((g,gi) => `<div style="display:flex;flex-direction:column;gap:4px;justify-content:flex-start;${gi?'border-left:1px solid var(--border2);padding-left:8px;margin-left:4px':''}">${g.map(k=>{ const c=FLOW_CHARTS.find(x=>x.k===k); return c?btn(c):''; }).join('')}</div>`).join('');
   }
   // Chỉ hiện bảng đang chọn (nhấp nút = xem bảng đó)
   FLOW_CHARTS.forEach(c => { const w = document.getElementById(c.wrap); if (w) w.style.display = (c.k === flowChart) ? 'block' : 'none'; });
@@ -3869,10 +3869,10 @@ function renderFlowNet() {
   const spend = _sumChart(typeof spendChartData!=='undefined'?spendChartData:null, flowPeriod);
   const swapOut = _sumChart(typeof swapChartData!=='undefined'?swapChartData:null, flowPeriod);
   const net = claim - spend;
-  const cell = (label, val, sub, color, sign, raw) => `<div style="padding:0 16px;border-left:1px solid var(--border2);min-width:0" ${raw!=null?`data-tip="${label}&#10;${_nesoTip(raw)}"`:''}>
-      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
-      <div style="font-family:'Chakra Petch',monospace;font-size:22px;font-weight:700;color:${color};margin-top:5px;line-height:1">${sign||''}${fmt(val)}</div>
-      <div style="font-size:10px;color:var(--muted2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub}</div>
+  const cell = (label, val, sub, color, sign, raw) => `<div style="display:flex;flex-direction:column;padding:0 16px;border-left:1px solid var(--border2);min-width:0" ${raw!=null?`data-tip="${label}&#10;${_nesoTip(raw)}"`:''}>
+      <div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:14px">${label}</div>
+      <div style="font-family:'Chakra Petch',monospace;font-size:22px;font-weight:700;color:${color};margin-top:9px;line-height:1.1">${sign||''}${fmt(val)}</div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sub}</div>
     </div>`;
   el.innerHTML = cell('Tổng thu (Claim)', claim, 'NESO', 'var(--green)', '', claim)
     + cell('Tổng đầu tư', spend, 'crystal + NFT/FT + burn', '#ef4444', '', spend)
