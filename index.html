@@ -3768,7 +3768,14 @@ function _bossParseSprout(txt){
   // Trả về { gates:Set(đã hạ, 'zakum-chaos'), unlocked:Set(đã mở boss, 'zakum') }
   const gates=new Set(), unlocked=new Set();
   if (!txt) return { gates, unlocked };
-  const flat = txt.replace(/\\"/g,'"').replace(/\\u0026/g,'&');
+  // Chỉ lấy đoạn chứa dữ liệu boss (trang rất nặng — xử lý cả trang dễ treo tab)
+  let seg = txt;
+  const iC = txt.indexOf('"completions"');
+  const iB = txt.indexOf('"badges"');
+  const start = (iC>=0 && iB>=0) ? Math.min(iC,iB) : (iC>=0 ? iC : iB);
+  if (start >= 0) seg = txt.slice(Math.max(0,start-200), start + 240000);
+  else if (txt.length > 400000) seg = txt.slice(0, 400000);
+  const flat = seg.replace(/\\"/g,'"').replace(/\\u0026/g,'&');
   // completions: ["Von Bon|Chaos",{"completed":true,…}]
   const reC = /\["([^"|\]]{2,40})\|([A-Za-z]{3,10})"\s*,\s*\{\s*"completed"\s*:\s*true/g;
   let m;
@@ -3798,23 +3805,30 @@ async function syncBossAuto(){
   bossSyncing = true;
   const btn=document.getElementById('boss-sync-btn'); if(btn){ btn.disabled=true; btn.textContent='Đang đồng bộ…'; }
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
-  let scanned=0, hitWallets=0, addedGates=0, addedUnlock=0, noChars=0;
+  let scanned=0, hitWallets=0, addedGates=0, addedUnlock=0, noChars=0, failed=0, empty=0, lastErr='';
+  const totalChars = ws.reduce((a,w)=>a+((w.chars||[]).filter(c=>c.name).length),0);
   try{
     if (typeof teamSettings==='undefined' || !teamSettings) teamSettings = {};
     teamSettings.bossClears = teamSettings.bossClears || {};
     teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
     for (const w of ws){
+     try {
       const chars=(w.chars||[]).filter(c=>c.name);
       if (!chars.length){ noChars++; continue; }
       const gates=new Set(), unlocked=new Set();
-      for (let i=0;i<chars.length;i+=2){
-        const res = await Promise.allSettled(chars.slice(i,i+2).map(async c=>{
-          const txt = await cpFetchText(SPROUT_URL(w.address, c.name), false);
+      for (let i=0;i<chars.length;i++){
+        try {
+          const txt = await cpFetchText(SPROUT_URL(w.address, chars[i].name), false);
           scanned++;
-          return _bossParseSprout(txt);
-        }));
-        res.forEach(r=>{ if(r.status==='fulfilled'){ r.value.gates.forEach(g=>gates.add(g)); r.value.unlocked.forEach(k=>unlocked.add(k)); } });
-        if (btn) btn.textContent = `Đang đồng bộ… ${scanned} nhân vật`;
+          if (!txt) { failed++; }
+          else {
+            const r = _bossParseSprout(txt);
+            if (!r.gates.size && !r.unlocked.size) empty++;
+            r.gates.forEach(g=>gates.add(g)); r.unlocked.forEach(k=>unlocked.add(k));
+          }
+        } catch(e){ failed++; lastErr = e && e.message ? e.message : String(e); }
+        if (btn) btn.textContent = `Đang đồng bộ… ${scanned}/${totalChars}`;
+        await new Promise(r=>setTimeout(r,120));   // nghỉ nhẹ, tránh rate-limit
       }
       if (gates.size || unlocked.size){
         hitWallets++;
@@ -3824,15 +3838,17 @@ async function syncBossAuto(){
         unlocked.forEach(k=>{ if(!mu[k]){ mu[k]=true; addedUnlock++; } });
       }
       try { renderBossTab(); } catch(e){}
+     } catch(e){ failed++; lastErr = e && e.message ? e.message : String(e); }
     }
     if (addedGates || addedUnlock){ try { await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); } }
   } finally {
     bossSyncing=false;
     if(btn){ btn.disabled=false; btn.textContent='⟳ Đồng bộ từ MapleSprout'; }
   }
+  const detail = `${scanned}/${totalChars} nhân vật · ${failed} lỗi tải · ${empty} trang không có dữ liệu${noChars?` · ${noChars} ví chưa tải nhân vật`:''}`;
   bossSyncMsg = (addedGates||addedUnlock)
-    ? `<span style="color:#7fd88f">✓ Đồng bộ ${scanned} nhân vật · ${hitWallets} ví · thêm ${addedGates} cửa đã hạ, ${addedUnlock} boss đã mở.</span>`
-    : `<span style="color:#d8a44f">⚠ Đã đọc ${scanned} nhân vật, không thấy dữ liệu mới${noChars?` · ${noChars} ví chưa tải nhân vật (bấm làm mới CP trước)`:''}. Nếu vẫn trống: kiểm tra Worker đã cho phép maplesprout.gg chưa.</span>`;
+    ? `<span style="color:#7fd88f">✓ Xong: ${detail} → thêm ${addedGates} cửa đã hạ, ${addedUnlock} boss đã mở (${hitWallets} ví).</span>`
+    : `<span style="color:#d8a44f">⚠ Không lấy được dữ liệu: ${detail}.${failed?' Proxy chặn hoặc Worker chưa cho phép maplesprout.gg.':''}${lastErr?` Lỗi: ${_mvpEsc(lastErr).slice(0,80)}`:''}</span>`;
   try { renderBossTab(); } catch(e){}
 }
 
