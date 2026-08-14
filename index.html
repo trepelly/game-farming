@@ -3798,6 +3798,17 @@ function _bossParseSprout(txt){
 }
 function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
 function bossIsUnlocked(addr, k){ const m=bossUnlockedMap()[addr]; return !!(m && m[k]); }
+async function sproutFetch(url, ms){
+  // fetch có timeout — proxy treo sẽ không làm đứng cả vòng lặp
+  const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  const t = setTimeout(()=>{ try{ ctrl && ctrl.abort(); }catch(e){} }, ms||15000);
+  try {
+    const r = await fetch(msuProxy(url), ctrl ? { signal: ctrl.signal } : undefined);
+    if (!r.ok) return null;
+    return await r.text();
+  } catch(e){ return null; }
+  finally { clearTimeout(t); }
+}
 const SPROUT_URL = (addr, name) => `https://maplesprout.gg/${addr}/${encodeURIComponent(name)}`;
 let bossSyncStop = false;
 function stopBossSync(){ bossSyncStop = true; }
@@ -3822,10 +3833,10 @@ async function syncBossAuto(allChars){
     for (const job of jobs){
       if (bossSyncStop) break;
       try {
-        let txt = await cpFetchText(SPROUT_URL(job.w.address, job.c.name), false);
+        let txt = await sproutFetch(SPROUT_URL(job.w.address, job.c.name), 15000);
         // Dự phòng: nếu nhận HTML shell rỗng, thử xin RSC payload qua query
         if (txt && txt.indexOf('completions')<0 && txt.indexOf('Prequest')<0) {
-          const alt = await cpFetchText(SPROUT_URL(job.w.address, job.c.name)+'?_rsc=1', false);
+          const alt = await sproutFetch(SPROUT_URL(job.w.address, job.c.name)+'?_rsc=1', 12000);
           if (alt && (alt.indexOf('completions')>=0 || alt.indexOf('Prequest')>=0)) txt = alt;
         }
         done++;
@@ -3850,7 +3861,7 @@ async function syncBossAuto(allChars){
         }
       } catch(e){ failed++; lastErr = (e && e.message) ? e.message : String(e); }
       if (btn) btn.textContent = `Đang đồng bộ… ${done}/${jobs.length}`;
-      if (done % 10 === 0){ try { renderBossTab(); } catch(e){} }   // render thưa cho nhẹ
+      if (done % 20 === 0){ try { renderBossKpi(); } catch(e){} }   // render thưa cho nhẹ
       await new Promise(r=>setTimeout(r,150));
     }
     if (addedGates || addedUnlock){ try { await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); } }
