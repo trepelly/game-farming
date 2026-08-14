@@ -3799,56 +3799,59 @@ function _bossParseSprout(txt){
 function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
 function bossIsUnlocked(addr, k){ const m=bossUnlockedMap()[addr]; return !!(m && m[k]); }
 const SPROUT_URL = (addr, name) => `https://maplesprout.gg/${addr}/${encodeURIComponent(name)}`;
-async function syncBossAuto(){
+let bossSyncStop = false;
+function stopBossSync(){ bossSyncStop = true; }
+async function syncBossAuto(allChars){
   if (!isRealAdmin()) { alert('Chỉ admin mới đồng bộ được.'); return; }
   if (bossSyncing) return;
-  bossSyncing = true;
-  const btn=document.getElementById('boss-sync-btn'); if(btn){ btn.disabled=true; btn.textContent='Đang đồng bộ…'; }
+  bossSyncing = true; bossSyncStop = false;
+  const btn=document.getElementById('boss-sync-btn');
+  const stopBtn=document.getElementById('boss-stop-btn');
+  if(btn){ btn.disabled=true; }
+  if(stopBtn){ stopBtn.style.display='inline-block'; }
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
-  let scanned=0, hitWallets=0, addedGates=0, addedUnlock=0, noChars=0, failed=0, empty=0, lastErr='';
-  const totalChars = ws.reduce((a,w)=>a+((w.chars||[]).filter(c=>c.name).length),0);
+  // Chỉ cần biết prequest -> mặc định quét 1 nhân vật chính mỗi ví (nhẹ hơn nhiều)
+  const pick = w => { const cs=(w.chars||[]).filter(c=>c.name); if(!cs.length) return [];
+    return allChars ? cs : [cs.slice().sort((a,b)=>(b.level||b.cp||0)-(a.level||a.cp||0))[0]]; };
+  const jobs=[]; ws.forEach(w=>pick(w).forEach(c=>jobs.push({w,c})));
+  let done=0, failed=0, empty=0, addedGates=0, addedUnlock=0, hitWallets=new Set(), lastErr='';
   try{
     if (typeof teamSettings==='undefined' || !teamSettings) teamSettings = {};
     teamSettings.bossClears = teamSettings.bossClears || {};
     teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
-    for (const w of ws){
-     try {
-      const chars=(w.chars||[]).filter(c=>c.name);
-      if (!chars.length){ noChars++; continue; }
-      const gates=new Set(), unlocked=new Set();
-      for (let i=0;i<chars.length;i++){
-        try {
-          const txt = await cpFetchText(SPROUT_URL(w.address, chars[i].name), false);
-          scanned++;
-          if (!txt) { failed++; }
+    for (const job of jobs){
+      if (bossSyncStop) break;
+      try {
+        let txt = await cpFetchText(SPROUT_URL(job.w.address, job.c.name), false);
+        done++;
+        if (!txt) failed++;
+        else {
+          const r = _bossParseSprout(txt);
+          txt = null;                                  // giải phóng ngay, tránh hết bộ nhớ
+          if (!r.gates.size && !r.unlocked.size) empty++;
           else {
-            const r = _bossParseSprout(txt);
-            if (!r.gates.size && !r.unlocked.size) empty++;
-            r.gates.forEach(g=>gates.add(g)); r.unlocked.forEach(k=>unlocked.add(k));
+            hitWallets.add(job.w.address);
+            const mg = teamSettings.bossClears[job.w.address] = teamSettings.bossClears[job.w.address] || {};
+            r.gates.forEach(g=>{ if(!mg[g]){ mg[g]=true; addedGates++; } });
+            const mu = teamSettings.bossUnlocked[job.w.address] = teamSettings.bossUnlocked[job.w.address] || {};
+            r.unlocked.forEach(k=>{ if(!mu[k]){ mu[k]=true; addedUnlock++; } });
           }
-        } catch(e){ failed++; lastErr = e && e.message ? e.message : String(e); }
-        if (btn) btn.textContent = `Đang đồng bộ… ${scanned}/${totalChars}`;
-        await new Promise(r=>setTimeout(r,120));   // nghỉ nhẹ, tránh rate-limit
-      }
-      if (gates.size || unlocked.size){
-        hitWallets++;
-        const mg = teamSettings.bossClears[w.address] = teamSettings.bossClears[w.address] || {};
-        gates.forEach(g=>{ if(!mg[g]){ mg[g]=true; addedGates++; } });
-        const mu = teamSettings.bossUnlocked[w.address] = teamSettings.bossUnlocked[w.address] || {};
-        unlocked.forEach(k=>{ if(!mu[k]){ mu[k]=true; addedUnlock++; } });
-      }
-      try { renderBossTab(); } catch(e){}
-     } catch(e){ failed++; lastErr = e && e.message ? e.message : String(e); }
+        }
+      } catch(e){ failed++; lastErr = (e && e.message) ? e.message : String(e); }
+      if (btn) btn.textContent = `Đang đồng bộ… ${done}/${jobs.length}`;
+      if (done % 10 === 0){ try { renderBossTab(); } catch(e){} }   // render thưa cho nhẹ
+      await new Promise(r=>setTimeout(r,150));
     }
     if (addedGates || addedUnlock){ try { await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); } }
   } finally {
     bossSyncing=false;
     if(btn){ btn.disabled=false; btn.textContent='⟳ Đồng bộ từ MapleSprout'; }
+    if(stopBtn){ stopBtn.style.display='none'; }
   }
-  const detail = `${scanned}/${totalChars} nhân vật · ${failed} lỗi tải · ${empty} trang không có dữ liệu${noChars?` · ${noChars} ví chưa tải nhân vật`:''}`;
+  const detail = `${done}/${jobs.length} nhân vật${bossSyncStop?' (đã dừng)':''} · ${failed} lỗi tải · ${empty} không có dữ liệu`;
   bossSyncMsg = (addedGates||addedUnlock)
-    ? `<span style="color:#7fd88f">✓ Xong: ${detail} → thêm ${addedGates} cửa đã hạ, ${addedUnlock} boss đã mở (${hitWallets} ví).</span>`
-    : `<span style="color:#d8a44f">⚠ Không lấy được dữ liệu: ${detail}.${failed?' Proxy chặn hoặc Worker chưa cho phép maplesprout.gg.':''}${lastErr?` Lỗi: ${_mvpEsc(lastErr).slice(0,80)}`:''}</span>`;
+    ? `<span style="color:#7fd88f">✓ ${detail} → ${addedUnlock} boss đã mở, ${addedGates} cửa đã hạ (${hitWallets.size} ví).</span>`
+    : `<span style="color:#d8a44f">⚠ Không lấy được dữ liệu: ${detail}.${failed?' Có thể Worker chưa cho phép maplesprout.gg.':''}${lastErr?` Lỗi: ${_mvpEsc(lastErr).slice(0,70)}`:''}</span>`;
   try { renderBossTab(); } catch(e){}
 }
 
@@ -3951,7 +3954,7 @@ function renderBossKpi(){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="color:#d98a3d">☠</span><span style="font-size:14px;font-weight:800;color:var(--text)">Bossing</span>
         <span style="font-size:11px;color:var(--muted2)">Đang xem: <b style="color:var(--accent)">${_mvpEsc(who)}</b></span>
-        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto()" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button></span>`:''}
+        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto(false)" data-tip="Quét 1 nhân vật chính mỗi ví (nhanh, đủ để biết prequest)" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button><button onclick="syncBossAuto(true)" data-tip="Quét TẤT CẢ nhân vật (chậm, nặng)" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);font-family:inherit;font-size:10.5px;cursor:pointer;white-space:nowrap">tất cả char</button><button id="boss-stop-btn" onclick="stopBossSync()" style="display:none;padding:5px 9px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">■ Dừng</button></span>`:''}
       </div>
       <div id="boss-sync-note" style="font-size:10.5px;color:var(--muted2);margin-top:8px">${bossSyncMsg||''}</div>
       <div style="display:flex;gap:36px;margin-top:14px;align-items:flex-start">
