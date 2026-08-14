@@ -679,6 +679,7 @@ td:first-child{text-align:left;color:var(--muted2)}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border2);margin-bottom:16px;flex-wrap:wrap">
         <div id="team-tabbar" style="display:flex;gap:2px;overflow-x:auto">
         <button class="tw-tab" data-tab="state"   onclick="switchTeamTab('state')">Trạng thái ví</button>
+        <button class="tw-tab" data-tab="boss"    onclick="switchTeamTab('boss')">Bossing</button>
         <button class="tw-tab" data-tab="mvp"     onclick="switchTeamTab('mvp')">Phân bổ MVP</button>
         <button class="tw-tab" data-tab="flow"    onclick="switchTeamTab('flow')">Dòng tiền</button>
         <button class="tw-tab" data-tab="tasks"   onclick="switchTeamTab('tasks')">Việc tuần này</button>
@@ -827,6 +828,17 @@ td:first-child{text-align:left;color:var(--muted2)}
       
 
       </div><!-- /tab-state -->
+
+      <!-- TAB: Bossing -->
+      <div class="tabpanel" id="tab-boss" style="display:none">
+        <div class="mvp-2col">
+          <div id="boss-players"></div>
+          <div id="boss-main" style="min-width:0">
+            <div id="boss-kpi"></div>
+            <div id="boss-grid" style="margin-top:14px"></div>
+          </div>
+        </div>
+      </div><!-- /tab-boss -->
 
       <!-- TAB: Phân bổ MVP -->
       <div class="tabpanel" id="tab-mvp" style="display:none">
@@ -3609,7 +3621,7 @@ function renderAlertChips(list) {
 let teamTab = 'state';
 function switchTeamTab(t) {
   teamTab = t || 'state';
-  ['state','mvp','flow','insight','kpi','addwallet','datasource','tasks'].forEach(k => {
+  ['state','boss','mvp','flow','insight','kpi','addwallet','datasource','tasks'].forEach(k => {
     const p = document.getElementById('tab-'+k);
     if (p) p.style.display = (k===teamTab) ? '' : 'none';
   });
@@ -3619,6 +3631,7 @@ function switchTeamTab(t) {
   const _ov = document.getElementById('team-stats'); if (_ov) _ov.style.display = _ovShow ? '' : 'none';
   const _mv = document.getElementById('member-view'); if (_mv && _mv.innerHTML.trim()) _mv.style.display = _ovShow ? '' : 'none';
   // vẽ lại nội dung tab cần dữ liệu động
+  try { if (teamTab==='boss' && typeof renderBossTab==='function') renderBossTab(); } catch(e) {}
   try { if (teamTab==='mvp' && typeof renderMvpDistChart==='function') renderMvpDistChart(); } catch(e) {}
   try { if (teamTab==='mvp' && typeof renderMvpPlayers==='function') renderMvpPlayers(); } catch(e) {}
   try { if (teamTab==='datasource' && typeof renderPlayerSummary==='function') renderPlayerSummary(); } catch(e) {}
@@ -3701,6 +3714,133 @@ let mvpPQuery = '';
 let mvpPSort = {col:'farm', dir:'desc'};
 function setMvpPQuery(v){ mvpPQuery = (v||'').toLowerCase(); renderMvpPlayers(); const inp=document.getElementById('mvp-psearch'); if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); } }
 function setMvpPSort(c){ if(mvpPSort.col===c) mvpPSort.dir=(mvpPSort.dir==='desc'?'asc':'desc'); else mvpPSort={col:c, dir:(c==='name'?'asc':'desc')}; renderMvpPlayers(); }
+
+// ===== BOSSING =====
+const BOSS_LIST = [
+  { k:'balrog',       name:'Balrog',              img:'balrog',              cycle:'daily',  diffs:['Easy'] },
+  { k:'zakum',        name:'Zakum',               img:'zakum',               cycle:'daily',  diffs:['Easy','Normal','Chaos'] },
+  { k:'horntail',     name:'Horntail',            img:'horntail',            cycle:'daily',  diffs:['Easy','Normal','Chaos'] },
+  { k:'hilla',        name:'Hilla',               img:'hilla',               cycle:'daily',  diffs:['Normal','Hard'] },
+  { k:'pierre',       name:'Pierre',              img:'pierre',              cycle:'daily',  diffs:['Normal','Chaos'] },
+  { k:'vonbon',       name:'Von Bon',             img:'vonbon',              cycle:'daily',  diffs:['Normal','Chaos'] },
+  { k:'crimsonqueen', name:'Crimson Queen',       img:'crimsonqueen',        cycle:'daily',  diffs:['Normal','Chaos'] },
+  { k:'vellum',       name:'Vellum',              img:'vellum',              cycle:'daily',  diffs:['Normal','Chaos'] },
+  { k:'vonleon',      name:'Von Leon',            img:'vonleon',             cycle:'daily',  diffs:['Easy','Normal','Hard'] },
+  { k:'omnicln',      name:'OMNI-CLN',            img:'omnicln',             cycle:'daily',  diffs:['Normal'] },
+  { k:'arkarium',     name:'Arkarium',            img:'arkarium',            cycle:'daily',  diffs:['Easy','Normal'] },
+  { k:'magnus',       name:'Magnus',              img:'magnus',              cycle:'daily',  diffs:['Easy','Normal','Hard'] },
+  { k:'pinkbean',     name:'Pink Bean',           img:'pinkbean',            cycle:'daily',  diffs:['Normal','Chaos'] },
+  { k:'papulatus',    name:'Papulatus',           img:'papulatus',           cycle:'daily',  diffs:['Easy','Normal','Chaos'] },
+  { k:'cygnus',       name:'Cygnus',              img:'cygnus',              cycle:'weekly', diffs:['Easy','Normal'] },
+  { k:'lotus',        name:'Lotus',               img:'lotus',               cycle:'weekly', diffs:['Normal','Hard'] },
+  { k:'damien',       name:'Damien',              img:'damien',              cycle:'weekly', diffs:['Normal','Hard'] },
+  { k:'slime',        name:'Guardian Angel Slime',img:'guardian-angel-slime',cycle:'weekly', diffs:['Normal'] },
+  { k:'lucid',        name:'Lucid',               img:'lucid',               cycle:'weekly', diffs:['Easy','Normal','Hard'] },
+  { k:'will',         name:'Will',                img:'will',                cycle:'weekly', diffs:['Easy','Normal','Hard'] },
+];
+const BOSS_DIFF_COLOR = { Easy:'#7fd88f', Normal:'#38bdf8', Hard:'#f5a524', Chaos:'#e0625c' };
+let bossWallet = 'all';
+function bossImg(b){ return `https://maplen.gg/images/bosses/${b.img}.png`; }
+function bossClears(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossClears) || {}; }
+function bossHas(addr, id){ const m=bossClears()[addr]; return !!(m && m[id]); }
+async function toggleBoss(addr, id){
+  if (!isRealAdmin()) return;
+  if (typeof teamSettings==='undefined' || !teamSettings) teamSettings = {};
+  teamSettings.bossClears = teamSettings.bossClears || {};
+  const m = teamSettings.bossClears[addr] = teamSettings.bossClears[addr] || {};
+  if (m[id]) delete m[id]; else m[id] = true;
+  try { renderBossTab(); } catch(e){}
+  try { if (typeof saveTeamData==='function') await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); }
+}
+function bossTotalCount(){ return BOSS_LIST.reduce((s,b)=>s+b.diffs.length,0); }
+function bossDoneCount(addr){ const m=bossClears()[addr]||{}; return Object.keys(m).length; }
+function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossGrid(); }catch(e){ console.warn(e); } }
+
+function renderBossPlayers(){
+  const el=document.getElementById('boss-players'); if(!el) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const tot = bossTotalCount();
+  const sumDone = ws.reduce((s,w)=>s+bossDoneCount(w.address),0);
+  const bar=(done,max)=>{ const pct=max?Math.round(done/max*100):0;
+    return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:var(--muted2);white-space:nowrap">${done}<span style="opacity:.6">/${max}</span></span></div>`; };
+  const rows = ws.slice().sort((a,b)=>bossDoneCount(b.address)-bossDoneCount(a.address)).map((w,i)=>{
+    const sel = bossWallet===w.address;
+    return `<div class="mvp-prow ${sel?'on':''}" onclick="setBossWallet('${w.address}')">
+        <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${i+1}</span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.label||'—')}</span>${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${_mvpEsc(w.player||'—')}</span></div>
+          ${bar(bossDoneCount(w.address), tot)}
+        </div>
+      </div>`; }).join('');
+  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
+      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Ví theo boss${infoIcon('Bấm 1 ví để xem/đánh dấu boss ví đó đã mở · thanh = số cửa boss đã mở trên tổng '+tot)}</div></div>
+      <div class="mvp-prow ${bossWallet==='all'?'on':''}" onclick="setBossWallet('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${bossWallet==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${ws.length} ví</span></div>
+          ${bar(sumDone, tot*(ws.length||1))}
+        </div>
+      </div>
+      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:6px">${rows||'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Chưa có ví.</div>'}</div>
+    </div>`;
+}
+function setBossWallet(a){ bossWallet = (bossWallet===a)?'all':a; renderBossTab(); }
+
+function renderBossKpi(){
+  const el=document.getElementById('boss-kpi'); if(!el) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const tot=bossTotalCount();
+  const one = bossWallet!=='all' ? ws.find(w=>w.address===bossWallet) : null;
+  const done = one ? bossDoneCount(one.address) : ws.reduce((s,w)=>s+bossDoneCount(w.address),0);
+  const max  = one ? tot : tot*(ws.length||1);
+  const pct  = max?Math.round(done/max*100):0;
+  const who  = one ? (one.label||one.address.slice(0,8)) : 'toàn team';
+  const big=(lbl,v,color)=>`<div style="display:flex;flex-direction:column"><div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;height:14px">${lbl}</div><div class="mvp-num" style="font-size:26px;font-weight:800;color:${color};margin-top:8px;line-height:1.1">${v}</div></div>`;
+  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 18px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="color:#d98a3d">☠</span><span style="font-size:14px;font-weight:800;color:var(--text)">Bossing</span>
+        <span style="font-size:11px;color:var(--muted2)">Đang xem: <b style="color:var(--accent)">${_mvpEsc(who)}</b></span>
+        ${isRealAdmin()?'<span style="margin-left:auto;font-size:10.5px;color:var(--muted2)">Bấm vào ô độ khó để đánh dấu đã mở</span>':''}
+      </div>
+      <div style="display:flex;gap:36px;margin-top:14px;align-items:flex-start">
+        ${big('Đã mở', done, '#7fd88f')}${big('Tổng cửa boss', max, 'var(--text)')}${big('Tiến độ', pct+'%', 'var(--accent)')}
+      </div>
+      <div style="height:8px;background:var(--bg2);border-radius:4px;margin-top:12px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#7fd88f;border-radius:4px"></div></div>
+    </div>`;
+}
+
+function renderBossGrid(){
+  const el=document.getElementById('boss-grid'); if(!el) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const one = bossWallet!=='all' ? ws.find(w=>w.address===bossWallet) : null;
+  const admin = (typeof isRealAdmin==='function' && isRealAdmin());
+  const section = (cycle, title) => {
+    const list = BOSS_LIST.filter(b=>b.cycle===cycle);
+    const cards = list.map(b => {
+      const chips = b.diffs.map(d=>{
+        const id=`${b.k}-${d.toLowerCase()}`;
+        const c=BOSS_DIFF_COLOR[d]||'var(--muted2)';
+        if (one){
+          const on=bossHas(one.address,id);
+          return `<span ${admin?`onclick="event.stopPropagation();toggleBoss('${one.address}','${id}')" style="cursor:pointer;`:'style="'}font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;color:${on?c:'var(--muted2)'};background:${on?`color-mix(in srgb,${c} 16%,transparent)`:'var(--bg2)'};border:1px solid ${on?`color-mix(in srgb,${c} 42%,transparent)`:'var(--border2)'}" data-tip="${d}${on?' · đã mở':' · chưa mở'}">${on?'✓ ':''}${d}</span>`;
+        }
+        const n = ws.filter(w=>bossHas(w.address,id)).length;
+        return `<span style="font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;color:${n?c:'var(--muted2)'};background:${n?`color-mix(in srgb,${c} 14%,transparent)`:'var(--bg2)'};border:1px solid ${n?`color-mix(in srgb,${c} 36%,transparent)`:'var(--border2)'}" data-tip="${d}&#10;${n}/${ws.length} ví đã mở">${d} <span class="mvp-num" style="opacity:.8">${n}</span></span>`;
+      }).join('');
+      const doneAll = one ? b.diffs.filter(d=>bossHas(one.address,`${b.k}-${d.toLowerCase()}`)).length : 0;
+      return `<div style="background:var(--bg2);border:1px solid ${one&&doneAll?'color-mix(in srgb,#7fd88f 30%,var(--border2))':'var(--border2)'};border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:56px;height:56px;object-fit:contain;border-radius:50%;background:var(--card);${one&&!doneAll?'filter:grayscale(1);opacity:.45':''}" onerror="this.style.display='none'">
+          <div style="font-size:11px;font-weight:700;color:var(--text);text-align:center;line-height:1.25">${_mvpEsc(b.name)}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center">${chips}</div>
+        </div>`;
+    }).join('');
+    return `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:12px;font-weight:800;color:var(--text)">${title}</span><span class="mvp-num" style="font-size:10.5px;color:var(--muted2)">· ${list.length} boss</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px">${cards}</div>
+      </div>`;
+  };
+  el.innerHTML = section('daily','Boss hằng ngày') + section('weekly','Boss hằng tuần');
+}
+
 function renderMvpPlayers(){
   const el = document.getElementById('mvp-players'); if(!el) return;
   const ws = (typeof effectiveWallets==='function') ? effectiveWallets() : (typeof teamWallets!=='undefined'?teamWallets:[]);
@@ -3893,7 +4033,7 @@ function initTeamTabs() {
   const isAdmin = effUser().role === 'admin';
   if (bar) {
     bar.style.display = 'flex';               // hiện cho cả member
-    const memberTabs = ['state','mvp','flow','tasks'];
+    const memberTabs = ['state','boss','mvp','flow','tasks'];
     bar.querySelectorAll('.tw-tab').forEach(b => {
       const t = b.getAttribute('data-tab');
       const show = isAdmin ? (t !== 'tasks') : memberTabs.includes(t);
