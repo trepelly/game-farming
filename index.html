@@ -3760,67 +3760,79 @@ function bossDoneCount(addr){ const m=bossClears()[addr]||{}; return Object.keys
 // ===== Đồng bộ boss tự động (scrape như CP) =====
 let bossSyncing = false;
 let bossSyncMsg = '';
-function _bossGateFromText(txt){
-  // Dò trong JSON nhúng: tên boss + độ khó (Easy/Normal/Hard/Chaos) xuất hiện gần nhau
-  const found = new Set();
-  if (!txt) return found;
-  const flat = txt.replace(/\\/g,'').toLowerCase();
-  BOSS_LIST.forEach(b=>{
-    const nameVariants = [b.name.toLowerCase(), b.k.toLowerCase(), b.name.toLowerCase().replace(/\s+/g,'')];
-    b.diffs.forEach(d=>{
-      const dl = d.toLowerCase();
-      const hit = nameVariants.some(nv=>{
-        if (!nv) return false;
-        // "easy zakum", "zakum (normal)", "chaos_zakum", "zakum-chaos" …
-        const pats = [
-          new RegExp(dl+'[ _-]{0,3}'+nv.replace(/[^a-z0-9]/g,'[ _-]{0,3}')),
-          new RegExp(nv.replace(/[^a-z0-9]/g,'[ _-]{0,3}')+'[ _-]{0,3}'+dl),
-        ];
-        return pats.some(p=>p.test(flat));
-      });
-      if (hit) found.add(`${b.k}-${dl}`);
-    });
-  });
-  return found;
+const BOSS_NAME_MAP = (()=>{ const m={}; BOSS_LIST.forEach(b=>{ m[b.name.toLowerCase()]=b.k; m[b.k]=b.k; }); 
+  m['omni cln']='omnicln'; m['omni-cln']='omnicln'; m['guardian angel slime']='slime'; m['slime']='slime';
+  m['root abyss']='rootabyss'; return m; })();
+const BOSS_PREQ_EXTRA = { rootabyss:['pierre','vonbon','crimsonqueen','vellum'] };   // Root Abyss prequest mở 4 boss
+function _bossParseSprout(txt){
+  // Trả về { gates:Set(đã hạ, 'zakum-chaos'), unlocked:Set(đã mở boss, 'zakum') }
+  const gates=new Set(), unlocked=new Set();
+  if (!txt) return { gates, unlocked };
+  const flat = txt.replace(/\\"/g,'"').replace(/\\u0026/g,'&');
+  // completions: ["Von Bon|Chaos",{"completed":true,…}]
+  const reC = /\["([^"|\]]{2,40})\|([A-Za-z]{3,10})"\s*,\s*\{\s*"completed"\s*:\s*true/g;
+  let m;
+  while ((m = reC.exec(flat))){
+    const k = BOSS_NAME_MAP[m[1].trim().toLowerCase()];
+    const d = m[2].trim().toLowerCase();
+    if (!k || k==='rootabyss') continue;
+    const b = BOSS_LIST.find(x=>x.k===k);
+    if (b && b.diffs.some(x=>x.toLowerCase()===d)){ gates.add(`${k}-${d}`); unlocked.add(k); }
+  }
+  // badges prequest: {"label":"Zakum Prequest", …}
+  const reP = /"label"\s*:\s*"([^"]{2,40}?)\s+Prequest"/g;
+  while ((m = reP.exec(flat))){
+    const key = BOSS_NAME_MAP[m[1].trim().toLowerCase()];
+    if (!key) continue;
+    if (BOSS_PREQ_EXTRA[key]) BOSS_PREQ_EXTRA[key].forEach(x=>unlocked.add(x));
+    else unlocked.add(key);
+  }
+  return { gates, unlocked };
 }
+function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
+function bossIsUnlocked(addr, k){ const m=bossUnlockedMap()[addr]; return !!(m && m[k]); }
+const SPROUT_URL = (addr, name) => `https://maplesprout.gg/${addr}/${encodeURIComponent(name)}`;
 async function syncBossAuto(){
   if (!isRealAdmin()) { alert('Chỉ admin mới đồng bộ được.'); return; }
   if (bossSyncing) return;
   bossSyncing = true;
-  const btn=document.getElementById('boss-sync-btn'); if(btn){ btn.disabled=true; btn.textContent='Đang dò…'; }
+  const btn=document.getElementById('boss-sync-btn'); if(btn){ btn.disabled=true; btn.textContent='Đang đồng bộ…'; }
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
-  let scanned=0, hitWallets=0, added=0, noData=0;
+  let scanned=0, hitWallets=0, addedGates=0, addedUnlock=0, noChars=0;
   try{
     if (typeof teamSettings==='undefined' || !teamSettings) teamSettings = {};
     teamSettings.bossClears = teamSettings.bossClears || {};
+    teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
     for (const w of ws){
-      const chars = (w.chars||[]).filter(c=>c.ak);
-      if (!chars.length) { noData++; continue; }
-      const gates = new Set();
-      for (let i=0;i<chars.length;i+=3){
-        const res = await Promise.allSettled(chars.slice(i,i+3).map(async c=>{
-          const txt = await cpFetchText(CP_PAGE(c.ak), false);
+      const chars=(w.chars||[]).filter(c=>c.name);
+      if (!chars.length){ noChars++; continue; }
+      const gates=new Set(), unlocked=new Set();
+      for (let i=0;i<chars.length;i+=2){
+        const res = await Promise.allSettled(chars.slice(i,i+2).map(async c=>{
+          const txt = await cpFetchText(SPROUT_URL(w.address, c.name), false);
           scanned++;
-          return _bossGateFromText(txt);
+          return _bossParseSprout(txt);
         }));
-        res.forEach(r=>{ if(r.status==='fulfilled') r.value.forEach(g=>gates.add(g)); });
+        res.forEach(r=>{ if(r.status==='fulfilled'){ r.value.gates.forEach(g=>gates.add(g)); r.value.unlocked.forEach(k=>unlocked.add(k)); } });
+        if (btn) btn.textContent = `Đang đồng bộ… ${scanned} nhân vật`;
       }
-      if (gates.size){
+      if (gates.size || unlocked.size){
         hitWallets++;
-        const m = teamSettings.bossClears[w.address] = teamSettings.bossClears[w.address] || {};
-        gates.forEach(g=>{ if(!m[g]){ m[g]=true; added++; } });
+        const mg = teamSettings.bossClears[w.address] = teamSettings.bossClears[w.address] || {};
+        gates.forEach(g=>{ if(!mg[g]){ mg[g]=true; addedGates++; } });
+        const mu = teamSettings.bossUnlocked[w.address] = teamSettings.bossUnlocked[w.address] || {};
+        unlocked.forEach(k=>{ if(!mu[k]){ mu[k]=true; addedUnlock++; } });
       }
-      if (btn) btn.textContent = `Đang dò… ${scanned} nhân vật`;
       try { renderBossTab(); } catch(e){}
     }
-    if (added){ try { await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); } }
+    if (addedGates || addedUnlock){ try { await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); } }
   } finally {
     bossSyncing=false;
-    if(btn){ btn.disabled=false; btn.textContent='⟳ Đồng bộ tự động'; }
+    if(btn){ btn.disabled=false; btn.textContent='⟳ Đồng bộ từ MapleSprout'; }
   }
-  bossSyncMsg = added
-    ? `<span style="color:#7fd88f">✓ Đã dò ${scanned} nhân vật · thêm ${added} cửa boss cho ${hitWallets} ví.</span>`
-    : `<span style="color:#d8a44f">⚠ Đã dò ${scanned} nhân vật nhưng trang nguồn không chứa dữ liệu boss${noData?` · ${noData} ví chưa tải nhân vật (bấm làm mới CP trước)`:''}. Cần API key MSU để lấy chính xác — vẫn có thể tick tay bên dưới.</span>`;
+  bossSyncMsg = (addedGates||addedUnlock)
+    ? `<span style="color:#7fd88f">✓ Đồng bộ ${scanned} nhân vật · ${hitWallets} ví · thêm ${addedGates} cửa đã hạ, ${addedUnlock} boss đã mở.</span>`
+    : `<span style="color:#d8a44f">⚠ Đã đọc ${scanned} nhân vật, không thấy dữ liệu mới${noChars?` · ${noChars} ví chưa tải nhân vật (bấm làm mới CP trước)`:''}. Nếu vẫn trống: kiểm tra Worker đã cho phép maplesprout.gg chưa.</span>`;
   try { renderBossTab(); } catch(e){}
 }
 
@@ -3923,7 +3935,7 @@ function renderBossKpi(){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="color:#d98a3d">☠</span><span style="font-size:14px;font-weight:800;color:var(--text)">Bossing</span>
         <span style="font-size:11px;color:var(--muted2)">Đang xem: <b style="color:var(--accent)">${_mvpEsc(who)}</b></span>
-        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto()" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ tự động</button></span>`:''}
+        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto()" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button></span>`:''}
       </div>
       <div id="boss-sync-note" style="font-size:10.5px;color:var(--muted2);margin-top:8px">${bossSyncMsg||''}</div>
       <div style="display:flex;gap:36px;margin-top:14px;align-items:flex-start">
@@ -3952,9 +3964,14 @@ function renderBossGrid(){
         return `<span style="font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;color:${n?c:'var(--muted2)'};background:${n?`color-mix(in srgb,${c} 14%,transparent)`:'var(--bg2)'};border:1px solid ${n?`color-mix(in srgb,${c} 36%,transparent)`:'var(--border2)'}" data-tip="${d}&#10;${n}/${ws.length} ví đã mở">${d} <span class="mvp-num" style="opacity:.8">${n}</span></span>`;
       }).join('');
       const doneAll = one ? b.diffs.filter(d=>bossHas(one.address,`${b.k}-${d.toLowerCase()}`)).length : 0;
+      const unlocked = one ? bossIsUnlocked(one.address, b.k) : ws.filter(w=>bossIsUnlocked(w.address,b.k)).length;
+      const unlockTag = one
+        ? (unlocked ? `<span style="font-size:8.5px;font-weight:700;color:${doneAll?'#7fd88f':'#38bdf8'};background:color-mix(in srgb,${doneAll?'#7fd88f':'#38bdf8'} 14%,transparent);border-radius:4px;padding:1px 6px">${doneAll?'đã hạ':'đã mở'}</span>` : `<span style="font-size:8.5px;color:var(--muted2)">chưa mở</span>`)
+        : `<span style="font-size:8.5px;color:var(--muted2)" data-tip="Số ví đã mở boss này (hoàn thành prequest)">${unlocked}/${ws.length} mở</span>`;
       return `<div style="background:var(--bg2);border:1px solid ${one&&doneAll?'color-mix(in srgb,#7fd88f 30%,var(--border2))':'var(--border2)'};border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px">
-          <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:56px;height:56px;object-fit:contain;border-radius:50%;background:var(--card);${one&&!doneAll?'filter:grayscale(1);opacity:.45':''}" onerror="this.style.display='none'">
+          <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:56px;height:56px;object-fit:contain;border-radius:50%;background:var(--card);${one&&!doneAll&&!unlocked?'filter:grayscale(1);opacity:.4':(one&&!doneAll?'opacity:.8':'')}" onerror="this.style.display='none'">
           <div style="font-size:11px;font-weight:700;color:var(--text);text-align:center;line-height:1.25">${_mvpEsc(b.name)}</div>
+          <div>${unlockTag}</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center">${chips}</div>
         </div>`;
     }).join('');
