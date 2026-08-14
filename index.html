@@ -3833,17 +3833,24 @@ async function syncBossAuto(allChars){
     for (const job of jobs){
       if (bossSyncStop) break;
       try {
-        let txt = await sproutFetch(SPROUT_URL(job.w.address, job.c.name), 15000);
-        // Dự phòng: nếu nhận HTML shell rỗng, thử xin RSC payload qua query
-        if (txt && txt.indexOf('completions')<0 && txt.indexOf('Prequest')<0) {
-          const alt = await sproutFetch(SPROUT_URL(job.w.address, job.c.name)+'?_rsc=1', 12000);
-          if (alt && (alt.indexOf('completions')>=0 || alt.indexOf('Prequest')>=0)) txt = alt;
+        const hasData = t => !!(t && (t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0));
+        const addr = job.w.address || '';
+        const variants = [
+          SPROUT_URL(addr, job.c.name),
+          SPROUT_URL(addr, job.c.name)+'?_rsc=1',
+          SPROUT_URL(addr.toLowerCase(), job.c.name),
+          SPROUT_URL(addr.toLowerCase(), job.c.name)+'?_rsc=1',
+        ];
+        let txt = null;
+        for (const u of variants){
+          txt = await sproutFetch(u, 15000);
+          if (hasData(txt)) { if (done===0) window._bossOkUrl = u; break; }
         }
         done++;
         if (done === 1) {   // chẩn đoán trang đầu
-          window._bossDebug = { url: SPROUT_URL(job.w.address, job.c.name), len: txt?txt.length:0,
+          window._bossDebug = { url: variants[0], len: txt?txt.length:0,
             hasCompletions: !!(txt && txt.indexOf('completions')>=0), hasPrequest: !!(txt && txt.indexOf('Prequest')>=0),
-            head: txt ? txt.slice(0,300) : '(rỗng)' };
+            head: txt ? txt.slice(0,400) : '(rỗng)' };
           console.log('[Bossing] chẩn đoán trang đầu:', window._bossDebug);
         }
         if (!txt) failed++;
@@ -3877,8 +3884,9 @@ async function syncBossAuto(allChars){
         let why = '';
         if (!d.len) why = 'Proxy không trả về nội dung — kiểm tra Worker đã deploy bản có maplesprout.gg chưa.';
         else if (!d.hasCompletions && !d.hasPrequest) why = `Tải được trang (${Math.round((d.len||0)/1024)}KB) nhưng không chứa dữ liệu boss — có thể tên nhân vật trong app khác tên trên MapleSprout, hoặc trang cần đăng nhập.`;
-        else why = 'Trang có dữ liệu nhưng chưa tách được — gửi mình dòng chẩn đoán trong Console (F12).';
-        return `<span style="color:#d8a44f">⚠ Không lấy được: ${detail}. ${why}${lastErr?` Lỗi: ${_mvpEsc(lastErr).slice(0,60)}`:''} <span style="color:var(--muted2)">(Mở F12 → Console xem "[Bossing] chẩn đoán")</span></span>`; })();
+        else why = 'Trang có dữ liệu nhưng chưa tách được.';
+        const peek = d.head ? `<div style="margin-top:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;font-family:monospace;font-size:9.5px;color:var(--muted2);white-space:pre-wrap;word-break:break-all;max-height:110px;overflow:auto">URL: ${_mvpEsc(d.url||'')}\n${_mvpEsc(String(d.head).slice(0,220))}</div>` : '';
+        return `<span style="color:#d8a44f">⚠ Không lấy được: ${detail}. ${why}${lastErr?` Lỗi: ${_mvpEsc(lastErr).slice(0,60)}`:''}</span>${peek}`; })();
   try { renderBossTab(); } catch(e){}
 }
 
