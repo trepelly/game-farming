@@ -836,6 +836,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div id="boss-main" style="min-width:0">
             <div id="boss-kpi"></div>
             <div id="boss-grid" style="margin-top:14px"></div>
+            <div id="boss-matrix" style="margin-top:14px"></div>
           </div>
         </div>
       </div><!-- /tab-boss -->
@@ -873,7 +874,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -3754,7 +3755,62 @@ async function toggleBoss(addr, id){
 }
 function bossTotalCount(){ return BOSS_LIST.reduce((s,b)=>s+b.diffs.length,0); }
 function bossDoneCount(addr){ const m=bossClears()[addr]||{}; return Object.keys(m).length; }
-function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossGrid(); }catch(e){ console.warn(e); } }
+
+let bossMxSort = {col:'done', dir:'desc'};
+function setBossMxSort(c){ if(bossMxSort.col===c) bossMxSort.dir=(bossMxSort.dir==='desc'?'asc':'desc'); else bossMxSort={col:c,dir:(c==='name'?'asc':'desc')}; renderBossMatrix(); }
+function renderBossMatrix(){
+  const el=document.getElementById('boss-matrix'); if(!el) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const gates=[]; BOSS_LIST.forEach(b=>b.diffs.forEach(d=>gates.push({id:`${b.k}-${d.toLowerCase()}`, boss:b, diff:d})));
+  const tot=gates.length;
+  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>bossDoneCount(w.address) };
+  const kf=keys[bossMxSort.col]||keys.done;
+  const rows=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossMxSort.dir==='desc'?-r:r; });
+  const arw=c=>bossMxSort.col===c?(bossMxSort.dir==='desc'?' ↓':' ↑'):'';
+  const admin=(typeof isRealAdmin==='function'&&isRealAdmin());
+  const cellW=26;
+  const grid=`180px 64px 54px repeat(${tot},${cellW}px)`;
+  // header: nhóm boss
+  const headTop = gates.map((g,i)=>{ const first = i===0 || gates[i-1].boss.k!==g.boss.k;
+    return `<div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:8.5px;color:${first?'var(--text2)':'var(--muted2)'};white-space:nowrap;overflow:hidden;height:78px;display:flex;align-items:flex-end;justify-content:center" data-tip="${_mvpEsc(g.boss.name)} · ${g.diff}">${first?_mvpEsc(g.boss.name):''} <span style="color:${BOSS_DIFF_COLOR[g.diff]||'var(--muted2)'}">${g.diff[0]}</span></div>`; }).join('');
+  const body = rows.map(w=>{
+    const done=bossDoneCount(w.address);
+    const cells = gates.map(g=>{ const on=bossHas(w.address,g.id); const c=BOSS_DIFF_COLOR[g.diff]||'var(--muted2)';
+      return `<div ${admin?`onclick="toggleBoss('${w.address}','${g.id}')" style="cursor:pointer;`:'style="'}height:20px;border-radius:4px;background:${on?c:'var(--bg2)'};opacity:${on?'.9':'.45'}" data-tip="${_mvpEsc(w.label||'')}&#10;${_mvpEsc(g.boss.name)} · ${g.diff}&#10;${on?'✓ đã mở':'chưa mở'}"></div>`; }).join('');
+    return `<div class="boss-mx-row" style="display:grid;grid-template-columns:${grid};gap:3px;align-items:center;padding:4px 10px">
+        <div style="min-width:0;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div>
+        <div style="font-size:9.5px;color:#d98a3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.player||'—')}</div>
+        <div class="mvp-num" style="font-size:10.5px;font-weight:700;color:${done?'#7fd88f':'var(--muted2)'};text-align:right">${done}<span style="font-size:8.5px;color:var(--muted2);opacity:.7">/${tot}</span></div>
+        ${cells}
+      </div>`; }).join('');
+  const colTot = gates.map(g=>{ const n=ws.filter(w=>bossHas(w.address,g.id)).length;
+    return `<div class="mvp-num" style="font-size:9px;text-align:center;color:${n?'var(--text2)':'var(--muted2)'}" data-tip="${_mvpEsc(g.boss.name)} · ${g.diff}&#10;${n}/${ws.length} ví">${n}</div>`; }).join('');
+  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
+        <span style="font-size:12.5px;font-weight:800;color:var(--text)">Bảng so sánh ví × boss</span>
+        <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${ws.length} ví · ${tot} cửa</span>
+        ${infoIcon('Mỗi ô = 1 cửa boss (E/N/H/C). Ô sáng màu = đã mở. Cuộn ngang để xem hết, admin bấm ô để đánh dấu.')}
+      </div>
+      <div style="overflow-x:auto">
+        <div style="min-width:${300+tot*29}px">
+          <div style="display:grid;grid-template-columns:${grid};gap:3px;align-items:end;padding:8px 10px 6px;border-bottom:1px solid var(--border2)">
+            <div onclick="setBossMxSort('name')" data-tip="Bấm để sắp xếp" style="cursor:pointer;font-size:9px;font-weight:700;color:${bossMxSort.col==='name'?'var(--accent)':'var(--muted2)'};text-transform:uppercase">Ví${arw('name')}</div>
+            <div onclick="setBossMxSort('player')" data-tip="Bấm để sắp xếp" style="cursor:pointer;font-size:9px;font-weight:700;color:${bossMxSort.col==='player'?'var(--accent)':'var(--muted2)'};text-transform:uppercase">Player${arw('player')}</div>
+            <div onclick="setBossMxSort('done')" data-tip="Bấm để sắp xếp" style="cursor:pointer;font-size:9px;font-weight:700;color:${bossMxSort.col==='done'?'var(--accent)':'var(--muted2)'};text-transform:uppercase;text-align:right">Mở${arw('done')}</div>
+            ${headTop}
+          </div>
+          <div id="boss-mx-scroll" style="max-height:420px;overflow-y:auto">${body||'<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">Chưa có ví.</div>'}</div>
+          <div style="display:grid;grid-template-columns:${grid};gap:3px;align-items:center;padding:6px 10px;border-top:1px solid var(--border2);background:var(--surface)">
+            <div style="font-size:11px;font-weight:800;color:var(--text)">TỔNG</div><div></div>
+            <div class="mvp-num" style="font-size:10.5px;font-weight:700;color:#7fd88f;text-align:right">${ws.reduce((s,w)=>s+bossDoneCount(w.address),0)}</div>
+            ${colTot}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossGrid(); renderBossMatrix(); }catch(e){ console.warn(e); } }
 
 function renderBossPlayers(){
   const el=document.getElementById('boss-players'); if(!el) return;
