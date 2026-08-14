@@ -3756,6 +3756,74 @@ async function toggleBoss(addr, id){
 function bossTotalCount(){ return BOSS_LIST.reduce((s,b)=>s+b.diffs.length,0); }
 function bossDoneCount(addr){ const m=bossClears()[addr]||{}; return Object.keys(m).length; }
 
+
+// ===== Đồng bộ boss tự động (scrape như CP) =====
+let bossSyncing = false;
+let bossSyncMsg = '';
+function _bossGateFromText(txt){
+  // Dò trong JSON nhúng: tên boss + độ khó (Easy/Normal/Hard/Chaos) xuất hiện gần nhau
+  const found = new Set();
+  if (!txt) return found;
+  const flat = txt.replace(/\\/g,'').toLowerCase();
+  BOSS_LIST.forEach(b=>{
+    const nameVariants = [b.name.toLowerCase(), b.k.toLowerCase(), b.name.toLowerCase().replace(/\s+/g,'')];
+    b.diffs.forEach(d=>{
+      const dl = d.toLowerCase();
+      const hit = nameVariants.some(nv=>{
+        if (!nv) return false;
+        // "easy zakum", "zakum (normal)", "chaos_zakum", "zakum-chaos" …
+        const pats = [
+          new RegExp(dl+'[ _-]{0,3}'+nv.replace(/[^a-z0-9]/g,'[ _-]{0,3}')),
+          new RegExp(nv.replace(/[^a-z0-9]/g,'[ _-]{0,3}')+'[ _-]{0,3}'+dl),
+        ];
+        return pats.some(p=>p.test(flat));
+      });
+      if (hit) found.add(`${b.k}-${dl}`);
+    });
+  });
+  return found;
+}
+async function syncBossAuto(){
+  if (!isRealAdmin()) { alert('Chỉ admin mới đồng bộ được.'); return; }
+  if (bossSyncing) return;
+  bossSyncing = true;
+  const btn=document.getElementById('boss-sync-btn'); if(btn){ btn.disabled=true; btn.textContent='Đang dò…'; }
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  let scanned=0, hitWallets=0, added=0, noData=0;
+  try{
+    if (typeof teamSettings==='undefined' || !teamSettings) teamSettings = {};
+    teamSettings.bossClears = teamSettings.bossClears || {};
+    for (const w of ws){
+      const chars = (w.chars||[]).filter(c=>c.ak);
+      if (!chars.length) { noData++; continue; }
+      const gates = new Set();
+      for (let i=0;i<chars.length;i+=3){
+        const res = await Promise.allSettled(chars.slice(i,i+3).map(async c=>{
+          const txt = await cpFetchText(CP_PAGE(c.ak), false);
+          scanned++;
+          return _bossGateFromText(txt);
+        }));
+        res.forEach(r=>{ if(r.status==='fulfilled') r.value.forEach(g=>gates.add(g)); });
+      }
+      if (gates.size){
+        hitWallets++;
+        const m = teamSettings.bossClears[w.address] = teamSettings.bossClears[w.address] || {};
+        gates.forEach(g=>{ if(!m[g]){ m[g]=true; added++; } });
+      }
+      if (btn) btn.textContent = `Đang dò… ${scanned} nhân vật`;
+      try { renderBossTab(); } catch(e){}
+    }
+    if (added){ try { await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); } }
+  } finally {
+    bossSyncing=false;
+    if(btn){ btn.disabled=false; btn.textContent='⟳ Đồng bộ tự động'; }
+  }
+  bossSyncMsg = added
+    ? `<span style="color:#7fd88f">✓ Đã dò ${scanned} nhân vật · thêm ${added} cửa boss cho ${hitWallets} ví.</span>`
+    : `<span style="color:#d8a44f">⚠ Đã dò ${scanned} nhân vật nhưng trang nguồn không chứa dữ liệu boss${noData?` · ${noData} ví chưa tải nhân vật (bấm làm mới CP trước)`:''}. Cần API key MSU để lấy chính xác — vẫn có thể tick tay bên dưới.</span>`;
+  try { renderBossTab(); } catch(e){}
+}
+
 let bossMxSort = {col:'done', dir:'desc'};
 function setBossMxSort(c){ if(bossMxSort.col===c) bossMxSort.dir=(bossMxSort.dir==='desc'?'asc':'desc'); else bossMxSort={col:c,dir:(c==='name'?'asc':'desc')}; renderBossMatrix(); }
 function renderBossMatrix(){
@@ -3855,8 +3923,9 @@ function renderBossKpi(){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="color:#d98a3d">☠</span><span style="font-size:14px;font-weight:800;color:var(--text)">Bossing</span>
         <span style="font-size:11px;color:var(--muted2)">Đang xem: <b style="color:var(--accent)">${_mvpEsc(who)}</b></span>
-        ${isRealAdmin()?'<span style="margin-left:auto;font-size:10.5px;color:var(--muted2)">Bấm vào ô độ khó để đánh dấu đã mở</span>':''}
+        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto()" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ tự động</button></span>`:''}
       </div>
+      <div id="boss-sync-note" style="font-size:10.5px;color:var(--muted2);margin-top:8px">${bossSyncMsg||''}</div>
       <div style="display:flex;gap:36px;margin-top:14px;align-items:flex-start">
         ${big('Đã mở', done, '#7fd88f')}${big('Tổng cửa boss', max, 'var(--text)')}${big('Tiến độ', pct+'%', 'var(--accent)')}
       </div>
