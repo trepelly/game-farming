@@ -178,6 +178,14 @@ export default {
       'Referer': refOrigin + '/',
       'Origin': refOrigin,
     };
+    // MapleSprout (Next.js App Router): xin RSC flight payload thay vì HTML shell rỗng
+    if (targetUrl.hostname.endsWith('maplesprout.gg')) {
+      fetchHeaders['RSC'] = '1';
+      fetchHeaders['Next-Router-Prefetch'] = '0';
+      fetchHeaders['Accept'] = 'text/x-component, text/html, */*';
+      fetchHeaders['Referer'] = 'https://maplesprout.gg/';
+      fetchHeaders['Origin'] = 'https://maplesprout.gg';
+    }
     // Forward Content-Type for POST requests (needed for JSON body)
     const reqCT = request.headers.get('Content-Type');
     if (request.method === 'POST') {

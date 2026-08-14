@@ -3823,6 +3823,11 @@ async function syncBossAuto(allChars){
       if (bossSyncStop) break;
       try {
         let txt = await cpFetchText(SPROUT_URL(job.w.address, job.c.name), false);
+        // Dự phòng: nếu nhận HTML shell rỗng, thử xin RSC payload qua query
+        if (txt && txt.indexOf('completions')<0 && txt.indexOf('Prequest')<0) {
+          const alt = await cpFetchText(SPROUT_URL(job.w.address, job.c.name)+'?_rsc=1', false);
+          if (alt && (alt.indexOf('completions')>=0 || alt.indexOf('Prequest')>=0)) txt = alt;
+        }
         done++;
         if (done === 1) {   // chẩn đoán trang đầu
           window._bossDebug = { url: SPROUT_URL(job.w.address, job.c.name), len: txt?txt.length:0,
