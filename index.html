@@ -3899,53 +3899,60 @@ async function syncBossAuto(allChars){
 
 let bossMxSort = {col:'done', dir:'desc'};
 function setBossMxSort(c){ if(bossMxSort.col===c) bossMxSort.dir=(bossMxSort.dir==='desc'?'asc':'desc'); else bossMxSort={col:c,dir:(c==='name'?'asc':'desc')}; renderBossMatrix(); }
+function _bossCellState(addr, b){
+  const cleared = b.diffs.filter(d=>bossHas(addr, `${b.k}-${d.toLowerCase()}`));
+  const unlocked = bossIsUnlocked(addr, b.k) || cleared.length>0;
+  return { cleared, unlocked };
+}
+function _bossCell(addr, b, size){
+  const st=_bossCellState(addr,b);
+  const sz=size||30;
+  const ring = st.cleared.length ? '#7fd88f' : (st.unlocked ? '#38bdf8' : 'transparent');
+  const tip = `${_mvpEsc(b.name)}&#10;${st.cleared.length?('✓ Đã hạ: '+st.cleared.join(', ')):(st.unlocked?'Đã mở (prequest) · chưa hạ':'Chưa mở')}&#10;Cửa: ${b.diffs.join(' / ')}`;
+  return `<span data-tip="${tip}" style="display:inline-flex;flex-shrink:0;width:${sz}px;height:${sz}px;border-radius:50%;overflow:hidden;border:1.5px solid ${ring};background:var(--bg2);${st.unlocked?'':'filter:grayscale(1);opacity:.35'}">
+      <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+    </span>`;
+}
 function renderBossMatrix(){
   const el=document.getElementById('boss-matrix'); if(!el) return;
   const ws=bossScopeWallets();
-  const gates=[]; BOSS_LIST.forEach(b=>b.diffs.forEach(d=>gates.push({id:`${b.k}-${d.toLowerCase()}`, boss:b, diff:d})));
-  const tot=gates.length;
-  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>bossDoneCount(w.address) };
+  const daily=BOSS_LIST.filter(b=>b.cycle==='daily'), weekly=BOSS_LIST.filter(b=>b.cycle==='weekly');
+  const totB=BOSS_LIST.length;
+  const openCount = w => BOSS_LIST.filter(b=>_bossCellState(w.address,b).unlocked).length;
+  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
   const kf=keys[bossMxSort.col]||keys.done;
   const rows=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossMxSort.dir==='desc'?-r:r; });
   const arw=c=>bossMxSort.col===c?(bossMxSort.dir==='desc'?' ↓':' ↑'):'';
-  const admin=(typeof isRealAdmin==='function'&&isRealAdmin());
-  const cellW=26;
-  const grid=`180px 64px 54px repeat(${tot},${cellW}px)`;
-  // header: nhóm boss
-  const headTop = gates.map((g,i)=>{ const first = i===0 || gates[i-1].boss.k!==g.boss.k;
-    return `<div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:8.5px;color:${first?'var(--text2)':'var(--muted2)'};white-space:nowrap;overflow:hidden;height:78px;display:flex;align-items:flex-end;justify-content:center" data-tip="${_mvpEsc(g.boss.name)} · ${g.diff}">${first?_mvpEsc(g.boss.name):''} <span style="color:${BOSS_DIFF_COLOR[g.diff]||'var(--muted2)'}">${g.diff[0]}</span></div>`; }).join('');
-  const body = rows.map(w=>{
-    const done=bossDoneCount(w.address);
-    const cells = gates.map(g=>{ const on=bossHas(w.address,g.id); const c=BOSS_DIFF_COLOR[g.diff]||'var(--muted2)';
-      return `<div ${admin?`onclick="toggleBoss('${w.address}','${g.id}')" style="cursor:pointer;`:'style="'}height:20px;border-radius:4px;background:${on?c:'var(--bg2)'};opacity:${on?'.9':'.45'}" data-tip="${_mvpEsc(w.label||'')}&#10;${_mvpEsc(g.boss.name)} · ${g.diff}&#10;${on?'✓ đã mở':'chưa mở'}"></div>`; }).join('');
-    return `<div class="boss-mx-row" style="display:grid;grid-template-columns:${grid};gap:3px;align-items:center;padding:4px 10px">
-        <div style="min-width:0;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div>
-        <div style="font-size:9.5px;color:#d98a3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.player||'—')}</div>
-        <div class="mvp-num" style="font-size:10.5px;font-weight:700;color:${done?'#7fd88f':'var(--muted2)'};text-align:right">${done}<span style="font-size:8.5px;color:var(--muted2);opacity:.7">/${tot}</span></div>
-        ${cells}
-      </div>`; }).join('');
-  const colTot = gates.map(g=>{ const n=ws.filter(w=>bossHas(w.address,g.id)).length;
-    return `<div class="mvp-num" style="font-size:9px;text-align:center;color:${n?'var(--text2)':'var(--muted2)'}" data-tip="${_mvpEsc(g.boss.name)} · ${g.diff}&#10;${n}/${ws.length} ví">${n}</div>`; }).join('');
+  const hd=(c,l,al)=>`<span onclick="setBossMxSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;color:${bossMxSort.col===c?'var(--accent)':'var(--muted2)'};text-align:${al||'left'}">${l}${arw(c)}</span>`;
+  const grid = `28px minmax(120px,1fr) 70px ${daily.length*34}px 1px ${weekly.length*34}px`;
+  const headIcons = list => list.map(b=>`<span data-tip="${_mvpEsc(b.name)}&#10;${b.diffs.join(' / ')}" style="display:inline-flex;width:30px;height:30px;margin-right:4px;border-radius:50%;overflow:hidden;background:var(--bg2);opacity:.85"><img src="${bossImg(b)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"></span>`).join('');
+  const cells = (w,list) => list.map(b=>`<span style="display:inline-block;margin-right:4px">${_bossCell(w.address,b,30)}</span>`).join('');
+  const body = rows.map((w,i)=>{
+    const n=openCount(w);
+    return `<div class="boss-mx-row" style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:6px 12px">
+      <div class="mvp-num" style="font-size:10px;color:var(--muted2)">${i+1}</div>
+      <div style="min-width:0"><div style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div><div style="font-size:9px;color:#d98a3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.player||'—')}</div></div>
+      <div class="mvp-num" style="font-size:11px;font-weight:700;color:${n?'#7fd88f':'var(--muted2)'};text-align:right">${n}<span style="font-size:9px;color:var(--muted2);opacity:.7">/${totB}</span></div>
+      <div style="white-space:nowrap">${cells(w,daily)}</div>
+      <div style="width:1px;height:26px;background:var(--border2)"></div>
+      <div style="white-space:nowrap">${cells(w,weekly)}</div>
+    </div>`; }).join('');
+  const openAll = ws.reduce((s,w)=>s+openCount(w),0);
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
-        <span style="font-size:12.5px;font-weight:800;color:var(--text)">Bảng so sánh ví × boss</span>
-        <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${ws.length} ví · ${tot} cửa</span>
-        ${infoIcon('Mỗi ô = 1 cửa boss (E/N/H/C). Ô sáng màu = đã mở. Cuộn ngang để xem hết, admin bấm ô để đánh dấu.')}
-      </div>
       <div style="overflow-x:auto">
-        <div style="min-width:${300+tot*29}px">
-          <div style="display:grid;grid-template-columns:${grid};gap:3px;align-items:end;padding:8px 10px 6px;border-bottom:1px solid var(--border2)">
-            <div onclick="setBossMxSort('name')" data-tip="Bấm để sắp xếp" style="cursor:pointer;font-size:9px;font-weight:700;color:${bossMxSort.col==='name'?'var(--accent)':'var(--muted2)'};text-transform:uppercase">Ví${arw('name')}</div>
-            <div onclick="setBossMxSort('player')" data-tip="Bấm để sắp xếp" style="cursor:pointer;font-size:9px;font-weight:700;color:${bossMxSort.col==='player'?'var(--accent)':'var(--muted2)'};text-transform:uppercase">Player${arw('player')}</div>
-            <div onclick="setBossMxSort('done')" data-tip="Bấm để sắp xếp" style="cursor:pointer;font-size:9px;font-weight:700;color:${bossMxSort.col==='done'?'var(--accent)':'var(--muted2)'};text-transform:uppercase;text-align:right">Mở${arw('done')}</div>
-            ${headTop}
+        <div style="min-width:${300+(daily.length+weekly.length)*34}px">
+          <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border2);background:var(--surface)">
+            <div></div>
+            <div class="mvp-num" style="font-size:15px;font-weight:800;color:var(--text)">${openAll}<span style="font-size:10px;color:var(--muted2);font-weight:600"> /${totB*(ws.length||1)} mở</span></div>
+            <div></div>
+            <div style="white-space:nowrap"><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Daily</div>${headIcons(daily)}</div>
+            <div style="width:1px;height:46px;background:var(--border2)"></div>
+            <div style="white-space:nowrap"><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Weekly</div>${headIcons(weekly)}</div>
           </div>
-          <div id="boss-mx-scroll" style="max-height:420px;overflow-y:auto">${body||'<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">Chưa có ví.</div>'}</div>
-          <div style="display:grid;grid-template-columns:${grid};gap:3px;align-items:center;padding:6px 10px;border-top:1px solid var(--border2);background:var(--surface)">
-            <div style="font-size:11px;font-weight:800;color:var(--text)">TỔNG</div><div></div>
-            <div class="mvp-num" style="font-size:10.5px;font-weight:700;color:#7fd88f;text-align:right">${ws.reduce((s,w)=>s+bossDoneCount(w.address),0)}</div>
-            ${colTot}
+          <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:5px 12px;border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
+            <div style="color:var(--muted2)">#</div>${hd('name','Ví / Player')}${hd('done','Mở','right')}<div></div><div></div><div></div>
           </div>
+          <div id="boss-mx-scroll" style="max-height:440px;overflow-y:auto">${body||'<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">Chưa có ví.</div>'}</div>
         </div>
       </div>
     </div>`;
