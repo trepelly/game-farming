@@ -3800,6 +3800,11 @@ function _bossParseSprout(txt){
     if (BOSS_PREQ_EXTRA[key]) BOSS_PREQ_EXTRA[key].forEach(x=>unlocked.add(x));
     else unlocked.add(key);
   }
+  // Nếu là payload MSU (historyMissionTitle / questRecords) thì dùng parser tương ứng
+  if (!gates.size && !unlocked.size && typeof bossParseMsuPayload==='function'){
+    const alt = bossParseMsuPayload(txt);
+    alt.gates.forEach(g=>gates.add(g)); alt.unlocked.forEach(k=>unlocked.add(k));
+  }
   return { gates, unlocked };
 }
 // Prequest -> boss (theo questTitle thật trong dữ liệu MSU)
@@ -3854,6 +3859,27 @@ function bossParseMsuPayload(txt){
 }
 function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
 function bossIsUnlocked(addr, k){ const m=bossUnlockedMap()[addr]; return !!(m && m[k]); }
+const SPROUT_AK_URLS = ak => [
+  `https://maplesprout.gg/api/character/${ak}`,
+  `https://maplesprout.gg/api/characters/${ak}`,
+  `https://maplesprout.gg/api/progression/${ak}`,
+  `https://maplesprout.gg/api/history-missions/${ak}`,
+  `https://maplesprout.gg/api/char/${ak}`,
+  `https://maplesprout.gg/${ak}`,
+];
+let SPROUT_AK_PATTERN = null;   // nhớ mẫu URL đã chạy được -> các ví sau gọi thẳng
+function bossHasData(t){ return !!(t && (t.indexOf('historyMissionTitle')>=0 || t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0)); }
+async function sproutFetchByAk(ak){
+  if (SPROUT_AK_PATTERN){
+    const t = await sproutFetch(SPROUT_AK_PATTERN.replace('{ak}', ak), 15000);
+    if (bossHasData(t)) return t;
+  }
+  for (const u of SPROUT_AK_URLS(ak)){
+    const t = await sproutFetch(u, 15000);
+    if (bossHasData(t)){ SPROUT_AK_PATTERN = u.replace(ak, '{ak}'); return t; }
+  }
+  return null;
+}
 async function sproutFetch(url, ms){
   // fetch có timeout — proxy treo sẽ không làm đứng cả vòng lặp
   const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
@@ -3928,6 +3954,11 @@ async function syncBossWallet(addr){
   const lines=[]; let gotGates=new Set(), gotUnlock=new Set();
   chars.sort((a,b)=>(b.cp||0)-(a.cp||0) || (b.level||0)-(a.level||0));   // mạnh nhất trước
   for (const c of chars.slice(0,2)){
+    if (c.ak){
+      const tAk = await sproutFetchByAk(c.ak);
+      lines.push(`${bossHasData(tAk)?'✓':'✗'} ${c.name} · assetKey ${c.ak.slice(0,12)}… · ${tAk?Math.round(tAk.length/1024)+'KB':'không có'}`);
+      if (bossHasData(tAk)){ const r=_bossParseSprout(tAk); r.gates.forEach(g=>gotGates.add(g)); r.unlocked.forEach(k=>gotUnlock.add(k)); if(gotUnlock.size) break; }
+    }
     const base = SPROUT_URL(addr, c.name);
     const tries = [ base, base+'?_rsc=1', SPROUT_URL(addr.toLowerCase(), c.name) ];
     for (const u of tries){
@@ -3976,8 +4007,26 @@ async function syncBossAuto(allChars){
     for (const job of jobs){
       if (bossSyncStop) break;
       try {
-        const hasData = t => !!(t && (t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0));
+        const hasData = t => bossHasData(t);
         const addr = job.w.address || '';
+        // Ưu tiên: gọi theo assetKey (endpoint chứa historyMission)
+        if (job.c.ak){
+          const tAk = await sproutFetchByAk(job.c.ak);
+          if (hasData(tAk)){
+            done++;
+            const r = _bossParseSprout(tAk);
+            if (r.gates.size || r.unlocked.size){
+              hitWallets.add(job.w.address);
+              const mg = teamSettings.bossClears[job.w.address] = teamSettings.bossClears[job.w.address] || {};
+              r.gates.forEach(g=>{ if(!mg[g]){ mg[g]=true; addedGates++; } });
+              const mu = teamSettings.bossUnlocked[job.w.address] = teamSettings.bossUnlocked[job.w.address] || {};
+              r.unlocked.forEach(k=>{ if(!mu[k]){ mu[k]=true; addedUnlock++; } });
+            } else empty++;
+            if (btn) btn.textContent = `Đang đồng bộ… ${done}/${jobs.length}`;
+            await new Promise(r=>setTimeout(r,150));
+            continue;
+          }
+        }
         const variants = [
           SPROUT_URL(addr, job.c.name),
           SPROUT_URL(addr.toLowerCase(), job.c.name),
