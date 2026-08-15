@@ -3868,6 +3868,54 @@ async function sproutFetch(url, ms){
   finally { clearTimeout(t); }
 }
 const SPROUT_URL = (addr, name) => `https://maplesprout.gg/${addr}/${encodeURIComponent(name)}`;
+function openBossPaste(addr){
+  if (!isRealAdmin()) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const w = ws.find(x=>x.address===addr); if(!w) return;
+  let ov=document.getElementById('boss-paste-modal');
+  if(!ov){ ov=document.createElement('div'); ov.id='boss-paste-modal'; document.body.appendChild(ov); }
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:16px;max-width:640px;width:100%;padding:20px 22px;box-shadow:var(--shadow-lg)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:15px;font-weight:800;color:var(--text)">Dán dữ liệu boss · ${_mvpEsc(w.label||addr)}</div>
+        <button onclick="closeBossPaste()" style="background:none;border:none;color:var(--muted2);font-size:20px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted2);line-height:1.7;margin-bottom:10px">
+        Mở trang MapleSprout của nhân vật → <b>F12</b> → tab <b>Network</b> → lọc <b>Fetch/XHR</b> → bấm tab <b>Progression</b> trên trang →
+        bấm request tên nhân vật → tab <b>Payload</b> (hoặc <b>Response</b>) → chuột phải <b>Copy value</b> → dán vào đây.
+        <br>Nhận cả 2 dạng: <b>completions/badges</b> hoặc <b>historyMissionTitle/questRecords</b>.
+      </div>
+      <textarea id="boss-paste-ta" placeholder="Dán dữ liệu vào đây…" style="width:100%;box-sizing:border-box;height:200px;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:monospace;font-size:11px;resize:vertical"></textarea>
+      <div id="boss-paste-note" style="font-size:11px;margin-top:8px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+        <button onclick="closeBossPaste()" style="padding:9px 16px;border-radius:9px;border:1px solid var(--border2);background:var(--card);color:var(--text2);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer">Huỷ</button>
+        <button onclick="applyBossPaste('${addr}')" style="padding:9px 18px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Áp dụng</button>
+      </div>
+    </div>`;
+  ov.onclick=e=>{ if(e.target===ov) closeBossPaste(); };
+  setTimeout(()=>{ const t=document.getElementById('boss-paste-ta'); if(t) t.focus(); },50);
+}
+function closeBossPaste(){ const ov=document.getElementById('boss-paste-modal'); if(ov) ov.style.display='none'; }
+async function applyBossPaste(addr){
+  const ta=document.getElementById('boss-paste-ta'); const note=document.getElementById('boss-paste-note');
+  const txt=(ta&&ta.value)||'';
+  if(!txt.trim()){ if(note) note.innerHTML='<span style="color:#d8a44f">Chưa có dữ liệu.</span>'; return; }
+  let r = _bossParseSprout(txt);
+  if(!r.gates.size && !r.unlocked.size) r = bossParseMsuPayload(txt);
+  if(!r.gates.size && !r.unlocked.size){ if(note) note.innerHTML='<span style="color:#e0625c">Không nhận ra dữ liệu boss trong đoạn đã dán.</span>'; return; }
+  if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+  teamSettings.bossClears = teamSettings.bossClears || {}; teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
+  const mg = teamSettings.bossClears[addr] = teamSettings.bossClears[addr] || {};
+  let ng=0, nu=0;
+  r.gates.forEach(g=>{ if(!mg[g]){ mg[g]=true; ng++; } });
+  const mu = teamSettings.bossUnlocked[addr] = teamSettings.bossUnlocked[addr] || {};
+  r.unlocked.forEach(k=>{ if(!mu[k]){ mu[k]=true; nu++; } });
+  if(note) note.innerHTML=`<span style="color:#7fd88f">✓ Nhận ${r.unlocked.size} boss đã mở, ${r.gates.size} cửa đã hạ (mới: ${nu}/${ng}). Đang lưu…</span>`;
+  try { await saveTeamData(); } catch(e){}
+  bossOneMsg = `<span style="color:#7fd88f">✓ Đã cập nhật từ dữ liệu dán: ${r.unlocked.size} boss đã mở, ${r.gates.size} cửa đã hạ.</span>`;
+  closeBossPaste();
+  try { renderBossTab(); } catch(e){}
+}
 let bossOneMsg = '';
 async function syncBossWallet(addr){
   if (!isRealAdmin()) return;
@@ -4027,7 +4075,7 @@ function renderBossMatrix(){
     return `<div class="boss-mx-row" style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:6px 12px">
       <div class="mvp-num" style="font-size:10px;color:var(--muted2)">${i+1}</div>
       <div style="min-width:0"><div style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div><div style="font-size:9px;color:#d98a3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.player||'—')}</div></div>
-      <div class="mvp-num" style="display:flex;align-items:center;justify-content:flex-end;gap:5px;font-size:11px;font-weight:700;color:${n?'#7fd88f':'var(--muted2)'}">${n}<span style="font-size:9px;color:var(--muted2);opacity:.7">/${totB}</span>${(typeof isRealAdmin==='function'&&isRealAdmin())?`<button onclick="syncBossWallet('${w.address}')" data-tip="Đồng bộ riêng ví này" style="padding:1px 5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⟳</button>`:''}</div>
+      <div class="mvp-num" style="display:flex;align-items:center;justify-content:flex-end;gap:5px;font-size:11px;font-weight:700;color:${n?'#7fd88f':'var(--muted2)'}">${n}<span style="font-size:9px;color:var(--muted2);opacity:.7">/${totB}</span>${(typeof isRealAdmin==='function'&&isRealAdmin())?`<button onclick="syncBossWallet('${w.address}')" data-tip="Thử đồng bộ tự động ví này" style="padding:1px 5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⟳</button><button onclick="openBossPaste('${w.address}')" data-tip="Dán dữ liệu boss cho ví này" style="padding:1px 5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⎘</button>`:''}</div>
       <div style="white-space:nowrap">${cells(w,daily)}</div>
       <div style="width:1px;height:26px;background:var(--border2)"></div>
       <div style="white-space:nowrap">${cells(w,weekly)}</div>
