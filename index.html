@@ -3902,13 +3902,11 @@ async function bossWarmTabs(){
     for (let i=0;i<jobs.length;i++){
       if (bossSyncStop) break;
       const j = jobs[i];
-      try { bossWarmWin.location.href = SPROUT_URL(j.w.address, j.c.name); } catch(e){}
-      bossSyncMsg = `<span style="color:#38bdf8">⚡ Đang mở ${i+1}/${jobs.length}: <b>${_mvpEsc(j.c.name)}</b> (${_mvpEsc(j.w.label||'')}) — đừng đóng cửa sổ.</span>`;
-      try { renderBossKpi(); } catch(e){}
-      await new Promise(r=>setTimeout(r, 6500));   // chờ trang chạy JS + lưu bản ghi
-      // gộp luôn dữ liệu của nhân vật này
       try {
-        const t = await sproutFetchByAk(j.c.ak);
+        const t = await bossOpenAndFetch(bossWarmWin, j.w.address, j.c, (pass)=>{
+          bossSyncMsg = `<span style="color:#38bdf8">⚡ ${i+1}/${jobs.length}: <b>${_mvpEsc(j.c.name)}</b> (${_mvpEsc(j.w.label||'')})${pass?` · tải lại lần ${pass+1}`:''} — đừng đóng cửa sổ.</span>`;
+          try { renderBossKpi(); } catch(e){}
+        });
         if (bossHasData(t)){
           const r = _bossParseSprout(t);
           teamSettings.bossClears = teamSettings.bossClears || {}; teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
@@ -3932,6 +3930,18 @@ async function bossWarmTabs(){
   await syncBossAuto(false, true);                 // quét lại các ví còn thiếu
 }
 // Nhân vật đáng quét: bỏ nhân vật rác (level thấp & CP ~0 thì chắc chắn chưa mở boss nào)
+// Mở 1 nhân vật trong cửa sổ: chờ -> lấy; chưa có thì TẢI LẠI trang rồi thử tiếp
+async function bossOpenAndFetch(win, addr, c, onStatus){
+  const base = SPROUT_URL(addr, c.name);
+  for (let pass=0; pass<3; pass++){
+    try { win.location.href = pass===0 ? base : (base + '?r=' + Date.now()); } catch(e){}   // đổi URL -> ép tải lại thật
+    if (onStatus) onStatus(pass);
+    await new Promise(r=>setTimeout(r, pass===0 ? 7000 : 6000));
+    const t = await sproutFetchByAk(c.ak);
+    if (bossHasData(t)) return t;
+  }
+  return null;
+}
 function bossWorthChars(w){
   const cs=(w.chars||[]).filter(c=>c.ak && c.name);
   const worth = cs.filter(c => (c.level||0) >= 60 || (c.cp||0) >= 5000);
@@ -4009,11 +4019,10 @@ async function syncBossWallet(addr){
   for (let i=0;i<list.length;i++){
     if (bossSyncStop) break;
     const c = list[i];
-    if (i>0){ try { win.location.href = SPROUT_URL(addr, c.name); } catch(e){} }
-    bossOneMsg = `<span style="color:#a855f7">🗗 <b>${_mvpEsc(w.label||addr)}</b>: ${i+1}/${list.length} · ${_mvpEsc(c.name)} (Lv${c.level||'?'}) — đã gộp ${gotUnlock.size} boss · đừng đóng cửa sổ…</span>`;
-    try{ renderBossMatrix(); }catch(e){}
-    await new Promise(r=>setTimeout(r, 7000));
-    const t = await sproutFetchByAk(c.ak);
+    const t = await bossOpenAndFetch(win, addr, c, (pass)=>{
+      bossOneMsg = `<span style="color:#a855f7">🗗 <b>${_mvpEsc(w.label||addr)}</b>: ${i+1}/${list.length} · ${_mvpEsc(c.name)} (Lv${c.level||'?'})${pass?` · tải lại lần ${pass+1}`:''} — đã gộp ${gotUnlock.size} boss · đừng đóng cửa sổ…</span>`;
+      try{ renderBossMatrix(); }catch(e){}
+    });
     const ok = bossHasData(t);
     if (ok) merge(t);
     log.push(`${ok?'✓':'✗'} ${c.name} (Lv${c.level||'?'})${ok?` → tổng ${gotUnlock.size} boss`:''}`);
