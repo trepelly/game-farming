@@ -3828,13 +3828,14 @@ async function syncBossWallet(addr){
   try{ renderBossMatrix(); }catch(e){}
   if (!chars.length){ bossOneMsg = `<b>${_mvpEsc(w.label||addr)}</b>: ví chưa tải nhân vật — bấm làm mới CP ở tab Trạng thái ví trước.`; try{ renderBossMatrix(); }catch(e){} return; }
   const lines=[]; let gotGates=new Set(), gotUnlock=new Set();
-  for (const c of chars.slice(0,3)){       // thử tối đa 3 nhân vật cho nhanh
+  chars.sort((a,b)=>(b.cp||0)-(a.cp||0) || (b.level||0)-(a.level||0));   // mạnh nhất trước
+  for (const c of chars.slice(0,2)){
     const base = SPROUT_URL(addr, c.name);
     const tries = [ base, base+'?_rsc=1', SPROUT_URL(addr.toLowerCase(), c.name) ];
     for (const u of tries){
       const t = await sproutFetch(u, 15000);
       const ok = !!(t && (t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0));
-      lines.push(`${ok?'✓':'✗'} ${c.name} · ${t?Math.round(t.length/1024)+'KB':'lỗi tải'} · ${u.replace('https://maplesprout.gg','')}`);
+      lines.push(`${ok?'✓':'✗'} ${c.name} (Lv${c.level||'?'} · CP ${c.cp?Math.round(c.cp/1000)+'k':'?'}) · ${t?Math.round(t.length/1024)+'KB':'lỗi tải'} · ${u.replace('https://maplesprout.gg','')}`);
       if (ok){ const r=_bossParseSprout(t); r.gates.forEach(g=>gotGates.add(g)); r.unlocked.forEach(k=>gotUnlock.add(k)); break; }
       if (t && lines.length===1) lines.push('   ↳ nhận: '+_mvpEsc(t.slice(0,160)));
     }
