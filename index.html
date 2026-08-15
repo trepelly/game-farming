@@ -3741,6 +3741,13 @@ const BOSS_LIST = [
 ];
 const BOSS_DIFF_COLOR = { Easy:'#7fd88f', Normal:'#38bdf8', Hard:'#f5a524', Chaos:'#e0625c' };
 let bossWallet = 'all';
+let bossPlayer = 'all';
+let bossPQuery = '';
+let bossPSort = {col:'done', dir:'desc'};
+function setBossPQuery(v){ bossPQuery=(v||'').toLowerCase(); renderBossPlayers(); const i=document.getElementById('boss-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
+function setBossPSort(c){ if(bossPSort.col===c) bossPSort.dir=(bossPSort.dir==='desc'?'asc':'desc'); else bossPSort={col:c,dir:(c==='name'?'asc':'desc')}; renderBossPlayers(); }
+function setBossPlayer(p){ bossPlayer = (bossPlayer===p)?'all':p; bossWallet='all'; renderBossTab(); }
+function bossScopeWallets(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return bossPlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===bossPlayer); }
 function bossImg(b){ return `https://maplen.gg/images/bosses/${b.img}.png`; }
 function bossClears(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossClears) || {}; }
 function bossHas(addr, id){ const m=bossClears()[addr]; return !!(m && m[id]); }
@@ -3894,7 +3901,7 @@ let bossMxSort = {col:'done', dir:'desc'};
 function setBossMxSort(c){ if(bossMxSort.col===c) bossMxSort.dir=(bossMxSort.dir==='desc'?'asc':'desc'); else bossMxSort={col:c,dir:(c==='name'?'asc':'desc')}; renderBossMatrix(); }
 function renderBossMatrix(){
   const el=document.getElementById('boss-matrix'); if(!el) return;
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const ws=bossScopeWallets();
   const gates=[]; BOSS_LIST.forEach(b=>b.diffs.forEach(d=>gates.push({id:`${b.k}-${d.toLowerCase()}`, boss:b, diff:d})));
   const tot=gates.length;
   const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>bossDoneCount(w.address) };
@@ -3949,41 +3956,55 @@ function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossG
 function renderBossPlayers(){
   const el=document.getElementById('boss-players'); if(!el) return;
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
-  const tot = bossTotalCount();
-  const sumDone = ws.reduce((s,w)=>s+bossDoneCount(w.address),0);
+  const tot=bossTotalCount();
+  const P={};
+  ws.forEach(w=>{ const pl=w.player||'(chưa gán)'; (P[pl]=P[pl]||{vi:0,done:0}); P[pl].vi++; P[pl].done+=bossDoneCount(w.address); });
+  const all=Object.keys(P);
+  const totAll={vi:ws.length, done:ws.reduce((s,w)=>s+bossDoneCount(w.address),0)};
+  let players=all.filter(p=>!bossPQuery||p.toLowerCase().includes(bossPQuery));
+  const keys={ name:p=>p.toLowerCase(), vi:p=>P[p].vi, done:p=>P[p].done };
+  const kf=keys[bossPSort.col]||keys.done;
+  players.sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossPSort.dir==='desc'?-r:r; });
   const bar=(done,max)=>{ const pct=max?Math.round(done/max*100):0;
     return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:var(--muted2);white-space:nowrap">${done}<span style="opacity:.6">/${max}</span></span></div>`; };
-  const rows = ws.slice().sort((a,b)=>bossDoneCount(b.address)-bossDoneCount(a.address)).map((w,i)=>{
-    const sel = bossWallet===w.address;
-    return `<div class="mvp-prow ${sel?'on':''}" onclick="setBossWallet('${w.address}')">
-        <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${i+1}</span>
+  const arw=c=>bossPSort.col===c?(bossPSort.dir==='desc'?' ↓':' ↑'):'';
+  const hc=(c,l)=>`<span onclick="event.stopPropagation();setBossPSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;color:${bossPSort.col===c?'var(--accent)':'inherit'}">${l}${arw(c)}</span>`;
+  const row=(name,d,idx)=>{ const sel=(name===bossPlayer);
+    return `<div class="mvp-prow ${sel?'on':''}" onclick="setBossPlayer('${(name||'').replace(/'/g,"")}')">
+        <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.label||'—')}</span>${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${_mvpEsc(w.player||'—')}</span></div>
-          ${bar(bossDoneCount(w.address), tot)}
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi} ví</span></div>
+          ${bar(d.done, tot*d.vi)}
         </div>
-      </div>`; }).join('');
+      </div>`; };
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
-      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Ví theo boss${infoIcon('Bấm 1 ví để xem/đánh dấu boss ví đó đã mở · thanh = số cửa boss đã mở trên tổng '+tot)}</div></div>
-      <div class="mvp-prow ${bossWallet==='all'?'on':''}" onclick="setBossWallet('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
+      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Bossing theo người chơi${infoIcon('Bấm 1 dòng để lọc boss theo người chơi · thanh = số cửa boss đã mở trên tổng ('+tot+' cửa mỗi ví)')}</div></div>
+      <div class="mvp-prow ${bossPlayer==='all'?'on':''}" onclick="setBossPlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${bossWallet==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${ws.length} ví</span></div>
-          ${bar(sumDone, tot*(ws.length||1))}
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${bossPlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${totAll.vi} ví</span></div>
+          ${bar(totAll.done, tot*(totAll.vi||1))}
         </div>
       </div>
-      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:6px">${rows||'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Chưa có ví.</div>'}</div>
+      <div style="padding:9px 2px 6px"><input id="boss-psearch" type="text" value="${_mvpEsc(bossPQuery)}" oninput="setBossPQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">
+        <span style="width:16px">#</span>${hc('name','Người chơi')}<span style="margin-left:auto">${hc('vi','Ví')}</span><span>${hc('done','Đã mở')}</span>
+      </div>
+      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:4px">
+        ${players.length?players.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}
+      </div>
     </div>`;
 }
 function setBossWallet(a){ bossWallet = (bossWallet===a)?'all':a; renderBossTab(); }
 
 function renderBossKpi(){
   const el=document.getElementById('boss-kpi'); if(!el) return;
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const ws=bossScopeWallets();
   const tot=bossTotalCount();
-  const one = bossWallet!=='all' ? ws.find(w=>w.address===bossWallet) : null;
+  const one = (ws.length===1) ? ws[0] : null;
   const done = one ? bossDoneCount(one.address) : ws.reduce((s,w)=>s+bossDoneCount(w.address),0);
   const max  = one ? tot : tot*(ws.length||1);
   const pct  = max?Math.round(done/max*100):0;
-  const who  = one ? (one.label||one.address.slice(0,8)) : 'toàn team';
+  const who  = bossPlayer!=='all' ? bossPlayer : 'toàn team';
   const big=(lbl,v,color)=>`<div style="display:flex;flex-direction:column"><div style="font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;height:14px">${lbl}</div><div class="mvp-num" style="font-size:26px;font-weight:800;color:${color};margin-top:8px;line-height:1.1">${v}</div></div>`;
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 18px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -4001,8 +4022,8 @@ function renderBossKpi(){
 
 function renderBossGrid(){
   const el=document.getElementById('boss-grid'); if(!el) return;
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
-  const one = bossWallet!=='all' ? ws.find(w=>w.address===bossWallet) : null;
+  const ws=bossScopeWallets();
+  const one = (ws.length===1) ? ws[0] : null;
   const admin = (typeof isRealAdmin==='function' && isRealAdmin());
   const section = (cycle, title) => {
     const list = BOSS_LIST.filter(b=>b.cycle===cycle);
