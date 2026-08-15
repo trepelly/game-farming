@@ -835,7 +835,6 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div id="boss-players"></div>
           <div id="boss-main" style="min-width:0">
             <div id="boss-kpi"></div>
-            <div id="boss-grid" style="margin-top:14px"></div>
             <div id="boss-matrix" style="margin-top:14px"></div>
           </div>
         </div>
@@ -3958,7 +3957,7 @@ function renderBossMatrix(){
     </div>`;
 }
 
-function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossGrid(); renderBossMatrix(); }catch(e){ console.warn(e); } }
+function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossMatrix(); }catch(e){ console.warn(e); } }
 
 function renderBossPlayers(){
   const el=document.getElementById('boss-players'); if(!el) return;
