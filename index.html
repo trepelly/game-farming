@@ -3857,6 +3857,32 @@ function bossParseMsuPayload(txt){
   if (!gates.size && !unlocked.size){ const alt = bossParseMsuPayload(txt); alt.gates.forEach(g=>gates.add(g)); alt.unlocked.forEach(k=>unlocked.add(k)); }
   return { gates, unlocked };
 }
+function bossTargets(){
+  const t = (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossTargets);
+  if (!t || !Object.keys(t).length) return null;      // null = theo dõi tất cả
+  return t;
+}
+function bossIsTarget(k){ const t=bossTargets(); return !t || !!t[k]; }
+function bossTargetList(){ return BOSS_LIST.filter(b=>bossIsTarget(b.k)); }
+async function toggleBossTarget(k){
+  if (!isRealAdmin()) return;
+  if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+  if (!teamSettings.bossTargets || !Object.keys(teamSettings.bossTargets).length){
+    teamSettings.bossTargets = {}; BOSS_LIST.forEach(b=>teamSettings.bossTargets[b.k]=true);
+  }
+  teamSettings.bossTargets[k] = !teamSettings.bossTargets[k];
+  try { renderBossTab(); } catch(e){}
+  try { await saveTeamData(); } catch(e){}
+}
+async function setAllBossTargets(on){
+  if (!isRealAdmin()) return;
+  if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+  teamSettings.bossTargets = {}; BOSS_LIST.forEach(b=>teamSettings.bossTargets[b.k]=!!on);
+  try { renderBossTab(); } catch(e){}
+  try { await saveTeamData(); } catch(e){}
+}
+let bossPanelOpen = false;
+function toggleBossPanel(){ bossPanelOpen = !bossPanelOpen; try{ renderBossKpi(); }catch(e){} }
 function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
 function bossMaxLevel(addr){
   const ws=(typeof teamWallets!=='undefined'?teamWallets:[])||[];
@@ -4166,22 +4192,27 @@ function _bossCellState(addr, b){
 function _bossCell(addr, b, size){
   const st=_bossCellState(addr,b);
   const sz=size||30;
-  const ring = st.cleared.length ? '#7fd88f' : (st.unlocked ? '#38bdf8' : 'transparent');
+  const isT = bossIsTarget(b.k);
+  const needPreq = isT && !st.unlocked && !b.lvUnlock;      // mục tiêu, chưa mở, phải làm prequest
+  const ring = st.cleared.length ? '#7fd88f' : (st.unlocked ? '#38bdf8' : (needPreq ? '#e0625c' : 'transparent'));
   const byLv = !!(b.lvUnlock && bossMaxLevel(addr) >= b.lvUnlock && !(bossUnlockedMap()[addr]||{})[b.k]);
+  const stat0 = !isT ? '(không theo dõi)' : '';
   const stat = st.cleared.length ? ('✓ Đã hạ: '+st.cleared.join(', '))
              : (st.unlocked ? (byLv ? `Đã mở theo level (Lv${b.lvUnlock}+) · chưa hạ` : 'Đã mở (prequest) · chưa hạ')
                             : (b.lvUnlock ? `Chưa mở · cần Lv${b.lvUnlock}` : 'Chưa mở'));
-  const tip = `${_mvpEsc(b.name)}&#10;${stat}&#10;Cửa: ${b.diffs.join(' / ')}`;
-  return `<span data-tip="${tip}" style="display:inline-flex;flex-shrink:0;width:${sz}px;height:${sz}px;border-radius:50%;overflow:hidden;border:1.5px solid ${ring};background:var(--bg2);${st.unlocked?'':'filter:grayscale(1);opacity:.35'}">
-      <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+  const tip = `${_mvpEsc(b.name)}${stat0?' '+stat0:''}&#10;${needPreq?'⚠ CẦN LÀM PREQUEST':stat}&#10;Cửa: ${b.diffs.join(' / ')}`;
+  return `<span data-tip="${tip}" style="position:relative;display:inline-flex;flex-shrink:0;width:${sz}px;height:${sz}px;border-radius:50%;overflow:visible;border:1.5px solid ${ring};background:var(--bg2);${isT?'':'opacity:.25'}">
+      <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${st.unlocked?'':'filter:grayscale(1);opacity:.4'}" onerror="this.style.display='none'">
+      ${needPreq?`<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;border-radius:50%;background:#e0625c;color:#fff;font-size:9px;font-weight:800;line-height:13px;text-align:center;box-shadow:0 0 0 1.5px var(--card)">!</span>`:''}
     </span>`;
 }
 function renderBossMatrix(){
   const el=document.getElementById('boss-matrix'); if(!el) return;
   const ws=bossScopeWallets();
   const daily=BOSS_LIST.filter(b=>b.cycle==='daily'), weekly=BOSS_LIST.filter(b=>b.cycle==='weekly');
-  const totB=BOSS_LIST.length;
-  const openCount = w => BOSS_LIST.filter(b=>_bossCellState(w.address,b).unlocked).length;
+  const tgt = bossTargetList();
+  const totB=tgt.length;
+  const openCount = w => tgt.filter(b=>_bossCellState(w.address,b).unlocked).length;
   const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
   const kf=keys[bossMxSort.col]||keys.done;
   const filtered = ws.filter(w=>!bossMxQuery || (w.label||'').toLowerCase().includes(bossMxQuery) || (w.player||'').toLowerCase().includes(bossMxQuery) || (w.address||'').toLowerCase().includes(bossMxQuery));
@@ -4281,9 +4312,35 @@ function renderBossKpi(){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="color:#d98a3d">☠</span><span style="font-size:14px;font-weight:800;color:var(--text)">Bossing</span>
         <span style="font-size:11px;color:var(--muted2)">Đang xem: <b style="color:var(--accent)">${_mvpEsc(who)}</b></span>
-        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto(false)" data-tip="Quét 1 nhân vật chính mỗi ví (nhanh, đủ để biết prequest)" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button><button onclick="bossWarmTabs()" data-tip="Với các ví CHƯA có dữ liệu: mở cửa sổ MapleSprout, tải (và tự tải lại nếu cần) từng nhân vật để tạo bản ghi, rồi lấy dữ liệu" style="padding:5px 10px;border-radius:8px;border:1px solid #a855f7;background:color-mix(in srgb,#a855f7 12%,transparent);color:#a855f7;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">🗗 quét ví còn thiếu (mở tab)</button><button id="boss-stop-btn" onclick="stopBossSync()" style="display:none;padding:5px 9px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">■ Dừng</button></span>`:''}
+        ${isRealAdmin()?`<button onclick="toggleBossPanel()" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;border:1px solid ${bossPanelOpen?'var(--accent)':'var(--border2)'};background:${bossPanelOpen?'color-mix(in srgb,var(--accent) 12%,transparent)':'var(--bg2)'};color:${bossPanelOpen?'var(--accent)':'var(--text2)'};font-family:inherit;font-size:11px;font-weight:700;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Điều khiển ${bossPanelOpen?'▴':'▾'}</button>`:''}
       </div>
       <div id="boss-sync-note" style="font-size:10.5px;color:var(--muted2);margin-top:8px">${bossSyncMsg||''}</div>
+      ${(isRealAdmin() && bossPanelOpen) ? (()=>{
+        const busy = bossSyncing;
+        const t = bossTargets(); const nT = bossTargetList().length;
+        const chip = b => { const on = bossIsTarget(b.k); return `<span onclick="toggleBossTarget('${b.k}')" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;cursor:pointer;font-size:10px;font-weight:600;border:1px solid ${on?'#7fd88f':'var(--border2)'};background:${on?'color-mix(in srgb,#7fd88f 12%,transparent)':'var(--bg2)'};color:${on?'#7fd88f':'var(--muted2)'};white-space:nowrap"><span style="width:14px;height:14px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;${on?'':'filter:grayscale(1);opacity:.5'}"><img src="${bossImg(b)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"></span>${_mvpEsc(b.name)}</span>`; };
+        return `<div style="margin-top:10px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em">Đồng bộ</span>
+            <button id="boss-sync-btn" ${busy?'disabled':''} onclick="syncBossAuto(false)" data-tip="Quét nhanh qua API cho mọi ví (ví đã có bản ghi)" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:${busy?'not-allowed':'pointer'};opacity:${busy?'.5':'1'}">⟳ Đồng bộ nhanh</button>
+            <button ${busy?'disabled':''} onclick="bossWarmTabs()" data-tip="Ví chưa có dữ liệu: mở cửa sổ MapleSprout, tải & tải lại từng nhân vật rồi lấy dữ liệu" style="padding:5px 11px;border-radius:8px;border:1px solid #a855f7;background:color-mix(in srgb,#a855f7 12%,transparent);color:#a855f7;font-family:inherit;font-size:11px;font-weight:700;cursor:${busy?'not-allowed':'pointer'};opacity:${busy?'.5':'1'}">🗗 Quét ví còn thiếu</button>
+            <button id="boss-stop-btn" onclick="stopBossSync()" style="display:${busy?'inline-block':'none'};padding:5px 9px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">■ Dừng</button>
+            ${busy?'<span style="font-size:10.5px;color:var(--muted2)">Đang chạy — nút tạm khoá để tránh bấm trùng.</span>':''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--border2)">
+            <span style="font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.05em">Boss mục tiêu</span>
+            <span class="mvp-num" style="font-size:10.5px;color:var(--muted2)">${nT}/${BOSS_LIST.length} boss</span>
+            <span style="margin-left:auto;display:flex;gap:6px">
+              <button onclick="setAllBossTargets(true)" style="padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">Chọn tất cả</button>
+              <button onclick="setAllBossTargets(false)" style="padding:3px 9px;border-radius:7px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">Bỏ chọn hết</button>
+            </span>
+          </div>
+          <div style="font-size:9.5px;color:var(--muted2);margin:8px 0 6px">Chỉ boss được chọn mới tính vào tiến độ và cảnh báo. Bấm để bật/tắt.</div>
+          <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;margin-bottom:5px">Daily</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${BOSS_LIST.filter(b=>b.cycle==='daily').map(chip).join('')}</div>
+          <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;margin:10px 0 5px">Weekly</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${BOSS_LIST.filter(b=>b.cycle==='weekly').map(chip).join('')}</div>
+        </div>`; })() : ''}
       ${(()=>{ const miss=ws.filter(w=>{const u=(bossUnlockedMap()[w.address]||{}),g=(bossClears()[w.address]||{});return !Object.keys(u).length && !Object.keys(g).length;}).length;
         return miss?`<div style="font-size:10.5px;color:var(--muted2);margin-top:4px">Còn <b style="color:#d8a44f">${miss}</b>/${ws.length} ví chưa có dữ liệu boss. <span style="color:var(--muted2)">MapleSprout giới hạn 3 nhân vật/ngày nếu chưa đăng nhập — đăng nhập rồi bấm "mở tab tạo bản ghi".</span></div>`:''; })()}
       <div style="display:flex;gap:36px;margin-top:14px;align-items:flex-start">
