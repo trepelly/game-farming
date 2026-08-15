@@ -3994,7 +3994,7 @@ async function syncBossWallet(addr){
 }
 let bossSyncStop = false;
 function stopBossSync(){ bossSyncStop = true; }
-async function syncBossAuto(allChars){
+async function syncBossAuto(allChars, onlyMissing){
   if (!isRealAdmin()) { alert('Chỉ admin mới đồng bộ được.'); return; }
   if (bossSyncing) return;
   bossSyncing = true; bossSyncStop = false;
@@ -4006,7 +4006,14 @@ async function syncBossAuto(allChars){
   // Chỉ cần biết prequest -> mặc định quét 1 nhân vật chính mỗi ví (nhẹ hơn nhiều)
   const pick = w => { const cs=(w.chars||[]).filter(c=>c.name); if(!cs.length) return [];
     return allChars ? cs : [cs.slice().sort((a,b)=>(b.level||b.cp||0)-(a.level||a.cp||0))[0]]; };
-  const jobs=[]; ws.forEach(w=>pick(w).forEach(c=>jobs.push({w,c})));
+  const hasAny = w => { const u=(bossUnlockedMap()[w.address]||{}); const g=(bossClears()[w.address]||{}); return Object.keys(u).length>0 || Object.keys(g).length>0; };
+  const target = onlyMissing ? ws.filter(w=>!hasAny(w)) : ws;
+  const jobs=[]; target.forEach(w=>pick(w).forEach(c=>jobs.push({w,c})));
+  if (onlyMissing && !jobs.length){
+    bossSyncMsg = '<span style="color:#7fd88f">✓ Mọi ví đều đã có dữ liệu — không còn ví nào cần quét.</span>';
+    bossSyncing=false; if(btn) btn.disabled=false; if(stopBtn) stopBtn.style.display='none';
+    try { renderBossTab(); } catch(e){} return;
+  }
   let done=0, failed=0, empty=0, addedGates=0, addedUnlock=0, hitWallets=new Set(), lastErr='';
   try{
     if (typeof teamSettings==='undefined' || !teamSettings) teamSettings = {};
@@ -4077,7 +4084,7 @@ async function syncBossAuto(allChars){
     if(btn){ btn.disabled=false; btn.textContent='⟳ Đồng bộ từ MapleSprout'; }
     if(stopBtn){ stopBtn.style.display='none'; }
   }
-  const detail = `${done}/${jobs.length} nhân vật${bossSyncStop?' (đã dừng)':''} · ${failed} lỗi tải · ${empty} không có dữ liệu`;
+  const detail = `${onlyMissing?'[ví còn thiếu] ':''}${done}/${jobs.length} nhân vật${bossSyncStop?' (đã dừng)':''} · ${failed} lỗi tải · ${empty} không có dữ liệu`;
   bossSyncMsg = (addedGates||addedUnlock)
     ? `<span style="color:#7fd88f">✓ ${detail} → ${addedUnlock} boss đã mở, ${addedGates} cửa đã hạ (${hitWallets.size} ví).</span>`
     : (()=>{ const d=window._bossDebug||{};
@@ -4213,9 +4220,11 @@ function renderBossKpi(){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="color:#d98a3d">☠</span><span style="font-size:14px;font-weight:800;color:var(--text)">Bossing</span>
         <span style="font-size:11px;color:var(--muted2)">Đang xem: <b style="color:var(--accent)">${_mvpEsc(who)}</b></span>
-        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto(false)" data-tip="Quét 1 nhân vật chính mỗi ví (nhanh, đủ để biết prequest)" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button><button onclick="syncBossAuto(true)" data-tip="Quét TẤT CẢ nhân vật (chậm, nặng)" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);font-family:inherit;font-size:10.5px;cursor:pointer;white-space:nowrap">tất cả char</button><button id="boss-stop-btn" onclick="stopBossSync()" style="display:none;padding:5px 9px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">■ Dừng</button></span>`:''}
+        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto(false)" data-tip="Quét 1 nhân vật chính mỗi ví (nhanh, đủ để biết prequest)" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button><button onclick="syncBossAuto(false,true)" data-tip="Chỉ quét những ví CHƯA có dữ liệu (bỏ qua ví đã xong)" style="padding:5px 10px;border-radius:8px;border:1px solid #7fd88f;background:color-mix(in srgb,#7fd88f 12%,transparent);color:#7fd88f;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">▸ quét ví còn thiếu</button><button onclick="syncBossAuto(true)" data-tip="Quét TẤT CẢ nhân vật (chậm, nặng)" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);font-family:inherit;font-size:10.5px;cursor:pointer;white-space:nowrap">tất cả char</button><button id="boss-stop-btn" onclick="stopBossSync()" style="display:none;padding:5px 9px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">■ Dừng</button></span>`:''}
       </div>
       <div id="boss-sync-note" style="font-size:10.5px;color:var(--muted2);margin-top:8px">${bossSyncMsg||''}</div>
+      ${(()=>{ const miss=ws.filter(w=>{const u=(bossUnlockedMap()[w.address]||{}),g=(bossClears()[w.address]||{});return !Object.keys(u).length && !Object.keys(g).length;}).length;
+        return miss?`<div style="font-size:10.5px;color:var(--muted2);margin-top:4px">Còn <b style="color:#d8a44f">${miss}</b>/${ws.length} ví chưa có dữ liệu boss.</div>`:''; })()}
       <div style="display:flex;gap:36px;margin-top:14px;align-items:flex-start">
         ${big('Đã mở', done, '#7fd88f')}${big('Tổng cửa boss', max, 'var(--text)')}${big('Tiến độ', pct+'%', 'var(--accent)')}
       </div>
