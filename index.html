@@ -3897,6 +3897,8 @@ async function syncBossAuto(allChars){
 }
 
 let bossMxSort = {col:'done', dir:'desc'};
+let bossMxQuery = '';
+function setBossMxQuery(v){ bossMxQuery=(v||'').toLowerCase(); renderBossMatrix(); const i=document.getElementById('boss-mx-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setBossMxSort(c){ if(bossMxSort.col===c) bossMxSort.dir=(bossMxSort.dir==='desc'?'asc':'desc'); else bossMxSort={col:c,dir:(c==='name'?'asc':'desc')}; renderBossMatrix(); }
 function _bossCellState(addr, b){
   const cleared = b.diffs.filter(d=>bossHas(addr, `${b.k}-${d.toLowerCase()}`));
@@ -3920,7 +3922,8 @@ function renderBossMatrix(){
   const openCount = w => BOSS_LIST.filter(b=>_bossCellState(w.address,b).unlocked).length;
   const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
   const kf=keys[bossMxSort.col]||keys.done;
-  const rows=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossMxSort.dir==='desc'?-r:r; });
+  const filtered = ws.filter(w=>!bossMxQuery || (w.label||'').toLowerCase().includes(bossMxQuery) || (w.player||'').toLowerCase().includes(bossMxQuery) || (w.address||'').toLowerCase().includes(bossMxQuery));
+  const rows=filtered.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossMxSort.dir==='desc'?-r:r; });
   const arw=c=>bossMxSort.col===c?(bossMxSort.dir==='desc'?' ↓':' ↑'):'';
   const hd=(c,l,al)=>`<span onclick="setBossMxSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;color:${bossMxSort.col===c?'var(--accent)':'var(--muted2)'};text-align:${al||'left'}">${l}${arw(c)}</span>`;
   const grid = `28px minmax(120px,1fr) 70px ${daily.length*34}px 1px ${weekly.length*34}px`;
@@ -3942,16 +3945,18 @@ function renderBossMatrix(){
         <div style="min-width:${300+(daily.length+weekly.length)*34}px">
           <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border2);background:var(--surface)">
             <div></div>
-            <div class="mvp-num" style="font-size:15px;font-weight:800;color:var(--text)">${openAll}<span style="font-size:10px;color:var(--muted2);font-weight:600"> /${totB*(ws.length||1)} mở</span></div>
+            <div class="mvp-num" style="font-size:15px;font-weight:800;color:var(--text)">${openAll}<span style="font-size:10px;color:var(--muted2);font-weight:600"> /${totB*(ws.length||1)} mở</span>${bossMxQuery?`<span style="font-size:9.5px;color:var(--accent);font-weight:600"> · ${rows.length} kết quả</span>`:''}</div>
             <div></div>
             <div style="white-space:nowrap"><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Daily</div>${headIcons(daily)}</div>
             <div style="width:1px;height:46px;background:var(--border2)"></div>
             <div style="white-space:nowrap"><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Weekly</div>${headIcons(weekly)}</div>
           </div>
-          <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:5px 12px;border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
-            <div style="color:var(--muted2)">#</div>${hd('name','Ví / Player')}${hd('done','Mở','right')}<div></div><div></div><div></div>
+          <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
+            <div style="color:var(--muted2)">#</div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">${hd('name','Ví / Player')}<input id="boss-mx-search" type="text" value="${_mvpEsc(bossMxQuery)}" oninput="setBossMxQuery(this.value)" placeholder="Tìm ví / player…" style="flex:1;min-width:80px;box-sizing:border-box;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:10.5px;font-weight:500;text-transform:none;letter-spacing:0"></div>
+            ${hd('done','Mở','right')}<div></div><div></div><div></div>
           </div>
-          <div id="boss-mx-scroll" style="max-height:440px;overflow-y:auto">${body||'<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">Chưa có ví.</div>'}</div>
+          <div id="boss-mx-scroll" style="max-height:440px;overflow-y:auto">${body||`<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">${bossMxQuery?'Không tìm thấy ví / player nào.':'Chưa có ví.'}</div>`}</div>
         </div>
       </div>
     </div>`;
