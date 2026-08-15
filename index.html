@@ -3868,7 +3868,7 @@ const SPROUT_AK_URLS = ak => [
   `https://maplesprout.gg/${ak}`,
 ];
 let SPROUT_AK_PATTERN = null;   // nhớ mẫu URL đã chạy được -> các ví sau gọi thẳng
-function bossHasData(t){ return !!(t && (t.indexOf('historyMissionTitle')>=0 || t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0)); }
+function bossHasData(t){ return !!(t && (t.indexOf('historyMissionTitle')>=0 || t.indexOf('questRecords')>=0 || t.indexOf('questTitle')>=0 || t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0)); }
 let bossWarmWin = null;
 async function bossWarmTabs(){
   if (!isRealAdmin()) return;
@@ -3877,7 +3877,7 @@ async function bossWarmTabs(){
   const hasAny = w => { const u=(bossUnlockedMap()[w.address]||{}), g=(bossClears()[w.address]||{}); return Object.keys(u).length>0 || Object.keys(g).length>0; };
   const miss = ws.filter(w=>!hasAny(w));
   if (!miss.length){ bossSyncMsg='<span style="color:#7fd88f">✓ Mọi ví đã có dữ liệu.</span>'; renderBossTab(); return; }
-  const jobs = miss.map(w=>{ const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0)); return cs.length?{w,c:cs[0]}:null; }).filter(Boolean);
+  const jobs=[]; miss.forEach(w=>bossWorthChars(w).slice(0,4).forEach(c=>jobs.push({w,c})));   // tối đa 4 nhân vật/ví
   if (!jobs.length){ bossSyncMsg='<span style="color:#d8a44f">Các ví còn thiếu chưa tải nhân vật — bấm làm mới CP trước.</span>'; renderBossTab(); return; }
   if (!confirm(`Sẽ mở 1 cửa sổ và lần lượt tải ${jobs.length} trang nhân vật trên MapleSprout (~${Math.ceil(jobs.length*6/60)} phút) để họ tạo bản ghi, sau đó tự quét lại.\n\nLƯU Ý: MapleSprout chỉ cho khách 3 lượt/ngày — hãy ĐĂNG NHẬP maplesprout.gg trước để không bị giới hạn.\nHãy CHO PHÉP popup nếu trình duyệt hỏi. Đừng đóng cửa sổ đó.`)) return;
   bossSyncing = true; bossSyncStop = false;
@@ -3889,12 +3889,25 @@ async function bossWarmTabs(){
       if (bossSyncStop) break;
       const j = jobs[i];
       try { bossWarmWin.location.href = SPROUT_URL(j.w.address, j.c.name); } catch(e){}
-      bossSyncMsg = `<span style="color:#38bdf8">⚡ Đang mở trang ${i+1}/${jobs.length}: <b>${_mvpEsc(j.c.name)}</b> (${_mvpEsc(j.w.label||'')}) — đừng đóng cửa sổ.</span>`;
+      bossSyncMsg = `<span style="color:#38bdf8">⚡ Đang mở ${i+1}/${jobs.length}: <b>${_mvpEsc(j.c.name)}</b> (${_mvpEsc(j.w.label||'')}) — đừng đóng cửa sổ.</span>`;
       try { renderBossKpi(); } catch(e){}
-      await new Promise(r=>setTimeout(r, 6000));   // chờ trang chạy JS + lưu bản ghi
+      await new Promise(r=>setTimeout(r, 6500));   // chờ trang chạy JS + lưu bản ghi
+      // gộp luôn dữ liệu của nhân vật này
+      try {
+        const t = await sproutFetchByAk(j.c.ak);
+        if (bossHasData(t)){
+          const r = _bossParseSprout(t);
+          teamSettings.bossClears = teamSettings.bossClears || {}; teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
+          const mg = teamSettings.bossClears[j.w.address] = teamSettings.bossClears[j.w.address] || {};
+          r.gates.forEach(g=>mg[g]=true);
+          const mu = teamSettings.bossUnlocked[j.w.address] = teamSettings.bossUnlocked[j.w.address] || {};
+          r.unlocked.forEach(k=>mu[k]=true);
+        }
+      } catch(e){}
     }
     try { bossWarmWin.close(); } catch(e){}
     bossWarmWin = null;
+    try { await saveTeamData(); } catch(e){}
   } finally {
     bossSyncing = false;
     if(stopBtn) stopBtn.style.display='none';
@@ -3903,6 +3916,12 @@ async function bossWarmTabs(){
   try { renderBossKpi(); } catch(e){}
   await new Promise(r=>setTimeout(r, 1500));
   await syncBossAuto(false, true);                 // quét lại các ví còn thiếu
+}
+// Nhân vật đáng quét: bỏ nhân vật rác (level thấp & CP ~0 thì chắc chắn chưa mở boss nào)
+function bossWorthChars(w){
+  const cs=(w.chars||[]).filter(c=>c.ak && c.name);
+  const worth = cs.filter(c => (c.level||0) >= 60 || (c.cp||0) >= 5000);
+  return (worth.length ? worth : cs.slice(0,1)).sort((a,b)=>(b.cp||0)-(a.cp||0));
 }
 async function sproutWarm(addr, name){
   // Mở trang nhân vật để MapleSprout render và tạo bản ghi (giống mình vào xem thủ công)
@@ -3956,40 +3975,38 @@ async function syncBossWallet(addr){
   if (!isRealAdmin()) return;
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
   const w = ws.find(x=>x.address===addr); if(!w) return;
-  const chars=(w.chars||[]).filter(c=>c.ak && c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
-  if (!chars.length){
+  const list = bossWorthChars(w);
+  const skipped = (w.chars||[]).filter(c=>c.ak&&c.name).length - list.length;
+  if (!list.length){
     bossOneMsg = `<span style="color:#d8a44f"><b>${_mvpEsc(w.label||addr)}</b>: ví chưa tải nhân vật — bấm làm mới CP ở tab Trạng thái ví trước.</span>`;
     try{ renderBossTab(); }catch(e){} return;
   }
   const gotGates=new Set(), gotUnlock=new Set();
   const merge = t => { const r=_bossParseSprout(t); r.gates.forEach(g=>gotGates.add(g)); r.unlocked.forEach(k=>gotUnlock.add(k)); };
-  // Mở tab thật TRƯỚC (MapleSprout chỉ tạo bản ghi khi trang chạy trong trình duyệt), rồi mới quét
-  const top = chars.slice(0,3);
+  const log=[];
   let win = null;
-  try { win = window.open(SPROUT_URL(addr, top[0].name), 'msWarmOne', 'width=980,height=760'); } catch(e){}
+  try { win = window.open(SPROUT_URL(addr, list[0].name), 'msWarmOne', 'width=980,height=760'); } catch(e){}
   if (!win){
     bossOneMsg = `<span style="color:#e0625c">Trình duyệt chặn popup — hãy cho phép popup cho trang này rồi bấm lại.</span>`;
     try{ renderBossTab(); }catch(e){} return;
   }
-  for (let i=0;i<top.length;i++){
-    if (i>0){ try { win.location.href = SPROUT_URL(addr, top[i].name); } catch(e){} }
-    bossOneMsg = `<span style="color:#a855f7">🗗 <b>${_mvpEsc(w.label||addr)}</b>: đang mở ${_mvpEsc(top[i].name)} (${i+1}/${top.length}) — đừng đóng cửa sổ…</span>`;
+  bossSyncStop = false;
+  const stopBtn=document.getElementById('boss-stop-btn'); if(stopBtn) stopBtn.style.display='inline-block';
+  for (let i=0;i<list.length;i++){
+    if (bossSyncStop) break;
+    const c = list[i];
+    if (i>0){ try { win.location.href = SPROUT_URL(addr, c.name); } catch(e){} }
+    bossOneMsg = `<span style="color:#a855f7">🗗 <b>${_mvpEsc(w.label||addr)}</b>: ${i+1}/${list.length} · ${_mvpEsc(c.name)} (Lv${c.level||'?'}) — đã gộp ${gotUnlock.size} boss · đừng đóng cửa sổ…</span>`;
     try{ renderBossMatrix(); }catch(e){}
-    await new Promise(r=>setTimeout(r, 7000));          // chờ trang chạy JS + lưu bản ghi
-    const t = await sproutFetchByAk(top[i].ak);
-    if (bossHasData(t)){ merge(t); break; }
+    await new Promise(r=>setTimeout(r, 7000));
+    const t = await sproutFetchByAk(c.ak);
+    const ok = bossHasData(t);
+    if (ok) merge(t);
+    log.push(`${ok?'✓':'✗'} ${c.name} (Lv${c.level||'?'})${ok?` → tổng ${gotUnlock.size} boss`:''}`);
+    if (gotUnlock.size >= BOSS_LIST.length) break;      // đã đủ toàn bộ boss -> dừng sớm
   }
   try { win.close(); } catch(e){}
-  // Quét nốt các nhân vật còn lại (có thể đã có bản ghi từ trước)
-  if (!gotGates.size && !gotUnlock.size){
-    bossOneMsg = `<b>${_mvpEsc(w.label||addr)}</b>: đang kiểm tra các nhân vật còn lại…`;
-    try{ renderBossMatrix(); }catch(e){}
-    for (const c of chars.slice(3)){
-      const t = await sproutFetchByAk(c.ak);
-      if (bossHasData(t)){ merge(t); break; }
-      await new Promise(r=>setTimeout(r,150));
-    }
-  }
+  if(stopBtn) stopBtn.style.display='none';
   if (gotGates.size || gotUnlock.size){
     if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
     teamSettings.bossClears = teamSettings.bossClears || {}; teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
@@ -3998,9 +4015,9 @@ async function syncBossWallet(addr){
     const mu = teamSettings.bossUnlocked[addr] = teamSettings.bossUnlocked[addr] || {};
     gotUnlock.forEach(k=>mu[k]=true);
     try { await saveTeamData(); } catch(e){}
-    bossOneMsg = `<span style="color:#7fd88f">✓ <b>${_mvpEsc(w.label||addr)}</b>: ${gotUnlock.size} boss đã mở, ${gotGates.size} cửa đã hạ.</span>`;
+    bossOneMsg = `<span style="color:#7fd88f">✓ <b>${_mvpEsc(w.label||addr)}</b>: ${gotUnlock.size} boss đã mở, ${gotGates.size} cửa đã hạ · quét ${log.length}/${list.length} nhân vật${skipped?` (bỏ qua ${skipped} nhân vật yếu)`:''}.</span><div style="font-family:monospace;font-size:9.5px;color:var(--muted2);white-space:pre-wrap;margin-top:5px;max-height:120px;overflow:auto">${_mvpEsc(log.join('\n'))}</div>`;
   } else {
-    bossOneMsg = `<span style="color:#d8a44f">✗ <b>${_mvpEsc(w.label||addr)}</b>: MapleSprout chưa tạo được bản ghi. Nếu hết 3 lượt/ngày, hãy đăng nhập maplesprout.gg rồi bấm lại.</span>`;
+    bossOneMsg = `<span style="color:#d8a44f">✗ <b>${_mvpEsc(w.label||addr)}</b>: không nhân vật nào có bản ghi. Nếu hết lượt/ngày, đăng nhập maplesprout.gg rồi bấm lại.</span><div style="font-family:monospace;font-size:9.5px;color:var(--muted2);white-space:pre-wrap;margin-top:5px;max-height:120px;overflow:auto">${_mvpEsc(log.join('\n'))}</div>`;
   }
   try{ renderBossTab(); }catch(e){}
 }
