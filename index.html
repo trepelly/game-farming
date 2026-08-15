@@ -3802,6 +3802,56 @@ function _bossParseSprout(txt){
   }
   return { gates, unlocked };
 }
+// Prequest -> boss (theo questTitle thật trong dữ liệu MSU)
+const BOSS_PREQ_QUEST = [
+  [/Statue of Dread/i,                         ['zakum']],
+  [/Certificate of the Dragon Squad/i,         ['horntail']],
+  [/Balrog and the Seal|Danger Seeker/i,       ['balrog']],
+  [/World Tree Guardian/i,                     ['pierre','vonbon','crimsonqueen','vellum']],
+  [/King's Dignity|Defeat the Lion King/i,     ['vonleon']],
+  [/\[Silent Crusade\] The Last Report/i,      ['arkarium']],
+  [/Drive out the Heliseum monsters|Operation, Go!/i, ['magnus']],
+  [/Stop Cygnus!/i,                            ['cygnus']],
+  [/\[Pink Bean\] Beyond the Ruins/i,          ['pinkbean']],
+  [/Cleaning Robot OMNI-CLN/i,                 ['omnicln']],
+  [/\[Black Heaven\] Maple World Savior/i,     ['lotus']],
+  [/Jolting Spirit Detector|The Light Of Chaos/i, ['papulatus']],
+  [/Hard Hilla|The End of Hilla/i,             ['hilla']],
+  [/\[Haven\] The Last Visit|Damien/i,         ['damien']],
+  [/Lucid|Esfera|Chosen Seren/i,               ['lucid']],
+  [/Will|Tenebris/i,                           ['will']],
+  [/Guardian Angel Slime|Angel Slime/i,        ['slime']],
+];
+// "Defeat Chaos Von Bon by yourself" -> {boss, diff}
+function _bossFromMissionTitle(title){
+  const m = String(title||'').match(/Defeat\s+(Easy|Normal|Hard|Chaos)\s+(.+?)\s+by\s+yourself/i);
+  if (!m) return null;
+  const diff = m[1].toLowerCase();
+  const k = BOSS_NAME_MAP[m[2].trim().toLowerCase()];
+  if (!k || k==='rootabyss') return null;
+  const b = BOSS_LIST.find(x=>x.k===k);
+  if (!b || !b.diffs.some(d=>d.toLowerCase()===diff)) return null;
+  return { k, diff };
+}
+// Parser cho payload history-missions + questRecords (định dạng MSU)
+function bossParseMsuPayload(txt){
+  const gates=new Set(), unlocked=new Set();
+  if (!txt) return { gates, unlocked };
+  const flat = String(txt).replace(/\\"/g,'"');
+  let m;
+  const reM = /"historyMissionTitle"\s*:\s*"([^"]+)"/g;
+  while ((m = reM.exec(flat))){
+    const hit = _bossFromMissionTitle(m[1]);
+    if (hit){ gates.add(`${hit.k}-${hit.diff}`); unlocked.add(hit.k); }
+  }
+  const reQ = /"questTitle"\s*:\s*"([^"]+)"/g;
+  while ((m = reQ.exec(flat))){
+    const t = m[1];
+    BOSS_PREQ_QUEST.forEach(([re, keys])=>{ if (re.test(t)) keys.forEach(k=>unlocked.add(k)); });
+  }
+  if (!gates.size && !unlocked.size){ const alt = bossParseMsuPayload(txt); alt.gates.forEach(g=>gates.add(g)); alt.unlocked.forEach(k=>unlocked.add(k)); }
+  return { gates, unlocked };
+}
 function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
 function bossIsUnlocked(addr, k){ const m=bossUnlockedMap()[addr]; return !!(m && m[k]); }
 async function sproutFetch(url, ms){
