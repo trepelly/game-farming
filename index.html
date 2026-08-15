@@ -3860,8 +3860,8 @@ function bossParseMsuPayload(txt){
 function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
 function bossIsUnlocked(addr, k){ const m=bossUnlockedMap()[addr]; return !!(m && m[k]); }
 const SPROUT_AK_URLS = ak => [
+  `https://maplesprout.gg/api/characters/${ak}`,   // URL thật (xác nhận từ DevTools)
   `https://maplesprout.gg/api/character/${ak}`,
-  `https://maplesprout.gg/api/characters/${ak}`,
   `https://maplesprout.gg/api/progression/${ak}`,
   `https://maplesprout.gg/api/history-missions/${ak}`,
   `https://maplesprout.gg/api/char/${ak}`,

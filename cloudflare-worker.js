@@ -180,12 +180,19 @@ export default {
     };
     // MapleSprout (Next.js App Router): xin RSC flight payload thay vì HTML shell rỗng
     if (targetUrl.hostname.endsWith('maplesprout.gg')) {
+      if (targetUrl.pathname.startsWith('/api/')) {
+        // Endpoint API trả JSON — KHÔNG gửi header RSC (sẽ làm hỏng phản hồi)
+        fetchHeaders['Accept'] = 'application/json, text/plain, */*';
+        fetchHeaders['Referer'] = 'https://maplesprout.gg/';
+        fetchHeaders['Origin'] = 'https://maplesprout.gg';
+      } else {
       fetchHeaders['RSC'] = '1';
       // KHÔNG gửi Next-Router-Prefetch: Next chỉ kiểm tra header có tồn tại,
       // nên kể cả '0' cũng bị coi là prefetch -> trả khung loading, không có dữ liệu
       fetchHeaders['Accept'] = 'text/x-component, text/html, */*';
       fetchHeaders['Referer'] = 'https://maplesprout.gg/';
       fetchHeaders['Origin'] = 'https://maplesprout.gg';
+      }
     }
     // Forward Content-Type for POST requests (needed for JSON body)
     const reqCT = request.headers.get('Content-Type');
