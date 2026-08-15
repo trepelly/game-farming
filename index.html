@@ -3927,7 +3927,6 @@ function renderBossMatrix(){
   const arw=c=>bossMxSort.col===c?(bossMxSort.dir==='desc'?' ↓':' ↑'):'';
   const hd=(c,l,al)=>`<span onclick="setBossMxSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;color:${bossMxSort.col===c?'var(--accent)':'var(--muted2)'};text-align:${al||'left'}">${l}${arw(c)}</span>`;
   const grid = `28px minmax(120px,1fr) 70px ${daily.length*34}px 1px ${weekly.length*34}px`;
-  const headIcons = list => list.map(b=>`<span data-tip="${_mvpEsc(b.name)}&#10;${b.diffs.join(' / ')}" style="display:inline-flex;width:30px;height:30px;margin-right:4px;border-radius:50%;overflow:hidden;background:var(--bg2);opacity:.85"><img src="${bossImg(b)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"></span>`).join('');
   const cells = (w,list) => list.map(b=>`<span style="display:inline-block;margin-right:4px">${_bossCell(w.address,b,30)}</span>`).join('');
   const body = rows.map((w,i)=>{
     const n=openCount(w);
@@ -3941,20 +3940,18 @@ function renderBossMatrix(){
     </div>`; }).join('');
   const openAll = ws.reduce((s,w)=>s+openCount(w),0);
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border2)">
+        <span style="font-size:12.5px;font-weight:800;color:var(--text)">Danh sách ví</span>
+        <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${openAll}/${totB*(ws.length||1)} cửa đã mở${bossMxQuery?` · <span style="color:var(--accent)">${rows.length} kết quả</span>`:''}</span>
+        ${infoIcon('Mỗi icon = 1 boss. Viền xanh lá = đã hạ · viền xanh dương = đã mở (prequest) · xám = chưa mở. Rê chuột vào icon để xem chi tiết.')}
+      </div>
       <div style="overflow-x:auto">
         <div style="min-width:${300+(daily.length+weekly.length)*34}px">
-          <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border2);background:var(--surface)">
-            <div></div>
-            <div class="mvp-num" style="font-size:15px;font-weight:800;color:var(--text)">${openAll}<span style="font-size:10px;color:var(--muted2);font-weight:600"> /${totB*(ws.length||1)} mở</span>${bossMxQuery?`<span style="font-size:9.5px;color:var(--accent);font-weight:600"> · ${rows.length} kết quả</span>`:''}</div>
-            <div></div>
-            <div style="white-space:nowrap"><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Daily</div>${headIcons(daily)}</div>
-            <div style="width:1px;height:46px;background:var(--border2)"></div>
-            <div style="white-space:nowrap"><div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Weekly</div>${headIcons(weekly)}</div>
-          </div>
           <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
             <div style="color:var(--muted2)">#</div>
             <div style="display:flex;align-items:center;gap:8px;min-width:0">${hd('name','Ví / Player')}<input id="boss-mx-search" type="text" value="${_mvpEsc(bossMxQuery)}" oninput="setBossMxQuery(this.value)" placeholder="Tìm ví / player…" style="flex:1;min-width:80px;box-sizing:border-box;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:10.5px;font-weight:500;text-transform:none;letter-spacing:0"></div>
-            ${hd('done','Mở','right')}<div></div><div></div><div></div>
+            ${hd('done','Mở','right')}
+            <div style="color:var(--muted2)">Daily</div><div></div><div style="color:var(--muted2)">Weekly</div>
           </div>
           <div id="boss-mx-scroll" style="max-height:440px;overflow-y:auto">${body||`<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">${bossMxQuery?'Không tìm thấy ví / player nào.':'Chưa có ví.'}</div>`}</div>
         </div>
