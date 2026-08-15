@@ -3720,17 +3720,17 @@ const BOSS_LIST = [
   { k:'balrog',       name:'Balrog',              img:'balrog',              cycle:'daily',  diffs:['Easy'] },
   { k:'zakum',        name:'Zakum',               img:'zakum',               cycle:'daily',  diffs:['Easy','Normal','Chaos'] },
   { k:'horntail',     name:'Horntail',            img:'horntail',            cycle:'daily',  diffs:['Easy','Normal','Chaos'] },
-  { k:'hilla',        name:'Hilla',               img:'hilla',               cycle:'daily',  diffs:['Normal','Hard'] },
-  { k:'pierre',       name:'Pierre',              img:'pierre',              cycle:'daily',  diffs:['Normal','Chaos'] },
-  { k:'vonbon',       name:'Von Bon',             img:'vonbon',              cycle:'daily',  diffs:['Normal','Chaos'] },
-  { k:'crimsonqueen', name:'Crimson Queen',       img:'crimsonqueen',        cycle:'daily',  diffs:['Normal','Chaos'] },
-  { k:'vellum',       name:'Vellum',              img:'vellum',              cycle:'daily',  diffs:['Normal','Chaos'] },
-  { k:'vonleon',      name:'Von Leon',            img:'vonleon',             cycle:'daily',  diffs:['Easy','Normal','Hard'] },
-  { k:'omnicln',      name:'OMNI-CLN',            img:'omnicln',             cycle:'daily',  diffs:['Normal'] },
-  { k:'arkarium',     name:'Arkarium',            img:'arkarium',            cycle:'daily',  diffs:['Easy','Normal'] },
-  { k:'magnus',       name:'Magnus',              img:'magnus',              cycle:'daily',  diffs:['Easy','Normal','Hard'] },
-  { k:'pinkbean',     name:'Pink Bean',           img:'pinkbean',            cycle:'daily',  diffs:['Normal','Chaos'] },
-  { k:'papulatus',    name:'Papulatus',           img:'papulatus',           cycle:'daily',  diffs:['Easy','Normal','Chaos'] },
+  { k:'hilla',        name:'Hilla',               img:'hilla',               cycle:'daily',  diffs:['Normal','Hard'], lvUnlock:120 },
+  { k:'pierre',       name:'Pierre',              img:'pierre',              cycle:'daily',  diffs:['Normal','Chaos'], lvUnlock:120 },
+  { k:'vonbon',       name:'Von Bon',             img:'vonbon',              cycle:'daily',  diffs:['Normal','Chaos'], lvUnlock:120 },
+  { k:'crimsonqueen', name:'Crimson Queen',       img:'crimsonqueen',        cycle:'daily',  diffs:['Normal','Chaos'], lvUnlock:120 },
+  { k:'vellum',       name:'Vellum',              img:'vellum',              cycle:'daily',  diffs:['Normal','Chaos'], lvUnlock:120 },
+  { k:'vonleon',      name:'Von Leon',            img:'vonleon',             cycle:'daily',  diffs:['Easy','Normal','Hard'], lvUnlock:120 },
+  { k:'omnicln',      name:'OMNI-CLN',            img:'omnicln',             cycle:'daily',  diffs:['Normal'], lvUnlock:150 },
+  { k:'arkarium',     name:'Arkarium',            img:'arkarium',            cycle:'daily',  diffs:['Easy','Normal'], lvUnlock:140 },
+  { k:'magnus',       name:'Magnus',              img:'magnus',              cycle:'daily',  diffs:['Easy','Normal','Hard'], lvUnlock:155 },
+  { k:'pinkbean',     name:'Pink Bean',           img:'pinkbean',            cycle:'daily',  diffs:['Normal','Chaos'], lvUnlock:160 },
+  { k:'papulatus',    name:'Papulatus',           img:'papulatus',           cycle:'daily',  diffs:['Easy','Normal','Chaos'], lvUnlock:180 },
   { k:'cygnus',       name:'Cygnus',              img:'cygnus',              cycle:'weekly', diffs:['Easy','Normal'] },
   { k:'lotus',        name:'Lotus',               img:'lotus',               cycle:'weekly', diffs:['Normal','Hard'] },
   { k:'damien',       name:'Damien',              img:'damien',              cycle:'weekly', diffs:['Normal','Hard'] },
@@ -3858,7 +3858,21 @@ function bossParseMsuPayload(txt){
   return { gates, unlocked };
 }
 function bossUnlockedMap(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossUnlocked) || {}; }
-function bossIsUnlocked(addr, k){ const m=bossUnlockedMap()[addr]; return !!(m && m[k]); }
+function bossMaxLevel(addr){
+  const ws=(typeof teamWallets!=='undefined'?teamWallets:[])||[];
+  const w=ws.find(x=>x.address===addr); if(!w) return 0;
+  let mx = w.maxCpLevel || 0;
+  (w.chars||[]).forEach(c=>{ if((c.level||0)>mx) mx=c.level||0; });
+  return mx;
+}
+function bossIsUnlocked(addr, k){
+  const m=bossUnlockedMap()[addr];
+  if (m && m[k]) return true;
+  // Boss mở theo level (không cần prequest)
+  const b = BOSS_LIST.find(x=>x.k===k);
+  if (b && b.lvUnlock && bossMaxLevel(addr) >= b.lvUnlock) return true;
+  return false;
+}
 const SPROUT_AK_URLS = ak => [
   `https://maplesprout.gg/api/characters/${ak}`,   // URL thật (xác nhận từ DevTools)
   `https://maplesprout.gg/api/character/${ak}`,
@@ -4143,7 +4157,11 @@ function _bossCell(addr, b, size){
   const st=_bossCellState(addr,b);
   const sz=size||30;
   const ring = st.cleared.length ? '#7fd88f' : (st.unlocked ? '#38bdf8' : 'transparent');
-  const tip = `${_mvpEsc(b.name)}&#10;${st.cleared.length?('✓ Đã hạ: '+st.cleared.join(', ')):(st.unlocked?'Đã mở (prequest) · chưa hạ':'Chưa mở')}&#10;Cửa: ${b.diffs.join(' / ')}`;
+  const byLv = !!(b.lvUnlock && bossMaxLevel(addr) >= b.lvUnlock && !(bossUnlockedMap()[addr]||{})[b.k]);
+  const stat = st.cleared.length ? ('✓ Đã hạ: '+st.cleared.join(', '))
+             : (st.unlocked ? (byLv ? `Đã mở theo level (Lv${b.lvUnlock}+) · chưa hạ` : 'Đã mở (prequest) · chưa hạ')
+                            : (b.lvUnlock ? `Chưa mở · cần Lv${b.lvUnlock}` : 'Chưa mở'));
+  const tip = `${_mvpEsc(b.name)}&#10;${stat}&#10;Cửa: ${b.diffs.join(' / ')}`;
   return `<span data-tip="${tip}" style="display:inline-flex;flex-shrink:0;width:${sz}px;height:${sz}px;border-radius:50%;overflow:hidden;border:1.5px solid ${ring};background:var(--bg2);${st.unlocked?'':'filter:grayscale(1);opacity:.35'}">
       <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
     </span>`;
