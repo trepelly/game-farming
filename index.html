@@ -3818,6 +3818,42 @@ async function sproutFetch(url, ms){
   finally { clearTimeout(t); }
 }
 const SPROUT_URL = (addr, name) => `https://maplesprout.gg/${addr}/${encodeURIComponent(name)}`;
+let bossOneMsg = '';
+async function syncBossWallet(addr){
+  if (!isRealAdmin()) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const w = ws.find(x=>x.address===addr); if(!w) return;
+  const chars=(w.chars||[]).filter(c=>c.name);
+  bossOneMsg = `<b>${_mvpEsc(w.label||addr)}</b>: đang thử ${chars.length} nhân vật…`;
+  try{ renderBossMatrix(); }catch(e){}
+  if (!chars.length){ bossOneMsg = `<b>${_mvpEsc(w.label||addr)}</b>: ví chưa tải nhân vật — bấm làm mới CP ở tab Trạng thái ví trước.`; try{ renderBossMatrix(); }catch(e){} return; }
+  const lines=[]; let gotGates=new Set(), gotUnlock=new Set();
+  for (const c of chars.slice(0,3)){       // thử tối đa 3 nhân vật cho nhanh
+    const base = SPROUT_URL(addr, c.name);
+    const tries = [ base, base+'?_rsc=1', SPROUT_URL(addr.toLowerCase(), c.name) ];
+    for (const u of tries){
+      const t = await sproutFetch(u, 15000);
+      const ok = !!(t && (t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0));
+      lines.push(`${ok?'✓':'✗'} ${c.name} · ${t?Math.round(t.length/1024)+'KB':'lỗi tải'} · ${u.replace('https://maplesprout.gg','')}`);
+      if (ok){ const r=_bossParseSprout(t); r.gates.forEach(g=>gotGates.add(g)); r.unlocked.forEach(k=>gotUnlock.add(k)); break; }
+      if (t && lines.length===1) lines.push('   ↳ nhận: '+_mvpEsc(t.slice(0,160)));
+    }
+    if (gotUnlock.size) break;
+  }
+  if (gotGates.size || gotUnlock.size){
+    if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+    teamSettings.bossClears = teamSettings.bossClears || {}; teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
+    const mg = teamSettings.bossClears[addr] = teamSettings.bossClears[addr] || {};
+    gotGates.forEach(g=>mg[g]=true);
+    const mu = teamSettings.bossUnlocked[addr] = teamSettings.bossUnlocked[addr] || {};
+    gotUnlock.forEach(k=>mu[k]=true);
+    try { await saveTeamData(); } catch(e){}
+    bossOneMsg = `<span style="color:#7fd88f">✓ <b>${_mvpEsc(w.label||addr)}</b>: ${gotUnlock.size} boss đã mở, ${gotGates.size} cửa đã hạ.</span>`;
+  } else {
+    bossOneMsg = `<span style="color:#d8a44f">✗ <b>${_mvpEsc(w.label||addr)}</b>: không lấy được.</span><div style="font-family:monospace;font-size:9.5px;color:var(--muted2);white-space:pre-wrap;word-break:break-all;margin-top:5px;max-height:150px;overflow:auto">${_mvpEsc(lines.join('\n'))}</div>`;
+  }
+  try{ renderBossTab(); }catch(e){}
+}
 let bossSyncStop = false;
 function stopBossSync(){ bossSyncStop = true; }
 async function syncBossAuto(allChars){
@@ -3940,7 +3976,7 @@ function renderBossMatrix(){
     return `<div class="boss-mx-row" style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:6px 12px">
       <div class="mvp-num" style="font-size:10px;color:var(--muted2)">${i+1}</div>
       <div style="min-width:0"><div style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div><div style="font-size:9px;color:#d98a3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.player||'—')}</div></div>
-      <div class="mvp-num" style="font-size:11px;font-weight:700;color:${n?'#7fd88f':'var(--muted2)'};text-align:right">${n}<span style="font-size:9px;color:var(--muted2);opacity:.7">/${totB}</span></div>
+      <div class="mvp-num" style="display:flex;align-items:center;justify-content:flex-end;gap:5px;font-size:11px;font-weight:700;color:${n?'#7fd88f':'var(--muted2)'}">${n}<span style="font-size:9px;color:var(--muted2);opacity:.7">/${totB}</span>${(typeof isRealAdmin==='function'&&isRealAdmin())?`<button onclick="syncBossWallet('${w.address}')" data-tip="Đồng bộ riêng ví này" style="padding:1px 5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⟳</button>`:''}</div>
       <div style="white-space:nowrap">${cells(w,daily)}</div>
       <div style="width:1px;height:26px;background:var(--border2)"></div>
       <div style="white-space:nowrap">${cells(w,weekly)}</div>
@@ -3952,6 +3988,7 @@ function renderBossMatrix(){
         <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${openAll}/${totB*(ws.length||1)} cửa đã mở${bossMxQuery?` · <span style="color:var(--accent)">${rows.length} kết quả</span>`:''}</span>
         ${infoIcon('Mỗi icon = 1 boss. Viền xanh lá = đã hạ · viền xanh dương = đã mở (prequest) · xám = chưa mở. Rê chuột vào icon để xem chi tiết.')}
       </div>
+      ${bossOneMsg?`<div style="padding:8px 14px;border-bottom:1px solid var(--border2);font-size:11px;color:var(--text2)">${bossOneMsg}</div>`:''}
       <div style="overflow-x:auto">
         <div style="min-width:${300+(daily.length+weekly.length)*34}px">
           <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
