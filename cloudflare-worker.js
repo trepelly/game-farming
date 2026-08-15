@@ -222,7 +222,10 @@ export default {
     try {
       const reqBody = request.method === 'POST' ? await request.clone().text() : undefined;
       // Don't edge-cache POST (different bodies); cache GET only
-      const cfOpt = request.method === 'POST' ? {} : { cacheTtl: 600, cacheEverything: true };
+      // MapleSprout: KHÔNG cache (cache key theo URL nên bản HTML shell cũ sẽ bị trả lại
+      // dù ta đã gửi header RSC — đây là lý do dữ liệu boss không bao giờ xuất hiện)
+      const noCache = targetUrl.hostname.endsWith('maplesprout.gg');
+      const cfOpt = (request.method === 'POST' || noCache) ? {} : { cacheTtl: 600, cacheEverything: true };
       let resp, body, attempt = 0;
       // Server-side retry on 429 (up to 4 times with backoff)
       while (attempt < 4) {

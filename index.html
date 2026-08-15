@@ -3809,7 +3809,9 @@ async function sproutFetch(url, ms){
   const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
   const t = setTimeout(()=>{ try{ ctrl && ctrl.abort(); }catch(e){} }, ms||15000);
   try {
-    const r = await fetch(msuProxy(url), ctrl ? { signal: ctrl.signal } : undefined);
+    // dùng bản 'fresh' để không dính cache biên (bản HTML shell cũ)
+    const pUrl = (typeof msuProxyFresh==='function') ? msuProxyFresh(url) : (msuProxy(url)+'&_='+Date.now());
+    const r = await fetch(pUrl, ctrl ? { signal: ctrl.signal } : undefined);
     if (!r.ok) return null;
     return await r.text();
   } catch(e){ return null; }
