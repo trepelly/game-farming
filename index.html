@@ -3897,7 +3897,7 @@ async function bossWarmTabs(){
   bossSyncing = true; bossSyncStop = false;
   const stopBtn=document.getElementById('boss-stop-btn'); if(stopBtn) stopBtn.style.display='inline-block';
   try {
-    bossWarmWin = window.open(SPROUT_URL(jobs[0].w.address, jobs[0].c.name), 'msWarm', 'width=980,height=760');
+    bossWarmWin = window.open(SPROUT_URL(jobs[0].w.address, jobs[0].c.name)+'?r='+Date.now(), 'msWarm', 'width=980,height=760');
     if (!bossWarmWin){ bossSyncMsg='<span style="color:#e0625c">Trình duyệt chặn popup — hãy cho phép popup cho trang này rồi thử lại.</span>'; bossSyncing=false; if(stopBtn) stopBtn.style.display='none'; renderBossTab(); return; }
     for (let i=0;i<jobs.length;i++){
       if (bossSyncStop) break;
@@ -3934,7 +3934,8 @@ async function bossWarmTabs(){
 async function bossOpenAndFetch(win, addr, c, onStatus){
   const base = SPROUT_URL(addr, c.name);
   for (let pass=0; pass<3; pass++){
-    try { win.location.href = pass===0 ? base : (base + '?r=' + Date.now()); } catch(e){}   // đổi URL -> ép tải lại thật
+    // Luôn kèm tham số duy nhất -> trình duyệt tải mới hoàn toàn, không dùng bản cache của ví trước
+    try { win.location.href = base + '?r=' + Date.now() + '_' + pass; } catch(e){}
     if (onStatus) onStatus(pass);
     await new Promise(r=>setTimeout(r, pass===0 ? 7000 : 6000));
     const t = await sproutFetchByAk(c.ak);
@@ -4009,7 +4010,7 @@ async function syncBossWallet(addr){
   const merge = t => { const r=_bossParseSprout(t); r.gates.forEach(g=>gotGates.add(g)); r.unlocked.forEach(k=>gotUnlock.add(k)); };
   const log=[];
   let win = null;
-  try { win = window.open(SPROUT_URL(addr, list[0].name), 'msWarmOne', 'width=980,height=760'); } catch(e){}
+  try { win = window.open(SPROUT_URL(addr, list[0].name)+'?r='+Date.now(), 'msWarmOne', 'width=980,height=760'); } catch(e){}
   if (!win){
     bossOneMsg = `<span style="color:#e0625c">Trình duyệt chặn popup — hãy cho phép popup cho trang này rồi bấm lại.</span>`;
     try{ renderBossTab(); }catch(e){} return;
