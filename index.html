@@ -3871,12 +3871,20 @@ let SPROUT_AK_PATTERN = null;   // nhớ mẫu URL đã chạy được -> các 
 function bossHasData(t){ return !!(t && (t.indexOf('historyMissionTitle')>=0 || t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0)); }
 async function sproutFetchByAk(ak){
   if (SPROUT_AK_PATTERN){
-    const t = await sproutFetch(SPROUT_AK_PATTERN.replace('{ak}', ak), 15000);
-    if (bossHasData(t)) return t;
+    for (let a=0; a<3; a++){                       // thử lại khi bị chặn tốc độ
+      const t = await sproutFetch(SPROUT_AK_PATTERN.replace('{ak}', ak), 15000);
+      if (bossHasData(t)) return t;
+      if (t) return null;                          // có phản hồi nhưng không phải dữ liệu boss -> khỏi thử lại
+      await new Promise(r=>setTimeout(r, 600*(a+1)));
+    }
+    return null;
   }
-  for (const u of SPROUT_AK_URLS(ak)){
-    const t = await sproutFetch(u, 15000);
-    if (bossHasData(t)){ SPROUT_AK_PATTERN = u.replace(ak, '{ak}'); return t; }
+  for (let a=0; a<3; a++){
+    for (const u of SPROUT_AK_URLS(ak)){
+      const t = await sproutFetch(u, 15000);
+      if (bossHasData(t)){ SPROUT_AK_PATTERN = u.replace(ak, '{ak}'); return t; }
+    }
+    await new Promise(r=>setTimeout(r, 800));
   }
   return null;
 }
@@ -4011,7 +4019,12 @@ async function syncBossAuto(allChars){
         const addr = job.w.address || '';
         // Ưu tiên: gọi theo assetKey (endpoint chứa historyMission)
         if (job.c.ak){
-          const tAk = await sproutFetchByAk(job.c.ak);
+          let tAk = await sproutFetchByAk(job.c.ak);
+          // nhân vật chính chưa có dữ liệu -> thử các nhân vật khác của ví
+          if (!hasData(tAk)){
+            const others=(job.w.chars||[]).filter(c=>c.ak && c.ak!==job.c.ak).slice(0,3);
+            for (const oc of others){ tAk = await sproutFetchByAk(oc.ak); if (hasData(tAk)) break; await new Promise(r=>setTimeout(r,150)); }
+          }
           if (hasData(tAk)){
             done++;
             const r = _bossParseSprout(tAk);
@@ -4023,27 +4036,17 @@ async function syncBossAuto(allChars){
               r.unlocked.forEach(k=>{ if(!mu[k]){ mu[k]=true; addedUnlock++; } });
             } else empty++;
             if (btn) btn.textContent = `Đang đồng bộ… ${done}/${jobs.length}`;
-            await new Promise(r=>setTimeout(r,150));
+            await new Promise(r=>setTimeout(r,250));
             continue;
           }
         }
-        const variants = [
-          SPROUT_URL(addr, job.c.name),
-          SPROUT_URL(addr.toLowerCase(), job.c.name),
-        ];
-        let txt = null;
-        for (const u of variants){
-          txt = await sproutFetch(u, 15000);
-          if (hasData(txt)) { window._bossOkUrl = u; break; }
-          // Nếu nhận khung RSC (không có dữ liệu), thử lại kèm ?_rsc=<buildId> lấy từ chính phản hồi
-          if (txt) {
-            const bm = txt.match(/"b"\s*:\s*"([A-Za-z0-9_-]{8,40})"/) || txt.match(/dpl_[A-Za-z0-9]+/);
-            const rid = bm ? (bm[1] || bm[0]) : '1';
-            const alt = await sproutFetch(u + (u.indexOf('?')>=0?'&':'?') + '_rsc=' + encodeURIComponent(rid), 12000);
-            if (hasData(alt)) { txt = alt; window._bossOkUrl = u+'?_rsc='+rid; break; }
-          }
-        }
+        // Chỉ dùng endpoint API theo assetKey (đã xác nhận); không còn gọi URL trang
         done++;
+        if (!job.c.ak) failed++; else empty++;
+        if (btn) btn.textContent = `Đang đồng bộ… ${done}/${jobs.length}`;
+        await new Promise(r=>setTimeout(r,250));
+        continue;
+        let txt = null;
         if (done === 1) {   // chẩn đoán trang đầu
           window._bossDebug = { url: variants[0], len: txt?txt.length:0,
             hasCompletions: !!(txt && txt.indexOf('completions')>=0), hasPrequest: !!(txt && txt.indexOf('Prequest')>=0),
@@ -4066,7 +4069,7 @@ async function syncBossAuto(allChars){
       } catch(e){ failed++; lastErr = (e && e.message) ? e.message : String(e); }
       if (btn) btn.textContent = `Đang đồng bộ… ${done}/${jobs.length}`;
       if (done % 20 === 0){ try { renderBossKpi(); } catch(e){} }   // render thưa cho nhẹ
-      await new Promise(r=>setTimeout(r,150));
+      await new Promise(r=>setTimeout(r,250));
     }
     if (addedGates || addedUnlock){ try { await saveTeamData(); } catch(e){ console.warn('Lưu bossing lỗi', e); } }
   } finally {
