@@ -3869,6 +3869,41 @@ const SPROUT_AK_URLS = ak => [
 ];
 let SPROUT_AK_PATTERN = null;   // nhớ mẫu URL đã chạy được -> các ví sau gọi thẳng
 function bossHasData(t){ return !!(t && (t.indexOf('historyMissionTitle')>=0 || t.indexOf('completions')>=0 || t.indexOf('Prequest')>=0)); }
+let bossWarmWin = null;
+async function bossWarmTabs(){
+  if (!isRealAdmin()) return;
+  if (bossSyncing) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const hasAny = w => { const u=(bossUnlockedMap()[w.address]||{}), g=(bossClears()[w.address]||{}); return Object.keys(u).length>0 || Object.keys(g).length>0; };
+  const miss = ws.filter(w=>!hasAny(w));
+  if (!miss.length){ bossSyncMsg='<span style="color:#7fd88f">✓ Mọi ví đã có dữ liệu.</span>'; renderBossTab(); return; }
+  const jobs = miss.map(w=>{ const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0)); return cs.length?{w,c:cs[0]}:null; }).filter(Boolean);
+  if (!jobs.length){ bossSyncMsg='<span style="color:#d8a44f">Các ví còn thiếu chưa tải nhân vật — bấm làm mới CP trước.</span>'; renderBossTab(); return; }
+  if (!confirm(`Sẽ mở 1 cửa sổ và lần lượt tải ${jobs.length} trang nhân vật trên MapleSprout (~${Math.ceil(jobs.length*6/60)} phút) để họ tạo bản ghi, sau đó tự quét lại.\n\nHãy CHO PHÉP popup nếu trình duyệt hỏi. Đừng đóng cửa sổ đó.`)) return;
+  bossSyncing = true; bossSyncStop = false;
+  const stopBtn=document.getElementById('boss-stop-btn'); if(stopBtn) stopBtn.style.display='inline-block';
+  try {
+    bossWarmWin = window.open(SPROUT_URL(jobs[0].w.address, jobs[0].c.name), 'msWarm', 'width=980,height=760');
+    if (!bossWarmWin){ bossSyncMsg='<span style="color:#e0625c">Trình duyệt chặn popup — hãy cho phép popup cho trang này rồi thử lại.</span>'; bossSyncing=false; if(stopBtn) stopBtn.style.display='none'; renderBossTab(); return; }
+    for (let i=0;i<jobs.length;i++){
+      if (bossSyncStop) break;
+      const j = jobs[i];
+      try { bossWarmWin.location.href = SPROUT_URL(j.w.address, j.c.name); } catch(e){}
+      bossSyncMsg = `<span style="color:#38bdf8">⚡ Đang mở trang ${i+1}/${jobs.length}: <b>${_mvpEsc(j.c.name)}</b> (${_mvpEsc(j.w.label||'')}) — đừng đóng cửa sổ.</span>`;
+      try { renderBossKpi(); } catch(e){}
+      await new Promise(r=>setTimeout(r, 6000));   // chờ trang chạy JS + lưu bản ghi
+    }
+    try { bossWarmWin.close(); } catch(e){}
+    bossWarmWin = null;
+  } finally {
+    bossSyncing = false;
+    if(stopBtn) stopBtn.style.display='none';
+  }
+  bossSyncMsg = '<span style="color:#38bdf8">Đã mở xong các trang — đang quét lại…</span>';
+  try { renderBossKpi(); } catch(e){}
+  await new Promise(r=>setTimeout(r, 1500));
+  await syncBossAuto(false, true);                 // quét lại các ví còn thiếu
+}
 async function sproutWarm(addr, name){
   // Mở trang nhân vật để MapleSprout render và tạo bản ghi (giống mình vào xem thủ công)
   try { await sproutFetch(SPROUT_URL(addr, name), 20000); } catch(e){}
@@ -4229,7 +4264,7 @@ function renderBossKpi(){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="color:#d98a3d">☠</span><span style="font-size:14px;font-weight:800;color:var(--text)">Bossing</span>
         <span style="font-size:11px;color:var(--muted2)">Đang xem: <b style="color:var(--accent)">${_mvpEsc(who)}</b></span>
-        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto(false)" data-tip="Quét 1 nhân vật chính mỗi ví (nhanh, đủ để biết prequest)" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button><button onclick="syncBossAuto(false,true,true)" data-tip="Với ví chưa có dữ liệu: tự mở trang nhân vật trên MapleSprout để họ tạo bản ghi, chờ rồi quét lại (chậm hơn)" style="padding:5px 10px;border-radius:8px;border:1px solid #38bdf8;background:color-mix(in srgb,#38bdf8 12%,transparent);color:#38bdf8;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">⚡ tạo bản ghi + quét</button><button onclick="syncBossAuto(false,true)" data-tip="Chỉ quét những ví CHƯA có dữ liệu (bỏ qua ví đã xong)" style="padding:5px 10px;border-radius:8px;border:1px solid #7fd88f;background:color-mix(in srgb,#7fd88f 12%,transparent);color:#7fd88f;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">▸ quét ví còn thiếu</button><button onclick="syncBossAuto(true)" data-tip="Quét TẤT CẢ nhân vật (chậm, nặng)" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);font-family:inherit;font-size:10.5px;cursor:pointer;white-space:nowrap">tất cả char</button><button id="boss-stop-btn" onclick="stopBossSync()" style="display:none;padding:5px 9px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">■ Dừng</button></span>`:''}
+        ${isRealAdmin()?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;color:var(--muted2)">Bấm ô độ khó để đánh dấu</span><button id="boss-sync-btn" onclick="syncBossAuto(false)" data-tip="Quét 1 nhân vật chính mỗi ví (nhanh, đủ để biết prequest)" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Đồng bộ từ MapleSprout</button><button onclick="bossWarmTabs()" data-tip="Mở 1 cửa sổ và lần lượt tải trang nhân vật thật (chạy JS) để MapleSprout tạo bản ghi, rồi tự quét lại" style="padding:5px 10px;border-radius:8px;border:1px solid #a855f7;background:color-mix(in srgb,#a855f7 12%,transparent);color:#a855f7;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">🗗 mở tab tạo bản ghi</button><button onclick="syncBossAuto(false,true,true)" data-tip="Với ví chưa có dữ liệu: thử mồi qua proxy rồi quét lại (nhanh nhưng ít hiệu quả)" style="padding:5px 10px;border-radius:8px;border:1px solid #38bdf8;background:color-mix(in srgb,#38bdf8 12%,transparent);color:#38bdf8;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">⚡ tạo bản ghi + quét</button><button onclick="syncBossAuto(false,true)" data-tip="Chỉ quét những ví CHƯA có dữ liệu (bỏ qua ví đã xong)" style="padding:5px 10px;border-radius:8px;border:1px solid #7fd88f;background:color-mix(in srgb,#7fd88f 12%,transparent);color:#7fd88f;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">▸ quét ví còn thiếu</button><button onclick="syncBossAuto(true)" data-tip="Quét TẤT CẢ nhân vật (chậm, nặng)" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);font-family:inherit;font-size:10.5px;cursor:pointer;white-space:nowrap">tất cả char</button><button id="boss-stop-btn" onclick="stopBossSync()" style="display:none;padding:5px 9px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">■ Dừng</button></span>`:''}
       </div>
       <div id="boss-sync-note" style="font-size:10.5px;color:var(--muted2);margin-top:8px">${bossSyncMsg||''}</div>
       ${(()=>{ const miss=ws.filter(w=>{const u=(bossUnlockedMap()[w.address]||{}),g=(bossClears()[w.address]||{});return !Object.keys(u).length && !Object.keys(g).length;}).length;
