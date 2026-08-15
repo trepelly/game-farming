@@ -3845,14 +3845,19 @@ async function syncBossAuto(allChars){
         const addr = job.w.address || '';
         const variants = [
           SPROUT_URL(addr, job.c.name),
-          SPROUT_URL(addr, job.c.name)+'?_rsc=1',
           SPROUT_URL(addr.toLowerCase(), job.c.name),
-          SPROUT_URL(addr.toLowerCase(), job.c.name)+'?_rsc=1',
         ];
         let txt = null;
         for (const u of variants){
           txt = await sproutFetch(u, 15000);
-          if (hasData(txt)) { if (done===0) window._bossOkUrl = u; break; }
+          if (hasData(txt)) { window._bossOkUrl = u; break; }
+          // Nếu nhận khung RSC (không có dữ liệu), thử lại kèm ?_rsc=<buildId> lấy từ chính phản hồi
+          if (txt) {
+            const bm = txt.match(/"b"\s*:\s*"([A-Za-z0-9_-]{8,40})"/) || txt.match(/dpl_[A-Za-z0-9]+/);
+            const rid = bm ? (bm[1] || bm[0]) : '1';
+            const alt = await sproutFetch(u + (u.indexOf('?')>=0?'&':'?') + '_rsc=' + encodeURIComponent(rid), 12000);
+            if (hasData(alt)) { txt = alt; window._bossOkUrl = u+'?_rsc='+rid; break; }
+          }
         }
         done++;
         if (done === 1) {   // chẩn đoán trang đầu
