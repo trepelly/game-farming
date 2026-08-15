@@ -3879,7 +3879,7 @@ async function bossWarmTabs(){
   if (!miss.length){ bossSyncMsg='<span style="color:#7fd88f">✓ Mọi ví đã có dữ liệu.</span>'; renderBossTab(); return; }
   const jobs = miss.map(w=>{ const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0)); return cs.length?{w,c:cs[0]}:null; }).filter(Boolean);
   if (!jobs.length){ bossSyncMsg='<span style="color:#d8a44f">Các ví còn thiếu chưa tải nhân vật — bấm làm mới CP trước.</span>'; renderBossTab(); return; }
-  if (!confirm(`Sẽ mở 1 cửa sổ và lần lượt tải ${jobs.length} trang nhân vật trên MapleSprout (~${Math.ceil(jobs.length*6/60)} phút) để họ tạo bản ghi, sau đó tự quét lại.\n\nHãy CHO PHÉP popup nếu trình duyệt hỏi. Đừng đóng cửa sổ đó.`)) return;
+  if (!confirm(`Sẽ mở 1 cửa sổ và lần lượt tải ${jobs.length} trang nhân vật trên MapleSprout (~${Math.ceil(jobs.length*6/60)} phút) để họ tạo bản ghi, sau đó tự quét lại.\n\nLƯU Ý: MapleSprout chỉ cho khách 3 lượt/ngày — hãy ĐĂNG NHẬP maplesprout.gg trước để không bị giới hạn.\nHãy CHO PHÉP popup nếu trình duyệt hỏi. Đừng đóng cửa sổ đó.`)) return;
   bossSyncing = true; bossSyncStop = false;
   const stopBtn=document.getElementById('boss-stop-btn'); if(stopBtn) stopBtn.style.display='inline-block';
   try {
@@ -4133,9 +4133,12 @@ async function syncBossAuto(allChars, onlyMissing, warm){
     ? `<span style="color:#7fd88f">✓ ${detail} → ${addedUnlock} boss đã mở, ${addedGates} cửa đã hạ (${hitWallets.size} ví).</span>`
     : (()=>{ const d=window._bossDebug||{};
         let why = '';
-        if (!d.len) why = 'Proxy không trả về nội dung — kiểm tra Worker đã deploy bản có maplesprout.gg chưa.';
-        else if (!d.hasCompletions && !d.hasPrequest) why = `Tải được trang (${Math.round((d.len||0)/1024)}KB) nhưng không chứa dữ liệu boss — có thể tên nhân vật trong app khác tên trên MapleSprout, hoặc trang cần đăng nhập.`;
-        else why = 'Trang có dữ liệu nhưng chưa tách được.';
+        if (SPROUT_AK_PATTERN) {
+          // Endpoint đã hoạt động (các ví khác lấy được) -> nguyên nhân là chưa có bản ghi
+          why = 'Những nhân vật này chưa có bản ghi trên MapleSprout. Khách chưa đăng nhập chỉ được tạo 3 bản ghi/ngày — hãy đăng nhập maplesprout.gg rồi bấm "mở tab tạo bản ghi", hoặc dùng nút ⎘ dán dữ liệu.';
+        }
+        else if (!d.len) why = 'Proxy không trả về nội dung — kiểm tra Worker đã deploy bản có maplesprout.gg chưa.';
+        else why = `Tải được phản hồi (${Math.round((d.len||0)/1024)}KB) nhưng không chứa dữ liệu boss.`;
         const peek = d.head ? `<div style="margin-top:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;font-family:monospace;font-size:9.5px;color:var(--muted2);white-space:pre-wrap;word-break:break-all;max-height:110px;overflow:auto">URL: ${_mvpEsc(d.url||'')}\n${_mvpEsc(String(d.head).slice(0,220))}</div>` : '';
         return `<span style="color:#d8a44f">⚠ Không lấy được: ${detail}. ${why}${lastErr?` Lỗi: ${_mvpEsc(lastErr).slice(0,60)}`:''}</span>${peek}`; })();
   try { renderBossTab(); } catch(e){}
@@ -4268,7 +4271,7 @@ function renderBossKpi(){
       </div>
       <div id="boss-sync-note" style="font-size:10.5px;color:var(--muted2);margin-top:8px">${bossSyncMsg||''}</div>
       ${(()=>{ const miss=ws.filter(w=>{const u=(bossUnlockedMap()[w.address]||{}),g=(bossClears()[w.address]||{});return !Object.keys(u).length && !Object.keys(g).length;}).length;
-        return miss?`<div style="font-size:10.5px;color:var(--muted2);margin-top:4px">Còn <b style="color:#d8a44f">${miss}</b>/${ws.length} ví chưa có dữ liệu boss.</div>`:''; })()}
+        return miss?`<div style="font-size:10.5px;color:var(--muted2);margin-top:4px">Còn <b style="color:#d8a44f">${miss}</b>/${ws.length} ví chưa có dữ liệu boss. <span style="color:var(--muted2)">MapleSprout giới hạn 3 nhân vật/ngày nếu chưa đăng nhập — đăng nhập rồi bấm "mở tab tạo bản ghi".</span></div>`:''; })()}
       <div style="display:flex;gap:36px;margin-top:14px;align-items:flex-start">
         ${big('Đã mở', done, '#7fd88f')}${big('Tổng cửa boss', max, 'var(--text)')}${big('Tiến độ', pct+'%', 'var(--accent)')}
       </div>
