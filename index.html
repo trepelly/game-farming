@@ -3963,32 +3963,32 @@ async function syncBossWallet(addr){
   }
   const gotGates=new Set(), gotUnlock=new Set();
   const merge = t => { const r=_bossParseSprout(t); r.gates.forEach(g=>gotGates.add(g)); r.unlocked.forEach(k=>gotUnlock.add(k)); };
-  // B1: thử lấy sẵn (nhân vật đã có bản ghi)
-  bossOneMsg = `<b>${_mvpEsc(w.label||addr)}</b>: đang kiểm tra ${chars.length} nhân vật…`;
-  try{ renderBossMatrix(); }catch(e){}
-  for (const c of chars){
-    const t = await sproutFetchByAk(c.ak);
-    if (bossHasData(t)) merge(t);
-    await new Promise(r=>setTimeout(r,150));
+  // Mở tab thật TRƯỚC (MapleSprout chỉ tạo bản ghi khi trang chạy trong trình duyệt), rồi mới quét
+  const top = chars.slice(0,3);
+  let win = null;
+  try { win = window.open(SPROUT_URL(addr, top[0].name), 'msWarmOne', 'width=980,height=760'); } catch(e){}
+  if (!win){
+    bossOneMsg = `<span style="color:#e0625c">Trình duyệt chặn popup — hãy cho phép popup cho trang này rồi bấm lại.</span>`;
+    try{ renderBossTab(); }catch(e){} return;
   }
-  // B2: chưa có -> mở tab thật cho ví này để MapleSprout tạo bản ghi rồi quét lại
+  for (let i=0;i<top.length;i++){
+    if (i>0){ try { win.location.href = SPROUT_URL(addr, top[i].name); } catch(e){} }
+    bossOneMsg = `<span style="color:#a855f7">🗗 <b>${_mvpEsc(w.label||addr)}</b>: đang mở ${_mvpEsc(top[i].name)} (${i+1}/${top.length}) — đừng đóng cửa sổ…</span>`;
+    try{ renderBossMatrix(); }catch(e){}
+    await new Promise(r=>setTimeout(r, 7000));          // chờ trang chạy JS + lưu bản ghi
+    const t = await sproutFetchByAk(top[i].ak);
+    if (bossHasData(t)){ merge(t); break; }
+  }
+  try { win.close(); } catch(e){}
+  // Quét nốt các nhân vật còn lại (có thể đã có bản ghi từ trước)
   if (!gotGates.size && !gotUnlock.size){
-    const top = chars.slice(0,3);
-    let win = null;
-    try { win = window.open(SPROUT_URL(addr, top[0].name), 'msWarmOne', 'width=980,height=760'); } catch(e){}
-    if (!win){
-      bossOneMsg = `<span style="color:#e0625c">Trình duyệt chặn popup — hãy cho phép popup cho trang này rồi bấm lại.</span>`;
-      try{ renderBossTab(); }catch(e){} return;
-    }
-    for (let i=0;i<top.length;i++){
-      try { win.location.href = SPROUT_URL(addr, top[i].name); } catch(e){}
-      bossOneMsg = `<span style="color:#a855f7">🗗 <b>${_mvpEsc(w.label||addr)}</b>: đang mở trang ${i+1}/${top.length} (${_mvpEsc(top[i].name)}) — đừng đóng cửa sổ…</span>`;
-      try{ renderBossMatrix(); }catch(e){}
-      await new Promise(r=>setTimeout(r, 6000));
-      const t = await sproutFetchByAk(top[i].ak);
+    bossOneMsg = `<b>${_mvpEsc(w.label||addr)}</b>: đang kiểm tra các nhân vật còn lại…`;
+    try{ renderBossMatrix(); }catch(e){}
+    for (const c of chars.slice(3)){
+      const t = await sproutFetchByAk(c.ak);
       if (bossHasData(t)){ merge(t); break; }
+      await new Promise(r=>setTimeout(r,150));
     }
-    try { win.close(); } catch(e){}
   }
   if (gotGates.size || gotUnlock.size){
     if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
