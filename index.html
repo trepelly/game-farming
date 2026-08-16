@@ -4209,8 +4209,8 @@ function _bossCell(addr, b, size){
 function renderBossMatrix(){
   const el=document.getElementById('boss-matrix'); if(!el) return;
   const ws=bossScopeWallets();
-  const daily=BOSS_LIST.filter(b=>b.cycle==='daily'), weekly=BOSS_LIST.filter(b=>b.cycle==='weekly');
   const tgt = bossTargetList();
+  const daily=tgt.filter(b=>b.cycle==='daily'), weekly=tgt.filter(b=>b.cycle==='weekly');   // ẩn hẳn boss không chọn
   const totB=tgt.length;
   const openCount = w => tgt.filter(b=>_bossCellState(w.address,b).unlocked).length;
   const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
@@ -4228,7 +4228,7 @@ function renderBossMatrix(){
       <div style="min-width:0"><div style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div><div style="font-size:9px;color:#d98a3d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.player||'—')}</div></div>
       <div class="mvp-num" style="display:flex;align-items:center;justify-content:flex-end;gap:5px;font-size:11px;font-weight:700;color:${n?'#7fd88f':'var(--muted2)'}">${n}<span style="font-size:9px;color:var(--muted2);opacity:.7">/${totB}</span>${(typeof isRealAdmin==='function'&&isRealAdmin())?`<button onclick="syncBossWallet('${w.address}')" data-tip="Quét ví này (tự mở tab MapleSprout nếu chưa có bản ghi)" style="padding:1px 5px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer">⟳</button>`:''}</div>
       <div style="white-space:nowrap">${cells(w,daily)}</div>
-      <div style="width:1px;height:26px;background:var(--border2)"></div>
+      <div style="width:1px;height:26px;background:${daily.length&&weekly.length?'var(--border2)':'transparent'}"></div>
       <div style="white-space:nowrap">${cells(w,weekly)}</div>
     </div>`; }).join('');
   const openAll = ws.reduce((s,w)=>s+openCount(w),0);
@@ -4239,13 +4239,14 @@ function renderBossMatrix(){
         ${infoIcon('Mỗi icon = 1 boss. Viền xanh lá = đã hạ · viền xanh dương = đã mở (prequest) · xám = chưa mở. Rê chuột vào icon để xem chi tiết.')}
       </div>
       ${bossOneMsg?`<div style="padding:8px 14px;border-bottom:1px solid var(--border2);font-size:11px;color:var(--text2)">${bossOneMsg}</div>`:''}
-      <div style="overflow-x:auto">
+      ${!tgt.length?`<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Chưa chọn boss mục tiêu nào — mở <b>Điều khiển</b> để chọn boss cần theo dõi.</div>`:``}
+      <div style="overflow-x:auto;${tgt.length?'':'display:none'}">
         <div style="min-width:${300+(daily.length+weekly.length)*34}px">
           <div style="display:grid;grid-template-columns:${grid};gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">
             <div style="color:var(--muted2)">#</div>
             <div style="display:flex;align-items:center;gap:8px;min-width:0">${hd('name','Ví / Player')}<input id="boss-mx-search" type="text" value="${_mvpEsc(bossMxQuery)}" oninput="setBossMxQuery(this.value)" placeholder="Tìm ví / player…" style="flex:1;min-width:80px;box-sizing:border-box;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:10.5px;font-weight:500;text-transform:none;letter-spacing:0"></div>
             ${hd('done','Mở','right')}
-            <div style="color:var(--muted2)">Daily</div><div></div><div style="color:var(--muted2)">Weekly</div>
+            <div style="color:var(--muted2)">${daily.length?'Daily':''}</div><div></div><div style="color:var(--muted2)">${weekly.length?'Weekly':''}</div>
           </div>
           <div id="boss-mx-scroll" style="max-height:440px;overflow-y:auto">${body||`<div style="padding:18px;text-align:center;color:var(--muted2);font-size:12px">${bossMxQuery?'Không tìm thấy ví / player nào.':'Chưa có ví.'}</div>`}</div>
         </div>
