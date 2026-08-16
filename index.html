@@ -777,18 +777,18 @@ td:first-child{text-align:left;color:var(--muted2)}
         #team-table-wrap tfoot td.frz{z-index:6}
         #team-table-wrap .frz1{left:0}
         #team-table-wrap .frz2{left:44px}
-        #team-table-wrap .frz3{left:174px}
-        #team-table-wrap .frz4{left:314px;box-shadow:2px 0 0 var(--border2)}
+        #team-table-wrap .frz3{left:194px;box-shadow:2px 0 0 var(--border2)}
+        #team-table-wrap .frz4{left:194px}
         #team-table-wrap .cw1{width:44px;min-width:44px;max-width:44px}
-        #team-table-wrap .cw2{width:130px;min-width:130px}
-        #team-table-wrap .cw3{width:140px;min-width:140px}
+        #team-table-wrap .cw2{width:150px;min-width:150px}
+        #team-table-wrap .cw3{width:120px;min-width:120px}
         #team-table-wrap .cw4{width:120px;min-width:120px}
       </style>
       <div class="table-wrap" id="team-table-wrap" style="display:none;max-height:480px;overflow-y:auto">
         <table>
           <thead>
           <tr class="grp-row">
-            <th colspan="4" class="frz frz1" style="border-bottom:none;background:var(--surface)"></th><th colspan="2" style="border-bottom:none;background:var(--surface)"></th>
+            <th colspan="3" class="frz frz1" style="border-bottom:none;background:var(--surface)"></th><th colspan="2" style="border-bottom:none;background:var(--surface)"></th>
             <th colspan="4" style="text-align:center;color:#2dd4bf;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,#2dd4bf 14%,var(--surface))">Character</th>
             <th colspan="3" style="text-align:center;color:var(--amber);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--amber) 16%,var(--surface))">MVP Status</th>
             <th colspan="2" style="text-align:center;color:var(--green);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom:none;background:color-mix(in srgb,var(--green) 16%,var(--surface))"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></svg> Henesys</th>
@@ -798,7 +798,6 @@ td:first-child{text-align:left;color:var(--muted2)}
           <tr>
             <th class="frz frz1 cw1" style="text-align:center">#</th>
             <th class="frz frz2 cw2" style="text-align:left;cursor:pointer;user-select:none" onclick="colSort('label')">Tên <span id="sort-icon-label" style="opacity:.3">↕</span></th>
-            <th class="frz frz3 cw3" style="text-align:left">Địa chỉ</th>
             <th class="frz frz4 cw4" style="text-align:left;cursor:pointer;user-select:none;color:var(--accent)" onclick="colSort('player')" title="Người chơi đang giữ ví"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Player <span id="sort-icon-player" style="opacity:.3">↕</span></th>
             <th style="color:#ffffff;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('nft')" title="Tổng NFT items">NFT <span id="sort-icon-nft" style="opacity:.3">↕</span></th>
             <th style="text-align:left;white-space:nowrap">Cảnh báo</th>
@@ -808,7 +807,6 @@ td:first-child{text-align:left;color:var(--muted2)}
             <th style="color:#fbbf24;white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('level')" title="Level của nhân vật mạnh nhất"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg> Lv <span id="sort-icon-level" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvp')" title="Điểm MVP">MVP <span id="sort-icon-mvp" style="opacity:.3">↕</span></th>
             <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('tuanmvp')" title="Số tuần đạt Bronze+">Week <span id="sort-icon-tuanmvp" style="opacity:.3">↕</span></th>
-            <th style="color:var(--amber);white-space:nowrap;cursor:pointer;user-select:none" onclick="colSort('mvpweek')" title="Giá trị MVP đã chi trong tuần này / 230k">Chi tuần này <span id="sort-icon-mvpweek" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('neso')" title="NESO + quy đổi USDT/VND">NESO <span id="sort-icon-neso" style="opacity:.3">↕</span></th>
             <th style="cursor:pointer;user-select:none;color:var(--green)" onclick="colSort('nxpc')" title="NXPC Henesys + quy đổi">NXPC <span id="sort-icon-nxpc" style="opacity:.3">↕</span></th>
             <th style="color:var(--blue);cursor:pointer;user-select:none" onclick="colSort('avax')" title="AVAX + quy đổi">AVAX <span id="sort-icon-avax" style="opacity:.3">↕</span></th>
@@ -873,7 +871,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -5918,11 +5916,10 @@ function renderTeam() {
             style="background:var(--subtle);border:1px solid var(--border2);border-radius:5px;padding:2px 6px;color:var(--muted2);font-family:inherit;font-size:10px;cursor:pointer;flex-shrink:0">▼</button>
           <span onclick="copyFlash(this,'${w.label||''}')" data-tip="Nhấp vào để copy" style="font-weight:600;color:var(--text);cursor:pointer">${w.label||'—'}</span>
         </div>
+        <div style="font-size:9.5px;color:var(--muted2);opacity:.8;margin-top:2px;font-family:'JetBrains Mono',monospace"><span onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer">${short(w.address)}</span></div>
       </td>
 
-      <td class="frz frz3 cw3" style="text-align:left"><span onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp vào để copy" style="cursor:pointer">${short(w.address)}</span>
-      </td>
-      <td class="frz frz4 cw4" style="text-align:left;white-space:normal;max-width:120px">${renderPlayerCell(w, isAdmin)}</td>
+      <td class="frz frz3 cw3" style="text-align:left;white-space:normal;max-width:120px">${renderPlayerCell(w, isAdmin)}</td>
       <td style="text-align:right;color:var(--muted2);font-weight:500;cursor:help" id="nft-${w.address.slice(-8)}" onmouseenter="showNftTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${w.nftCount!=null?`<span style="color:var(--muted2);font-weight:500">${w.nftCount}</span>`:'<span style="color:var(--muted2);font-size:9px">⏳</span>'}</td>
       <td style="text-align:left;white-space:normal;max-width:160px;line-height:1.7">${walletFlagPills(w)}</td>
       <td style="text-align:right;white-space:nowrap;cursor:${(w.chars||[]).length?'help':'default'}" id="cp-${w.address.slice(-8)}" onmouseenter="showCharTip(event,'${w.address}')" onmousemove="moveCharTip(event)" onmouseleave="hideCharTip()">${
@@ -5943,7 +5940,6 @@ function renderTeam() {
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
       </td>
       <td style="text-align:center;white-space:nowrap" id="mvp-cd-${w.address.slice(-8)}" title="Số tuần đạt Bronze+ (tối đa 13 tuần gần nhất)">${weekCellHtml(w)}</td>
-      <td style="text-align:right;font-size:12px" id="mvp-week-${w.address.slice(-8)}">${w.mvpWeekValue!=null ? `<span style="color:${w.mvpWeekValue>=230000?'var(--green)':'var(--amber)'};font-weight:600">${Math.round(w.mvpWeekValue).toLocaleString('vi-VN')}</span><div style="font-size:9px;color:var(--muted2)">${w.mvpWeekValue>=230000?'✓ đủ 230k':'cần '+Math.round(Math.max(0,230000-w.mvpWeekValue)).toLocaleString('vi-VN')+' nữa'}</div>` : '<span style="color:var(--muted2);font-size:10px">...</span>'}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${f(w.neso)}</span>${nesoBadge}${convSub(usdt, vnd)}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;padding:8px 12px"><span style="font-size:13px">${fd2(w.nxpc,4)}</span>${nxpcBadge}${(()=>{const u=w.nxpc!=null?w.nxpc*nxpcRate:null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
       <td style="text-align:right;color:var(--blue);font-weight:600;padding:8px 12px"><span style="font-size:13px">${w.avax!=null?fd2(w.avax,4):'—'}</span>${avaxBadge}${(()=>{const u=w.avax!=null?w.avax*(liveAvaxUsd||0):null;return convSub(u, u!=null?u*usdvnd:null);})()}</td>
@@ -5983,7 +5979,6 @@ function renderTeam() {
     <td style="text-align:center;padding:10px 14px;color:#fbbf24;font-size:11px;font-weight:700">${(()=>{const lv=displayWallets.map(w=>w.maxCpLevel).filter(v=>v!=null);return lv.length?`Lv ${Math.max(...lv)}`:'—';})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:12px;font-weight:700">${mvpCount > 0 ? mvpCount + ' ví' : '—'}</td>
     <td style="text-align:center;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700" title="Số ví đủ 13 tuần Bronze+">${(()=>{const f=displayWallets.filter(w=>w.mvpBronzeWeeks>=13).length;return f>0?f+' đủ 13w':'—';})()}</td>
-    <td style="text-align:right;padding:10px 14px;color:var(--accent);font-size:11px;font-weight:700">${displayWallets.filter(w=>w.mvpWeekValue>=230000).length} ✓</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${f(totNeso)}${convSub(totUsdt, totVnd)}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--green)">${fd2(totNxpc,4)}${(()=>{const u=totNxpc*nxpcRate;return convSub(u,u*usdvnd);})()}</td>
     <td style="text-align:right;padding:10px 14px;color:var(--blue)">${fd2(totAvax,4)}${(()=>{const u=totAvax*(liveAvaxUsd||0);return convSub(u,u*usdvnd);})()}</td>
@@ -9495,13 +9490,13 @@ function renderMvpList(){
   if(!b){ el.innerHTML=''; return; }
   const who = mvpPlayer==='all' ? '' : ` · <span style="color:var(--accent)">${_mvpEsc(mvpPlayer)}</span>`;
   const gapOf = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; return t? (t.min-mvpPtsOf(w)) : -1; };
-  const keys = { name: w=>(w.label||'').toLowerCase(), player: w=>(w.player||'zzz').toLowerCase(), weeks: w=>(w.mvpBronzeWeeks!=null?w.mvpBronzeWeeks:-1), pts: w=>mvpPtsOf(w), neso: w=>(w.neso!=null?w.neso:-1), next: w=>gapOf(w) };
+  const keys = { name: w=>(w.label||'').toLowerCase(), player: w=>(w.player||'zzz').toLowerCase(), week: w=>(w.mvpWeekValue!=null?w.mvpWeekValue:-1), weeks: w=>(w.mvpBronzeWeeks!=null?w.mvpBronzeWeeks:-1), pts: w=>mvpPtsOf(w), neso: w=>(w.neso!=null?w.neso:-1), next: w=>gapOf(w) };
   const kf = keys[mvpSort.col] || keys.pts;
   const rows = b.wallets.slice().sort((x,y)=>{ const a=kf(x), c=kf(y); let r = (typeof a==='string') ? a.localeCompare(c) : (a-c); return mvpSort.dir==='desc' ? -r : r; });
   const nt = w => { const t=(typeof getNextTier==='function')?getNextTier(mvpPtsOf(w)):null; if(!t) return '<span style="color:var(--muted2)">— tối đa</span>'; const gap=t.min-mvpPtsOf(w); return `<span class="mvp-num" style="color:var(--muted2)">còn ${_mvpFmt(gap)} → ${_mvpEsc(t.name)}</span>`; };
   const arw = c => mvpSort.col===c ? (mvpSort.dir==='desc'?' ↓':' ↑') : '';
   const hc = (c,label,align) => `<div onclick="setMvpSort('${c}')" data-tip="Bấm để sắp xếp" class="${(c==='player'||c==='next')?'mvp-hide-sm':''}" style="cursor:pointer;text-align:${align||'left'};color:${mvpSort.col===c?'var(--accent)':'inherit'}">${label}${arw(c)}</div>`;
-  const head=`<div class="mvp-lrow head"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm 13W','right')}${hc('neso','NESO hiện có','right')}${hc('next','Kế tiếp','right')}</div>`;
+  const head=`<div class="mvp-lrow head"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm 13W','right')}${hc('week','Chi tuần này','right')}${hc('neso','NESO hiện có','right')}${hc('next','Kế tiếp','right')}</div>`;
   const body = rows.length ? rows.map((w,i)=>`<div class="mvp-lrow">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
       <div style="display:flex;align-items:center;gap:8px;min-width:0">
@@ -9511,6 +9506,7 @@ function renderMvpList(){
       <div class="mvp-hide-sm">${w.player?`<span onclick="copyFlash(this,'${(w.player||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer;font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right" data-tip="Số tuần được tính MVP trong 13 tuần gần nhất">${w.mvpBronzeWeeks!=null?`<span style="font-weight:700;color:${w.mvpBronzeWeeks>=13?'#7fd88f':(w.mvpBronzeWeeks>0?'#d8a44f':'var(--muted2)')}">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_mvpFmt(mvpPtsOf(w))}</div>
+      <div class="mvp-num" style="text-align:right" data-tip="Giá trị MVP đã chi tuần này&#10;${w.mvpWeekValue!=null?_nesoTip(w.mvpWeekValue):'chưa có dữ liệu'}">${w.mvpWeekValue!=null?`<span style="color:${w.mvpWeekValue>=230000?'#7fd88f':'#d8a44f'};font-weight:600">${_mvpFmt(w.mvpWeekValue)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;color:#7fd88f" ${w.neso!=null?`data-tip="${_nesoTip(w.neso)}"`:''}>${w.neso!=null?_mvpFmt(w.neso):'—'}</div>
       <div class="mvp-hide-sm" style="text-align:right">${nt(w)}</div>
     </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví ở hạng này.</div>';
@@ -9533,6 +9529,8 @@ function renderMvpList(){
           <div class="mvp-hide-sm"></div>
           <div class="mvp-num" style="text-align:right" data-tip="Tổng số tuần được tính MVP của ${twN} ví (tối đa ${twN*13})">${twN?`<span style="color:var(--text)">${_mvpFmt(tw)}</span><span style="font-size:9px;color:var(--muted2)">/${twN*13}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${_mvpFmt(tp)}</div>
+          ${(()=>{ const tw=rows.filter(x=>x.mvpWeekValue!=null).reduce((a,x)=>a+x.mvpWeekValue,0); const nOk=rows.filter(x=>(x.mvpWeekValue||0)>=230000).length;
+            return `<div class="mvp-num" style="text-align:right;color:#d8a44f" data-tip="Tổng chi tuần này&#10;${_nesoTip(tw)}&#10;${nOk} ví đã đủ 230k">${_mvpFmt(tw)}<span style="font-size:9px;color:var(--muted2)"> · ${nOk}✓</span></div>`; })()}
           <div class="mvp-num" style="text-align:right;color:#7fd88f" data-tip="Tổng NESO hiện có&#10;${_nesoTip(tn)}">${_mvpFmt(tn)}</div>
           <div class="mvp-hide-sm" style="text-align:right;font-weight:600;color:var(--muted2);font-size:10px">TB ${_mvpFmt(tp/rows.length)} điểm/ví</div>
         </div>`; })()}
