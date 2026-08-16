@@ -3750,6 +3750,50 @@ function bossScopeWallets(){ const ws=(typeof effectiveWallets==='function')?eff
 function bossImg(b){ return `https://maplen.gg/images/bosses/${b.img}.png`; }
 function bossClears(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossClears) || {}; }
 function bossHas(addr, id){ const m=bossClears()[addr]; return !!(m && m[id]); }
+function closeBossPop(){ const p=document.getElementById('boss-pop'); if(p) p.remove(); }
+function openBossPop(ev, addr, k){
+  closeBossPop();
+  const b = BOSS_LIST.find(x=>x.k===k); if(!b) return;
+  const ws=(typeof teamWallets!=='undefined'?teamWallets:[])||[];
+  const w = ws.find(x=>x.address===addr);
+  const st = _bossCellState(addr,b);
+  const manual = !!((bossUnlockedMap()[addr]||{})[k]);
+  const byLv = !!(b.lvUnlock && bossMaxLevel(addr) >= b.lvUnlock);
+  const admin = (typeof isRealAdmin==='function' && isRealAdmin());
+  const statLine = st.cleared.length ? `<span style="color:#7fd88f">✓ Đã hạ: ${st.cleared.join(', ')}</span>`
+      : (st.unlocked ? `<span style="color:#38bdf8">Đã mở${byLv?` theo level (Lv${b.lvUnlock}+)`:(manual?' (đánh dấu tay)':' (prequest)')} · chưa hạ</span>`
+                     : (b.lvUnlock ? `<span style="color:var(--muted2)">Chưa mở · cần Lv${b.lvUnlock}</span>`
+                                   : `<span style="color:#ffe600">⚠ Cần làm prequest</span>`));
+  const p=document.createElement('div');
+  p.id='boss-pop';
+  p.style.cssText='position:fixed;z-index:10050;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow-lg);min-width:240px;max-width:300px;font-size:11.5px';
+  p.innerHTML = `<div style="display:flex;align-items:center;gap:9px">
+      <span style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${bossImg(b)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"></span>
+      <div style="min-width:0"><div style="font-size:13px;font-weight:800;color:var(--text)">${_mvpEsc(b.name)}</div><div style="font-size:10px;color:var(--muted2)">${_mvpEsc(w&&w.label||'')} · ${b.cycle==='daily'?'Hằng ngày':'Hằng tuần'}</div></div>
+      <button onclick="closeBossPop()" style="margin-left:auto;background:none;border:none;color:var(--muted2);font-size:17px;line-height:1;cursor:pointer;padding:0 2px">×</button>
+    </div>
+    <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border2)">${statLine}</div>
+    <div style="font-size:10.5px;color:var(--muted2);margin-top:5px">Cửa: ${b.diffs.join(' / ')}</div>
+    ${admin?`<div style="margin-top:11px;display:flex;gap:7px">
+        ${manual
+          ? `<button onclick="bossPopAct('${addr}','${k}',false)" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid #e0625c;background:color-mix(in srgb,#e0625c 12%,transparent);color:#e0625c;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer">✕ Bỏ đánh dấu</button>`
+          : `<button onclick="bossPopAct('${addr}','${k}',true)" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid #7fd88f;background:color-mix(in srgb,#7fd88f 12%,transparent);color:#7fd88f;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer">✓ Đánh dấu đã mở</button>`}
+      </div>${byLv&&!manual?'<div style="font-size:9.5px;color:var(--muted2);margin-top:6px">Boss này đã mở sẵn theo level.</div>':''}`:''}`;
+  document.body.appendChild(p);
+  const r = p.getBoundingClientRect();
+  let x = (ev.clientX||0) + 12, y = (ev.clientY||0) + 12;
+  if (x + r.width > innerWidth - 8) x = innerWidth - r.width - 8;
+  if (y + r.height > innerHeight - 8) y = Math.max(8, (ev.clientY||0) - r.height - 12);
+  p.style.left = x+'px'; p.style.top = y+'px';
+  setTimeout(()=>{ document.addEventListener('mousedown', _bossPopOut, { once:true }); }, 0);
+}
+function _bossPopOut(e){ const p=document.getElementById('boss-pop'); if(p && !p.contains(e.target)) closeBossPop(); else if(p) setTimeout(()=>document.addEventListener('mousedown', _bossPopOut, { once:true }),0); }
+async function bossPopAct(addr, k, on){
+  const b = BOSS_LIST.find(x=>x.k===k);
+  if (!on && !confirm(`Bỏ đánh dấu "đã mở" của boss ${b?b.name:k} cho ví này?`)) return;
+  closeBossPop();
+  await toggleBossUnlock(addr, k);
+}
 async function toggleBossUnlock(addr, k){
   if (!isRealAdmin()) return;
   if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
@@ -4211,7 +4255,7 @@ function _bossCell(addr, b, size, clickable){
                             : (b.lvUnlock ? `Chưa mở · cần Lv${b.lvUnlock}` : 'Chưa mở'));
   const tip = `${_mvpEsc(b.name)}${stat0?' '+stat0:''}&#10;${needPreq?'⚠ CẦN LÀM PREQUEST':stat}&#10;Cửa: ${b.diffs.join(' / ')}`;
   const admin = clickable && (typeof isRealAdmin==='function' && isRealAdmin());
-  return `<span ${admin?`onclick="toggleBossUnlock('${addr}','${b.k}')"`:''} data-tip="${tip}${admin?'&#10;(Bấm để tự đánh dấu đã mở / bỏ)':''}" style="${admin?'cursor:pointer;':''}position:relative;display:inline-flex;flex-shrink:0;width:${sz}px;height:${sz}px;border-radius:50%;overflow:visible;border:1.5px solid ${ring};background:var(--bg2);${needPreq?'box-shadow:0 0 6px rgba(255,230,0,.75);':''}${isT?'':'opacity:.25'}">
+  return `<span ${clickable?`onclick="openBossPop(event,'${addr}','${b.k}')"`:''} data-tip="${tip}${clickable?'&#10;(Bấm để xem chi tiết)':''}" style="${clickable?'cursor:pointer;':''}position:relative;display:inline-flex;flex-shrink:0;width:${sz}px;height:${sz}px;border-radius:50%;overflow:visible;border:1.5px solid ${ring};background:var(--bg2);${needPreq?'box-shadow:0 0 6px rgba(255,230,0,.75);':''}${isT?'':'opacity:.25'}">
       <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${st.unlocked?'':'filter:grayscale(1);opacity:.4'}" onerror="this.style.display='none'">
       ${needPreq?`<span style="position:absolute;top:-5px;right:-5px;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--card);box-shadow:0 0 0 1px var(--card),0 0 7px rgba(255,230,0,.9)"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ffe600" stroke="var(--card)" stroke-width="1.2" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17h.01" stroke="#1a1a1f" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></span>`:''}
     </span>`;
