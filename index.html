@@ -4194,7 +4194,7 @@ function _bossCell(addr, b, size){
   const sz=size||30;
   const isT = bossIsTarget(b.k);
   const needPreq = isT && !st.unlocked && !b.lvUnlock;      // mục tiêu, chưa mở, phải làm prequest
-  const ring = st.cleared.length ? '#7fd88f' : (st.unlocked ? '#38bdf8' : (needPreq ? '#e0625c' : 'transparent'));
+  const ring = st.cleared.length ? '#7fd88f' : (st.unlocked ? '#38bdf8' : (needPreq ? '#f5a524' : 'transparent'));
   const byLv = !!(b.lvUnlock && bossMaxLevel(addr) >= b.lvUnlock && !(bossUnlockedMap()[addr]||{})[b.k]);
   const stat0 = !isT ? '(không theo dõi)' : '';
   const stat = st.cleared.length ? ('✓ Đã hạ: '+st.cleared.join(', '))
@@ -4203,7 +4203,7 @@ function _bossCell(addr, b, size){
   const tip = `${_mvpEsc(b.name)}${stat0?' '+stat0:''}&#10;${needPreq?'⚠ CẦN LÀM PREQUEST':stat}&#10;Cửa: ${b.diffs.join(' / ')}`;
   return `<span data-tip="${tip}" style="position:relative;display:inline-flex;flex-shrink:0;width:${sz}px;height:${sz}px;border-radius:50%;overflow:visible;border:1.5px solid ${ring};background:var(--bg2);${isT?'':'opacity:.25'}">
       <img src="${bossImg(b)}" alt="${_mvpEsc(b.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${st.unlocked?'':'filter:grayscale(1);opacity:.4'}" onerror="this.style.display='none'">
-      ${needPreq?`<span style="position:absolute;top:-5px;right:-5px;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--card);box-shadow:0 0 0 1px var(--card)"><svg width="14" height="14" viewBox="0 0 24 24" fill="#e0625c" stroke="var(--card)" stroke-width="1.2" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17h.01" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg></span>`:''}
+      ${needPreq?`<span style="position:absolute;top:-5px;right:-5px;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--card);box-shadow:0 0 0 1px var(--card)"><svg width="14" height="14" viewBox="0 0 24 24" fill="#f5a524" stroke="var(--card)" stroke-width="1.2" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17h.01" stroke="#1a1a1f" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></span>`:''}
     </span>`;
 }
 function renderBossMatrix(){
