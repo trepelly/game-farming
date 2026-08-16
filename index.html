@@ -685,8 +685,8 @@ td:first-child{text-align:left;color:var(--muted2)}
         <button class="tw-tab" data-tab="tasks"   onclick="switchTeamTab('tasks')">Việc tuần này</button>
         <button class="tw-tab" data-tab="insight" onclick="switchTeamTab('insight')">Insight & Đề xuất</button>
         <button class="tw-tab" data-tab="kpi"     onclick="switchTeamTab('kpi')">KPI & OKR</button>
-        <button class="tw-tab" data-tab="addwallet" onclick="switchTeamTab('addwallet')">Thêm ví</button>
-        <button class="tw-tab" data-tab="datasource" onclick="switchTeamTab('datasource')">Nguồn dữ liệu</button>
+        
+        <button class="tw-tab" data-tab="settings" onclick="switchTeamTab('settings')">Cài đặt</button>
         </div>
         <div style="display:flex;align-items:center;gap:10px;padding-bottom:8px;flex-wrap:wrap"><div id="team-viewas" style="display:none"></div><div id="team-actions"><div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="refreshTeam()" title="Làm mới" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--muted2);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;line-height:1">⟳</button>
@@ -1016,7 +1016,12 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div><!-- /tab-kpi -->
 
       <!-- TAB: Thêm ví -->
-      <div class="tabpanel" id="tab-addwallet" style="display:none">
+      <div class="tabpanel" id="tab-settings" style="display:none">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:4px;margin-bottom:14px;width:fit-content">
+          <button class="set-sub" data-sub="addwallet" onclick="switchSettingsSub('addwallet')" style="padding:6px 14px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Thêm ví</button>
+          <button class="set-sub" data-sub="datasource" onclick="switchSettingsSub('datasource')" style="padding:6px 14px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Nguồn dữ liệu</button>
+        </div>
+        <div id="set-pane-addwallet"><div>
       <div class="admin-only" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:24px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
           <div style="font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)">Thêm ví vào team</div>
@@ -1048,7 +1053,8 @@ td:first-child{text-align:left;color:var(--muted2)}
       </div><!-- /tab-addwallet -->
 
       <!-- TAB: Nguồn dữ liệu -->
-      <div class="tabpanel" id="tab-datasource" style="display:none">
+      </div>
+        <div id="set-pane-datasource" style="display:none"><div>
 <div id="player-summary-wrap" class="viewall-only" style="display:none;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 20px;box-shadow:var(--shadow);margin-top:20px">
         <div onclick="togglePlayerSummary()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -1066,7 +1072,8 @@ td:first-child{text-align:left;color:var(--muted2)}
         </div>
       </div>
         <div id="team-datasource"></div>
-      </div><!-- /tab-datasource -->
+      </div></div>
+      </div><!-- /tab-settings -->
 
       <!-- TAB: Việc tuần này (member) -->
       <div class="tabpanel" id="tab-tasks" style="display:none">
@@ -3619,9 +3626,22 @@ function renderAlertChips(list) {
 }
 
 let teamTab = 'state';
+let settingsSub = 'addwallet';
+function switchSettingsSub(k){
+  settingsSub = k || 'addwallet';
+  ['addwallet','datasource'].forEach(x=>{
+    const p=document.getElementById('set-pane-'+x); if(p) p.style.display = (x===settingsSub)?'':'none';
+  });
+  document.querySelectorAll('.set-sub').forEach(b=>{
+    const on = b.getAttribute('data-sub')===settingsSub;
+    b.style.background = on ? 'var(--card)' : 'transparent';
+    b.style.color = on ? 'var(--accent)' : 'var(--text2)';
+  });
+  if (settingsSub==='datasource'){ try { renderPlayerSummary(); } catch(e){} }
+}
 function switchTeamTab(t) {
   teamTab = t || 'state';
-  ['state','boss','mvp','flow','insight','kpi','addwallet','datasource','tasks'].forEach(k => {
+  ['state','boss','mvp','flow','insight','kpi','settings','tasks'].forEach(k => {
     const p = document.getElementById('tab-'+k);
     if (p) p.style.display = (k===teamTab) ? '' : 'none';
   });
@@ -3634,7 +3654,7 @@ function switchTeamTab(t) {
   try { if (teamTab==='boss' && typeof renderBossTab==='function') renderBossTab(); } catch(e) {}
   try { if (teamTab==='mvp' && typeof renderMvpDistChart==='function') renderMvpDistChart(); } catch(e) {}
   try { if (teamTab==='mvp' && typeof renderMvpPlayers==='function') renderMvpPlayers(); } catch(e) {}
-  try { if (teamTab==='datasource' && typeof renderPlayerSummary==='function') renderPlayerSummary(); } catch(e) {}
+  try { if (teamTab==='settings') switchSettingsSub(settingsSub); } catch(e) {}
   try { if (teamTab==='insight') renderInsightTab(window._teamDisplay||teamWallets); } catch(e) {}
   try { if (teamTab==='flow' && typeof drawAllFlowCharts==='function') drawAllFlowCharts(); } catch(e) {}
   try { if (teamTab==='kpi') renderKpiTab(window._teamDisplay||teamWallets); } catch(e) {}
