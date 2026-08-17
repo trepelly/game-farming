@@ -4350,6 +4350,36 @@ function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); con
 function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player')?'asc':'desc'}; renderLiteList(); }
 function liteScope(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return litePlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===litePlayer); }
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
+const TOKEN_ICON = {
+  'NESO':'https://maplen.gg/images/tokens/neso.png',
+  'NXPC':'https://maplen.gg/images/tokens/nxpc.png',
+  'AVAX':'https://maplen.gg/images/tokens/avax.png',
+  'NXPC(AVAX)':'https://maplen.gg/images/tokens/nxpc.png',
+  'NXPC(A)':'https://maplen.gg/images/tokens/nxpc.png',
+  'USDT':'https://maplen.gg/images/tokens/usdt.png',
+};
+const TOKEN_COLOR = { 'NESO':'#7fd88f','NXPC':'#7fd88f','AVAX':'#e0625c','NXPC(AVAX)':'#38bdf8','NXPC(A)':'#38bdf8','USDT':'#38bdf8' };
+// Tooltip HTML: avatar token + số chính + 2 dòng phụ (USD, VND)
+function _tokTipHtml(name, amtStr, usd, sub){
+  const vnd=(typeof liveUsdVnd==='number'&&liveUsdVnd)?liveUsdVnd:0;
+  const ic=TOKEN_ICON[name], c=TOKEN_COLOR[name]||'var(--text)';
+  const row=(lb,val)=>`<div style="display:flex;justify-content:space-between;gap:14px;font-size:10.5px;color:var(--muted2);margin-top:3px"><span>${lb}</span><span class="mvp-num" style="color:var(--text2)">${val}</span></div>`;
+  return `<div style="display:flex;align-items:center;gap:8px">
+      ${ic?`<span style="width:24px;height:24px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${ic}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:''}
+      <div style="min-width:0">
+        <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em">${name}${sub?' · '+sub:''}</div>
+        <div class="mvp-num" style="font-size:16px;font-weight:800;color:${c};line-height:1.2">${amtStr}</div>
+      </div>
+    </div>
+    <div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border2)">
+      ${usd!=null?row('USD','$'+usd.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})):''}
+      ${(usd!=null&&vnd)?row('VND',Math.round(usd*vnd).toLocaleString('vi-VN')+'đ'):''}
+      ${usd==null?'<div style="font-size:10.5px;color:var(--muted2)">Chưa có tỉ giá</div>':''}
+    </div>`;
+}
+function _tokTipAttr(name, amtStr, usd, sub){
+  return `data-tip="${name}: ${amtStr}" data-tiph="${_tokTipHtml(name,amtStr,usd,sub).replace(/"/g,'&quot;')}"`;
+}
 function _usdTip(label, amt, usd){
   const vnd=(typeof liveUsdVnd==='number'&&liveUsdVnd)?liveUsdVnd:0;
   const parts=[label, amt];
@@ -4400,7 +4430,7 @@ function renderLiteTokens(){
     {lb:'USDT',        v:sum('usdt_avax_real'), d:2, usd:sum('usdt_avax_real'), c:'var(--blue)', g:'Avalanche'},
   ];
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 4px">
-      ${items.map((it,i)=>`<div style="padding:0 14px;${i?'border-left:1px solid var(--border2)':''}" data-tip="${_usdTip(it.lb, _lf(it.v,it.d)+' '+it.lb, it.usd)}">
+      ${items.map((it,i)=>`<div style="padding:0 14px;${i?'border-left:1px solid var(--border2)':''}" ${_tokTipAttr(it.lb, _lf(it.v,it.d), it.usd, it.g)}>
         <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.g} · ${it.lb}</div>
         <div class="mvp-num" style="font-size:19px;font-weight:800;color:${it.c};margin-top:6px;line-height:1.1">${_lf(it.v,it.d)}</div>
       </div>`).join('')}
@@ -4501,7 +4531,7 @@ function renderLiteList(){
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al)=>`<div onclick="setLiteSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
   const grid='30px minmax(0,1fr) 76px 60px 56px 86px 108px 70px 72px 78px 66px';
-  const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?`data-tip="${_usdTip(tipLb,_lf(v,d),usd)}"`:''}>${_lf(v,d)}</div>`;
+  const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
       <div style="display:flex;align-items:center;gap:8px;min-width:0"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.label||'—')}</span><span class="mvp-num" onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer;font-size:9.5px;color:var(--muted2);opacity:.8;white-space:nowrap">${_mvpShortAddr(w.address)}</span></div>
@@ -5901,15 +5931,15 @@ function _uiTipEl(){
   if (!t) {
     t = document.createElement('div');
     t.id = 'ui-tip';
-    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 10px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.5;max-width:260px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:pre-line';
+    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 10px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.5;max-width:300px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:pre-line';
     document.body.appendChild(t);
   }
   return t;
 }
-function showTip(ev, text){
-  if (!text) return;
+function showTip(ev, text, html){
+  if (!text && !html) return;
   const t = _uiTipEl();
-  t.textContent = text;
+  if (html) t.innerHTML = html; else t.textContent = text;
   t.style.opacity = '1';
   t.style.transform = 'translateY(0)';
   moveTip(ev);
@@ -5932,7 +5962,7 @@ function hideTip(){ const t = document.getElementById('ui-tip'); if (t){ t.style
     document.addEventListener('mouseover', e => {
       let el = e.target.closest && e.target.closest('[data-tip]');
       if (!el && e.target.closest) { const tl = e.target.closest('[title]'); if (tl && tl.getAttribute('title')) { tl.setAttribute('data-tip', tl.getAttribute('title')); tl.removeAttribute('title'); el = tl; } }
-      if (el) showTip(e, el.getAttribute('data-tip'));
+      if (el) showTip(e, el.getAttribute('data-tip'), el.getAttribute('data-tiph'));
     });
     document.addEventListener('mousemove', e => { const t = document.getElementById('ui-tip'); if (t && t.style.opacity === '1') moveTip(e); });
     document.addEventListener('mouseout',  e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) hideTip(); });
