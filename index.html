@@ -883,7 +883,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1fr) 76px 62px 58px 92px 104px 70px 70px 76px 64px!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1fr) 76px 60px 56px 108px 100px 66px 68px 74px 62px!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -4341,7 +4341,9 @@ function renderBossMatrix(){
 
 
 // ===== TAB VÍ (LITE) — mỗi ô 1 con số, chi tiết trong tooltip =====
-let litePlayer='all', liteQuery='', liteSort={col:'neso',dir:'desc'};
+let litePlayer='all', liteQuery='', liteTier='all', liteSort={col:'neso',dir:'desc'};
+function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); renderLiteList(); }
+function liteTierPass(w){ const p=mvpPtsOf(w); if(liteTier==='nofarm') return p<=0; if(liteTier==='acc') return p>0&&p<30; if(liteTier==='bronze') return p>=30; return true; }
 function setLitePlayer(p){ litePlayer=(litePlayer===p)?'all':p; renderLiteTab(); }
 function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); const i=document.getElementById('lite-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player')?'asc':'desc'}; renderLiteList(); }
@@ -4354,28 +4356,12 @@ function _usdTip(label, amt, usd){
   if (usd!=null && vnd) parts.push('VND: '+Math.round(usd*vnd).toLocaleString('vi-VN')+'đ');
   return parts.join('&#10;');
 }
-function renderLiteTab(){ try{ renderLitePlayers(); renderLiteTokens(); renderLiteTiers(); renderLiteList(); }catch(e){ console.warn(e); } }
-function renderLiteTiers(){
-  const el=document.getElementById('lite-tiers'); if(!el) return;
-  const ws=liteScope();
-  const defs=[{lb:'Chưa farm',ic:'○',sub:'0 điểm',c:'var(--muted2)',t:p=>p<=0},{lb:'Đang tích luỹ',ic:'⏳',sub:'< 30',c:'#9a9aab',t:p=>p>0&&p<30}];
-  (typeof MVP_TIERS!=='undefined'?MVP_TIERS:[]).filter(t=>t.name!=='Unranked'&&t.name!=='Black').forEach((t,i,a)=>{
-    const last=i===a.length-1;
-    defs.push({lb:t.name,ic:t.icon,sub:t.max===Infinity?('≥'+t.min):(t.min+'–'+t.max),c:t.color,t:last?(p=>p>=t.min):(p=>p>=t.min&&p<=t.max)});
-  });
-  const counts=defs.map(d=>ws.filter(w=>d.t(mvpPtsOf(w))).length);
-  const mx=Math.max(...counts,1);
-  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:13px 14px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:12px;font-weight:700;color:var(--text)">Phân bổ theo hạng</span><span style="margin-left:auto">${infoIcon('Số ví theo hạng MVP trong phạm vi đang xem')}</span></div>
-      <div style="display:flex;gap:8px;align-items:stretch">${defs.map((d,i)=>`<div style="flex:1 1 0;min-width:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 12px">
-        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;line-height:1">${d.ic||'•'}</span><span style="font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(d.lb)}</span></div>
-        <div class="mvp-num" style="font-size:22px;font-weight:800;color:${counts[i]?'var(--text)':'var(--muted2)'};margin-top:6px;line-height:1">${counts[i]}</div>
-        <div class="mvp-num" style="font-size:9px;color:var(--muted2);margin-top:5px">${_mvpEsc(d.sub)}</div>
-        <div style="height:4px;background:var(--bg2);border-radius:2px;margin-top:8px;overflow:hidden;border:1px solid var(--border2)"><div style="height:100%;width:${Math.round(counts[i]/mx*100)}%;background:${d.c};border-radius:2px;opacity:${counts[i]?'1':'.3'}"></div></div>
-      </div>`).join('')}</div>
-    </div>`;
+function renderLiteTab(){
+  try{ renderLitePlayers(); }catch(e){ console.warn('lite players', e); }
+  try{ renderLiteTokens(); }catch(e){ console.warn('lite tokens', e); }
+  try{ renderLiteTiers(); }catch(e){ console.warn('lite tiers', e); }
+  try{ renderLiteList(); }catch(e){ console.warn('lite list', e); }
 }
-
 function renderLitePlayers(){
   const el=document.getElementById('lite-players'); if(!el) return;
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
@@ -4419,19 +4405,56 @@ function renderLiteTokens(){
     </div>`;
 }
 
+function renderLiteTiers(){
+  const el=document.getElementById('lite-tiers'); if(!el) return;
+  const ws=liteScope();
+  const defs=[
+    {k:'all',    lb:'Tất cả',        ic:'◎',  sub:'mọi ví',  c:'var(--accent)', t:()=>true},
+    {k:'nofarm', lb:'Chưa farm',     ic:'○',  sub:'0 điểm',  c:'var(--muted2)', t:p=>p<=0},
+    {k:'acc',    lb:'Đang tích luỹ', ic:'⏳', sub:'< 30',    c:'#9a9aab',       t:p=>p>0&&p<30},
+    {k:'bronze', lb:'Bronze',        ic:'🥉', sub:'≥ 30',    c:'#cd7f32',       t:p=>p>=30},
+  ];
+  const counts=defs.map(d=>ws.filter(w=>d.t(mvpPtsOf(w))).length);
+  const mx=Math.max(...counts.slice(1),1);
+  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:13px 14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:12px;font-weight:700;color:var(--text)">Phân bổ theo hạng</span><span style="font-size:10px;color:var(--muted2)">bấm để lọc</span><span style="margin-left:auto">${infoIcon('Bấm 1 ô để lọc bảng theo nhóm điểm MVP')}</span></div>
+      <div style="display:flex;gap:8px;align-items:stretch">${defs.map((d,i)=>{ const on=liteTier===d.k;
+        return `<div onclick="setLiteTier('${d.k}')" style="flex:1 1 0;min-width:0;cursor:pointer;background:${on?`color-mix(in srgb,${d.c} 12%,var(--bg2))`:'var(--bg2)'};border:1px solid ${on?d.c:'var(--border2)'};border-radius:10px;padding:11px 12px;transition:.12s">
+          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;line-height:1">${d.ic}</span><span style="font-size:11px;font-weight:700;color:${on?d.c:'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(d.lb)}</span></div>
+          <div class="mvp-num" style="font-size:22px;font-weight:800;color:${counts[i]?(on?d.c:'var(--text)'):'var(--muted2)'};margin-top:6px;line-height:1">${counts[i]}</div>
+          <div class="mvp-num" style="font-size:9px;color:var(--muted2);margin-top:5px">${_mvpEsc(d.sub)}</div>
+          ${d.k!=='all'?`<div style="height:4px;background:var(--card);border-radius:2px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${Math.round(counts[i]/mx*100)}%;background:${d.c};border-radius:2px;opacity:${counts[i]?'1':'.3'}"></div></div>`:'<div style="height:4px;margin-top:8px"></div>'}
+        </div>`; }).join('')}</div>
+    </div>`;
+}
+
+function liteMissingBosses(w){
+  const tgt=(typeof bossTargetList==='function')?bossTargetList():[];
+  return tgt.filter(b=>!bossIsUnlocked(w.address,b.k));
+}
+function liteBossCell(w){
+  const miss=liteMissingBosses(w);
+  if (!miss.length) return `<div style="text-align:right;color:#7fd88f;font-size:10.5px;font-weight:600">✓ đủ</div>`;
+  const show=miss.slice(0,2), rest=miss.length-show.length;
+  const tip='Boss chưa mở ('+miss.length+')&#10;'+miss.map(b=>'• '+b.name).join('&#10;');
+  return `<div style="display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="${tip}">
+      ${show.map(b=>`<span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid #ffe600;background:var(--bg2)"><img src="${bossImg(b)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1);opacity:.55" onerror="this.style.display='none'"></span>`).join('')}
+      ${rest?`<span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 6px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);color:var(--muted2);font-size:10px;font-weight:700">+${rest}</span>`:''}
+    </div>`;
+}
 function renderLiteList(){
   const el=document.getElementById('lite-list'); if(!el) return;
   const nesoRate=(typeof liveNesoUsd==='number'&&liveNesoUsd)?liveNesoUsd:((typeof liveNxpcUsd==='number'&&liveNxpcUsd)?liveNxpcUsd/100000:0);
   const nxpcRate=(typeof liveNxpcUsd==='number'&&liveNxpcUsd)?liveNxpcUsd:0;
   const avaxRate=(typeof liveAvaxUsd==='number'&&liveAvaxUsd)?liveAvaxUsd:0;
-  let ws=liteScope().filter(w=>!liteQuery || (w.label||'').toLowerCase().includes(liteQuery) || (w.player||'').toLowerCase().includes(liteQuery) || (w.address||'').toLowerCase().includes(liteQuery));
-  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), week:w=>(w.mvpWeekValue??-1),
+  let ws=liteScope().filter(w=>liteTierPass(w)).filter(w=>!liteQuery || (w.label||'').toLowerCase().includes(liteQuery) || (w.player||'').toLowerCase().includes(liteQuery) || (w.address||'').toLowerCase().includes(liteQuery));
+  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), boss:w=>liteMissingBosses(w).length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al)=>`<div onclick="setLiteSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='30px minmax(0,1fr) 78px 66px 64px 96px 104px 74px 74px 78px 68px';
+  const grid='30px minmax(0,1fr) 76px 60px 56px 108px 100px 66px 68px 74px 62px';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?`data-tip="${_usdTip(tipLb,_lf(v,d),usd)}"`:''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -4439,7 +4462,7 @@ function renderLiteList(){
       <div>${w.player?`<span style="font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right">${w.mvpBronzeWeeks!=null?`<span style="color:${w.mvpBronzeWeeks>=13?'#7fd88f':'#d8a44f'};font-weight:600">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_lf(mvpPtsOf(w))}</div>
-      <div class="mvp-num" style="text-align:right;color:${(w.mvpWeekValue||0)>=230000?'#7fd88f':'#d8a44f'}" data-tip="Chi tuần này&#10;${w.mvpWeekValue!=null?_nesoTip(w.mvpWeekValue):'chưa có'}">${_lf(w.mvpWeekValue)}</div>
+      ${liteBossCell(w)}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
       ${cellN(w.avax,4,'var(--blue)','AVAX',(w.avax||0)*avaxRate)}
@@ -4457,7 +4480,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:880px">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('week','Chi tuần','right')}${hc('neso','NESO','right')}${hc('nxpc','NXPC','right')}${hc('avax','AVAX','right')}${hc('nxpca','NXPC(A)','right')}${hc('usdt','USDT','right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('boss','Boss thiếu','right')}${hc('neso','NESO','right')}${hc('nxpc','NXPC','right')}${hc('avax','AVAX','right')}${hc('nxpca','NXPC(A)','right')}${hc('usdt','USDT','right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
@@ -4465,7 +4488,8 @@ function renderLiteList(){
           <div></div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${nW?tWeeks+'<span style="font-size:9px;color:var(--muted2)">/'+(nW*13)+'</span>':'—'}</div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${_lf(tPts)}</div>
-          <div class="mvp-num" style="text-align:right;color:#d8a44f" data-tip="Tổng chi tuần này&#10;${_nesoTip(tWeek)}">${_lf(tWeek)}<span style="font-size:9px;color:var(--muted2)"> ${nOk}✓</span></div>
+          ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
+            return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
           ${cellN(T('neso'),0,'var(--green)','Tổng NESO',T('neso')*nesoRate)}
           ${cellN(T('nxpc'),2,'var(--green)','Tổng NXPC',T('nxpc')*nxpcRate)}
           ${cellN(T('avax'),4,'var(--blue)','Tổng AVAX',T('avax')*avaxRate)}
