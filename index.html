@@ -4436,13 +4436,57 @@ function liteMissingBosses(w){
 }
 function liteBossCell(w){
   const miss=liteMissingBosses(w);
-  if (!miss.length) return `<div style="text-align:right;color:#7fd88f;font-size:10.5px;font-weight:600">✓ đủ</div>`;
-  const show=miss.slice(0,1), rest=miss.length-show.length;
-  const tip='Boss chưa mở ('+miss.length+')&#10;'+miss.map(b=>'• '+b.name).join('&#10;');
-  return `<div style="display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="${tip}">
-      ${show.map(b=>`<span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid #ffe600;background:var(--bg2)"><img src="${bossImg(b)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1);opacity:.55" onerror="this.style.display='none'"></span>`).join('')}
-      ${rest?`<span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 6px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);color:var(--muted2);font-size:10px;font-weight:700">+${rest}</span>`:''}
+  const click=`onclick="openLiteBossPop(event,'${w.address}')" style="cursor:pointer;`;
+  if (!miss.length) return `<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="Đã mở đủ boss mục tiêu&#10;(Bấm để xem chi tiết)"><span style="color:#7fd88f;font-size:10.5px;font-weight:600">✓ đủ</span></div>`;
+  const b0=miss[0], rest=miss.length-1;
+  return `<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="${miss.length} boss chưa mở&#10;(Bấm để xem chi tiết)">
+      <span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid #ffe600;background:var(--bg2)"><img src="${bossImg(b0)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1);opacity:.55" onerror="this.style.display='none'"></span>
+      <span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:26px;padding:0 6px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);color:${rest?'var(--muted2)':'var(--border3,var(--muted2))'};font-size:10px;font-weight:700;opacity:${rest?'1':'.45'}">+${rest}</span>
     </div>`;
+}
+// Popover: ảnh boss đã mở / chưa mở, bấm để đổi trạng thái
+function openLiteBossPop(ev, addr){
+  ev.stopPropagation(); closeBossPop();
+  if (ev.clientX){ window._lastPopX=ev.clientX; window._lastPopY=ev.clientY; }
+  const ws=(typeof teamWallets!=='undefined'?teamWallets:[])||[];
+  const w=ws.find(x=>x.address===addr); if(!w) return;
+  const tgt=(typeof bossTargetList==='function')?bossTargetList():[];
+  const done=tgt.filter(b=>bossIsUnlocked(addr,b.k)), miss=tgt.filter(b=>!bossIsUnlocked(addr,b.k));
+  const admin=(typeof isRealAdmin==='function'&&isRealAdmin());
+  const item=(b,on)=>{
+    const byLv=!!(b.lvUnlock && bossMaxLevel(addr)>=b.lvUnlock);
+    const tip=`${_mvpEsc(b.name)}${byLv?' · mở theo level':''}${admin&&!byLv?(on?' · bấm để bỏ':' · bấm để đánh dấu đã mở'):''}`;
+    return `<span ${(admin&&!byLv)?`onclick="liteBossToggle('${addr}','${b.k}',${on?'false':'true'})" style="cursor:pointer;`:'style="'}position:relative;display:inline-flex;width:30px;height:30px;border-radius:50%;overflow:visible;border:1.5px solid ${on?'#7fd88f':'#ffe600'};background:var(--bg2)" data-tip="${tip}">
+      <img src="${bossImg(b)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${on?'':'filter:grayscale(1);opacity:.45'}" onerror="this.style.display='none'">
+      ${byLv?'<span style="position:absolute;bottom:-3px;right:-3px;font-size:8px;background:var(--card);border-radius:6px;padding:0 3px;color:#38bdf8;font-weight:700">Lv</span>':''}
+    </span>`; };
+  const p=document.createElement('div'); p.id='boss-pop';
+  p.style.cssText='position:fixed;z-index:10050;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow-lg);min-width:270px;max-width:330px';
+  p.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+      <span style="font-size:13px;font-weight:800;color:var(--text)">${_mvpEsc(w.label||addr)}</span>
+      <span class="mvp-num" style="font-size:10.5px;color:var(--muted2)">${done.length}/${tgt.length} boss đã mở</span>
+      <button onclick="closeBossPop()" style="margin-left:auto;background:none;border:none;color:var(--muted2);font-size:17px;line-height:1;cursor:pointer">×</button>
+    </div>
+    <div style="font-size:9.5px;font-weight:700;color:#ffe600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Chưa mở (${miss.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${miss.length?miss.map(b=>item(b,false)).join(''):'<span style="font-size:11px;color:var(--muted2)">— không còn boss nào —</span>'}</div>
+    <div style="font-size:9.5px;font-weight:700;color:#7fd88f;text-transform:uppercase;letter-spacing:.05em;margin:11px 0 6px">Đã mở (${done.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${done.length?done.map(b=>item(b,true)).join(''):'<span style="font-size:11px;color:var(--muted2)">— chưa có —</span>'}</div>
+    ${admin?'<div style="font-size:9.5px;color:var(--muted2);margin-top:10px">Bấm 1 boss để đổi trạng thái · boss có nhãn Lv mở theo level</div>':''}`;
+  document.body.appendChild(p);
+  const r=p.getBoundingClientRect();
+  let x=(ev.clientX||0)+12, y=(ev.clientY||0)+12;
+  if (x+r.width>innerWidth-8) x=innerWidth-r.width-8;
+  if (y+r.height>innerHeight-8) y=Math.max(8,(ev.clientY||0)-r.height-12);
+  p.style.left=x+'px'; p.style.top=y+'px';
+  setTimeout(()=>{ document.addEventListener('mousedown', _bossPopOut, { once:true }); }, 0);
+}
+async function liteBossToggle(addr, k, on){
+  const b=BOSS_LIST.find(x=>x.k===k);
+  if (!on && !confirm(`Bỏ đánh dấu "đã mở" của boss ${b?b.name:k}?`)) return;
+  await toggleBossUnlock(addr,k);
+  try { renderLiteList(); } catch(e){}
+  const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
+  openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr);
 }
 function renderLiteList(){
   const el=document.getElementById('lite-list'); if(!el) return;
