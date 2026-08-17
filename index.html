@@ -4413,8 +4413,8 @@ function renderLiteTiers(){
   const defs=[
     {k:'nofarm', lb:'Chưa farm',     ic:'○',  sub:'0 điểm',  c:'var(--muted2)', t:p=>p<=0},
     {k:'acc',    lb:'Đang tích luỹ', ic:'⏳', sub:'< 30',    c:'#9a9aab',       t:p=>p>0&&p<30},
-    {k:'all',    lb:'Tất cả',        ic:'◎',  sub:'mọi ví',  c:'var(--accent)', t:()=>true},
     {k:'bronze', lb:'Bronze',        ic:'🥉', sub:'≥ 30',    c:'#cd7f32',       t:p=>p>=30},
+    {k:'all',    lb:'Tất cả',        ic:'◎',  sub:'mọi ví',  c:'var(--accent)', t:()=>true},
   ];
   const counts=defs.map(d=>ws.filter(w=>d.t(mvpPtsOf(w))).length);
   const mx=Math.max(...counts.filter((_,i)=>defs[i].k!=='all'),1);
