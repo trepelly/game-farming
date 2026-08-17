@@ -833,6 +833,7 @@ td:first-child{text-align:left;color:var(--muted2)}
           <div id="lite-players"></div>
           <div id="lite-main" style="min-width:0">
             <div id="lite-tokens"></div>
+            <div id="lite-tiers" style="margin-top:14px"></div>
             <div id="lite-list" style="margin-top:14px"></div>
           </div>
         </div>
@@ -882,7 +883,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.lite-row{grid-template-columns:30px minmax(0,1fr) 78px 66px 64px 96px 104px 74px 74px 78px 68px}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1fr) 76px 62px 58px 92px 104px 70px 70px 76px 64px!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -4353,7 +4354,27 @@ function _usdTip(label, amt, usd){
   if (usd!=null && vnd) parts.push('VND: '+Math.round(usd*vnd).toLocaleString('vi-VN')+'đ');
   return parts.join('&#10;');
 }
-function renderLiteTab(){ try{ renderLitePlayers(); renderLiteTokens(); renderLiteList(); }catch(e){ console.warn(e); } }
+function renderLiteTab(){ try{ renderLitePlayers(); renderLiteTokens(); renderLiteTiers(); renderLiteList(); }catch(e){ console.warn(e); } }
+function renderLiteTiers(){
+  const el=document.getElementById('lite-tiers'); if(!el) return;
+  const ws=liteScope();
+  const defs=[{lb:'Chưa farm',ic:'○',sub:'0 điểm',c:'var(--muted2)',t:p=>p<=0},{lb:'Đang tích luỹ',ic:'⏳',sub:'< 30',c:'#9a9aab',t:p=>p>0&&p<30}];
+  (typeof MVP_TIERS!=='undefined'?MVP_TIERS:[]).filter(t=>t.name!=='Unranked'&&t.name!=='Black').forEach((t,i,a)=>{
+    const last=i===a.length-1;
+    defs.push({lb:t.name,ic:t.icon,sub:t.max===Infinity?('≥'+t.min):(t.min+'–'+t.max),c:t.color,t:last?(p=>p>=t.min):(p=>p>=t.min&&p<=t.max)});
+  });
+  const counts=defs.map(d=>ws.filter(w=>d.t(mvpPtsOf(w))).length);
+  const mx=Math.max(...counts,1);
+  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:13px 14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:12px;font-weight:700;color:var(--text)">Phân bổ theo hạng</span><span style="margin-left:auto">${infoIcon('Số ví theo hạng MVP trong phạm vi đang xem')}</span></div>
+      <div style="display:flex;gap:8px;align-items:stretch">${defs.map((d,i)=>`<div style="flex:1 1 0;min-width:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 12px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;line-height:1">${d.ic||'•'}</span><span style="font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(d.lb)}</span></div>
+        <div class="mvp-num" style="font-size:22px;font-weight:800;color:${counts[i]?'var(--text)':'var(--muted2)'};margin-top:6px;line-height:1">${counts[i]}</div>
+        <div class="mvp-num" style="font-size:9px;color:var(--muted2);margin-top:5px">${_mvpEsc(d.sub)}</div>
+        <div style="height:4px;background:var(--bg2);border-radius:2px;margin-top:8px;overflow:hidden;border:1px solid var(--border2)"><div style="height:100%;width:${Math.round(counts[i]/mx*100)}%;background:${d.c};border-radius:2px;opacity:${counts[i]?'1':'.3'}"></div></div>
+      </div>`).join('')}</div>
+    </div>`;
+}
 
 function renderLitePlayers(){
   const el=document.getElementById('lite-players'); if(!el) return;
