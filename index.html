@@ -903,7 +903,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:26px minmax(96px,1.1fr) 66px minmax(104px,1.25fr) 40px 74px 48px 44px minmax(74px,.9fr) minmax(52px,.6fr) minmax(56px,.62fr) minmax(56px,.62fr) minmax(50px,.55fr)!important;align-items:center;padding:9px 12px;gap:7px;font-size:11px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:24px minmax(84px,1fr) 62px minmax(92px,1.1fr) 62px 38px 58px 68px 44px 42px minmax(66px,.85fr) minmax(46px,.55fr) minmax(50px,.58fr) minmax(50px,.58fr) minmax(44px,.5fr)!important;align-items:center;padding:9px 10px;gap:6px;font-size:10.5px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -4383,7 +4383,7 @@ function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); ren
 function liteTierPass(w){ const p=mvpPtsOf(w); if(liteTier==='nofarm') return p<=0; if(liteTier==='acc') return p>0&&p<30; if(liteTier==='bronze') return p>=30; return true; }
 function setLitePlayer(p){ litePlayer=(litePlayer===p)?'all':p; renderLiteTab(); }
 function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); const i=document.getElementById('lite-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
-function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player'||c==='char')?'asc':'desc'}; renderLiteList(); }
+function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player'||c==='char'||c==='world')?'asc':'desc'}; renderLiteList(); }
 function liteScope(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return litePlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===litePlayer); }
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
 // Dùng đúng nguồn logo app đang chạy (CoinMarketCap + ảnh NESO)
@@ -4648,13 +4648,15 @@ function renderLiteList(){
   const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(),
                char:w=>{const c=topChar(w); return (c&&c.job)?c.job.toLowerCase():'zzzz';},
                lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
+               world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
+               cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
                weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), boss:w=>liteMissingBosses(w).length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al)=>`<div onclick="setLiteSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='26px minmax(96px,1.1fr) 66px minmax(104px,1.25fr) 40px 74px 48px 44px minmax(74px,.9fr) minmax(52px,.6fr) minmax(56px,.62fr) minmax(56px,.62fr) minmax(50px,.55fr)';
+  const grid='24px minmax(84px,1fr) 62px minmax(92px,1.1fr) 62px 38px 58px 68px 44px 42px minmax(66px,.85fr) minmax(46px,.55fr) minmax(50px,.58fr) minmax(50px,.58fr) minmax(44px,.5fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -4664,8 +4666,12 @@ function renderLiteList(){
       </div>
       <div>${w.player?`<span style="font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       ${liteCharCell(w)}
-      ${(()=>{ const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; const lv=c&&c.level?c.level:(w.maxCpLevel||null);
+      ${(()=>{ const c=topChar(w); const wd=(c&&c.world)||w.maxCpWorld||null;
+        return `<div>${wd?`<span style="font-size:9.5px;font-weight:600;color:#38bdf8;background:color-mix(in srgb,#38bdf8 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(wd)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>`; })()}
+      ${(()=>{ const c=topChar(w); const lv=(c&&c.level)||w.maxCpLevel||null;
         return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${lv?'var(--text2)':'var(--muted2)'}">${lv||'—'}</div>`; })()}
+      ${(()=>{ const c=topChar(w); const cp=(c&&c.cp)||w.maxCp||null;
+        return `<div class="mvp-num" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" ${cp?`data-tip="CP: ${Math.round(cp).toLocaleString('vi-VN')}"`:''}>${cp?(cp>=1000?Math.round(cp/1000)+'k':Math.round(cp)):'—'}</div>`; })()}
       ${liteBossCell(w)}
       <div class="mvp-num" style="text-align:right">${w.mvpBronzeWeeks!=null?`<span style="color:${w.mvpBronzeWeeks>=13?'#7fd88f':'#d8a44f'};font-weight:600">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_lf(mvpPtsOf(w))}</div>
@@ -4687,14 +4693,16 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('lv','Lv','right')}${hc('boss','Boss','right')}${hc('weeks','13W','right')}${hc('pts','Điểm','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','right')}${hc('weeks','13W','right')}${hc('pts','Điểm','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
           <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${ws.length} ví</span></div>
           <div></div>
           <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap">${ws.reduce((s,w)=>s+((w.chars||[]).filter(c=>c.name).length),0)} nv</div>
-          <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
+          <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap">${(()=>{const ws2=[...new Set(ws.map(w=>{const c=topChar(w);return (c&&c.world)||w.maxCpWorld||null;}).filter(Boolean))]; return ws2.length?ws2.length+' world':'—';})()}</div>
+          <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=topChar(w);return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
+          <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+Math.round(Math.max(...cp)/1000)+'k':'—';})()}</div>
           ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
             return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
           <div class="mvp-num" style="text-align:right;color:var(--text)">${nW?tWeeks+'<span style="font-size:9px;color:var(--muted2)">/'+(nW*13)+'</span>':'—'}</div>
