@@ -902,6 +902,8 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-eq-ini{font-size:10px;font-weight:800;color:#7b8494;font-family:'Chakra Petch',monospace}
 .mp-eq-plus{font-size:9.5px;font-weight:700;color:#7b8494;font-family:'JetBrains Mono',monospace}
 .mp-eq-more{font-size:9.5px;color:#5b6270;padding:2px 2px 0}
+.mp-eq-label{font-size:9.5px;color:#7b8494;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:13px}
+#ui-tip.mp-wrap{pointer-events:auto!important}
 .mp-others{padding:9px 11px 10px}
 .mp-others-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .mp-count{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#5b6270}
@@ -4647,6 +4649,11 @@ function _refreshHoverTip(addr, loading){
     }
   }catch(e){}
 }
+function _eqName(el, name, cat){
+  const l=document.getElementById('mp-eq-label'); if(!l) return;
+  l.textContent = name ? (name + (cat?' · '+cat:'')) : 'rê vào món đồ để xem tên';
+  l.style.color = name ? '#eef2f7' : '#7b8494';
+}
 function charEquipItems(w, charName){
   const list = (w && w.nftItemsFull) || [];
   const out = [];
@@ -4712,7 +4719,8 @@ function liteCharCell(w, loading){
         if (!eq.length) return loading?`<div class="mp-equip"><div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">…</span></div><div class="mp-eq-more">đang tải…</div></div>`:'';
         return `<div class="mp-equip">
           <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
-          <div class="mp-eq-grid">${eq.slice(0,12).map(e=>`<span class="mp-eq" data-tip="${_mvpEsc(e.name)}${e.cat?' · '+_mvpEsc(e.cat):''}">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:`<span class="mp-eq-ini">${_mvpEsc((e.name||'?').charAt(0))}</span>`}</span>`).join('')}${eq.length>12?`<span class="mp-eq mp-eq-plus">+${eq.length-12}</span>`:''}</div>
+          <div class="mp-eq-grid">${eq.slice(0,12).map(e=>`<span class="mp-eq" onmouseenter="_eqName(this,'${_mvpEsc(e.name).replace(/'/g,'')}','${_mvpEsc(e.cat||'').replace(/'/g,'')}')" onmouseleave="_eqName(this)" title="${_mvpEsc(e.name)}${e.cat?' · '+_mvpEsc(e.cat):''}">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:`<span class="mp-eq-ini">${_mvpEsc((e.name||'?').charAt(0))}</span>`}</span>`).join('')}${eq.length>12?`<span class="mp-eq mp-eq-plus">+${eq.length-12}</span>`:''}</div>
+          <div class="mp-eq-label" id="mp-eq-label">rê vào món đồ để xem tên</div>
         </div>`; })()}
       ${more>0?`<div class="mp-others">
         <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
@@ -6236,7 +6244,18 @@ function _uiTipEl(){
 function showTip(ev, text, html){
   if (!text && !html) return;
   const t = _uiTipEl();
-  if (html) { t.innerHTML = html; t.classList.toggle('mp-wrap', html.indexOf('mp-tooltip')>=0); }
+  if (html) {
+    t.innerHTML = html;
+    const sticky = html.indexOf('mp-tooltip')>=0;
+    t.classList.toggle('mp-wrap', sticky);
+    t.style.pointerEvents = sticky ? 'auto' : 'none';
+    if (sticky && !t._stickyBound){
+      t._stickyBound = true;
+      t.addEventListener('mouseenter', ()=>{ clearTimeout(_tipHideTimer); t.dataset.pinHover='1'; });
+      t.addEventListener('mouseleave', ()=>{ delete t.dataset.pinHover; _hideTipNow(); });
+    }
+    clearTimeout(_tipHideTimer);
+  }
   else { t.textContent = text; t.classList.remove('mp-wrap'); }
   t.style.opacity = '1';
   t.style.transform = 'translateY(0)';
@@ -6252,7 +6271,17 @@ function moveTip(ev){
   t.style.left = Math.max(8,x) + 'px';
   t.style.top  = Math.max(8,y) + 'px';
 }
-function hideTip(){ const t = document.getElementById('ui-tip'); if (t){ t.style.opacity='0'; t.style.transform='translateY(4px)'; } }
+let _tipHideTimer=null;
+function hideTip(){
+  const t = document.getElementById('ui-tip'); if(!t) return;
+  if (t.classList.contains('mp-wrap')){            // thẻ chi tiết: chờ chút để kịp rê chuột vào
+    clearTimeout(_tipHideTimer);
+    _tipHideTimer=setTimeout(()=>{ const x=document.getElementById('ui-tip'); if(x && !x.matches(':hover') && !x.dataset.pinHover) _hideTipNow(); }, 260);
+    return;
+  }
+  _hideTipNow();
+}
+function _hideTipNow(){ const t=document.getElementById('ui-tip'); if(t){ t.style.opacity='0'; t.style.transform='translateY(4px)'; t.classList.remove('mp-wrap'); t.style.pointerEvents='none'; } }
 // Gắn tooltip đồng bộ cho mọi phần tử có data-tip (uỷ quyền sự kiện, một lần)
 (function initTipDelegation(){
   const bind = () => {
@@ -6262,7 +6291,7 @@ function hideTip(){ const t = document.getElementById('ui-tip'); if (t){ t.style
       if (!el && e.target.closest) { const tl = e.target.closest('[title]'); if (tl && tl.getAttribute('title')) { tl.setAttribute('data-tip', tl.getAttribute('title')); tl.removeAttribute('title'); el = tl; } }
       if (el) showTip(e, el.getAttribute('data-tip'), el.getAttribute('data-tiph'));
     });
-    document.addEventListener('mousemove', e => { const t = document.getElementById('ui-tip'); if (t && t.style.opacity === '1') moveTip(e); });
+    document.addEventListener('mousemove', e => { const t = document.getElementById('ui-tip'); if (t && t.style.opacity === '1' && !t.classList.contains('mp-wrap')) moveTip(e); });
     document.addEventListener('mouseout',  e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) hideTip(); });
     document.addEventListener('click',     e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) hideTip(); });
   };
