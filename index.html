@@ -912,6 +912,8 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-arc img{width:74%;height:auto;object-fit:contain}
 .mp-arc-lv{font-size:8px;font-weight:800;color:#8b7cf0;font-family:'JetBrains Mono',monospace;line-height:1}
 .mp-arc-empty{color:#4a505c;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.mp-ch-ava{width:26px;height:26px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'Chakra Petch',monospace;font-size:11px;font-weight:800}
+.mp-ch-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 .mp-sf{flex-shrink:0;font-size:9.5px;font-weight:800;color:#f6d36b;font-family:'JetBrains Mono',monospace;background:rgba(246,211,107,.12);border-radius:5px;padding:1px 5px}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
@@ -4750,7 +4752,7 @@ function charPopHtml(w){
           <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
           <div class="mp-eq-list">${cs.slice(1,7).map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
             return `<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(c.name)}')" data-tip="Nhấp để copy tên">
-              <span class="mp-eq" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 45%,transparent),color-mix(in srgb,${cc} 15%,transparent));color:${cc};font-weight:800;font-size:10px">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>
+              <span class="mp-ch-ava" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 50%,transparent),color-mix(in srgb,${cc} 16%,transparent));border:1.5px solid color-mix(in srgb,${cc} 60%,transparent);color:${cc}">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>
               <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(c.name)}</span><span class="mp-eq-cat" style="color:${cc}">${_mvpEsc(c.job||'—')}</span></span>
               <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
             </div>`; }).join('')}${cs.length>7?`<div class="mp-eq-more">+${cs.length-7} nhân vật khác</div>`:''}</div>
