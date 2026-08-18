@@ -4596,6 +4596,58 @@ async function ensureWalletItems(list){
     if (!(w.nftItemsFull&&w.nftItemsFull.length) && c && (now-c.ts)<EQ_CACHE_TTL && c.items){ w.nftItemsFull=c.items; changed=true; } });
   if (changed){ clearTimeout(_eqTimer); _eqTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 150); }
 }
+const _eqHoverBusy = new Set();
+let _lastTipXY = {x:0,y:0};
+document.addEventListener('mousemove', e=>{ _lastTipXY={x:e.clientX,y:e.clientY}; }, {passive:true});
+// Rê chuột vào ô nhân vật -> tự tải trang bị của ví đó rồi cập nhật tooltip đang mở
+async function eqHover(addr){
+  const ws=(typeof teamWallets!=='undefined'?teamWallets:[])||[];
+  const w=ws.find(x=>x.address===addr); if(!w) return;
+  if ((w.nftItemsFull&&w.nftItemsFull.length) || _eqHoverBusy.has(addr)) return;
+  const c=EQ_CACHE[(addr||'').toLowerCase()];
+  if (c && (Date.now()-c.ts)<EQ_CACHE_TTL && c.items){ w.nftItemsFull=c.items; _refreshHoverTip(addr); return; }
+  _eqHoverBusy.add(addr);
+  _refreshHoverTip(addr, true);                    // hiện "đang tải…" ngay
+  try{
+    let all=[], page=1, total=0;
+    do{
+      const url=`https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationRequest.pageNum=${page}&paginationRequest.pageSize=30`;
+      const r=await fetch(msuProxy(url));
+      if(!r.ok) break;
+      const t=await r.text();
+      if(!t || t.trim().startsWith('<')) break;
+      const j=JSON.parse(t);
+      total=j.paginationResult?.totalCount||0;
+      all=all.concat(j.items||[]);
+      page++;
+      await new Promise(rs=>setTimeout(rs,200));
+    } while(all.length<total && page<=4);
+    if (all.length){
+      w.nftItemsFull=all;
+      EQ_CACHE[(addr||'').toLowerCase()]={ ts:Date.now(), items: all.map(it=>({ nftItem:{ name:it.nftItem?.name, imageUrl:it.nftItem?.imageUrl, ownedCharacter:it.nftItem?.ownedCharacter }, category:{ tier3:{ label: it.category?.tier3?.label || it.category?.tier2?.label || '' } } })) };
+      _saveEqCache();
+    }
+  }catch(e){}
+  _eqHoverBusy.delete(addr);
+  _refreshHoverTip(addr);
+}
+// dựng lại nội dung tooltip cho ví này nếu chuột vẫn đang ở đó
+function _refreshHoverTip(addr, loading){
+  try{
+    const cell=document.querySelector(`#lite-list [data-eqcell="${addr}"]`);
+    if(!cell) return;
+    const ws=(typeof effectiveWallets==='function')?effectiveWallets():teamWallets;
+    const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
+    const fresh=liteCharCell(w, loading);
+    const tmp=document.createElement('div'); tmp.innerHTML=fresh;
+    const nu=tmp.firstElementChild; if(!nu) return;
+    cell.setAttribute('data-tiph', nu.getAttribute('data-tiph')||'');
+    const tip=document.getElementById('ui-tip');
+    if (tip && tip.style.opacity==='1' && cell.matches(':hover')){
+      showTip({clientX:_lastTipXY.x, clientY:_lastTipXY.y}, cell.getAttribute('data-tip'), cell.getAttribute('data-tiph'));
+    }
+  }catch(e){}
+}
 function charEquipItems(w, charName){
   const list = (w && w.nftItemsFull) || [];
   const out = [];
@@ -4635,7 +4687,7 @@ function _charAvatar(c, size){
     : '';
   return `<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;overflow:hidden;background:linear-gradient(140deg,color-mix(in srgb,${col} 55%,transparent),color-mix(in srgb,${col} 18%,transparent));border:1.5px solid color-mix(in srgb,${col} 60%,transparent);color:${col};font-size:${Math.round(sz*0.4)}px;font-weight:800;font-family:'Chakra Petch',monospace">${_mvpEsc(ini)}${chain}</span>`;
 }
-function liteCharCell(w){
+function liteCharCell(w, loading){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
   const top=cs[0];
   if (!top) return `<div style="color:var(--muted2);font-size:10.5px">—</div>`;
@@ -4657,7 +4709,8 @@ function liteCharCell(w){
         <div class="mp-stat"><span class="mp-label">CP</span><span class="mp-value mp-gold">${top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—'}</span></div>
         ${top.world?`<div class="mp-stat mp-span2"><span class="mp-label">World</span><span class="mp-value">${_mvpEsc(top.world)}</span></div>`:''}
       </div>
-      ${(()=>{ const eq=charEquipItems(w, top.name); if(!eq.length) return '';
+      ${(()=>{ const eq=charEquipItems(w, top.name);
+        if (!eq.length) return loading?`<div class="mp-equip"><div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">…</span></div><div class="mp-eq-more">đang tải…</div></div>`:'';
         return `<div class="mp-equip">
           <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
           <div class="mp-eq-list">${eq.slice(0,6).map(e=>`<div class="mp-eq-row">
@@ -4670,7 +4723,7 @@ function liteCharCell(w){
         <div class="mp-chips">${cs.slice(1,4).map(c=>`<div class="mp-chip">${_av(c,'mp-chip-ava')}Lv ${c.level||'?'}</div>`).join('')}${cs.length>4?`<div class="mp-chip" style="padding:3px 11px">+${cs.length-4}</div>`:''}</div>
       </div>`:''}
     </div>`;
-  return `<div style="display:flex;align-items:center;gap:8px;min-width:0" data-tip="${tipTxt}" data-tiph="${tipHtml.replace(/"/g,'&quot;')}">
+  return `<div data-eqcell="${w.address}" onmouseenter="eqHover('${w.address}')" style="display:flex;align-items:center;gap:8px;min-width:0" data-tip="${tipTxt}" data-tiph="${tipHtml.replace(/"/g,'&quot;')}">
       ${_charAvatar(top, 30)}
       <div style="min-width:0;line-height:1.35">
         <div style="font-size:11.5px;font-weight:700;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(top.job||'—')}</div>
