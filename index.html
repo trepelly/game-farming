@@ -895,6 +895,10 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-label{font-size:8.5px;letter-spacing:.7px;color:#7b8494;text-transform:uppercase;font-weight:700}
 .mp-value{font-family:'JetBrains Mono','Chakra Petch',monospace;font-size:13px;font-weight:700;color:#f0f3f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mp-gold{color:#f6d36b}
+.mp-equip{padding:8px 11px 4px}
+.mp-eq-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.mp-eq{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:6px;background:#1f242c;border:1px solid #2b313b;overflow:hidden}
+.mp-eq img{width:100%;height:100%;object-fit:contain;padding:2px;box-sizing:border-box}
 .mp-others{padding:9px 11px 10px}
 .mp-others-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .mp-count{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#5b6270}
@@ -4497,18 +4501,26 @@ const CHAR_IMG_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCh
 const _charImgTried = new Set();
 function _saveCharImgCache(){ try{ localStorage.setItem('msuCharImg', JSON.stringify(CHAR_IMG_CACHE)); }catch(e){} }
 // Ảnh nhân vật nằm trong trang navigator: gamedatahub-static.msu.io/.../charimages/static/xxx.png
+const CHAR_EQUIP_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharEquip')||'{}'); }catch(e){ return {}; } })();
+function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
 async function fetchCharImg(ak){
-  if (!ak || CHAR_IMG_CACHE[ak] || _charImgTried.has(ak)) return null;
+  if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
   _charImgTried.add(ak);
   try{
     const r = await fetch(msuProxy(`https://msu.io/navigator/character/${ak}`));
     if (!r.ok) return null;
     const t = await r.text();
     const m = t.match(/https:\/\/gamedatahub-static\.msu\.io\/[^"'\\ )]+charimages\/static\/[^"'\\ )]+\.png/);
-    if (m){ CHAR_IMG_CACHE[ak]=m[0]; _saveCharImgCache(); return m[0]; }
+    if (m){ CHAR_IMG_CACHE[ak]=m[0]; _saveCharImgCache(); }
+    // Trang bị: icon dạng api-static.msu.io/itemimages/icon/{id}.png
+    const ids=[]; const re=/itemimages\/icon\/(\d{5,9})\.png/g; let x;
+    while ((x=re.exec(t))){ const id=x[1]; if (!ids.includes(id)) ids.push(id); }
+    if (ids.length){ CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache(); }
+    return CHAR_IMG_CACHE[ak]||null;
   }catch(e){}
   return null;
 }
+function charEquipIcons(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
 let _charImgTimer=null;
 async function ensureCharImgs(list){
   const need=list.filter(c=>c&&c.ak&&!c.img&&!CHAR_IMG_CACHE[c.ak]&&!_charImgTried.has(c.ak)).slice(0,6);
@@ -4560,6 +4572,11 @@ function liteCharCell(w){
         <div class="mp-stat"><span class="mp-label">CP</span><span class="mp-value mp-gold">${top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—'}</span></div>
         ${top.world?`<div class="mp-stat mp-span2"><span class="mp-label">World</span><span class="mp-value">${_mvpEsc(top.world)}</span></div>`:''}
       </div>
+      ${(()=>{ const eq=charEquipIcons(top.ak); if(!eq.length) return '';
+        return `<div class="mp-equip">
+          <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
+          <div class="mp-eq-grid">${eq.slice(0,16).map(u=>`<span class="mp-eq"><img src="${u}" loading="lazy" onerror="this.parentElement.remove()"></span>`).join('')}</div>
+        </div>`; })()}
       ${more>0?`<div class="mp-others">
         <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
         <div class="mp-chips">${cs.slice(1,4).map(c=>`<div class="mp-chip">${_av(c,'mp-chip-ava')}Lv ${c.level||'?'}</div>`).join('')}${cs.length>4?`<div class="mp-chip" style="padding:3px 11px">+${cs.length-4}</div>`:''}</div>
