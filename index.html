@@ -3689,7 +3689,7 @@ function switchTeamTab(t) {
   const _ov = document.getElementById('team-stats'); if (_ov) _ov.style.display = _ovShow ? '' : 'none';
   const _mv = document.getElementById('member-view'); if (_mv && _mv.innerHTML.trim()) _mv.style.display = _ovShow ? '' : 'none';
   // vẽ lại nội dung tab cần dữ liệu động
-  try { if (teamTab==='lite' && typeof renderLiteTab==='function') renderLiteTab(); } catch(e) {}
+  try { if (teamTab==='lite' && typeof renderLiteTab==='function') { renderLiteTab(); setTimeout(()=>{ try{ loadLiteItems(false); }catch(e){} }, 800); } } catch(e) {}
   try { if (teamTab==='boss' && typeof renderBossTab==='function') renderBossTab(); } catch(e) {}
   try { if (teamTab==='mvp' && typeof renderMvpDistChart==='function') renderMvpDistChart(); } catch(e) {}
   try { if (teamTab==='mvp' && typeof renderMvpPlayers==='function') renderMvpPlayers(); } catch(e) {}
@@ -4526,34 +4526,75 @@ async function fetchCharImg(ak){
 }
 function charEquipIcons(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
 // Trang bị của nhân vật: lấy từ danh sách NFT items app đã tải (tab NFT Items)
+const EQ_CACHE_TTL = 6*60*60*1000;   // 6 giờ
+const EQ_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuEqCache')||'{}'); }catch(e){ return {}; } })();
+function _saveEqCache(){ try{ localStorage.setItem('msuEqCache', JSON.stringify(EQ_CACHE)); }catch(e){} }
+let eqLoading = false;
 const _eqTried = new Set();
 let _eqTimer = null;
-// Tự nạp danh sách NFT items cho ví (để tooltip có trang bị) — chỉ ví đang hiển thị
-async function ensureWalletItems(list){
-  const need = list.filter(w => w && w.address && !(w.nftItemsFull && w.nftItemsFull.length) && !_eqTried.has(w.address)).slice(0,3);
-  if (!need.length) return;
-  let got=false;
-  for (const w of need){
-    _eqTried.add(w.address);
-    try{
-      let all=[], page=1, total=0;
-      do{
-        const url=`https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationRequest.pageNum=${page}&paginationRequest.pageSize=30`;
-        const r=await fetch(msuProxy(url));
-        if(!r.ok) break;
-        const t=await r.text();
-        if(!t || t.trim().startsWith('<')) break;
-        const j=JSON.parse(t);
-        total=j.paginationResult?.totalCount||0;
-        all=all.concat(j.items||[]);
-        page++;
-        await new Promise(rs=>setTimeout(rs,250));
-      } while(all.length<total && page<=4);
-      if (all.length){ w.nftItemsFull=all; got=true; }
-    }catch(e){}
-    await new Promise(rs=>setTimeout(rs,200));
+function _eqBtnSet(txt, busy){
+  const b=document.getElementById('lite-eq-btn'); if(!b) return;
+  b.textContent = txt; b.disabled = !!busy; b.style.opacity = busy?'.6':'1'; b.style.cursor = busy?'not-allowed':'pointer';
+}
+// Nạp danh sách NFT items cho ví — dùng cache như CP; force = tải lại từ đầu
+async function loadLiteItems(force){
+  const ws = (typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  if (!ws.length || eqLoading) return;
+  const now = Date.now();
+  const todo = [];
+  ws.forEach(w=>{
+    if (!force && w.nftItemsFull && w.nftItemsFull.length) return;
+    const a=(w.address||'').toLowerCase(), c=EQ_CACHE[a];
+    if (!force && c && (now-c.ts) < EQ_CACHE_TTL && c.items){ w.nftItemsFull=c.items; return; }
+    todo.push(w);
+  });
+  try { renderLiteList(); } catch(e){}
+  if (!todo.length){ _eqBtnSet('⟳ Trang bị', false); return; }
+  const isAdmin = !!(typeof teamUser!=='undefined' && teamUser && teamUser.role==='admin');
+  if (!isAdmin && !force) return;
+  eqLoading = true;
+  let done=0, ok=0;
+  try{
+    for (const w of todo){
+      try{
+        let all=[], page=1, total=0;
+        do{
+          const url=`https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationRequest.pageNum=${page}&paginationRequest.pageSize=30`;
+          const r=await fetch(msuProxy(url));
+          if(!r.ok) break;
+          const t=await r.text();
+          if(!t || t.trim().startsWith('<')) break;
+          const j=JSON.parse(t);
+          total=j.paginationResult?.totalCount||0;
+          all=all.concat(j.items||[]);
+          page++;
+          await new Promise(rs=>setTimeout(rs,250));
+        } while(all.length<total && page<=4);
+        if (all.length){
+          w.nftItemsFull=all; ok++;
+          EQ_CACHE[(w.address||'').toLowerCase()] = { ts: Date.now(), items: all.map(it=>({ nftItem:{ name:it.nftItem?.name, imageUrl:it.nftItem?.imageUrl, ownedCharacter:it.nftItem?.ownedCharacter }, category:{ tier3:{ label: it.category?.tier3?.label || it.category?.tier2?.label || '' } } })) };
+          _saveEqCache();
+        }
+      }catch(e){}
+      done++;
+      _eqBtnSet(`Đang tải ${done}/${todo.length}…`, true);
+      if (done % 4 === 0){ try{ renderLiteList(); }catch(e){} }
+      await new Promise(rs=>setTimeout(rs,200));
+    }
+  } finally {
+    eqLoading = false;
+    _eqBtnSet('⟳ Trang bị', false);
   }
-  if (got){ clearTimeout(_eqTimer); _eqTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 250); }
+  try{ renderLiteList(); }catch(e){}
+}
+// tự nạp nhẹ khi mở tab (không ép), giống CP tự chạy
+async function ensureWalletItems(list){
+  if (eqLoading) return;
+  const now=Date.now();
+  let changed=false;
+  list.forEach(w=>{ const c=EQ_CACHE[(w.address||'').toLowerCase()];
+    if (!(w.nftItemsFull&&w.nftItemsFull.length) && c && (now-c.ts)<EQ_CACHE_TTL && c.items){ w.nftItemsFull=c.items; changed=true; } });
+  if (changed){ clearTimeout(_eqTimer); _eqTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 150); }
 }
 function charEquipItems(w, charName){
   const list = (w && w.nftItemsFull) || [];
@@ -4754,7 +4795,8 @@ function renderLiteList(){
       <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
         <span style="font-size:12.5px;font-weight:800;color:var(--text)">Danh sách ví</span>
         <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${ws.length} ví${litePlayer!=='all'?` · <span style="color:var(--accent)">${_mvpEsc(litePlayer)}</span>`:''}</span>
-        <input id="lite-search" type="text" value="${_mvpEsc(liteQuery)}" oninput="setLiteQuery(this.value)" placeholder="Tìm ví / player…" style="margin-left:auto;width:170px;box-sizing:border-box;padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11px">
+        <button id="lite-eq-btn" onclick="loadLiteItems(true)" data-tip="Tải lại danh sách trang bị cho mọi ví (giống nút làm mới CP)" style="margin-left:auto;padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Trang bị</button>
+        <input id="lite-search" type="text" value="${_mvpEsc(liteQuery)}" oninput="setLiteQuery(this.value)" placeholder="Tìm ví / player…" style="width:160px;box-sizing:border-box;padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11px">
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
