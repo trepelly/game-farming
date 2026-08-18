@@ -4526,6 +4526,35 @@ async function fetchCharImg(ak){
 }
 function charEquipIcons(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
 // Trang bị của nhân vật: lấy từ danh sách NFT items app đã tải (tab NFT Items)
+const _eqTried = new Set();
+let _eqTimer = null;
+// Tự nạp danh sách NFT items cho ví (để tooltip có trang bị) — chỉ ví đang hiển thị
+async function ensureWalletItems(list){
+  const need = list.filter(w => w && w.address && !(w.nftItemsFull && w.nftItemsFull.length) && !_eqTried.has(w.address)).slice(0,3);
+  if (!need.length) return;
+  let got=false;
+  for (const w of need){
+    _eqTried.add(w.address);
+    try{
+      let all=[], page=1, total=0;
+      do{
+        const url=`https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationRequest.pageNum=${page}&paginationRequest.pageSize=30`;
+        const r=await fetch(msuProxy(url));
+        if(!r.ok) break;
+        const t=await r.text();
+        if(!t || t.trim().startsWith('<')) break;
+        const j=JSON.parse(t);
+        total=j.paginationResult?.totalCount||0;
+        all=all.concat(j.items||[]);
+        page++;
+        await new Promise(rs=>setTimeout(rs,250));
+      } while(all.length<total && page<=4);
+      if (all.length){ w.nftItemsFull=all; got=true; }
+    }catch(e){}
+    await new Promise(rs=>setTimeout(rs,200));
+  }
+  if (got){ clearTimeout(_eqTimer); _eqTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 250); }
+}
 function charEquipItems(w, charName){
   const list = (w && w.nftItemsFull) || [];
   const out = [];
@@ -4720,6 +4749,7 @@ function renderLiteList(){
   const tPts=ws.reduce((s,w)=>s+mvpPtsOf(w),0), tWeeks=ws.filter(w=>w.mvpBronzeWeeks!=null).reduce((s,w)=>s+w.mvpBronzeWeeks,0), nW=ws.filter(w=>w.mvpBronzeWeeks!=null).length;
   const tWeek=ws.reduce((s,w)=>s+(w.mvpWeekValue||0),0), nOk=ws.filter(w=>(w.mvpWeekValue||0)>=230000).length;
   try { ensureCharImgs(ws.map(w=>(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]).filter(Boolean)); } catch(e){}
+  try { ensureWalletItems(ws); } catch(e){}
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
         <span style="font-size:12.5px;font-weight:800;color:var(--text)">Danh sách ví</span>
