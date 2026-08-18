@@ -908,6 +908,12 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0}
 .mp-sec{padding:9px 11px 4px}
 .mp-arc-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.mp-arc{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:7px;background:#1a1e24;border:1px solid #2b313b;overflow:hidden}
+.mp-arc img{width:100%;height:100%;object-fit:contain;padding:2px;box-sizing:border-box}
+.mp-arc-empty{color:#4a505c;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
+.mp-right-wide{width:404px!important}
+.mp-right{max-height:420px;overflow-y:auto}
 .mp-copy{cursor:pointer}
 .mp-copy:hover{filter:brightness(1.25)}
 .mp-eq-list{display:flex;flex-direction:column;gap:3px}
@@ -4537,7 +4543,9 @@ async function fetchCharImg(ak){
   }catch(e){}
   return null;
 }
-function charEquipIcons(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
+// Arcane Symbol có item id dạng 1712xxx — lọc riêng, không lẫn NFT/trang bị
+function charArcaneIds(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).filter(id=>/^1712\d{3}$/.test(String(id))); }
+function charEquipIcons(ak){ return charArcaneIds(ak).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
 // Trang bị của nhân vật: lấy từ danh sách NFT items app đã tải (tab NFT Items)
 const EQ_CACHE_TTL = 6*60*60*1000;   // 6 giờ
 const EQ_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuEqCache')||'{}'); }catch(e){ return {}; } })();
@@ -4719,22 +4727,27 @@ function charPopHtml(w){
           ${top.world?`<div class="mp-stat mp-span2"><span class="mp-label">World</span><span class="mp-value">${_mvpEsc(top.world)}</span></div>`:''}
         </div>
         <div class="mp-sec">
-          <div class="mp-others-head"><span class="mp-label">Arcane</span><span class="mp-count">${arc.length||0}</span></div>
-          ${arc.length?`<div class="mp-arc-grid">${arc.slice(0,12).map(u=>`<span class="mp-eq"><img src="${u}" loading="lazy" onerror="this.parentElement.style.opacity=.25"></span>`).join('')}</div>`
-                      :`<div class="mp-eq-more">chưa có dữ liệu</div>`}
+          <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count">${arc.length}</span></div>
+          <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const u=arc[k];
+            return u?`<span class="mp-arc"><img src="${u}" loading="lazy" onerror="this.remove()"></span>`
+                    :`<span class="mp-arc mp-arc-empty">--</span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
-          <div class="mp-chips">${cs.slice(1,4).map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
-            return `<div class="mp-chip mp-copy" onclick="copyFlash(this,'${cp(c.name)}')" data-tip="${_mvpEsc(c.name)} · nhấp để copy"><span class="mp-chip-ava" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 55%,transparent),color-mix(in srgb,${cc} 18%,transparent));color:${cc}">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>Lv ${c.level||'?'}</div>`; }).join('')}${cs.length>4?`<div class="mp-chip">+${cs.length-4}</div>`:''}</div>
+          <div class="mp-eq-list">${cs.slice(1,7).map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
+            return `<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(c.name)}')" data-tip="Nhấp để copy tên">
+              <span class="mp-eq" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 45%,transparent),color-mix(in srgb,${cc} 15%,transparent));color:${cc};font-weight:800;font-size:10px">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>
+              <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(c.name)}</span><span class="mp-eq-cat" style="color:${cc}">${_mvpEsc(c.job||'—')}</span></span>
+              <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
+            </div>`; }).join('')}${cs.length>7?`<div class="mp-eq-more">+${cs.length-7} nhân vật khác</div>`:''}</div>
         </div>`:''}
       </div>
-      <div class="mp-right">
+      <div class="mp-right ${eq.length>9?'mp-right-wide':''}">
         <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
-        ${eq.length?`<div class="mp-eq-list">${eq.slice(0,9).map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
+        ${eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
             <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
             <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
-          </div>`).join('')}${eq.length>9?`<div class="mp-eq-more">+${eq.length-9} món khác</div>`:''}</div>`
+          </div>`).join('')}</div>`
           :`<div class="mp-eq-more">đang tải hoặc chưa có dữ liệu…</div>`}
       </div>
     </div>
