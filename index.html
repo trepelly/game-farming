@@ -883,7 +883,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1.05fr) minmax(0,1fr) 48px 70px 54px 50px 82px 100px 64px 66px 72px 60px!important;align-items:center;padding-top:9px;padding-bottom:9px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1.05fr) 74px minmax(0,1fr) 46px 82px 54px 50px 100px 64px 66px 72px 60px!important;align-items:center;padding-top:9px;padding-bottom:9px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -4305,7 +4305,7 @@ function renderBossMatrix(){
   const daily=tgt.filter(b=>b.cycle==='daily'), weekly=tgt.filter(b=>b.cycle==='weekly');   // ẩn hẳn boss không chọn
   const totB=tgt.length;
   const openCount = w => tgt.filter(b=>_bossCellState(w.address,b).unlocked).length;
-  const keys={ name:w=>(w.label||'').toLowerCase(), lv:w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; return (c&&c.level)||w.maxCpLevel||-1;}, char:w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; return c?c.name.toLowerCase():'zzz';}, player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
+  const keys={ name:w=>(w.label||'').toLowerCase(), lv:w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; return (c&&c.level)||w.maxCpLevel||-1;}, char:w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; return c&&c.job?c.job.toLowerCase():'zzz';}, player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
   const kf=keys[bossMxSort.col]||keys.done;
   const filtered = ws.filter(w=>!bossMxQuery || (w.label||'').toLowerCase().includes(bossMxQuery) || (w.player||'').toLowerCase().includes(bossMxQuery) || (w.address||'').toLowerCase().includes(bossMxQuery));
   const rows=filtered.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossMxSort.dir==='desc'?-r:r; });
@@ -4463,12 +4463,36 @@ function renderLiteTiers(){
 const JOB_COLOR = { Marksman:'#38bdf8', Bowmaster:'#7fd88f', Pathfinder:'#d98a3d', 'Night Lord':'#a855f7', Shadower:'#8b8bff', 'Dual Blade':'#e0625c',
   Hero:'#e0625c', Paladin:'#f5a524', 'Dark Knight':'#8b5cf6', 'Arch Mage (F/P)':'#e0625c', 'Arch Mage (I/L)':'#38bdf8', Bishop:'#ffe600',
   Buccaneer:'#f5a524', Corsair:'#38bdf8', 'Cannon Master':'#e0625c' };
+const CHAR_IMG_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharImg')||'{}'); }catch(e){ return {}; } })();
+const _charImgTried = new Set();
+function _saveCharImgCache(){ try{ localStorage.setItem('msuCharImg', JSON.stringify(CHAR_IMG_CACHE)); }catch(e){} }
+// Ảnh nhân vật nằm trong trang navigator: gamedatahub-static.msu.io/.../charimages/static/xxx.png
+async function fetchCharImg(ak){
+  if (!ak || CHAR_IMG_CACHE[ak] || _charImgTried.has(ak)) return null;
+  _charImgTried.add(ak);
+  try{
+    const r = await fetch(msuProxy(`https://msu.io/navigator/character/${ak}`));
+    if (!r.ok) return null;
+    const t = await r.text();
+    const m = t.match(/https:\/\/gamedatahub-static\.msu\.io\/[^"'\\ )]+charimages\/static\/[^"'\\ )]+\.png/);
+    if (m){ CHAR_IMG_CACHE[ak]=m[0]; _saveCharImgCache(); return m[0]; }
+  }catch(e){}
+  return null;
+}
+let _charImgTimer=null;
+async function ensureCharImgs(list){
+  const need=list.filter(c=>c&&c.ak&&!c.img&&!CHAR_IMG_CACHE[c.ak]&&!_charImgTried.has(c.ak)).slice(0,6);
+  if (!need.length) return;
+  let got=false;
+  for (const c of need){ const u=await fetchCharImg(c.ak); if(u) got=true; await new Promise(r=>setTimeout(r,120)); }
+  if (got){ clearTimeout(_charImgTimer); _charImgTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 200); }
+}
 function _charImgUrls(c){
   const u=[];
   if (c.img) u.push(c.img);
   if (c.avatar) u.push(c.avatar);
   if (c.image) u.push(c.image);
-  if (c.ak) u.push(`https://maplesprout.gg/api/characters/${c.ak}/image`, `https://maplesprout.gg/images/characters/${c.ak}.png`);
+  if (c.ak && CHAR_IMG_CACHE[c.ak]) u.push(CHAR_IMG_CACHE[c.ak]);
   return u;
 }
 function _charAvatar(c, size){
@@ -4576,21 +4600,21 @@ function renderLiteList(){
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al)=>`<div onclick="setLiteSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='30px minmax(0,1.05fr) minmax(0,1fr) 48px 70px 54px 50px 82px 100px 64px 66px 72px 60px';
+  const grid='30px minmax(0,1.05fr) 74px minmax(0,1fr) 46px 82px 54px 50px 100px 64px 66px 72px 60px';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
-      <div style="min-width:0;line-height:1.25">
+      <div style="min-width:0;line-height:1.3">
         <div style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div>
         <div class="mvp-num" style="font-size:9px;color:var(--muted2);opacity:.8;white-space:nowrap"><span onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer">${_mvpShortAddr(w.address)}</span></div>
       </div>
+      <div>${w.player?`<span style="font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       ${liteCharCell(w)}
       ${(()=>{ const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; const lv=c&&c.level?c.level:(w.maxCpLevel||null);
         return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${lv?'var(--text2)':'var(--muted2)'}">${lv||'—'}</div>`; })()}
-      <div>${w.player?`<span style="font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
+      ${liteBossCell(w)}
       <div class="mvp-num" style="text-align:right">${w.mvpBronzeWeeks!=null?`<span style="color:${w.mvpBronzeWeeks>=13?'#7fd88f':'#d8a44f'};font-weight:600">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_lf(mvpPtsOf(w))}</div>
-      ${liteBossCell(w)}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
       ${cellN(w.avax,4,'var(--blue)','AVAX',(w.avax||0)*avaxRate)}
@@ -4600,6 +4624,7 @@ function renderLiteList(){
   const T=k=>ws.reduce((s,w)=>s+(w[k]||0),0);
   const tPts=ws.reduce((s,w)=>s+mvpPtsOf(w),0), tWeeks=ws.filter(w=>w.mvpBronzeWeeks!=null).reduce((s,w)=>s+w.mvpBronzeWeeks,0), nW=ws.filter(w=>w.mvpBronzeWeeks!=null).length;
   const tWeek=ws.reduce((s,w)=>s+(w.mvpWeekValue||0),0), nOk=ws.filter(w=>(w.mvpWeekValue||0)>=230000).length;
+  try { ensureCharImgs(ws.map(w=>(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]).filter(Boolean)); } catch(e){}
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap">
         <span style="font-size:12.5px;font-weight:800;color:var(--text)">Danh sách ví</span>
@@ -4608,18 +4633,18 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:1100px">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('char','Nhân vật')}${hc('lv','Lv','right')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('boss','Boss thiếu','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật / Nghề')}${hc('lv','Lv','right')}${hc('boss','Boss thiếu','right')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
           <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${ws.length} ví</span></div>
+          <div></div>
           <div class="mvp-num" style="font-size:10px;color:var(--muted2)">${ws.reduce((s,w)=>s+((w.chars||[]).filter(c=>c.name).length),0)} nhân vật</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
-          <div></div>
-          <div class="mvp-num" style="text-align:right;color:var(--text)">${nW?tWeeks+'<span style="font-size:9px;color:var(--muted2)">/'+(nW*13)+'</span>':'—'}</div>
-          <div class="mvp-num" style="text-align:right;color:var(--text)">${_lf(tPts)}</div>
           ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
             return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
+          <div class="mvp-num" style="text-align:right;color:var(--text)">${nW?tWeeks+'<span style="font-size:9px;color:var(--muted2)">/'+(nW*13)+'</span>':'—'}</div>
+          <div class="mvp-num" style="text-align:right;color:var(--text)">${_lf(tPts)}</div>
           ${cellN(T('neso'),0,'var(--green)','Tổng NESO',T('neso')*nesoRate)}
           ${cellN(T('nxpc'),2,'var(--green)','Tổng NXPC',T('nxpc')*nxpcRate)}
           ${cellN(T('avax'),4,'var(--blue)','Tổng AVAX',T('avax')*avaxRate)}
