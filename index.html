@@ -896,9 +896,13 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-value{font-family:'JetBrains Mono','Chakra Petch',monospace;font-size:13px;font-weight:700;color:#f0f3f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mp-gold{color:#f6d36b}
 .mp-equip{padding:8px 11px 4px}
-.mp-eq-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
-.mp-eq{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:6px;background:#1f242c;border:1px solid #2b313b;overflow:hidden}
-.mp-eq img{width:100%;height:100%;object-fit:contain;padding:2px;box-sizing:border-box}
+.mp-eq-list{display:flex;flex-direction:column;gap:3px}
+.mp-eq-row{display:flex;align-items:center;gap:7px;background:#1f242c;border:1px solid #2b313b;border-radius:8px;padding:4px 8px;min-width:0}
+.mp-eq{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:6px;background:#161a20;overflow:hidden}
+.mp-eq img{width:100%;height:100%;object-fit:contain}
+.mp-eq-name{display:block;font-size:11px;font-weight:700;color:#eef2f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.mp-eq-cat{display:block;font-size:9px;color:#7b8494;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.mp-eq-more{font-size:9.5px;color:#5b6270;padding:2px 2px 0}
 .mp-others{padding:9px 11px 10px}
 .mp-others-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .mp-count{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#5b6270}
@@ -4521,6 +4525,17 @@ async function fetchCharImg(ak){
   return null;
 }
 function charEquipIcons(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
+// Trang bị của nhân vật: lấy từ danh sách NFT items app đã tải (tab NFT Items)
+function charEquipItems(w, charName){
+  const list = (w && w.nftItemsFull) || [];
+  const out = [];
+  list.forEach(it=>{
+    const o = it.nftItem; if(!o) return;
+    if ((o.ownedCharacter||'') !== charName) return;
+    out.push({ name:o.name||'?', img:o.imageUrl||'', cat:(it.category&&(it.category.tier3?.label||it.category.tier2?.label||it.category.tier1?.label))||'' });
+  });
+  return out;
+}
 let _charImgTimer=null;
 async function ensureCharImgs(list){
   const need=list.filter(c=>c&&c.ak&&!c.img&&!CHAR_IMG_CACHE[c.ak]&&!_charImgTried.has(c.ak)).slice(0,6);
@@ -4572,10 +4587,13 @@ function liteCharCell(w){
         <div class="mp-stat"><span class="mp-label">CP</span><span class="mp-value mp-gold">${top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—'}</span></div>
         ${top.world?`<div class="mp-stat mp-span2"><span class="mp-label">World</span><span class="mp-value">${_mvpEsc(top.world)}</span></div>`:''}
       </div>
-      ${(()=>{ const eq=charEquipIcons(top.ak); if(!eq.length) return '';
+      ${(()=>{ const eq=charEquipItems(w, top.name); if(!eq.length) return '';
         return `<div class="mp-equip">
           <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
-          <div class="mp-eq-grid">${eq.slice(0,16).map(u=>`<span class="mp-eq"><img src="${u}" loading="lazy" onerror="this.parentElement.remove()"></span>`).join('')}</div>
+          <div class="mp-eq-list">${eq.slice(0,6).map(e=>`<div class="mp-eq-row">
+              <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
+              <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
+            </div>`).join('')}${eq.length>6?`<div class="mp-eq-more">+${eq.length-6} món khác</div>`:''}</div>
         </div>`; })()}
       ${more>0?`<div class="mp-others">
         <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
