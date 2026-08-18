@@ -883,7 +883,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1fr) 76px 60px 56px 86px 108px 70px 72px 78px 66px!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1.1fr) minmax(0,1fr) 72px 56px 52px 84px 104px 66px 68px 74px 62px!important;align-items:center}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -4305,7 +4305,7 @@ function renderBossMatrix(){
   const daily=tgt.filter(b=>b.cycle==='daily'), weekly=tgt.filter(b=>b.cycle==='weekly');   // ẩn hẳn boss không chọn
   const totB=tgt.length;
   const openCount = w => tgt.filter(b=>_bossCellState(w.address,b).unlocked).length;
-  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
+  const keys={ name:w=>(w.label||'').toLowerCase(), char:w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; return c?c.name.toLowerCase():'zzz';}, player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
   const kf=keys[bossMxSort.col]||keys.done;
   const filtered = ws.filter(w=>!bossMxQuery || (w.label||'').toLowerCase().includes(bossMxQuery) || (w.player||'').toLowerCase().includes(bossMxQuery) || (w.address||'').toLowerCase().includes(bossMxQuery));
   const rows=filtered.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossMxSort.dir==='desc'?-r:r; });
@@ -4460,6 +4460,29 @@ function renderLiteTiers(){
     </div>`;
 }
 
+const JOB_COLOR = { Marksman:'#38bdf8', Bowmaster:'#7fd88f', Pathfinder:'#d98a3d', 'Night Lord':'#a855f7', Shadower:'#8b8bff', 'Dual Blade':'#e0625c',
+  Hero:'#e0625c', Paladin:'#f5a524', 'Dark Knight':'#8b5cf6', 'Arch Mage (F/P)':'#e0625c', 'Arch Mage (I/L)':'#38bdf8', Bishop:'#ffe600',
+  Buccaneer:'#f5a524', Corsair:'#38bdf8', 'Cannon Master':'#e0625c' };
+function _charAvatar(name, job, size){
+  const sz=size||24;
+  const c=JOB_COLOR[job]||'#6b7280';
+  const ini=(name||'?').trim().charAt(0).toUpperCase();
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;background:linear-gradient(140deg,color-mix(in srgb,${c} 55%,transparent),color-mix(in srgb,${c} 18%,transparent));border:1.5px solid color-mix(in srgb,${c} 60%,transparent);color:${c};font-size:${Math.round(sz*0.42)}px;font-weight:800;font-family:'Chakra Petch',monospace">${_mvpEsc(ini)}</span>`;
+}
+function liteCharCell(w){
+  const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
+  const top=cs[0];
+  if (!top) return `<div style="color:var(--muted2);font-size:10.5px">—</div>`;
+  const more=cs.length-1;
+  const tip=`${_mvpEsc(top.name)}${top.job?' · '+_mvpEsc(top.job):''}${top.level?' · Lv'+top.level:''}${top.cp?'&#10;CP: '+Math.round(top.cp).toLocaleString('vi-VN'):''}${more>0?'&#10;&#10;Nhân vật khác:&#10;'+cs.slice(1,6).map(c=>'• '+c.name+(c.job?' ('+c.job+')':'')).join('&#10;')+(cs.length>6?'&#10;…':''):''}`;
+  return `<div style="display:flex;align-items:center;gap:7px;min-width:0" data-tip="${tip}">
+      ${_charAvatar(top.name, top.job, 24)}
+      <div style="min-width:0;line-height:1.25">
+        <div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(top.name)}${more>0?`<span class="mvp-num" style="font-size:8.5px;color:var(--muted2);margin-left:4px">+${more}</span>`:''}</div>
+        <div style="font-size:9px;color:${JOB_COLOR[top.job]||'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(top.job||'—')}${top.level?` · Lv${top.level}`:''}</div>
+      </div>
+    </div>`;
+}
 function _tokHdr(name){
   const ic=TOKEN_ICON[name];
   return (ic?`<span style="display:inline-flex;width:12px;height:12px;border-radius:50%;overflow:hidden;background:var(--bg2);vertical-align:-2px;margin-right:4px"><img src="${ic}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:'')+name;
@@ -4537,11 +4560,15 @@ function renderLiteList(){
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al)=>`<div onclick="setLiteSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='30px minmax(0,1fr) 76px 60px 56px 86px 108px 70px 72px 78px 66px';
+  const grid='30px minmax(0,1.1fr) minmax(0,1fr) 72px 56px 52px 84px 104px 66px 68px 74px 62px';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
-      <div style="display:flex;align-items:center;gap:8px;min-width:0"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(w.label||'—')}</span><span class="mvp-num" onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer;font-size:9.5px;color:var(--muted2);opacity:.8;white-space:nowrap">${_mvpShortAddr(w.address)}</span></div>
+      <div style="min-width:0;line-height:1.25">
+        <div style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span onclick="copyFlash(this,'${(w.label||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer">${_mvpEsc(w.label||'—')}</span></div>
+        <div class="mvp-num" style="font-size:9px;color:var(--muted2);opacity:.8;white-space:nowrap"><span onclick="copyFlash(this,'${w.address}')" data-tip="Nhấp để copy địa chỉ" style="cursor:pointer">${_mvpShortAddr(w.address)}</span></div>
+      </div>
+      ${liteCharCell(w)}
       <div>${w.player?`<span style="font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right">${w.mvpBronzeWeeks!=null?`<span style="color:${w.mvpBronzeWeeks>=13?'#7fd88f':'#d8a44f'};font-weight:600">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_lf(mvpPtsOf(w))}</div>
@@ -4562,12 +4589,13 @@ function renderLiteList(){
         <input id="lite-search" type="text" value="${_mvpEsc(liteQuery)}" oninput="setLiteQuery(this.value)" placeholder="Tìm ví / player…" style="margin-left:auto;width:170px;box-sizing:border-box;padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11px">
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
-      <div style="overflow-x:auto"><div style="min-width:880px">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('boss','Boss thiếu','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+      <div style="overflow-x:auto"><div style="min-width:1040px">
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('char','Nhân vật')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('boss','Boss thiếu','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
           <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${ws.length} ví</span></div>
+          <div class="mvp-num" style="font-size:10px;color:var(--muted2)">${ws.reduce((s,w)=>s+((w.chars||[]).filter(c=>c.name).length),0)} nhân vật</div>
           <div></div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${nW?tWeeks+'<span style="font-size:9px;color:var(--muted2)">/'+(nW*13)+'</span>':'—'}</div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${_lf(tPts)}</div>
