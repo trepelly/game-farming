@@ -902,6 +902,18 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-eq-ini{font-size:10px;font-weight:800;color:#7b8494;font-family:'Chakra Petch',monospace}
 .mp-eq-plus{font-size:9.5px;font-weight:700;color:#7b8494;font-family:'JetBrains Mono',monospace}
 .mp-eq-more{font-size:9.5px;color:#5b6270;padding:2px 2px 0}
+.mp-wide{width:auto;max-width:none}
+.mp-cols{display:flex;align-items:stretch}
+.mp-left{width:206px;flex-shrink:0}
+.mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0}
+.mp-sec{padding:9px 11px 4px}
+.mp-arc-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.mp-copy{cursor:pointer}
+.mp-copy:hover{filter:brightness(1.25)}
+.mp-eq-list{display:flex;flex-direction:column;gap:3px}
+.mp-eq-row{display:flex;align-items:center;gap:7px;background:#1f242c;border:1px solid #2b313b;border-radius:8px;padding:4px 8px;min-width:0}
+.mp-eq-name{display:block;font-size:10.5px;font-weight:700;color:#eef2f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.mp-eq-cat{display:block;font-size:9px;color:#7b8494;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
 .mp-eq-label{font-size:9.5px;color:#7b8494;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:13px}
 #ui-tip.mp-wrap{pointer-events:auto!important}
 .mp-others{padding:9px 11px 10px}
@@ -4606,7 +4618,7 @@ async function eqHover(addr){
   const w=ws.find(x=>x.address===addr); if(!w) return;
   if ((w.nftItemsFull&&w.nftItemsFull.length) || _eqHoverBusy.has(addr)) return;
   const c=EQ_CACHE[(addr||'').toLowerCase()];
-  if (c && (Date.now()-c.ts)<EQ_CACHE_TTL && c.items){ w.nftItemsFull=c.items; _refreshHoverTip(addr); return; }
+  if (c && (Date.now()-c.ts)<EQ_CACHE_TTL && c.items){ w.nftItemsFull=c.items; _refreshHoverTip(addr); try{ _charPopRefresh(addr); }catch(e){} return; }
   _eqHoverBusy.add(addr);
   _refreshHoverTip(addr, true);                    // hiện "đang tải…" ngay
   try{
@@ -4631,6 +4643,7 @@ async function eqHover(addr){
   }catch(e){}
   _eqHoverBusy.delete(addr);
   _refreshHoverTip(addr);
+  try{ _charPopRefresh(addr); }catch(e){}
 }
 // dựng lại nội dung tooltip cho ví này nếu chuột vẫn đang ở đó
 function _refreshHoverTip(addr, loading){
@@ -4648,6 +4661,84 @@ function _refreshHoverTip(addr, loading){
       showTip({clientX:_lastTipXY.x, clientY:_lastTipXY.y}, cell.getAttribute('data-tip'), cell.getAttribute('data-tiph'));
     }
   }catch(e){}
+}
+function closeCharPop(){ const p=document.getElementById('char-pop'); if(p) p.remove(); }
+function _charPopOut(e){
+  const p=document.getElementById('char-pop'); if(!p) return;
+  if ((e.target.closest && e.target.closest('[data-eqcell]')) || p.contains(e.target)){ setTimeout(()=>document.addEventListener('mousedown', _charPopOut, {once:true}),0); return; }
+  closeCharPop();
+}
+function openCharPop(ev, addr){
+  ev.stopPropagation();
+  const cur=document.getElementById('char-pop');
+  if (cur && cur.dataset.addr===addr){ closeCharPop(); return; }
+  closeCharPop();
+  try{ eqHover(addr); }catch(e){}
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
+  const p=document.createElement('div'); p.id='char-pop'; p.dataset.addr=addr;
+  p.style.cssText='position:fixed;z-index:10050;box-shadow:0 24px 60px rgba(0,0,0,.55);border-radius:16px';
+  p.innerHTML=charPopHtml(w);
+  document.body.appendChild(p);
+  const r=p.getBoundingClientRect();
+  let x=(ev.clientX||0)+12, y=(ev.clientY||0)+12;
+  if (x+r.width>innerWidth-8) x=Math.max(8, innerWidth-r.width-8);
+  if (y+r.height>innerHeight-8) y=Math.max(8,(ev.clientY||0)-r.height-12);
+  p.style.left=x+'px'; p.style.top=y+'px';
+  setTimeout(()=>{ document.addEventListener('mousedown', _charPopOut, {once:true}); }, 0);
+}
+function _charPopRefresh(addr){
+  const p=document.getElementById('char-pop'); if(!p || p.dataset.addr!==addr) return;
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():teamWallets;
+  const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
+  p.innerHTML=charPopHtml(w);
+}
+function charPopHtml(w){
+  const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
+  const top=cs[0]; if(!top) return '<div class="mp-tooltip" style="padding:12px">Chưa có nhân vật</div>';
+  const col=JOB_COLOR[top.job]||'var(--text2)';
+  const more=cs.length-1;
+  const eq=charEquipItems(w, top.name);
+  const arc=charEquipIcons(top.ak);
+  const cp=(txt)=>String(txt||'').replace(/'/g,'');
+  const stat=(lb,val,color)=>`<div class="mp-stat"><span class="mp-label">${lb}</span><span class="mp-value" style="${color?'color:'+color:''}">${val}</span></div>`;
+  return `<div class="mp-tooltip mp-wide">
+    <div class="mp-cols">
+      <div class="mp-left">
+        <div class="mp-header" style="background:linear-gradient(135deg,color-mix(in srgb,${col} 16%,transparent),transparent 70%)">
+          ${(()=>{ const u=_charImgUrls(top)[0]; const cc=JOB_COLOR[top.job]||'#6b7280';
+            return `<span class="mp-avatar" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 55%,transparent),color-mix(in srgb,${cc} 18%,transparent));border:1.5px solid color-mix(in srgb,${cc} 65%,transparent);color:${cc}">${_mvpEsc((top.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>`; })()}
+          <div style="min-width:0">
+            <div class="mp-class" style="color:${col}">${_mvpEsc(top.job||'—')}</div>
+            <div class="mp-account mp-copy" onclick="copyFlash(this,'${cp(top.name)}')" data-tip="Nhấp để copy tên nhân vật">${_mvpEsc(top.name)}</div>
+          </div>
+        </div>
+        <div class="mp-stats">
+          ${stat('Level', top.level||'—')}
+          ${stat('CP', top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—', '#f6d36b')}
+          ${top.world?`<div class="mp-stat mp-span2"><span class="mp-label">World</span><span class="mp-value">${_mvpEsc(top.world)}</span></div>`:''}
+        </div>
+        <div class="mp-sec">
+          <div class="mp-others-head"><span class="mp-label">Arcane</span><span class="mp-count">${arc.length||0}</span></div>
+          ${arc.length?`<div class="mp-arc-grid">${arc.slice(0,12).map(u=>`<span class="mp-eq"><img src="${u}" loading="lazy" onerror="this.parentElement.style.opacity=.25"></span>`).join('')}</div>`
+                      :`<div class="mp-eq-more">chưa có dữ liệu</div>`}
+        </div>
+        ${more>0?`<div class="mp-sec">
+          <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
+          <div class="mp-chips">${cs.slice(1,4).map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
+            return `<div class="mp-chip mp-copy" onclick="copyFlash(this,'${cp(c.name)}')" data-tip="${_mvpEsc(c.name)} · nhấp để copy"><span class="mp-chip-ava" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 55%,transparent),color-mix(in srgb,${cc} 18%,transparent));color:${cc}">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>Lv ${c.level||'?'}</div>`; }).join('')}${cs.length>4?`<div class="mp-chip">+${cs.length-4}</div>`:''}</div>
+        </div>`:''}
+      </div>
+      <div class="mp-right">
+        <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
+        ${eq.length?`<div class="mp-eq-list">${eq.slice(0,9).map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
+            <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
+            <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
+          </div>`).join('')}${eq.length>9?`<div class="mp-eq-more">+${eq.length-9} món khác</div>`:''}</div>`
+          :`<div class="mp-eq-more">đang tải hoặc chưa có dữ liệu…</div>`}
+      </div>
+    </div>
+  </div>`;
 }
 function _eqName(el, name, cat){
   const l=document.getElementById('mp-eq-label'); if(!l) return;
@@ -4727,7 +4818,7 @@ function liteCharCell(w, loading){
         <div class="mp-chips">${cs.slice(1,4).map(c=>`<div class="mp-chip">${_av(c,'mp-chip-ava')}Lv ${c.level||'?'}</div>`).join('')}${cs.length>4?`<div class="mp-chip" style="padding:3px 11px">+${cs.length-4}</div>`:''}</div>
       </div>`:''}
     </div>`;
-  return `<div data-eqcell="${w.address}" onmouseenter="eqHover('${w.address}')" style="display:flex;align-items:center;gap:8px;min-width:0" data-tip="${tipTxt}" data-tiph="${tipHtml.replace(/"/g,'&quot;')}">
+  return `<div data-eqcell="${w.address}" onclick="openCharPop(event,'${w.address}')" style="display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer" data-tip="${tipTxt}&#10;(Bấm để mở/đóng chi tiết)">
       ${_charAvatar(top, 30)}
       <div style="min-width:0;line-height:1.35">
         <div style="font-size:11.5px;font-weight:700;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(top.job||'—')}</div>
