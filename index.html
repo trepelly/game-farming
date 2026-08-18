@@ -896,12 +896,11 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-value{font-family:'JetBrains Mono','Chakra Petch',monospace;font-size:13px;font-weight:700;color:#f0f3f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mp-gold{color:#f6d36b}
 .mp-equip{padding:8px 11px 4px}
-.mp-eq-list{display:flex;flex-direction:column;gap:3px}
-.mp-eq-row{display:flex;align-items:center;gap:7px;background:#1f242c;border:1px solid #2b313b;border-radius:8px;padding:4px 8px;min-width:0}
-.mp-eq{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:6px;background:#161a20;overflow:hidden}
-.mp-eq img{width:100%;height:100%;object-fit:contain}
-.mp-eq-name{display:block;font-size:11px;font-weight:700;color:#eef2f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
-.mp-eq-cat{display:block;font-size:9px;color:#7b8494;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
+.mp-eq-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.mp-eq{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:7px;background:#1f242c;border:1px solid #2b313b;overflow:hidden;position:relative}
+.mp-eq img{width:100%;height:100%;object-fit:contain;padding:2px;box-sizing:border-box}
+.mp-eq-ini{font-size:10px;font-weight:800;color:#7b8494;font-family:'Chakra Petch',monospace}
+.mp-eq-plus{font-size:9.5px;font-weight:700;color:#7b8494;font-family:'JetBrains Mono',monospace}
 .mp-eq-more{font-size:9.5px;color:#5b6270;padding:2px 2px 0}
 .mp-others{padding:9px 11px 10px}
 .mp-others-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -4713,10 +4712,7 @@ function liteCharCell(w, loading){
         if (!eq.length) return loading?`<div class="mp-equip"><div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">…</span></div><div class="mp-eq-more">đang tải…</div></div>`:'';
         return `<div class="mp-equip">
           <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
-          <div class="mp-eq-list">${eq.slice(0,6).map(e=>`<div class="mp-eq-row">
-              <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
-              <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
-            </div>`).join('')}${eq.length>6?`<div class="mp-eq-more">+${eq.length-6} món khác</div>`:''}</div>
+          <div class="mp-eq-grid">${eq.slice(0,12).map(e=>`<span class="mp-eq" data-tip="${_mvpEsc(e.name)}${e.cat?' · '+_mvpEsc(e.cat):''}">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:`<span class="mp-eq-ini">${_mvpEsc((e.name||'?').charAt(0))}</span>`}</span>`).join('')}${eq.length>12?`<span class="mp-eq mp-eq-plus">+${eq.length-12}</span>`:''}</div>
         </div>`; })()}
       ${more>0?`<div class="mp-others">
         <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
