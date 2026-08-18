@@ -883,7 +883,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:30px minmax(0,1.05fr) 74px minmax(0,1fr) 46px 82px 54px 50px 100px 64px 66px 72px 60px!important;align-items:center;padding-top:9px;padding-bottom:9px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mvp-lrow.lite-row{grid-template-columns:26px minmax(96px,1.1fr) 66px minmax(104px,1.25fr) 40px 74px 48px 44px minmax(74px,.9fr) minmax(52px,.6fr) minmax(56px,.62fr) minmax(56px,.62fr) minmax(50px,.55fr)!important;align-items:center;padding:9px 12px;gap:7px;font-size:11px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -4504,7 +4504,7 @@ function _charAvatar(c, size){
   // Ảnh thật nếu có; lỗi tải -> tự lùi sang URL kế, hết thì hiện chữ cái
   const fallback=`this.onerror=null;this.remove();`;
   const chain = urls.length
-    ? `<img src="${urls[0]}" loading="lazy" data-alt="${_mvpEsc(urls.slice(1).join('|'))}" onerror="(function(im){const l=(im.dataset.alt||'').split('|').filter(Boolean);if(l.length){im.src=l.shift();im.dataset.alt=l.join('|');}else{im.remove();}})(this)" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`
+    ? `<img src="${urls[0]}" loading="lazy" data-alt="${_mvpEsc(urls.slice(1).join('|'))}" onerror="(function(im){const l=(im.dataset.alt||'').split('|').filter(Boolean);if(l.length){im.src=l.shift();im.dataset.alt=l.join('|');}else{im.remove();}})(this)" style="width:132%;height:132%;object-fit:cover;object-position:center 22%;position:absolute;left:-16%;top:-14%">`
     : '';
   return `<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:${sz}px;height:${sz}px;border-radius:50%;flex-shrink:0;overflow:hidden;background:linear-gradient(140deg,color-mix(in srgb,${col} 55%,transparent),color-mix(in srgb,${col} 18%,transparent));border:1.5px solid color-mix(in srgb,${col} 60%,transparent);color:${col};font-size:${Math.round(sz*0.4)}px;font-weight:800;font-family:'Chakra Petch',monospace">${_mvpEsc(ini)}${chain}</span>`;
 }
@@ -4516,7 +4516,7 @@ function liteCharCell(w){
   const col=JOB_COLOR[top.job]||'var(--text2)';
   const tip=`${_mvpEsc(top.name)}${top.job?' · '+_mvpEsc(top.job):''}${top.level?' · Lv'+top.level:''}${top.cp?'&#10;CP: '+Math.round(top.cp).toLocaleString('vi-VN'):''}${more>0?'&#10;&#10;Nhân vật khác:&#10;'+cs.slice(1,6).map(c=>'• '+c.name+(c.job?' ('+c.job+')':'')).join('&#10;')+(cs.length>6?'&#10;…':''):''}`;
   return `<div style="display:flex;align-items:center;gap:8px;min-width:0" data-tip="${tip}">
-      ${_charAvatar(top, 30)}
+      ${_charAvatar(top, 38)}
       <div style="min-width:0;line-height:1.35">
         <div style="font-size:11.5px;font-weight:700;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(top.job||'—')}</div>
         <div style="font-size:9.5px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(top.name)}${more>0?`<span class="mvp-num" style="font-size:8.5px;color:var(--muted2);margin-left:4px;opacity:.8">+${more}</span>`:''}</div>
@@ -4600,7 +4600,7 @@ function renderLiteList(){
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al)=>`<div onclick="setLiteSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='30px minmax(0,1.05fr) 74px minmax(0,1fr) 46px 82px 54px 50px 100px 64px 66px 72px 60px';
+  const grid='26px minmax(96px,1.1fr) 66px minmax(104px,1.25fr) 40px 74px 48px 44px minmax(74px,.9fr) minmax(52px,.6fr) minmax(56px,.62fr) minmax(56px,.62fr) minmax(50px,.55fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -4632,14 +4632,14 @@ function renderLiteList(){
         <input id="lite-search" type="text" value="${_mvpEsc(liteQuery)}" oninput="setLiteQuery(this.value)" placeholder="Tìm ví / player…" style="margin-left:auto;width:170px;box-sizing:border-box;padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11px">
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
-      <div style="overflow-x:auto"><div style="min-width:1100px">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật / Nghề')}${hc('lv','Lv','right')}${hc('boss','Boss thiếu','right')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+      <div style="overflow-x:auto"><div style="min-width:0">
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('lv','Lv','right')}${hc('boss','Boss','right')}${hc('weeks','13W','right')}${hc('pts','Điểm','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
           <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${ws.length} ví</span></div>
           <div></div>
-          <div class="mvp-num" style="font-size:10px;color:var(--muted2)">${ws.reduce((s,w)=>s+((w.chars||[]).filter(c=>c.name).length),0)} nhân vật</div>
+          <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap">${ws.reduce((s,w)=>s+((w.chars||[]).filter(c=>c.name).length),0)} nv</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
           ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
             return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
