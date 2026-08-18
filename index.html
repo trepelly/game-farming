@@ -4350,13 +4350,14 @@ function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); con
 function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player')?'asc':'desc'}; renderLiteList(); }
 function liteScope(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return litePlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===litePlayer); }
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
+// Dùng đúng nguồn logo app đang chạy (CoinMarketCap + ảnh NESO)
 const TOKEN_ICON = {
-  'NESO':'https://maplen.gg/images/tokens/neso.png',
-  'NXPC':'https://maplen.gg/images/tokens/nxpc.png',
-  'AVAX':'https://maplen.gg/images/tokens/avax.png',
-  'NXPC(AVAX)':'https://maplen.gg/images/tokens/nxpc.png',
-  'NXPC(A)':'https://maplen.gg/images/tokens/nxpc.png',
-  'USDT':'https://maplen.gg/images/tokens/usdt.png',
+  'NESO':'https://cdn.mmogah.com/cdn-cgi/image/format=auto,metadata=none,quality=70,width=64/images/2025-05-21-16/maplestory-n-neso.png',
+  'NXPC':'https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png',
+  'AVAX':'https://s2.coinmarketcap.com/static/img/coins/64x64/5805.png',
+  'NXPC(AVAX)':'https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png',
+  'NXPC(A)':'https://s2.coinmarketcap.com/static/img/coins/64x64/36044.png',
+  'USDT':'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
 };
 const TOKEN_COLOR = { 'NESO':'#7fd88f','NXPC':'#7fd88f','AVAX':'#e0625c','NXPC(AVAX)':'#38bdf8','NXPC(A)':'#38bdf8','USDT':'#38bdf8' };
 // Tooltip HTML: avatar token + số chính + 2 dòng phụ (USD, VND)
@@ -4430,7 +4431,7 @@ function renderLiteTokens(){
   ];
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 4px">
       ${items.map((it,i)=>`<div style="padding:0 14px;${i?'border-left:1px solid var(--border2)':''}" ${_tokTipAttr(it.lb, _lf(it.v,it.d), it.usd, it.g)}>
-        <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.g} · ${it.lb}</div>
+        <div style="display:flex;align-items:center;gap:5px;min-width:0">${TOKEN_ICON[it.lb]?`<span style="width:15px;height:15px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${TOKEN_ICON[it.lb]}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:''}<span style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.g} · ${it.lb}</span></div>
         <div class="mvp-num" style="font-size:19px;font-weight:800;color:${it.c};margin-top:6px;line-height:1.1">${_lf(it.v,it.d)}</div>
       </div>`).join('')}
     </div>`;
@@ -4459,6 +4460,10 @@ function renderLiteTiers(){
     </div>`;
 }
 
+function _tokHdr(name){
+  const ic=TOKEN_ICON[name];
+  return (ic?`<span style="display:inline-flex;width:12px;height:12px;border-radius:50%;overflow:hidden;background:var(--bg2);vertical-align:-2px;margin-right:4px"><img src="${ic}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:'')+name;
+}
 function liteMissingBosses(w){
   const tgt=(typeof bossTargetList==='function')?bossTargetList():[];
   return tgt.filter(b=>!bossIsUnlocked(w.address,b.k));
@@ -4555,7 +4560,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:880px">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('boss','Boss thiếu','right')}${hc('neso','NESO','right')}${hc('nxpc','NXPC','right')}${hc('avax','AVAX','right')}${hc('nxpca','NXPC(A)','right')}${hc('usdt','USDT','right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('weeks','Tuần 13W','right')}${hc('pts','Điểm','right')}${hc('boss','Boss thiếu','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
