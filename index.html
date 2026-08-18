@@ -908,8 +908,9 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0}
 .mp-sec{padding:9px 11px 4px}
 .mp-arc-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
-.mp-arc{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:7px;background:#1a1e24;border:1px solid #2b313b;overflow:hidden}
-.mp-arc img{width:100%;height:100%;object-fit:contain;padding:2px;box-sizing:border-box}
+.mp-arc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;aspect-ratio:.82;border-radius:7px;background:#1a1e24;border:1px solid #2b313b;overflow:hidden;padding:2px 0}
+.mp-arc img{width:74%;height:auto;object-fit:contain}
+.mp-arc-lv{font-size:8px;font-weight:800;color:#8b7cf0;font-family:'JetBrains Mono',monospace;line-height:1}
 .mp-arc-empty{color:#4a505c;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
 .mp-sf{flex-shrink:0;font-size:9.5px;font-weight:800;color:#f6d36b;font-family:'JetBrains Mono',monospace;background:rgba(246,211,107,.12);border-radius:5px;padding:1px 5px}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
@@ -4526,6 +4527,8 @@ const _charImgTried = new Set();
 function _saveCharImgCache(){ try{ localStorage.setItem('msuCharImg', JSON.stringify(CHAR_IMG_CACHE)); }catch(e){} }
 // Ảnh nhân vật nằm trong trang navigator: gamedatahub-static.msu.io/.../charimages/static/xxx.png
 const CHAR_EQUIP_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharEquip')||'{}'); }catch(e){ return {}; } })();
+const ARC_LV_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuArcLv')||'{}'); }catch(e){ return {}; } })();
+function _saveArcLvCache(){ try{ localStorage.setItem('msuArcLv', JSON.stringify(ARC_LV_CACHE)); }catch(e){} }
 function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
 async function fetchCharImg(ak){
   if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
@@ -4537,10 +4540,13 @@ async function fetchCharImg(ak){
     const t = await r.text();
     const m = t.match(/https:\/\/gamedatahub-static\.msu\.io\/[^"'\\ )]+charimages\/static\/[^"'\\ )]+\.png/);
     if (m){ CHAR_IMG_CACHE[ak]=m[0]; _saveCharImgCache(); }
-    // Trang bị: icon dạng api-static.msu.io/itemimages/icon/{id}.png
+    // Icon vật phẩm + level của Arcane Symbol (Lv.N nằm ngay sau icon)
     const ids=[]; const re=/itemimages\/icon\/(\d{5,9})\.png/g; let x;
     while ((x=re.exec(t))){ const id=x[1]; if (!ids.includes(id)) ids.push(id); }
     CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache();
+    const lvs={}; const re2=/itemimages\/icon\/(1712\d{3})\.png[\s\S]{0,600}?Lv\.?\s*(\d{1,2})/g; let y;
+    while ((y=re2.exec(t))){ if(!lvs[y[1]]) lvs[y[1]]=+y[2]; }
+    if (Object.keys(lvs).length){ ARC_LV_CACHE[ak]=lvs; _saveArcLvCache(); }
     return CHAR_IMG_CACHE[ak]||null;
   }catch(e){}
   return null;
@@ -4548,6 +4554,10 @@ async function fetchCharImg(ak){
 // Arcane Symbol có item id dạng 1712xxx — lọc riêng, không lẫn NFT/trang bị
 function charArcaneIds(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).filter(id=>/^1712\d{3}$/.test(String(id))); }
 function charEquipIcons(ak){ return charArcaneIds(ak).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
+function charArcaneList(ak){
+  const lv=ARC_LV_CACHE[ak]||{};
+  return charArcaneIds(ak).map(id=>({ id, lv: lv[id]||null, url:`https://api-static.msu.io/itemimages/icon/${id}.png` }));
+}
 // Trang bị của nhân vật: lấy từ danh sách NFT items app đã tải (tab NFT Items)
 const EQ_CACHE_TTL = 6*60*60*1000;   // 6 giờ
 const EQ_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuEqCache')||'{}'); }catch(e){ return {}; } })();
@@ -4711,6 +4721,7 @@ function charPopHtml(w){
   const more=cs.length-1;
   const eq=charEquipItems(w, top.name);
   const arc=charEquipIcons(top.ak);
+  const arcL=charArcaneList(top.ak);
   const cp=(txt)=>String(txt||'').replace(/'/g,'');
   const stat=(lb,val,color)=>`<div class="mp-stat"><span class="mp-label">${lb}</span><span class="mp-value" style="${color?'color:'+color:''}">${val}</span></div>`;
   return `<div class="mp-tooltip mp-wide">
@@ -4731,8 +4742,8 @@ function charPopHtml(w){
         </div>
         <div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count">${arc.length}</span></div>
-          <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const u=arc[k];
-            return u?`<span class="mp-arc"><img src="${u}" loading="lazy" onerror="this.remove()"></span>`
+          <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
+            return a?`<span class="mp-arc" data-tip="Arcane Symbol${a.lv?' · Lv.'+a.lv:''}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
                     :`<span class="mp-arc mp-arc-empty">--</span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
