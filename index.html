@@ -4363,18 +4363,11 @@ const TOKEN_COLOR = { 'NESO':'#7fd88f','NXPC':'#7fd88f','AVAX':'#e0625c','NXPC(A
 // Tooltip HTML: avatar token + số chính + 2 dòng phụ (USD, VND)
 function _tokTipHtml(name, amtStr, usd, sub){
   const vnd=(typeof liveUsdVnd==='number'&&liveUsdVnd)?liveUsdVnd:0;
-  const ic=TOKEN_ICON[name], c=TOKEN_COLOR[name]||'var(--text)';
-  // Bố cục giống ô token ở bảng tổng: nhãn nhỏ · số lớn · dòng VND | USD
-  return `<div style="min-width:132px">
-      <div style="display:flex;align-items:center;gap:6px">
-        ${ic?`<span style="width:15px;height:15px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${ic}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:''}
-        <span style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">${sub?sub+' · ':''}${name}</span>
-      </div>
-      <div class="mvp-num" style="font-size:17px;font-weight:800;color:${c};line-height:1.15;margin-top:3px;white-space:nowrap">${amtStr}</div>
-      ${usd!=null?`<div style="display:flex;justify-content:space-between;gap:12px;margin-top:4px;padding-top:4px;border-top:1px solid var(--border2);white-space:nowrap">
-        <span class="mvp-num" style="font-size:10px;color:var(--text2)">${vnd?Math.round(usd*vnd).toLocaleString('vi-VN')+'đ':'—'}</span>
-        <span class="mvp-num" style="font-size:10px;color:var(--muted2)">$${usd.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-      </div>`:'<div style="font-size:9.5px;color:var(--muted2);margin-top:4px">Chưa có tỉ giá</div>'}
+  if (usd==null) return `<div style="font-size:10.5px;color:var(--muted2);white-space:nowrap">Chưa có tỉ giá</div>`;
+  // Gọn: VND là chính, USD là phụ
+  return `<div style="min-width:96px;white-space:nowrap">
+      <div class="mvp-num" style="font-size:16px;font-weight:800;color:var(--text);line-height:1.15">${vnd?Math.round(usd*vnd).toLocaleString('vi-VN')+'đ':'—'}</div>
+      <div class="mvp-num" style="font-size:10.5px;color:var(--muted2);margin-top:2px">$${usd.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
     </div>`;
 }
 function _tokTipAttr(name, amtStr, usd, sub){
@@ -5935,7 +5928,7 @@ function _uiTipEl(){
   if (!t) {
     t = document.createElement('div');
     t.id = 'ui-tip';
-    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 9px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.45;max-width:230px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:pre-line';
+    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 9px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.45;max-width:200px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:pre-line';
     document.body.appendChild(t);
   }
   return t;
