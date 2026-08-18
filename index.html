@@ -911,6 +911,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-arc{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:7px;background:#1a1e24;border:1px solid #2b313b;overflow:hidden}
 .mp-arc img{width:100%;height:100%;object-fit:contain;padding:2px;box-sizing:border-box}
 .mp-arc-empty{color:#4a505c;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.mp-sf{flex-shrink:0;font-size:9.5px;font-weight:800;color:#f6d36b;font-family:'JetBrains Mono',monospace;background:rgba(246,211,107,.12);border-radius:5px;padding:1px 5px}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
 .mp-right{max-height:420px;overflow-y:auto}
@@ -4528,6 +4529,7 @@ const CHAR_EQUIP_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msu
 function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
 async function fetchCharImg(ak){
   if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
+  if (CHAR_IMG_CACHE[ak] && CHAR_EQUIP_CACHE[ak]) return CHAR_IMG_CACHE[ak];
   _charImgTried.add(ak);
   try{
     const r = await fetch(msuProxy(`https://msu.io/navigator/character/${ak}`));
@@ -4538,7 +4540,7 @@ async function fetchCharImg(ak){
     // Trang bị: icon dạng api-static.msu.io/itemimages/icon/{id}.png
     const ids=[]; const re=/itemimages\/icon\/(\d{5,9})\.png/g; let x;
     while ((x=re.exec(t))){ const id=x[1]; if (!ids.includes(id)) ids.push(id); }
-    if (ids.length){ CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache(); }
+    CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache();
     return CHAR_IMG_CACHE[ak]||null;
   }catch(e){}
   return null;
@@ -4682,6 +4684,7 @@ function openCharPop(ev, addr){
   if (cur && cur.dataset.addr===addr){ closeCharPop(); return; }
   closeCharPop();
   try{ eqHover(addr); }catch(e){}
+  try{ const cs=(w0=>((w0&&w0.chars)||[]).filter(c=>c.ak))(((typeof teamWallets!=='undefined'?teamWallets:[])||[]).find(x=>x.address===addr)); ensureCharImgs(cs); }catch(e){}
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
   const p=document.createElement('div'); p.id='char-pop'; p.dataset.addr=addr;
@@ -4746,7 +4749,8 @@ function charPopHtml(w){
         <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
         ${eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
             <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
-            <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
+            <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
+            ${e.sf?`<span class="mp-sf">★${e.sf}</span>`:''}
           </div>`).join('')}</div>`
           :`<div class="mp-eq-more">đang tải hoặc chưa có dữ liệu…</div>`}
       </div>
@@ -4764,17 +4768,18 @@ function charEquipItems(w, charName){
   list.forEach(it=>{
     const o = it.nftItem; if(!o) return;
     if ((o.ownedCharacter||'') !== charName) return;
-    out.push({ name:o.name||'?', img:o.imageUrl||'', cat:(it.category&&(it.category.tier3?.label||it.category.tier2?.label||it.category.tier1?.label))||'' });
+    out.push({ name:o.name||'?', img:o.imageUrl||'', sf:o.starforce||0, cat:(it.category&&(it.category.tier3?.label||it.category.tier2?.label||it.category.tier1?.label))||'' });
   });
   return out;
 }
 let _charImgTimer=null;
 async function ensureCharImgs(list){
-  const need=list.filter(c=>c&&c.ak&&!c.img&&!CHAR_IMG_CACHE[c.ak]&&!_charImgTried.has(c.ak)).slice(0,6);
+  const need=list.filter(c=>c&&c.ak&&!_charImgTried.has(c.ak)&&(!CHAR_IMG_CACHE[c.ak]||!CHAR_EQUIP_CACHE[c.ak])).slice(0,6);
   if (!need.length) return;
   let got=false;
   for (const c of need){ const u=await fetchCharImg(c.ak); if(u) got=true; await new Promise(r=>setTimeout(r,120)); }
-  if (got){ clearTimeout(_charImgTimer); _charImgTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 200); }
+  if (got){ try{ const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr); }catch(e){}
+    clearTimeout(_charImgTimer); _charImgTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 200); }
 }
 function _charImgUrls(c){
   const u=[];
