@@ -3819,7 +3819,13 @@ function openBossPop(ev, addr, k){
   p.style.left = x+'px'; p.style.top = y+'px';
   setTimeout(()=>{ document.addEventListener('mousedown', _bossPopOut, { once:true }); }, 0);
 }
-function _bossPopOut(e){ const p=document.getElementById('boss-pop'); if(p && !p.contains(e.target)) closeBossPop(); else if(p) setTimeout(()=>document.addEventListener('mousedown', _bossPopOut, { once:true }),0); }
+function _bossPopOut(e){
+  const p=document.getElementById('boss-pop'); if(!p) return;
+  // bấm vào chính ô đã mở popover -> để onclick tự đóng (tránh đóng rồi mở lại)
+  const cell = e.target.closest && e.target.closest('[data-bosscell]');
+  if (cell || p.contains(e.target)) { setTimeout(()=>document.addEventListener('mousedown', _bossPopOut, { once:true }),0); return; }
+  closeBossPop();
+}
 async function bossPopAct(addr, k, on){
   const b = BOSS_LIST.find(x=>x.k===k);
   if (!on && !confirm(`Bỏ đánh dấu "đã mở" của boss ${b?b.name:k} cho ví này?`)) return;
@@ -4464,7 +4470,7 @@ function liteMissingBosses(w){
 }
 function liteBossCell(w){
   const miss=liteMissingBosses(w);
-  const click=`onclick="openLiteBossPop(event,'${w.address}')" style="cursor:pointer;`;
+  const click=`data-bosscell="1" onclick="openLiteBossPop(event,'${w.address}')" style="cursor:pointer;`;
   if (!miss.length) return `<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="Đã mở đủ boss mục tiêu&#10;(Bấm để mở/đóng chi tiết)"><span style="color:#7fd88f;font-size:10.5px;font-weight:600">✓ đủ</span></div>`;
   const b0=miss[0], rest=miss.length-1;
   return `<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="${miss.length} boss chưa mở&#10;(Bấm để mở/đóng chi tiết)">
