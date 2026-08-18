@@ -4348,6 +4348,8 @@ function renderBossMatrix(){
 
 
 // ===== TAB VÍ (LITE) — mỗi ô 1 con số, chi tiết trong tooltip =====
+let litePanelH=(()=>{ const v=parseInt(localStorage.getItem('litePanelH')||'330',10); return (v>=120&&v<=900)?v:330; })();
+function _saveLitePanelH(){ const el=document.getElementById('lite-plist'); if(!el) return; const h=Math.round(el.getBoundingClientRect().height); if(h>=120){ litePanelH=h; try{ localStorage.setItem('litePanelH', String(h)); }catch(e){} } }
 let litePlayer='all', liteQuery='', litePQuery='', liteTier='all', liteSort={col:'neso',dir:'desc'};
 function setLitePQuery(v){ litePQuery=(v||'').toLowerCase(); renderLitePlayers(); const i=document.getElementById('lite-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); renderLiteList(); }
@@ -4411,7 +4413,8 @@ function renderLitePlayers(){
         <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${litePlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${tot.vi} ví</span></div>${bar(tot)}</div>
       </div>
       <div style="padding:9px 2px 6px"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
-      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">${all.length?all.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}</div>
+      <div id="lite-plist" style="height:${litePanelH}px;min-height:120px;max-height:70vh;overflow-y:auto;resize:vertical;display:flex;flex-direction:column;gap:2px" onmouseup="_saveLitePanelH()">${all.length?all.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}</div>
+      <div style="text-align:center;font-size:8.5px;color:var(--muted2);opacity:.6;margin-top:3px">kéo mép dưới để đổi chiều cao</div>
     </div>`;
 }
 
@@ -4515,23 +4518,26 @@ function liteCharCell(w){
   const more=cs.length-1;
   const col=JOB_COLOR[top.job]||'var(--text2)';
   const tipTxt=`${_mvpEsc(top.name)}${top.job?' · '+_mvpEsc(top.job):''}${top.level?' · Lv'+top.level:''}`;
-  const line=(lb,val)=>`<div style="display:flex;justify-content:space-between;gap:14px;font-size:10px;color:var(--muted2);margin-top:2px"><span>${lb}</span><span class="mvp-num" style="color:var(--text2)">${val}</span></div>`;
-  const tipHtml=`<div style="display:flex;align-items:center;gap:9px">
-      ${_charAvatar(top, 42)}
-      <div style="min-width:0">
-        <div style="font-size:12.5px;font-weight:800;color:${col};line-height:1.2;white-space:nowrap">${_mvpEsc(top.job||'—')}</div>
-        <div style="font-size:10.5px;color:var(--text2);white-space:nowrap">${_mvpEsc(top.name)}</div>
+  const box=(lb,val,color)=>`<div style="padding:8px 11px;min-width:0"><div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.07em">${lb}</div><div class="mvp-num" style="font-size:15px;font-weight:800;color:${color||'var(--text)'};margin-top:2px;white-space:nowrap">${val}</div></div>`;
+  const pill=c=>`<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 3px;border-radius:14px;background:var(--bg2);border:1px solid var(--border2)">${_charAvatar(c,20)}<span class="mvp-num" style="font-size:10px;color:var(--text2);white-space:nowrap">Lv ${c.level||'?'}</span></span>`;
+  const tipHtml=`<div style="min-width:210px">
+      <div style="display:flex;align-items:center;gap:11px;padding:2px 2px 10px">
+        ${_charAvatar(top, 46)}
+        <div style="min-width:0">
+          <div style="font-size:16px;font-weight:800;color:${col};line-height:1.15;white-space:nowrap">${_mvpEsc(top.job||'—')}</div>
+          <div style="font-size:11.5px;color:var(--muted2);white-space:nowrap;margin-top:1px">${_mvpEsc(top.name)}</div>
+        </div>
       </div>
-    </div>
-    <div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2)">
-      ${top.level?line('Level','Lv '+top.level):''}
-      ${top.cp?line('CP',Math.round(top.cp).toLocaleString('vi-VN')):''}
-      ${top.world?line('World',_mvpEsc(top.world)):''}
-    </div>
-    ${more>0?`<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2)">
-      <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Nhân vật khác (${more})</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px">${cs.slice(1,9).map(c=>_charAvatar(c,24)).join('')}${cs.length>9?`<span class="mvp-num" style="display:inline-flex;align-items:center;font-size:9.5px;color:var(--muted2)">+${cs.length-9}</span>`:''}</div>
-    </div>`:''}`;
+      <div style="border:1px solid var(--border2);border-radius:10px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr">
+          ${box('Level', top.level?top.level:'—')}
+          <div style="border-left:1px solid var(--border2)">${box('CP', top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—', '#f5a524')}</div>
+        </div>
+        ${top.world?`<div style="border-top:1px solid var(--border2)">${box('World', _mvpEsc(top.world))}</div>`:''}
+      </div>
+      ${more>0?`<div style="display:flex;align-items:center;gap:8px;margin:11px 2px 6px"><span style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.07em">Nhân vật khác</span><span class="mvp-num" style="margin-left:auto;font-size:10.5px;color:var(--muted2)">${more}</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${cs.slice(1,7).map(pill).join('')}${cs.length>7?`<span class="mvp-num" style="display:inline-flex;align-items:center;font-size:10px;color:var(--muted2)">+${cs.length-7}</span>`:''}</div>`:''}
+    </div>`;
   return `<div style="display:flex;align-items:center;gap:8px;min-width:0" data-tip="${tipTxt}" data-tiph="${tipHtml.replace(/"/g,'&quot;')}">
       ${_charAvatar(top, 30)}
       <div style="min-width:0;line-height:1.35">
@@ -6031,7 +6037,7 @@ function _uiTipEl(){
   if (!t) {
     t = document.createElement('div');
     t.id = 'ui-tip';
-    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 9px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.45;max-width:200px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:pre-line';
+    t.style.cssText = 'position:fixed;z-index:10002;background:var(--card);color:var(--text);border:1px solid var(--border2);border-radius:9px;padding:7px 9px;box-shadow:var(--shadow-lg);font-size:11px;font-weight:500;line-height:1.45;max-width:260px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;pointer-events:none;white-space:pre-line';
     document.body.appendChild(t);
   }
   return t;
