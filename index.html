@@ -4305,7 +4305,7 @@ function renderBossMatrix(){
   const daily=tgt.filter(b=>b.cycle==='daily'), weekly=tgt.filter(b=>b.cycle==='weekly');   // ẩn hẳn boss không chọn
   const totB=tgt.length;
   const openCount = w => tgt.filter(b=>_bossCellState(w.address,b).unlocked).length;
-  const keys={ name:w=>(w.label||'').toLowerCase(), lv:w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; return (c&&c.level)||w.maxCpLevel||-1;}, char:w=>{const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]; return c&&c.job?c.job.toLowerCase():'zzz';}, player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
+  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), done:w=>openCount(w) };
   const kf=keys[bossMxSort.col]||keys.done;
   const filtered = ws.filter(w=>!bossMxQuery || (w.label||'').toLowerCase().includes(bossMxQuery) || (w.player||'').toLowerCase().includes(bossMxQuery) || (w.address||'').toLowerCase().includes(bossMxQuery));
   const rows=filtered.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossMxSort.dir==='desc'?-r:r; });
@@ -4354,7 +4354,7 @@ function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); ren
 function liteTierPass(w){ const p=mvpPtsOf(w); if(liteTier==='nofarm') return p<=0; if(liteTier==='acc') return p>0&&p<30; if(liteTier==='bronze') return p>=30; return true; }
 function setLitePlayer(p){ litePlayer=(litePlayer===p)?'all':p; renderLiteTab(); }
 function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); const i=document.getElementById('lite-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
-function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player')?'asc':'desc'}; renderLiteList(); }
+function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player'||c==='char')?'asc':'desc'}; renderLiteList(); }
 function liteScope(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return litePlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===litePlayer); }
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
 // Dùng đúng nguồn logo app đang chạy (CoinMarketCap + ảnh NESO)
@@ -4514,8 +4514,25 @@ function liteCharCell(w){
   if (!top) return `<div style="color:var(--muted2);font-size:10.5px">—</div>`;
   const more=cs.length-1;
   const col=JOB_COLOR[top.job]||'var(--text2)';
-  const tip=`${_mvpEsc(top.name)}${top.job?' · '+_mvpEsc(top.job):''}${top.level?' · Lv'+top.level:''}${top.cp?'&#10;CP: '+Math.round(top.cp).toLocaleString('vi-VN'):''}${more>0?'&#10;&#10;Nhân vật khác:&#10;'+cs.slice(1,6).map(c=>'• '+c.name+(c.job?' ('+c.job+')':'')).join('&#10;')+(cs.length>6?'&#10;…':''):''}`;
-  return `<div style="display:flex;align-items:center;gap:8px;min-width:0" data-tip="${tip}">
+  const tipTxt=`${_mvpEsc(top.name)}${top.job?' · '+_mvpEsc(top.job):''}${top.level?' · Lv'+top.level:''}`;
+  const line=(lb,val)=>`<div style="display:flex;justify-content:space-between;gap:14px;font-size:10px;color:var(--muted2);margin-top:2px"><span>${lb}</span><span class="mvp-num" style="color:var(--text2)">${val}</span></div>`;
+  const tipHtml=`<div style="display:flex;align-items:center;gap:9px">
+      ${_charAvatar(top, 42)}
+      <div style="min-width:0">
+        <div style="font-size:12.5px;font-weight:800;color:${col};line-height:1.2;white-space:nowrap">${_mvpEsc(top.job||'—')}</div>
+        <div style="font-size:10.5px;color:var(--text2);white-space:nowrap">${_mvpEsc(top.name)}</div>
+      </div>
+    </div>
+    <div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2)">
+      ${top.level?line('Level','Lv '+top.level):''}
+      ${top.cp?line('CP',Math.round(top.cp).toLocaleString('vi-VN')):''}
+      ${top.world?line('World',_mvpEsc(top.world)):''}
+    </div>
+    ${more>0?`<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--border2)">
+      <div style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Nhân vật khác (${more})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${cs.slice(1,9).map(c=>_charAvatar(c,24)).join('')}${cs.length>9?`<span class="mvp-num" style="display:inline-flex;align-items:center;font-size:9.5px;color:var(--muted2)">+${cs.length-9}</span>`:''}</div>
+    </div>`:''}`;
+  return `<div style="display:flex;align-items:center;gap:8px;min-width:0" data-tip="${tipTxt}" data-tiph="${tipHtml.replace(/"/g,'&quot;')}">
       ${_charAvatar(top, 30)}
       <div style="min-width:0;line-height:1.35">
         <div style="font-size:11.5px;font-weight:700;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(top.job||'—')}</div>
@@ -4594,7 +4611,11 @@ function renderLiteList(){
   const nxpcRate=(typeof liveNxpcUsd==='number'&&liveNxpcUsd)?liveNxpcUsd:0;
   const avaxRate=(typeof liveAvaxUsd==='number'&&liveAvaxUsd)?liveAvaxUsd:0;
   let ws=liteScope().filter(w=>liteTierPass(w)).filter(w=>!liteQuery || (w.label||'').toLowerCase().includes(liteQuery) || (w.player||'').toLowerCase().includes(liteQuery) || (w.address||'').toLowerCase().includes(liteQuery));
-  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(), weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), boss:w=>liteMissingBosses(w).length,
+  const topChar=w=>(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];
+  const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(),
+               char:w=>{const c=topChar(w); return (c&&c.job)?c.job.toLowerCase():'zzzz';},
+               lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
+               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), boss:w=>liteMissingBosses(w).length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
