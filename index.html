@@ -4577,18 +4577,24 @@ async function fetchCharImg(ak){
     const ids=[]; const re=/itemimages\/icon\/(\d{5,9})\.png/g; let x;
     while ((x=re.exec(t))){ const id=x[1]; if (!ids.includes(id)) ids.push(id); }
     CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache();
-    // Level Arcane: cắt vùng quanh chữ "Arcane" rồi ghép icon symbol với các "Lv.N" theo thứ tự
+    // Level Arcane: "Lv.N" nằm ngay sau icon symbol, nhưng cách nhau nhiều thẻ HTML
     const lvs={};
-    const ai = t.search(/Arcane/i);
-    if (ai >= 0){
-      const seg = t.slice(ai, ai + 6000);
-      const sIds = [...seg.matchAll(/itemimages\/icon\/(1712\d{3})\.png/g)].map(m=>m[1]);
-      const sLvs = [...seg.matchAll(/Lv\.?\s*(\d{1,2})\b/gi)].map(m=>+m[1]);
-      sIds.forEach((id,k)=>{ if(sLvs[k]!=null && !lvs[id]) lvs[id]=sLvs[k]; });
+    const reA=/itemimages\/icon\/(1712\d{3})\.png/g; let a1;
+    while ((a1=reA.exec(t))){
+      const id=a1[1];
+      if (lvs[id]) continue;
+      const after=t.slice(a1.index, a1.index+4000);
+      const m=after.match(/Lv\.?\s*(\d{1,2})\b/i);
+      if (m) lvs[id]=+m[1];
     }
-    if (!Object.keys(lvs).length){        // dự phòng: tìm Lv ngay sau icon
-      const re2=/itemimages\/icon\/(1712\d{3})\.png[\s\S]{0,900}?Lv\.?\s*(\d{1,2})/g; let y;
-      while ((y=re2.exec(t))){ if(!lvs[y[1]]) lvs[y[1]]=+y[2]; }
+    if (!Object.keys(lvs).length){        // dự phòng: ghép theo thứ tự trong vùng Arcane
+      const ai=t.search(/Arcane/i);
+      if (ai>=0){
+        const seg=t.slice(ai, ai+30000);
+        const sIds=[...seg.matchAll(/itemimages\/icon\/(1712\d{3})\.png/g)].map(m=>m[1]);
+        const sLvs=[...seg.matchAll(/Lv\.?\s*(\d{1,2})\b/gi)].map(m=>+m[1]);
+        sIds.forEach((id,k)=>{ if(sLvs[k]!=null && !lvs[id]) lvs[id]=sLvs[k]; });
+      }
     }
     if (Object.keys(lvs).length){ ARC_LV_CACHE[ak]=lvs; _saveArcLvCache(); }
     // Node nghề 5: ảnh kỹ năng + level "Lv.N" đi kèm
