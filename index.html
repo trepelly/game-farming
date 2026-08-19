@@ -4537,6 +4537,21 @@ function _saveCharImgCache(){ try{ localStorage.setItem('msuCharImg', JSON.strin
 const CHAR_EQUIP_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharEquip')||'{}'); }catch(e){ return {}; } })();
 const ARC_LV_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuArcLv')||'{}'); }catch(e){ return {}; } })();
 function _saveArcLvCache(){ try{ localStorage.setItem('msuArcLv', JSON.stringify(ARC_LV_CACHE)); }catch(e){} }
+// mở ra để kiểm tra nhanh trong Console
+try{ window.ARC_LV_CACHE=ARC_LV_CACHE; window.CHAR_EQUIP_CACHE=CHAR_EQUIP_CACHE; window.CHAR_IMG_CACHE=CHAR_IMG_CACHE; }catch(e){}
+// Chẩn đoán: xem trang navigator trả về gì quanh chữ Arcane
+async function debugArcane(ak){
+  const r=await fetch(msuProxy(`https://msu.io/navigator/character/${ak}`));
+  const t=await r.text();
+  const i=t.search(/Arcane/i);
+  const out={ ak, len:t.length, coArcane:i>=0,
+    soSymbol:[...t.matchAll(/itemimages\/icon\/(1712\d{3})\.png/g)].map(m=>m[1]),
+    soLv:[...t.matchAll(/Lv\.?\s*(\d{1,2})\b/gi)].slice(0,12).map(m=>m[1]),
+    doanArcane: i>=0 ? t.slice(i, i+700) : '(không thấy chữ Arcane)' };
+  console.log('[Arcane debug]', out);
+  return out;
+}
+try{ window.debugArcane=debugArcane; }catch(e){}
 function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
 async function fetchCharImg(ak){
   if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
