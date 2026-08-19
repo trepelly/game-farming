@@ -921,6 +921,11 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
 .mp-right{max-height:420px;overflow-y:auto}
+.mp-mid{width:150px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:420px;overflow-y:auto}
+.mp-node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.mp-node{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:8px;background:#1b2029;border:1px solid #2b313b;overflow:hidden}
+.mp-node img{width:82%;height:82%;object-fit:contain}
+.mp-node-lv{position:absolute;right:2px;bottom:1px;font-size:8px;font-weight:800;color:#f6d36b;font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,.55);border-radius:4px;padding:0 3px}
 .mp-copy{cursor:pointer}
 .mp-copy:hover{filter:brightness(1.25)}
 .mp-eq-list{display:flex;flex-direction:column;gap:3px}
@@ -4536,9 +4541,12 @@ function _saveCharImgCache(){ try{ localStorage.setItem('msuCharImg', JSON.strin
 // Ảnh nhân vật nằm trong trang navigator: gamedatahub-static.msu.io/.../charimages/static/xxx.png
 const CHAR_EQUIP_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharEquip')||'{}'); }catch(e){ return {}; } })();
 const ARC_LV_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuArcLv')||'{}'); }catch(e){ return {}; } })();
+const SKILL_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuSkill')||'{}'); }catch(e){ return {}; } })();
+function _saveSkillCache(){ try{ localStorage.setItem('msuSkill', JSON.stringify(SKILL_CACHE)); }catch(e){} }
+function charNodes(ak){ return SKILL_CACHE[ak]||[]; }
 function _saveArcLvCache(){ try{ localStorage.setItem('msuArcLv', JSON.stringify(ARC_LV_CACHE)); }catch(e){} }
 // mở ra để kiểm tra nhanh trong Console
-try{ window.ARC_LV_CACHE=ARC_LV_CACHE; window.CHAR_EQUIP_CACHE=CHAR_EQUIP_CACHE; window.CHAR_IMG_CACHE=CHAR_IMG_CACHE; }catch(e){}
+try{ window.SKILL_CACHE=SKILL_CACHE; window.ARC_LV_CACHE=ARC_LV_CACHE; window.CHAR_EQUIP_CACHE=CHAR_EQUIP_CACHE; window.CHAR_IMG_CACHE=CHAR_IMG_CACHE; }catch(e){}
 // Chẩn đoán: xem trang navigator trả về gì quanh chữ Arcane
 async function debugArcane(ak){
   const r=await fetch(msuProxy(`https://msu.io/navigator/character/${ak}`));
@@ -4583,6 +4591,19 @@ async function fetchCharImg(ak){
       while ((y=re2.exec(t))){ if(!lvs[y[1]]) lvs[y[1]]=+y[2]; }
     }
     if (Object.keys(lvs).length){ ARC_LV_CACHE[ak]=lvs; _saveArcLvCache(); }
+    // Node nghề 5: ảnh kỹ năng + level "Lv.N" đi kèm
+    try{
+      const nodes=[]; const seen=new Set();
+      const reS=/(https?:\/\/[^"'\\ )]*?(?:skill|skillimages|skills)[^"'\\ )]*?\/(\d{5,9})\.png)/gi; let z;
+      while ((z=reS.exec(t))){
+        const url=z[1], id=z[2];
+        if (seen.has(id)) continue; seen.add(id);
+        const after=t.slice(z.index, z.index+700);
+        const m=after.match(/Lv\.?\s*(\d{1,2})\b/i);
+        nodes.push({ id, url, lv: m?+m[1]:null });
+      }
+      SKILL_CACHE[ak]=nodes.slice(0,24); _saveSkillCache();
+    }catch(e){}
     return CHAR_IMG_CACHE[ak]||null;
   }catch(e){}
   return null;
@@ -4767,6 +4788,7 @@ function charPopHtml(w){
   const eq=charEquipItems(w, top.name);
   const arc=charEquipIcons(top.ak);
   const arcL=charArcaneList(top.ak);
+  const nodes=charNodes(top.ak);
   const cp=(txt)=>String(txt||'').replace(/'/g,'');
   const stat=(lb,val,color)=>`<div class="mp-stat"><span class="mp-label">${lb}</span><span class="mp-value" style="${color?'color:'+color:''}">${val}</span></div>`;
   return `<div class="mp-tooltip mp-wide">
@@ -4800,6 +4822,11 @@ function charPopHtml(w){
               <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
             </div>`; }).join('')}${others.length>7?`<div class="mp-eq-more">+${others.length-7} nhân vật khác</div>`:''}${isSub?`<div class="mp-eq-more mp-copy" onclick="selectPopChar(null)" style="color:var(--accent)">↩ về nhân vật chính</div>`:''}</div>
         </div>`:''}
+      </div>
+      <div class="mp-mid">
+        <div class="mp-others-head"><span class="mp-label">Nghề 5 · Nodes</span><span class="mp-count">${nodes.length}</span></div>
+        ${nodes.length?`<div class="mp-node-grid">${nodes.slice(0,12).map(n=>`<span class="mp-node" data-tip="Node${n.lv?' · Lv.'+n.lv:''}"><img src="${n.url}" loading="lazy" onerror="this.parentElement.style.opacity=.3">${n.lv?`<span class="mp-node-lv">${n.lv}</span>`:''}</span>`).join('')}</div>${nodes.length>12?`<div class="mp-eq-more">+${nodes.length-12} node khác</div>`:''}`
+                     :`<div class="mp-eq-more">chưa có dữ liệu node</div>`}
       </div>
       <div class="mp-right ${eq.length>9?'mp-right-wide':''}">
         <div class="mp-others-head"><span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span><span class="mp-count">${eq.length}</span></div>
