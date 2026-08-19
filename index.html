@@ -4550,8 +4550,19 @@ async function fetchCharImg(ak){
     const ids=[]; const re=/itemimages\/icon\/(\d{5,9})\.png/g; let x;
     while ((x=re.exec(t))){ const id=x[1]; if (!ids.includes(id)) ids.push(id); }
     CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache();
-    const lvs={}; const re2=/itemimages\/icon\/(1712\d{3})\.png[\s\S]{0,600}?Lv\.?\s*(\d{1,2})/g; let y;
-    while ((y=re2.exec(t))){ if(!lvs[y[1]]) lvs[y[1]]=+y[2]; }
+    // Level Arcane: cắt vùng quanh chữ "Arcane" rồi ghép icon symbol với các "Lv.N" theo thứ tự
+    const lvs={};
+    const ai = t.search(/Arcane/i);
+    if (ai >= 0){
+      const seg = t.slice(ai, ai + 6000);
+      const sIds = [...seg.matchAll(/itemimages\/icon\/(1712\d{3})\.png/g)].map(m=>m[1]);
+      const sLvs = [...seg.matchAll(/Lv\.?\s*(\d{1,2})\b/gi)].map(m=>+m[1]);
+      sIds.forEach((id,k)=>{ if(sLvs[k]!=null && !lvs[id]) lvs[id]=sLvs[k]; });
+    }
+    if (!Object.keys(lvs).length){        // dự phòng: tìm Lv ngay sau icon
+      const re2=/itemimages\/icon\/(1712\d{3})\.png[\s\S]{0,900}?Lv\.?\s*(\d{1,2})/g; let y;
+      while ((y=re2.exec(t))){ if(!lvs[y[1]]) lvs[y[1]]=+y[2]; }
+    }
     if (Object.keys(lvs).length){ ARC_LV_CACHE[ak]=lvs; _saveArcLvCache(); }
     return CHAR_IMG_CACHE[ak]||null;
   }catch(e){}
@@ -4758,7 +4769,7 @@ function charPopHtml(w){
         <div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count">${arc.length}</span></div>
           <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
-            return a?`<span class="mp-arc" data-tip="Arcane Symbol${a.lv?' · Lv.'+a.lv:''}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
+            return a?`<span class="mp-arc" data-tip="Arcane Symbol${a.lv?' · Lv'+a.lv:''}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv'+a.lv:'—'}</span></span>`
                     :`<span class="mp-arc mp-arc-empty">--</span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
