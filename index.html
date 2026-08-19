@@ -921,7 +921,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
 .mp-right{max-height:420px;overflow-y:auto}
-.mp-mid{width:150px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:420px;overflow-y:auto}
+.mp-mid{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:420px;overflow-y:auto}
 .mp-node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .mp-node{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:8px;background:#1b2029;border:1px solid #2b313b;overflow:hidden}
 .mp-node img{width:82%;height:82%;object-fit:contain}
@@ -4544,6 +4544,36 @@ const ARC_LV_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuArcL
 const SKILL_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuSkill')||'{}'); }catch(e){ return {}; } })();
 function _saveSkillCache(){ try{ localStorage.setItem('msuSkill', JSON.stringify(SKILL_CACHE)); }catch(e){} }
 function charNodes(ak){ return SKILL_CACHE[ak]||[]; }
+const _skillTried=new Set();
+// Lấy skill Tier 5: trang ?tab=information&subTab=skill
+async function fetchCharSkills(ak){
+  if (!ak || _skillTried.has(ak) || (SKILL_CACHE[ak]&&SKILL_CACHE[ak].length)) return null;
+  _skillTried.add(ak);
+  try{
+    const r=await fetch(msuProxy(`https://msu.io/navigator/character/${ak}?tab=information&subTab=skill`));
+    if(!r.ok) return null;
+    const t=await r.text();
+    const ti=t.search(/Tier\s*5/i);
+    if (ti<0) return null;
+    const seg=t.slice(ti, ti+40000);
+    const end=seg.search(/Tier\s*4/i);
+    const body=end>0?seg.slice(0,end):seg;
+    const out=[]; const seen=new Set();
+    // mỗi skill: ảnh icon rồi tên rồi "Level N"
+    const re=/(https?:\/\/[^"'\\ )]+?\.png)[\s\S]{0,1500}?>([^<>{}]{3,60}?)<[\s\S]{0,600}?Level\s*(\d{1,2})\b/g; let m;
+    while ((m=re.exec(body))){
+      const url=m[1], name=m[2].trim(), lv=+m[3];
+      if (!name || /^\s*$/.test(name) || seen.has(name)) continue;
+      seen.add(name);
+      out.push({ url, name, lv });
+      if (out.length>=14) break;
+    }
+    if (out.length){ SKILL_CACHE[ak]=out; _saveSkillCache(); return out; }
+  }catch(e){}
+  return null;
+}
+async function ensureSkills(ak){ const r=await fetchCharSkills(ak); if(r){ try{ const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr); }catch(e){} } }
+try{ window.fetchCharSkills=fetchCharSkills; }catch(e){}
 function _saveArcLvCache(){ try{ localStorage.setItem('msuArcLv', JSON.stringify(ARC_LV_CACHE)); }catch(e){} }
 // mở ra để kiểm tra nhanh trong Console
 try{ window.SKILL_CACHE=SKILL_CACHE; window.ARC_LV_CACHE=ARC_LV_CACHE; window.CHAR_EQUIP_CACHE=CHAR_EQUIP_CACHE; window.CHAR_IMG_CACHE=CHAR_IMG_CACHE; }catch(e){}
@@ -4597,19 +4627,7 @@ async function fetchCharImg(ak){
       }
     }
     if (Object.keys(lvs).length){ ARC_LV_CACHE[ak]=lvs; _saveArcLvCache(); }
-    // Node nghề 5: ảnh kỹ năng + level "Lv.N" đi kèm
-    try{
-      const nodes=[]; const seen=new Set();
-      const reS=/(https?:\/\/[^"'\\ )]*?(?:skill|skillimages|skills)[^"'\\ )]*?\/(\d{5,9})\.png)/gi; let z;
-      while ((z=reS.exec(t))){
-        const url=z[1], id=z[2];
-        if (seen.has(id)) continue; seen.add(id);
-        const after=t.slice(z.index, z.index+700);
-        const m=after.match(/Lv\.?\s*(\d{1,2})\b/i);
-        nodes.push({ id, url, lv: m?+m[1]:null });
-      }
-      SKILL_CACHE[ak]=nodes.slice(0,24); _saveSkillCache();
-    }catch(e){}
+
     return CHAR_IMG_CACHE[ak]||null;
   }catch(e){}
   return null;
@@ -4749,6 +4767,7 @@ let charPopSel = null;                       // assetKey nhân vật đang xem (
 function closeCharPop(){ const p=document.getElementById('char-pop'); if(p) p.remove(); charPopSel=null; }
 function selectPopChar(ak){                  // bấm 1 nhân vật -> xem nhân vật đó; bấm lại -> về nhân vật chính
   charPopSel = (charPopSel===ak) ? null : ak;
+  if (charPopSel) { try{ ensureSkills(charPopSel); }catch(e){} }
   const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr);
 }
 function _charPopOut(e){
@@ -4763,7 +4782,7 @@ function openCharPop(ev, addr){
   closeCharPop();
   charPopSel = null;
   try{ eqHover(addr); }catch(e){}
-  try{ const cs=(w0=>((w0&&w0.chars)||[]).filter(c=>c.ak))(((typeof teamWallets!=='undefined'?teamWallets:[])||[]).find(x=>x.address===addr)); ensureCharImgs(cs); }catch(e){}
+  try{ const cs=(w0=>((w0&&w0.chars)||[]).filter(c=>c.ak))(((typeof teamWallets!=='undefined'?teamWallets:[])||[]).find(x=>x.address===addr)); ensureCharImgs(cs); if(cs[0]) ensureSkills(cs[0].ak); }catch(e){}
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
   const p=document.createElement('div'); p.id='char-pop'; p.dataset.addr=addr;
@@ -4830,9 +4849,12 @@ function charPopHtml(w){
         </div>`:''}
       </div>
       <div class="mp-mid">
-        <div class="mp-others-head"><span class="mp-label">Nghề 5 · Nodes</span><span class="mp-count">${nodes.length}</span></div>
-        ${nodes.length?`<div class="mp-node-grid">${nodes.slice(0,12).map(n=>`<span class="mp-node" data-tip="Node${n.lv?' · Lv.'+n.lv:''}"><img src="${n.url}" loading="lazy" onerror="this.parentElement.style.opacity=.3">${n.lv?`<span class="mp-node-lv">${n.lv}</span>`:''}</span>`).join('')}</div>${nodes.length>12?`<div class="mp-eq-more">+${nodes.length-12} node khác</div>`:''}`
-                     :`<div class="mp-eq-more">chưa có dữ liệu node</div>`}
+        <div class="mp-others-head"><span class="mp-label">Tier 5</span><span class="mp-count">${nodes.length}</span></div>
+        ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}')" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
+            <span class="mp-eq"><img src="${n.url}" loading="lazy" onerror="this.remove()"></span>
+            <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(n.name)}</span><span class="mp-eq-cat">Level ${n.lv}</span></span>
+          </div>`).join('')}</div>`
+                     :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
       </div>
       <div class="mp-right ${eq.length>9?'mp-right-wide':''}">
         <div class="mp-others-head"><span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span><span class="mp-count">${eq.length}</span></div>
