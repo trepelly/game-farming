@@ -4409,6 +4409,9 @@ function _saveLitePanelW(){
 }
 let litePanelH=(()=>{ const v=parseInt(localStorage.getItem('litePanelH')||'330',10); return (v>=120&&v<=900)?v:330; })();
 function _saveLitePanelH(){ const el=document.getElementById('lite-plist'); if(!el) return; const h=Math.round(el.getBoundingClientRect().height); if(h>=120){ litePanelH=h; try{ localStorage.setItem('litePanelH', String(h)); }catch(e){} } }
+let liteLv200=false;
+function toggleLiteLv200(){ liteLv200=!liteLv200; renderLiteList(); }
+function clearLiteQuery(){ liteQuery=''; renderLiteList(); const i=document.getElementById('lite-search'); if(i) i.focus(); }
 let litePlayer='all', liteQuery='', litePQuery='', liteTier='all', liteSort={col:'neso',dir:'desc'};
 function setLitePQuery(v){ litePQuery=(v||'').toLowerCase(); renderLitePlayers(); applyLitePanelW(); const i=document.getElementById('lite-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); renderLiteList(); }
@@ -4937,7 +4940,18 @@ function renderLiteList(){
   const nesoRate=(typeof liveNesoUsd==='number'&&liveNesoUsd)?liveNesoUsd:((typeof liveNxpcUsd==='number'&&liveNxpcUsd)?liveNxpcUsd/100000:0);
   const nxpcRate=(typeof liveNxpcUsd==='number'&&liveNxpcUsd)?liveNxpcUsd:0;
   const avaxRate=(typeof liveAvaxUsd==='number'&&liveAvaxUsd)?liveAvaxUsd:0;
-  let ws=liteScope().filter(w=>liteTierPass(w)).filter(w=>!liteQuery || (w.label||'').toLowerCase().includes(liteQuery) || (w.player||'').toLowerCase().includes(liteQuery) || (w.address||'').toLowerCase().includes(liteQuery));
+  const _match=w=>{
+    if(!liteQuery) return true;
+    const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];
+    const hay=[w.label, w.player, w.address, c&&c.name, c&&c.job, (c&&c.world)||w.maxCpWorld]
+      .filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(liteQuery);
+  };
+  let ws=liteScope().filter(w=>liteTierPass(w)).filter(_match).filter(w=>{
+    if(!liteLv200) return true;
+    const c=(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];
+    return ((c&&c.level)||w.maxCpLevel||0) >= 200;
+  });
   const topChar=w=>(w.chars||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];
   const keys={ name:w=>(w.label||'').toLowerCase(), player:w=>(w.player||'zzz').toLowerCase(),
                char:w=>{const c=topChar(w); return (c&&c.job)?c.job.toLowerCase():'zzzz';},
@@ -4985,7 +4999,11 @@ function renderLiteList(){
         <span style="font-size:12.5px;font-weight:800;color:var(--text)">Danh sách ví</span>
         <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${ws.length} ví${litePlayer!=='all'?` · <span style="color:var(--accent)">${_mvpEsc(litePlayer)}</span>`:''}</span>
         <button id="lite-eq-btn" onclick="loadLiteItems(true)" data-tip="Tải lại danh sách trang bị cho mọi ví (giống nút làm mới CP)" style="margin-left:auto;padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Trang bị</button>
-        <input id="lite-search" type="text" value="${_mvpEsc(liteQuery)}" oninput="setLiteQuery(this.value)" placeholder="Tìm ví / player…" style="width:160px;box-sizing:border-box;padding:5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11px">
+        <button onclick="toggleLiteLv200()" data-tip="Chỉ hiện ví có nhân vật từ Lv200 trở lên" style="padding:5px 10px;border-radius:8px;border:1px solid ${liteLv200?'#7fd88f':'var(--border2)'};background:${liteLv200?'color-mix(in srgb,#7fd88f 12%,transparent)':'var(--bg2)'};color:${liteLv200?'#7fd88f':'var(--muted2)'};font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">Lv200+${liteLv200?' ✓':''}</button>
+        <span style="position:relative;display:inline-flex;align-items:center">
+          <input id="lite-search" type="text" value="${_mvpEsc(liteQuery)}" oninput="setLiteQuery(this.value)" placeholder="Tìm ví / player / nghề / world…" style="width:190px;box-sizing:border-box;padding:5px ${liteQuery?'24px':'9px'} 5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11px">
+          ${liteQuery?`<span onclick="clearLiteQuery()" data-tip="Xoá tìm kiếm" style="position:absolute;right:7px;cursor:pointer;color:var(--muted2);font-size:13px;line-height:1">✕</span>`:''}
+        </span>
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
