@@ -908,9 +908,9 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0}
 .mp-sec{padding:9px 11px 4px}
 .mp-arc-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
-.mp-arc{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:.86;border-radius:8px;background:#171b21;border:1px solid #23282f;overflow:hidden;padding:4px 0 5px}
-.mp-arc img{width:66%;height:auto;object-fit:contain}
-.mp-arc-lv{font-size:8.5px;font-weight:700;color:#8b7cf0;font-family:'JetBrains Mono',monospace;line-height:1}
+.mp-arc{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:46px;border-radius:8px;background:#171b21;border:1px solid #23282f;padding:5px 2px 6px}
+.mp-arc img{width:22px;height:22px;object-fit:contain}
+.mp-arc-lv{font-size:9px;white-space:nowrap;font-weight:700;color:#8b7cf0;font-family:'JetBrains Mono',monospace;line-height:1}
 .mp-arc-on{background:#1b2029;border-color:#2b313b}
 .mp-arc-on::after{content:"";position:absolute;left:14%;right:14%;bottom:0;height:2px;border-radius:2px;background:#8b7cf0}
 .mp-arc-empty{color:#4a505c;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
@@ -4540,7 +4540,9 @@ function _saveArcLvCache(){ try{ localStorage.setItem('msuArcLv', JSON.stringify
 function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
 async function fetchCharImg(ak){
   if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
-  if (CHAR_IMG_CACHE[ak] && CHAR_EQUIP_CACHE[ak]) return CHAR_IMG_CACHE[ak];
+  const _ids=(CHAR_EQUIP_CACHE[ak]||[]).filter(x=>/^1712\d{3}$/.test(String(x)));
+  const _needLv = _ids.length>0 && !Object.keys(ARC_LV_CACHE[ak]||{}).length;
+  if (CHAR_IMG_CACHE[ak] && CHAR_EQUIP_CACHE[ak] && !_needLv) return CHAR_IMG_CACHE[ak];
   _charImgTried.add(ak);
   try{
     const r = await fetch(msuProxy(`https://msu.io/navigator/character/${ak}`));
@@ -4772,7 +4774,7 @@ function charPopHtml(w){
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count">${arc.length}</span></div>
           <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
             return a?`<span class="mp-arc mp-arc-on" data-tip="Arcane Symbol${a.lv?' · Lv.'+a.lv:''}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
-                    :`<span class="mp-arc mp-arc-empty">--</span>`; }).join('')}</div>
+                    :`<span class="mp-arc mp-arc-empty"><span style="font-size:11px">--</span></span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
@@ -4813,7 +4815,9 @@ function charEquipItems(w, charName){
 }
 let _charImgTimer=null;
 async function ensureCharImgs(list){
-  const need=list.filter(c=>c&&c.ak&&!_charImgTried.has(c.ak)&&(!CHAR_IMG_CACHE[c.ak]||!CHAR_EQUIP_CACHE[c.ak])).slice(0,6);
+  const needLv=c=>{ const ids=(CHAR_EQUIP_CACHE[c.ak]||[]).filter(x=>/^1712\d{3}$/.test(String(x)));
+    return ids.length>0 && !Object.keys(ARC_LV_CACHE[c.ak]||{}).length; };
+  const need=list.filter(c=>c&&c.ak&&!_charImgTried.has(c.ak)&&(!CHAR_IMG_CACHE[c.ak]||!CHAR_EQUIP_CACHE[c.ak]||needLv(c))).slice(0,6);
   if (!need.length) return;
   let got=false;
   for (const c of need){ const u=await fetchCharImg(c.ak); if(u) got=true; await new Promise(r=>setTimeout(r,120)); }
