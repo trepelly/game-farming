@@ -908,9 +908,11 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0}
 .mp-sec{padding:9px 11px 4px}
 .mp-arc-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
-.mp-arc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;aspect-ratio:.82;border-radius:7px;background:#1a1e24;border:1px solid #2b313b;overflow:hidden;padding:2px 0}
-.mp-arc img{width:74%;height:auto;object-fit:contain}
-.mp-arc-lv{font-size:8px;font-weight:800;color:#8b7cf0;font-family:'JetBrains Mono',monospace;line-height:1}
+.mp-arc{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:.86;border-radius:8px;background:#171b21;border:1px solid #23282f;overflow:hidden;padding:4px 0 5px}
+.mp-arc img{width:66%;height:auto;object-fit:contain}
+.mp-arc-lv{font-size:8.5px;font-weight:700;color:#8b7cf0;font-family:'JetBrains Mono',monospace;line-height:1}
+.mp-arc-on{background:#1b2029;border-color:#2b313b}
+.mp-arc-on::after{content:"";position:absolute;left:14%;right:14%;bottom:0;height:2px;border-radius:2px;background:#8b7cf0}
 .mp-arc-empty{color:#4a505c;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
 .mp-ch-ava{width:26px;height:26px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'Chakra Petch',monospace;font-size:11px;font-weight:800}
 .mp-ch-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
@@ -4769,7 +4771,7 @@ function charPopHtml(w){
         <div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count">${arc.length}</span></div>
           <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
-            return a?`<span class="mp-arc" data-tip="Arcane Symbol${a.lv?' · Lv'+a.lv:''}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv'+a.lv:'—'}</span></span>`
+            return a?`<span class="mp-arc mp-arc-on" data-tip="Arcane Symbol${a.lv?' · Lv.'+a.lv:''}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
                     :`<span class="mp-arc mp-arc-empty">--</span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
