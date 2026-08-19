@@ -914,6 +914,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-arc-empty{color:#4a505c;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
 .mp-ch-ava{width:26px;height:26px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'Chakra Petch',monospace;font-size:11px;font-weight:800}
 .mp-ch-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
+.mp-sub-tag{margin-left:6px;font-size:8.5px;font-weight:700;color:#8b7cf0;background:rgba(139,124,240,.14);border-radius:5px;padding:1px 6px;vertical-align:middle}
 .mp-sf{flex-shrink:0;font-size:9.5px;font-weight:800;color:#f6d36b;font-family:'JetBrains Mono',monospace;background:rgba(246,211,107,.12);border-radius:5px;padding:1px 5px}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
@@ -4684,7 +4685,12 @@ function _refreshHoverTip(addr, loading){
     }
   }catch(e){}
 }
-function closeCharPop(){ const p=document.getElementById('char-pop'); if(p) p.remove(); }
+let charPopSel = null;                       // assetKey nhân vật đang xem (null = nhân vật chính)
+function closeCharPop(){ const p=document.getElementById('char-pop'); if(p) p.remove(); charPopSel=null; }
+function selectPopChar(ak){                  // bấm 1 nhân vật -> xem nhân vật đó; bấm lại -> về nhân vật chính
+  charPopSel = (charPopSel===ak) ? null : ak;
+  const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr);
+}
 function _charPopOut(e){
   const p=document.getElementById('char-pop'); if(!p) return;
   if ((e.target.closest && e.target.closest('[data-eqcell]')) || p.contains(e.target)){ setTimeout(()=>document.addEventListener('mousedown', _charPopOut, {once:true}),0); return; }
@@ -4695,6 +4701,7 @@ function openCharPop(ev, addr){
   const cur=document.getElementById('char-pop');
   if (cur && cur.dataset.addr===addr){ closeCharPop(); return; }
   closeCharPop();
+  charPopSel = null;
   try{ eqHover(addr); }catch(e){}
   try{ const cs=(w0=>((w0&&w0.chars)||[]).filter(c=>c.ak))(((typeof teamWallets!=='undefined'?teamWallets:[])||[]).find(x=>x.address===addr)); ensureCharImgs(cs); }catch(e){}
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
@@ -4718,9 +4725,12 @@ function _charPopRefresh(addr){
 }
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
-  const top=cs[0]; if(!top) return '<div class="mp-tooltip" style="padding:12px">Chưa có nhân vật</div>';
+  if(!cs.length) return '<div class="mp-tooltip" style="padding:12px">Chưa có nhân vật</div>';
+  const top=(charPopSel && cs.find(c=>c.ak===charPopSel)) || cs[0];
+  const isSub = top!==cs[0];
+  const others = cs.filter(c=>c!==top);
   const col=JOB_COLOR[top.job]||'var(--text2)';
-  const more=cs.length-1;
+  const more=others.length;
   const eq=charEquipItems(w, top.name);
   const arc=charEquipIcons(top.ak);
   const arcL=charArcaneList(top.ak);
@@ -4733,7 +4743,7 @@ function charPopHtml(w){
           ${(()=>{ const u=_charImgUrls(top)[0]; const cc=JOB_COLOR[top.job]||'#6b7280';
             return `<span class="mp-avatar" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 55%,transparent),color-mix(in srgb,${cc} 18%,transparent));border:1.5px solid color-mix(in srgb,${cc} 65%,transparent);color:${cc}">${_mvpEsc((top.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>`; })()}
           <div style="min-width:0">
-            <div class="mp-class" style="color:${col}">${_mvpEsc(top.job||'—')}</div>
+            <div class="mp-class" style="color:${col}">${_mvpEsc(top.job||'—')}${isSub?'<span class="mp-sub-tag">nhân vật phụ</span>':''}</div>
             <div class="mp-account mp-copy" onclick="copyFlash(this,'${cp(top.name)}')" data-tip="Nhấp để copy tên nhân vật">${_mvpEsc(top.name)}</div>
           </div>
         </div>
@@ -4750,16 +4760,16 @@ function charPopHtml(w){
         </div>
         ${more>0?`<div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
-          <div class="mp-eq-list">${cs.slice(1,7).map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
-            return `<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(c.name)}')" data-tip="Nhấp để copy tên">
+          <div class="mp-eq-list">${others.slice(0,7).map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
+            return `<div class="mp-eq-row mp-copy" onclick="selectPopChar('${c.ak||''}')" data-tip="Bấm để xem trang bị của ${_mvpEsc(c.name)}">
               <span class="mp-ch-ava" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 50%,transparent),color-mix(in srgb,${cc} 16%,transparent));border:1.5px solid color-mix(in srgb,${cc} 60%,transparent);color:${cc}">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>
               <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(c.name)}</span><span class="mp-eq-cat" style="color:${cc}">${_mvpEsc(c.job||'—')}</span></span>
               <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
-            </div>`; }).join('')}${cs.length>7?`<div class="mp-eq-more">+${cs.length-7} nhân vật khác</div>`:''}</div>
+            </div>`; }).join('')}${others.length>7?`<div class="mp-eq-more">+${others.length-7} nhân vật khác</div>`:''}${isSub?`<div class="mp-eq-more mp-copy" onclick="selectPopChar(null)" style="color:var(--accent)">↩ về nhân vật chính</div>`:''}</div>
         </div>`:''}
       </div>
       <div class="mp-right ${eq.length>9?'mp-right-wide':''}">
-        <div class="mp-others-head"><span class="mp-label">Trang bị</span><span class="mp-count">${eq.length}</span></div>
+        <div class="mp-others-head"><span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span><span class="mp-count">${eq.length}</span></div>
         ${eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
             <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
             <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
