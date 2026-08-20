@@ -4432,11 +4432,11 @@ function liteScope(){ const ws=(typeof effectiveWallets==='function')?effectiveW
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
 // Bản rút gọn cho bảng danh sách: từ 10 triệu trở lên đổi sang ký tự đơn vị.
 // Giá trị đầy đủ vẫn nằm trong tooltip nên không mất thông tin.
-// CP: nghìn -> k, triệu -> tr (giữ 1 số lẻ tới dưới 100tr)
+// CP: nghìn -> K, triệu -> M (giữ 1 số lẻ tới dưới 100M)
 function _cpf(v){
   if (!v) return '—';
-  if (v>=1e6) return String(v>=1e8?Math.round(v/1e6):Math.round(v/1e5)/10).replace('.',',')+'tr';
-  if (v>=1000) return Math.round(v/1000)+'k';
+  if (v>=1e6) return String(v>=1e8?Math.round(v/1e6):Math.round(v/1e5)/10).replace('.',',')+'M';
+  if (v>=1000) return Math.round(v/1000)+'K';
   return String(Math.round(v));
 }
 function _lfc(n,d){
@@ -4444,9 +4444,9 @@ function _lfc(n,d){
   const a=Math.abs(n);
   const cut=(v,u)=>{ const x=v>=100?Math.round(v):Math.round(v*10)/10;
                      return String(x).replace('.',',')+u; };
-  if (a>=1e12) return cut(n/1e12,'ng.tỷ');
-  if (a>=1e9)  return cut(n/1e9,'tỷ');
-  if (a>=1e7)  return cut(n/1e6,'tr');
+  if (a>=1e12) return cut(n/1e12,'T');
+  if (a>=1e9)  return cut(n/1e9,'B');
+  if (a>=1e7)  return cut(n/1e6,'M');
   return _lf(n,d);
 }
 // Dùng đúng nguồn logo app đang chạy (CoinMarketCap + ảnh NESO)
@@ -11014,8 +11014,8 @@ function openMvpPop(ev, addr){
   p.style.left=x+'px'; p.style.top=y+'px';
   setTimeout(()=>{ document.addEventListener('mousedown', _mvpPopOut, {once:true}); }, 0);
 }
-const _mvK = v => v>=1e6 ? (v/1e6).toFixed(v>=1e7?0:1).replace('.',',')+'tr'
-              : v>=1000 ? Math.round(v/1000)+'k' : Math.round(v);
+const _mvK = v => v>=1e6 ? (v/1e6).toFixed(v>=1e7?0:1).replace('.',',')+'M'
+              : v>=1000 ? Math.round(v/1000)+'K' : Math.round(v);
 const _mvD = d => d.slice(8,10)+'/'+d.slice(5,7);
 
 function mvpPopHtml(w){
