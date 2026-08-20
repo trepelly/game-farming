@@ -4541,39 +4541,104 @@ function _saveCharImgCache(){ try{ localStorage.setItem('msuCharImg', JSON.strin
 // Ảnh nhân vật nằm trong trang navigator: gamedatahub-static.msu.io/.../charimages/static/xxx.png
 const CHAR_EQUIP_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharEquip')||'{}'); }catch(e){ return {}; } })();
 const ARC_LV_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuArcLv')||'{}'); }catch(e){ return {}; } })();
-const SKILL_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuSkill')||'{}'); }catch(e){ return {}; } })();
-function _saveSkillCache(){ try{ localStorage.setItem('msuSkill', JSON.stringify(SKILL_CACHE)); }catch(e){} }
-function charNodes(ak){ return SKILL_CACHE[ak]||[]; }
+const SKILL_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuSkill2')||'{}'); }catch(e){ return {}; } })();
+function _saveSkillCache(){ try{ localStorage.setItem('msuSkill2', JSON.stringify(SKILL_CACHE)); }catch(e){} }
+function charNodes(ak){ const c=SKILL_CACHE[ak]; return (c&&c.t5)||[]; }
+function charSkillTier(ak,t){ const c=SKILL_CACHE[ak]; return (c&&c.tiers&&c.tiers[t])||[]; }
 const _skillTried=new Set();
-// Lấy skill Tier 5: trang ?tab=information&subTab=skill
-async function fetchCharSkills(ak){
-  if (!ak || _skillTried.has(ak) || (SKILL_CACHE[ak]&&SKILL_CACHE[ak].length)) return null;
-  _skillTried.add(ak);
-  try{
-    const r=await fetch(msuProxy(`https://msu.io/navigator/character/${ak}?tab=information&subTab=skill`));
-    if(!r.ok) return null;
-    const t=await r.text();
-    const ti=t.search(/Tier\s*5/i);
-    if (ti<0) return null;
-    const seg=t.slice(ti, ti+40000);
-    const end=seg.search(/Tier\s*4/i);
-    const body=end>0?seg.slice(0,end):seg;
-    const out=[]; const seen=new Set();
-    // mỗi skill: ảnh icon rồi tên rồi "Level N"
-    const re=/(https?:\/\/[^"'\\ )]+?\.png)[\s\S]{0,1500}?>([^<>{}]{3,60}?)<[\s\S]{0,600}?Level\s*(\d{1,2})\b/g; let m;
-    while ((m=re.exec(body))){
-      const url=m[1], name=m[2].trim(), lv=+m[3];
-      if (!name || /^\s*$/.test(name) || seen.has(name)) continue;
-      seen.add(name);
-      out.push({ url, name, lv });
-      if (out.length>=14) break;
+
+// Trang skill trả về JSON: { skillSet:[ {skillTier, skills:[{skillId,skillName,currentLevel,vMatrixSlotLevel,imageUrl}]} ] }
+function _parseSkillSet(txt){
+  let arr=null;
+  // 1) cả body là JSON
+  try{ const j=JSON.parse(txt); if (j && Array.isArray(j.skillSet)) arr=j.skillSet; }catch(e){}
+  // 2) JSON nhúng trong HTML/RSC payload -> cắt mảng cân bằng ngoặc sau chữ skillSet
+  if (!arr){
+    const k=txt.indexOf('skillSet');
+    if (k<0) return null;
+    const b=txt.indexOf('[', k);
+    if (b<0) return null;
+    let d=0, q=false, esc=false, end=-1;
+    for (let i=b;i<txt.length;i++){
+      const ch=txt[i];
+      if (esc){ esc=false; continue; }
+      if (ch==='\\'){ esc=true; continue; }
+      if (q){ if (ch==='"') q=false; continue; }
+      if (ch==='"'){ q=true; continue; }
+      if (ch==='[') d++;
+      else if (ch===']'){ d--; if(!d){ end=i+1; break; } }
     }
-    if (out.length){ SKILL_CACHE[ak]=out; _saveSkillCache(); return out; }
-  }catch(e){}
+    if (end<0) return null;
+    const raw=txt.slice(b,end);
+    for (const cand of [raw, raw.replace(/\\"/g,'"').replace(/\\\\/g,'\\')]){
+      try{ const p=JSON.parse(cand); if (Array.isArray(p)){ arr=p; break; } }catch(e){}
+    }
+  }
+  if (!Array.isArray(arr)) return null;
+  const tiers={};
+  arr.forEach(g=>{
+    const list=(g&&g.skills)||[];
+    tiers[g.skillTier]=list.map(k=>({
+      id:k.skillId, name:k.skillName||'', lv:+(k.currentLevel||0),
+      vm:+(k.vMatrixSlotLevel||0),
+      url:k.imageUrl||(k.skillId?`https://api-static.msu.io/skillimages/icon/${k.skillId}.png`:'')
+    }));
+  });
+  // Tier 5: chỉ giữ node đã học (level > 0)
+  const t5=(tiers[5]||[]).filter(k=>k.lv>0);
+  return { t5, tiers };
+}
+
+// Thứ tự thử: API JSON trước, nhớ lại kiểu URL chạy được; cuối cùng đọc từ trang HTML
+function _skillUrls(ak){
+  const u=[
+    `https://msu.io/navigator/api/navigator/character/${ak}/skills`,
+    `https://msu.io/navigator/api/navigator/character/${ak}/skill`,
+    `https://msu.io/navigator/api/navigator/characters/${ak}/skills`,
+    `https://msu.io/navigator/api/navigator/character/${ak}/skill-set`,
+    `https://msu.io/navigator/character/${ak}?tab=information&subTab=skill`
+  ];
+  let saved=null; try{ saved=localStorage.getItem('MSU_SKILL_PATTERN'); }catch(e){}
+  if (saved && saved.includes('{ak}')){
+    const first=saved.replace('{ak}', ak);
+    return [first, ...u.filter(x=>x!==first)];
+  }
+  return u;
+}
+
+async function fetchCharSkills(ak){
+  if (!ak || _skillTried.has(ak) || (SKILL_CACHE[ak] && SKILL_CACHE[ak].t5)) return null;
+  _skillTried.add(ak);
+  for (const url of _skillUrls(ak)){
+    try{
+      const r=await fetch(msuProxy(url));
+      if(!r.ok) continue;
+      const t=await r.text();
+      const p=_parseSkillSet(t);
+      if (p){
+        SKILL_CACHE[ak]=p; _saveSkillCache();
+        try{ localStorage.setItem('MSU_SKILL_PATTERN', url.replace(ak,'{ak}')); }catch(e){}
+        return p.t5;
+      }
+    }catch(e){}
+  }
   return null;
 }
 async function ensureSkills(ak){ const r=await fetchCharSkills(ak); if(r){ try{ const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr); }catch(e){} } }
-try{ window.fetchCharSkills=fetchCharSkills; }catch(e){}
+// Chẩn đoán: xem từng URL trả về gì
+async function debugSkill(ak){
+  const out=[];
+  for (const url of _skillUrls(ak)){
+    try{
+      const r=await fetch(msuProxy(url));
+      const t=await r.text();
+      const p=_parseSkillSet(t);
+      out.push({ url, status:r.status, len:t.length, doc:t.slice(0,120), tier5: p?p.t5.length:'(không đọc được skillSet)' });
+    }catch(e){ out.push({ url, loi:String(e) }); }
+  }
+  console.table(out); console.log(out); return out;
+}
+try{ window.fetchCharSkills=fetchCharSkills; window.debugSkill=debugSkill; window._parseSkillSet=_parseSkillSet; }catch(e){}
 function _saveArcLvCache(){ try{ localStorage.setItem('msuArcLv', JSON.stringify(ARC_LV_CACHE)); }catch(e){} }
 // mở ra để kiểm tra nhanh trong Console
 try{ window.SKILL_CACHE=SKILL_CACHE; window.ARC_LV_CACHE=ARC_LV_CACHE; window.CHAR_EQUIP_CACHE=CHAR_EQUIP_CACHE; window.CHAR_IMG_CACHE=CHAR_IMG_CACHE; }catch(e){}
