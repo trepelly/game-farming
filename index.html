@@ -2100,6 +2100,8 @@ const MVP_TIERS = [
   { name:'Black',    min:7000, max:Infinity, color:'#f1f0ff',   icon:'⚫', bg:'#ffffff12' },
 ];
 // ── Hằng số nghiệp vụ (chỉnh 1 chỗ khi biết số thật) ──
+// Bật/tắt toàn bộ tooltip (nhớ theo trình duyệt) — khai báo sớm để mọi script block dùng được
+let TIPS_ON = (()=>{ try{ return localStorage.getItem('msuTips')!=='0'; }catch(e){ return true; } })();
 const MVP_NESO_PER_POINT = 100000;   // 1 điểm MVP = 100.000 NESO chi ra
 const MVP_WINDOW_WEEKS   = 13;       // điểm chỉ tính trong 13 tuần lịch gần nhất, tuần thứ 14 rơi khỏi cửa sổ
 const MVP_WEEK_TARGET    = 230000;   // giá trị MVP cần chi mỗi tuần để giữ mốc Bronze (13 x 230k ≈ 3 triệu = 30 điểm)
@@ -6633,6 +6635,7 @@ function nftTipHtml(w) {
 }
 
 function showNftTip(ev, addr) {
+  if (!TIPS_ON) return;
   const w = (teamWallets || []).find(x => x.address === addr);
   if (!w) return;
   nftTipAddr = addr; charTipAddr = null;
@@ -6681,6 +6684,7 @@ function charTipHtml(w) {
 }
 
 function showCharTip(ev, addr) {
+  if (!TIPS_ON) return;
   const w = (teamWallets || []).find(x => x.address === addr);
   if (!w) return;
   charTipAddr = addr; nftTipAddr = null;
@@ -6748,8 +6752,6 @@ function moveTip(ev){
   t.style.left = Math.max(8,x) + 'px';
   t.style.top  = Math.max(8,y) + 'px';
 }
-// Bật/tắt toàn bộ tooltip (nhớ theo trình duyệt)
-let TIPS_ON = (()=>{ try{ return localStorage.getItem('msuTips')!=='0'; }catch(e){ return true; } })();
 function _tipIcon(on){
   const eye = on
     ? '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/>'
@@ -7728,6 +7730,7 @@ let _feedData = {};
 let _totalData = {};   // dữ liệu theo ngày cho tooltip phần tổng
 // Tooltip phần TỔNG: NESO nhận = lịch sử vài ngày; chi tiêu/swap = ngày gần nhất
 function showTotalTip(ev, elId) {
+  if (!TIPS_ON) return;
   const d = _totalData[elId];
   if (!d) return;
   let tip = document.getElementById('char-tip');
@@ -7787,6 +7790,7 @@ function showTotalTip(ev, elId) {
 
 // Tooltip liệt kê TOÀN BỘ ví của một feed khi rê chuột
 function showFeedTip(ev, elId) {
+  if (!TIPS_ON) return;
   const d = _feedData[elId];
   if (!d || !d.list || !d.list.length) return;
   let tip = document.getElementById('char-tip');
@@ -8399,6 +8403,7 @@ function renderClaimChart() {
     el.style.cursor = 'pointer';
     el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('claim', k); });
     el.addEventListener('mousemove', e => {
+      if (!TIPS_ON) { tip.style.opacity='0'; return; }
       const cl=clMap[k]||0, sl=slMap[k]||0;
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:var(--green);font-weight:700">${fmtFull(v)} NESO</div>
@@ -8663,6 +8668,7 @@ function renderSpendChart() {
     el.style.cursor = 'pointer';
     el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('spend', k); });
     el.addEventListener('mousemove', e => {
+      if (!TIPS_ON) { tip.style.opacity='0'; return; }
       const cr=crMap[k]||0, nf=nfMap[k]||0, ft=ftMap[k]||0, bn=bnMap[k]||0;
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:#ef4444;font-weight:700">${fmtFull(v)} NESO</div>
@@ -9045,6 +9051,7 @@ function renderUsdtChart() {
   body.querySelectorAll('rect[data-bi]').forEach(el => {
     const idx = +el.getAttribute('data-bi'); const r = rows[idx];
     el.addEventListener('mousemove', (e) => {
+      if (!TIPS_ON) { tip.style.opacity='0'; return; }
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${r.isNone?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg> Chưa gán':r.name}</div>
         <div style="color:var(--blue)">${fU(r.usdt)}</div>
         ${fV(r.usdt)?`<div style="color:var(--muted2);font-size:10px">${fV(r.usdt)}</div>`:''}
@@ -9232,6 +9239,7 @@ function renderSwapChart() {
     el.style.cursor = 'pointer';
     el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('revenue', k); });
     el.addEventListener('mousemove', e => {
+      if (!TIPS_ON) { tip.style.opacity='0'; return; }
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:var(--green);font-weight:700">${fmtFull(v)} NESO</div>
         <div style="color:var(--text2);font-size:10px">≈ ${fmtUsd(v)} · ${fmtVnd(v)}</div>
@@ -9384,6 +9392,7 @@ function renderSwapinChart() {
     el.style.cursor = 'pointer';
     el.addEventListener('click', () => { if(typeof selectChartPeriod==='function') selectChartPeriod('swapin', k); });
     el.addEventListener('mousemove', e => {
+      if (!TIPS_ON) { tip.style.opacity='0'; return; }
       tip.innerHTML = `<div style="font-weight:700;margin-bottom:3px">${lblOf(k)}</div>
         <div style="color:var(--blue);font-weight:700">${fmtFull(v)} NESO</div>
         <div style="color:var(--text2);font-size:10px">≈ ${fmtUsd(v)} · ${fmtVnd(v)}</div>
