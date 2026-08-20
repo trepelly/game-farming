@@ -942,7 +942,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(94px,.45fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(12){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(94px,.45fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(12){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -5274,14 +5274,14 @@ function renderLiteList(){
         return `<div class="mvp-num" style="text-align:right;white-space:nowrap;font-weight:600;cursor:pointer;color:${over?'#e06c6c':'var(--text2)'}" onclick="openMvpPop(event,'${w.address}')" data-tip="${tip}">${_mvD(wk)}</div>`;
       })()}
       ${(()=>{
-        const need=w.mvpDropNeed;
+        const need=w.mvpDropNeed, expired=w.mvpDropIn===0;
         if (need==null) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
         if (!need) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)" data-tip="Chi cũ vẫn đủ 30 điểm ở kỳ reset đó — chưa cần bù">—</div>';
         const pts=Math.ceil(need/MVP_NESO_PER_POINT);
         const enough=(w.neso||0)>=need;   // ví có sẵn NESO để chi luôn không
         const when=w.mvpDropIn===0?'ngay bây giờ':`trước Thứ 5 ngày ${w.mvpDropWeek||'?'}`;
         const tip=`Cần chi thêm ${Math.round(need).toLocaleString('vi-VN')} NESO (${pts} điểm)&#10;${when}&#10;${enough?'Ví có đủ NESO để chi':'Ví đang thiếu '+Math.round(need-(w.neso||0)).toLocaleString('vi-VN')+' NESO'}`;
-        return `<div class="mvp-num" style="text-align:right;font-weight:700;white-space:nowrap;color:var(--text)" data-tip="${tip}">${_lf(need)}</div>`;
+        return `<div class="mvp-num" style="text-align:right;font-weight:700;white-space:nowrap;color:${expired?'#e06c6c':'var(--text)'}" data-tip="${tip}">${_lf(need)}</div>`;
       })()}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
