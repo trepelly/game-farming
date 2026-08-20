@@ -398,6 +398,7 @@ td:first-child{text-align:left;color:var(--muted2)}
         <span id="hdr-avax-gas" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
       <div id="hdr-updated" class="hdr-chip" style="display:inline-flex;align-items:center;color:var(--muted2);border-radius:8px;padding:5px 7px" title="Chưa cập nhật"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div>
+      <button id="tip-toggle" onclick="toggleTips()" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;line-height:1;transition:all .2s;display:inline-flex;align-items:center"></button>
       <button onclick="fetchLivePrices(true)" title="Cập nhật giá" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;font-size:12px;line-height:1;transition:all .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">⟳</button>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
@@ -6718,6 +6719,7 @@ function _uiTipEl(){
 }
 function showTip(ev, text, html){
   if (!text && !html) return;
+  if (typeof TIPS_ON!=='undefined' && !TIPS_ON) return;   // chốt chặn cho mọi lối gọi khác
   const t = _uiTipEl();
   if (html) {
     t.innerHTML = html;
@@ -6746,6 +6748,28 @@ function moveTip(ev){
   t.style.left = Math.max(8,x) + 'px';
   t.style.top  = Math.max(8,y) + 'px';
 }
+// Bật/tắt toàn bộ tooltip (nhớ theo trình duyệt)
+let TIPS_ON = (()=>{ try{ return localStorage.getItem('msuTips')!=='0'; }catch(e){ return true; } })();
+function _tipIcon(on){
+  const eye = on
+    ? '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/>'
+    : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${eye}</svg>`;
+}
+function _syncTipBtn(){
+  const b=document.getElementById('tip-toggle'); if(!b) return;
+  b.innerHTML=_tipIcon(TIPS_ON);
+  b.style.color = TIPS_ON ? 'var(--text)' : 'var(--muted2)';
+  b.style.borderColor = TIPS_ON ? 'var(--border2)' : 'var(--border2)';
+  b.setAttribute('title', TIPS_ON ? 'Tắt tooltip' : 'Bật tooltip');
+}
+function toggleTips(){
+  TIPS_ON=!TIPS_ON;
+  try{ localStorage.setItem('msuTips', TIPS_ON?'1':'0'); }catch(e){}
+  if(!TIPS_ON) _hideTipNow();
+  _syncTipBtn();
+}
+try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_syncTipBtn); else _syncTipBtn(); }catch(e){}
 let _tipHideTimer=null;
 function hideTip(){
   const t = document.getElementById('ui-tip'); if(!t) return;
@@ -6764,7 +6788,7 @@ function _hideTipNow(){ const t=document.getElementById('ui-tip'); if(t){ t.styl
     document.addEventListener('mouseover', e => {
       let el = e.target.closest && e.target.closest('[data-tip]');
       if (!el && e.target.closest) { const tl = e.target.closest('[title]'); if (tl && tl.getAttribute('title')) { tl.setAttribute('data-tip', tl.getAttribute('title')); tl.removeAttribute('title'); el = tl; } }
-      if (el) showTip(e, el.getAttribute('data-tip'), el.getAttribute('data-tiph'));
+      if (el && TIPS_ON) showTip(e, el.getAttribute('data-tip'), el.getAttribute('data-tiph'));
     });
     document.addEventListener('mousemove', e => { const t = document.getElementById('ui-tip'); if (t && t.style.opacity === '1' && !t.classList.contains('mp-wrap')) moveTip(e); });
     document.addEventListener('mouseout',  e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) hideTip(); });
