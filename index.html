@@ -884,7 +884,8 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.mp-tooltip{width:228px;color:#eef2f7;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#1c2027,#14171c);border:1px solid #2b313b}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
+.mp-tooltip{width:228px;color:#eef2f7;border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#1c2027,#14171c);border:1px solid #2b313b}
 .mp-header{display:flex;align-items:center;gap:10px;padding:10px 11px 9px}
 .mp-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;border-width:1.5px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:'Chakra Petch',monospace;font-size:17px;font-weight:800}
 .mp-avatar img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
@@ -6759,6 +6760,7 @@ function _tipIcon(on){
   return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${eye}</svg>`;
 }
 function _syncTipBtn(){
+  try{ document.body.classList.toggle('tips-off', !TIPS_ON); }catch(e){}
   const b=document.getElementById('tip-toggle'); if(!b) return;
   b.innerHTML=_tipIcon(TIPS_ON);
   b.style.color = TIPS_ON ? 'var(--text)' : 'var(--muted2)';
