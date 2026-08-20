@@ -5279,7 +5279,7 @@ function renderLiteList(){
         if (k==null || !wk) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
         const dd=daysToWeek(wk);
         const over=k===0||dd<0;
-        const txt=over ? (dd>=0?'hết hạn':`quá hạn ${-dd} ngày`) : `còn ${dd} ngày`;
+        const txt=over ? (dd>=0?'hết hạn':`quá hạn ${-dd} ngày`) : `${dd} ngày`;
         const c=(over||dd<=1)?'#e06c6c':(dd<=14?'#d8a44f':'#7fd88f');
         const tip=over
           ? `${dd>=0?'Hết hạn từ hôm nay':'Đã quá hạn '+(-dd)+' ngày'} (Thứ 5 ngày ${wk})&#10;Ví hiện dưới 30 điểm · ${pts} điểm&#10;Bấm để xem cửa sổ 13 tuần`
@@ -5327,7 +5327,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','left','Số lượt boss chưa mở')}${hc('drop','Còn lại','left')}${hc('drop','Đáo hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','left','Số lượt boss chưa mở')}${hc('drop','MVP','left')}${hc('drop','Đáo hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
@@ -5349,7 +5349,7 @@ function renderLiteList(){
             const dd=up?daysToWeek(up.mvpDropWeek):null;
             const tip=`${ok}/${ws.length} ví đang đạt Bronze (≥30 điểm)&#10;${lost0} ví đã mất MVP&#10;${soon} ví sẽ rớt trong 4 kỳ reset tới&#10;${has.length-lost0-soon} ví còn an toàn trên 4 tuần&#10;${act}/${ws.length} ví có chi trong tuần này`;
             const c=lost0?'#e06c6c':(dd!=null&&dd<=7?'#d8a44f':'#7fd88f');
-            return `<div class="mvp-num" style="display:flex;align-items:center;justify-content:flex-end;white-space:nowrap;color:${c}" data-tip="${tip}">${dd!=null?'còn '+dd+' ngày':'—'}</div>`; })()}
+            return `<div class="mvp-num" style="display:flex;align-items:center;justify-content:flex-end;white-space:nowrap;color:${c}" data-tip="${tip}">${dd!=null?dd+' ngày':'—'}</div>`; })()}
           ${(()=>{ const up=ws.filter(w=>w.mvpDropIn>0&&w.mvpDropWeek).sort((x,y)=>x.mvpDropIn-y.mvpDropIn)[0];
             if(!up) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
             const n=ws.filter(w=>w.mvpDropWeek===up.mvpDropWeek&&w.mvpDropIn>0).length;
