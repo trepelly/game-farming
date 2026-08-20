@@ -942,7 +942,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(44px,.2fr) minmax(58px,1.2fr) minmax(42px,.9fr) minmax(44px,.95fr) minmax(44px,.95fr) minmax(40px,.95fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(12){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(42px,.2fr) minmax(40px,.25fr) minmax(58px,1.1fr) minmax(42px,.85fr) minmax(44px,.9fr) minmax(44px,.9fr) minmax(40px,.9fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -5212,13 +5212,13 @@ function renderLiteList(){
                lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
                world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
                cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
-               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), boss:w=>liteMissingBosses(w).length,
+               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), boss:w=>liteMissingBosses(w).length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(44px,.2fr) minmax(58px,1.2fr) minmax(42px,.9fr) minmax(44px,.95fr) minmax(44px,.95fr) minmax(40px,.95fr)';
+  const grid='22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(42px,.2fr) minmax(40px,.25fr) minmax(58px,1.1fr) minmax(42px,.85fr) minmax(44px,.9fr) minmax(44px,.9fr) minmax(40px,.9fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -5246,6 +5246,14 @@ function renderLiteList(){
         const tip = `Điểm sau reset Thứ 5&#10;Tuần ${w.mvpWindowFrom||'?'} rời cửa sổ 13 tuần${ex?`&#10;Mất ${ex} điểm → ${getTier(np).name}`:'&#10;Không mất điểm nào'}`;
         return `<div class="mvp-num" style="text-align:right;cursor:pointer;font-weight:700;color:${col}" onclick="openMvpPop(event,'${w.address}')" data-tip="${tip}">${_lf(np)}</div>`;
       })()}
+      ${(()=>{
+        const k=w.mvpDropIn;
+        if (k==null) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+        if (k===0) return '<div class="mvp-num" style="text-align:right;color:#e06c6c;font-weight:700" data-tip="Ví đang dưới 30 điểm — không có MVP">mất</div>';
+        const col=k<=1?'#e06c6c':(k<=4?'#d8a44f':'#7fd88f');
+        const tip=`Còn ${k} kỳ reset nữa là tụt dưới 30 điểm&#10;Rơi vào Thứ 5 ngày ${w.mvpDropWeek||'?'}&#10;(nếu từ giờ không chi thêm)`;
+        return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${col}" data-tip="${tip}">${k}<span style="font-size:8.5px;color:var(--muted2);font-weight:600">t</span></div>`;
+      })()}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
       ${cellN(w.avax,4,'var(--blue)','AVAX',(w.avax||0)*avaxRate)}
@@ -5270,7 +5278,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','right','Số lượt boss chưa mở')}${hc('weeks','13W','right','Số tuần đạt Bronze+ trong 13 tuần gần nhất')}${hc('pts','Điểm','right','Điểm MVP hiện tại (13 tuần gần nhất)')}${hc('next','T.sau','right','Điểm MVP sau kỳ reset Thứ 5 tới')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','right','Số lượt boss chưa mở')}${hc('weeks','13W','right','Số tuần đạt Bronze+ trong 13 tuần gần nhất')}${hc('pts','Điểm','right','Điểm MVP hiện tại (13 tuần gần nhất)')}${hc('next','T.sau','right','Điểm MVP sau kỳ reset Thứ 5 tới')}${hc('drop','Rớt','right','Còn bao nhiêu kỳ reset nữa thì tụt dưới 30 điểm&#10;(nếu từ giờ không chi thêm đồng nào)')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
@@ -5293,6 +5301,11 @@ function renderLiteList(){
             const tNext=has.reduce((a,w)=>a+w.mvpNextPoints,0), lost=tPts-tNext;
             const nDrop=has.filter(w=>w.mvpNextPoints<30 && mvpPtsOf(w)>=30).length;
             return `<div class="mvp-num" style="text-align:right;color:${nDrop?'#e06c6c':'var(--text)'}" data-tip="Tổng điểm sau reset Thứ 5&#10;Mất ${_lf(lost)} điểm${nDrop?`&#10;${nDrop} ví rớt khỏi Bronze`:''}">${_lf(tNext)}</div>`; })()}
+          ${(()=>{ const has=ws.filter(w=>w.mvpDropIn!=null);
+            if(!has.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+            const lost0=has.filter(w=>w.mvpDropIn===0).length;
+            const soon=has.filter(w=>w.mvpDropIn>0&&w.mvpDropIn<=4).length;
+            return `<div class="mvp-num" style="text-align:right;line-height:1.15;color:${soon?'#d8a44f':'#7fd88f'}" data-tip="Ví sẽ tụt dưới 30 điểm trong 4 kỳ reset tới&#10;${lost0} ví hiện đã mất MVP&#10;${has.length-lost0-soon} ví còn an toàn trên 4 tuần">${soon}<div style="font-size:8.5px;color:var(--muted2);font-weight:600">≤4t</div></div>`; })()}
           ${cellN(T('neso'),0,'var(--green)','Tổng NESO',T('neso')*nesoRate)}
           ${cellN(T('nxpc'),2,'var(--green)','Tổng NXPC',T('nxpc')*nxpcRate)}
           ${cellN(T('avax'),4,'var(--blue)','Tổng AVAX',T('avax')*avaxRate)}
@@ -10297,6 +10310,19 @@ async function loadTeamMvpPoints() {
         teamWallets[idx].mvpExpiring   = calc.points - mvpPtsOfValue(nextVal);
         teamWallets[idx].mvpNextPoints = mvpPtsOfValue(nextVal);
         teamWallets[idx].mvpNextTierNm = getTier(mvpPtsOfValue(nextVal)).name;
+        // Không chi thêm đồng nào thì sau bao nhiêu kỳ reset sẽ tụt dưới 30 điểm?
+        // Sau k kỳ reset, cửa sổ chỉ còn các tuần từ vị trí k trở đi.
+        {
+          let drop=null;
+          for (let k=0;k<=MVP_WINDOW_WEEKS;k++){
+            let rest=0;
+            for (let j=k;j<winKeys.length;j++) rest+=wmap[winKeys[j]]||0;
+            if (mvpPtsOfValue(rest)<30){ drop=k; break; }
+          }
+          if (drop==null) drop=MVP_WINDOW_WEEKS;
+          teamWallets[idx].mvpDropIn   = drop;                       // 0 = đã dưới 30 ngay bây giờ
+          teamWallets[idx].mvpDropWeek = weekKeyShift(winKeys[MVP_WINDOW_WEEKS-1], drop);
+        }
       }
       // Tổng thu (claim + bán + transfer, trừ swap) & NESO đã chi cho MVP (enhancement + out nft/ft) — toàn bộ lịch sử từ MVP_LAUNCH
       let inSum = 0, mvpSpentSum = 0;
