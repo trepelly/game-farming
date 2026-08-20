@@ -942,7 +942,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(36px,.3fr) minmax(42px,.25fr) minmax(92px,.45fr) minmax(58px,1.05fr) minmax(42px,.8fr) minmax(44px,.85fr) minmax(44px,.85fr) minmax(40px,.85fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(12){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(74px,1.1fr) minmax(54px,.4fr) minmax(82px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(36px,.3fr) minmax(42px,.25fr) minmax(92px,.4fr) minmax(50px,.35fr) minmax(58px,1fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -5212,13 +5212,13 @@ function renderLiteList(){
                lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
                world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
                cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
-               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), boss:w=>liteMissingBosses(w).length,
+               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), boss:w=>liteMissingBosses(w).length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(36px,.3fr) minmax(42px,.25fr) minmax(92px,.45fr) minmax(58px,1.05fr) minmax(42px,.8fr) minmax(44px,.85fr) minmax(44px,.85fr) minmax(40px,.85fr)';
+  const grid='22px minmax(74px,1.1fr) minmax(54px,.4fr) minmax(82px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(36px,.3fr) minmax(42px,.25fr) minmax(92px,.4fr) minmax(50px,.35fr) minmax(58px,1fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -5255,6 +5255,16 @@ function renderLiteList(){
         return cell(`Còn ${k} kỳ reset nữa là tụt dưới 30 điểm&#10;Rơi vào Thứ 5 ngày ${w.mvpDropWeek||'?'}&#10;(nếu từ giờ không chi thêm)`,
           pill('Trụ '+k+'t','#7fd88f')+(dt?`<span style="font-size:8.5px;color:var(--muted2);font-weight:600">${dt}</span>`:''));
       })()}
+      ${(()=>{
+        const need=w.mvpDropNeed;
+        if (need==null) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+        if (!need) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)" data-tip="Chi cũ vẫn đủ 30 điểm ở kỳ reset đó — chưa cần bù">—</div>';
+        const pts=Math.ceil(need/MVP_NESO_PER_POINT);
+        const enough=(w.neso||0)>=need;   // ví có sẵn NESO để chi luôn không
+        const when=w.mvpDropIn===0?'ngay bây giờ':`trước Thứ 5 ngày ${w.mvpDropWeek||'?'}`;
+        const tip=`Cần chi thêm ${Math.round(need).toLocaleString('vi-VN')} NESO (${pts} điểm)&#10;${when}&#10;${enough?'Ví có đủ NESO để chi':'Ví đang thiếu '+Math.round(need-(w.neso||0)).toLocaleString('vi-VN')+' NESO'}`;
+        return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${enough?'#d8a44f':'#e06c6c'}" data-tip="${tip}">${_mvK(need)}</div>`;
+      })()}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
       ${cellN(w.avax,4,'var(--blue)','AVAX',(w.avax||0)*avaxRate)}
@@ -5279,7 +5289,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','right','Số lượt boss chưa mở')}${hc('pts','Điểm','right','Điểm MVP hiện tại (13 tuần gần nhất)')}${hc('next','T.sau','right','Điểm MVP sau kỳ reset Thứ 5 tới')}${hc('drop','Trạng thái','right','Ví còn trụ được bao nhiêu kỳ reset trước khi tụt dưới 30 điểm&#10;(nếu từ giờ không chi thêm đồng nào)')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','right','Số lượt boss chưa mở')}${hc('pts','Điểm','right','Điểm MVP hiện tại (13 tuần gần nhất)')}${hc('next','T.sau','right','Điểm MVP sau kỳ reset Thứ 5 tới')}${hc('drop','Trạng thái','right','Ví còn trụ được bao nhiêu kỳ reset trước khi tụt dưới 30 điểm&#10;(nếu từ giờ không chi thêm đồng nào)')}${hc('need','Cần chi','right','NESO cần chi thêm trước tuần rớt để giữ mốc 30 điểm')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
@@ -5305,6 +5315,10 @@ function renderLiteList(){
             const lost0=has.filter(w=>w.mvpDropIn===0).length;
             const soon=has.filter(w=>w.mvpDropIn>0&&w.mvpDropIn<=4).length;
             return `<div class="mvp-num" style="text-align:right;white-space:nowrap;color:${soon?'#d8a44f':'#7fd88f'}" data-tip="Ví sẽ tụt dưới 30 điểm trong 4 kỳ reset tới&#10;${lost0} ví hiện đã mất MVP&#10;${has.length-lost0-soon} ví còn an toàn trên 4 tuần">${soon}<span style="font-size:8.5px;color:var(--muted2);font-weight:600"> ≤4t</span></div>`; })()}
+          ${(()=>{ const has=ws.filter(w=>w.mvpDropNeed); const tot=has.reduce((a,w)=>a+w.mvpDropNeed,0);
+            if(!tot) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+            const lack=has.filter(w=>(w.neso||0)<w.mvpDropNeed).length;
+            return `<div class="mvp-num" style="text-align:right;color:${lack?'#e06c6c':'#d8a44f'}" data-tip="Tổng NESO cần chi để không ví nào rớt&#10;${Math.round(tot).toLocaleString('vi-VN')} NESO · ${Math.ceil(tot/MVP_NESO_PER_POINT)} điểm&#10;${has.length} ví cần bù, ${lack} ví không đủ NESO trong ví">${_mvK(tot)}</div>`; })()}
           ${cellN(T('neso'),0,'var(--green)','Tổng NESO',T('neso')*nesoRate)}
           ${cellN(T('nxpc'),2,'var(--green)','Tổng NXPC',T('nxpc')*nxpcRate)}
           ${cellN(T('avax'),4,'var(--blue)','Tổng AVAX',T('avax')*avaxRate)}
@@ -10321,6 +10335,10 @@ async function loadTeamMvpPoints() {
           if (drop==null) drop=MVP_WINDOW_WEEKS;
           teamWallets[idx].mvpDropIn   = drop;                       // 0 = đã dưới 30 ngay bây giờ
           teamWallets[idx].mvpDropWeek = weekKeyShift(winKeys[MVP_WINDOW_WEEKS-1], drop);
+          // Tại kỳ reset đó, phần chi cũ còn lại trong cửa sổ là bao nhiêu -> cần bù thêm cho đủ 30 điểm
+          let keep=0;
+          for (let j=drop;j<winKeys.length;j++) keep+=wmap[winKeys[j]]||0;
+          teamWallets[idx].mvpDropNeed = Math.max(0, 30*MVP_NESO_PER_POINT - keep);
         }
       }
       // Tổng thu (claim + bán + transfer, trừ swap) & NESO đã chi cho MVP (enhancement + out nft/ft) — toàn bộ lịch sử từ MVP_LAUNCH
