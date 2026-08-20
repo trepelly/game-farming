@@ -4424,13 +4424,8 @@ function clearLiteQuery(){ liteQuery=''; renderLiteList(); const i=document.getE
 let litePlayer='all', liteQuery='', litePQuery='', liteTier='all', liteSort={col:'neso',dir:'desc'};
 function setLitePQuery(v){ litePQuery=(v||'').toLowerCase(); renderLitePlayers(); applyLitePanelW(); const i=document.getElementById('lite-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); renderLiteList(); }
-// Ví dưới 30 điểm được tách theo việc TUẦN NÀY có chi hay không —
-// trước đây chia theo 0 điểm / dưới 30 điểm nên hai nhóm nói gần như cùng một chuyện.
-function mvpGroup(w){
-  const p=mvpPtsOf(w);
-  if (p>=30) return 'bronze';
-  return (w.mvpWeekValue||0)>0 ? 'acc' : 'nofarm';
-}
+// Dưới 30 điểm là mất quyền farm, không cần tách nhỏ thêm
+function mvpGroup(w){ return mvpPtsOf(w)>=30 ? 'bronze' : 'expired'; }
 function liteTierPass(w){ return liteTier==='all' || mvpGroup(w)===liteTier; }
 function setLitePlayer(p){ litePlayer=(litePlayer===p)?'all':p; renderLiteTab(); }
 function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); const i=document.getElementById('lite-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
@@ -4541,10 +4536,9 @@ function renderLiteTiers(){
   const el=document.getElementById('lite-tiers'); if(!el) return;
   const ws=liteScope();
   const defs=[
-    {k:'nofarm', lb:'Chưa farm',     ic:'○',  sub:'tuần này chưa chi', c:'var(--muted2)', t:w=>mvpGroup(w)==='nofarm'},
-    {k:'acc',    lb:'Đang tích luỹ', ic:'⏳', sub:'đang chi · < 30',   c:'#d8a44f',       t:w=>mvpGroup(w)==='acc'},
-    {k:'bronze', lb:'Bronze',        ic:'🥉', sub:'≥ 30 điểm',         c:'#cd7f32',       t:w=>mvpGroup(w)==='bronze'},
-    {k:'all',    lb:'Tất cả',        ic:'◎',  sub:'mọi ví',            c:'var(--accent)', t:()=>true},
+    {k:'expired', lb:'Hết hạn', ic:'○',  sub:'< 30 điểm', c:'#e06c6c',       t:w=>mvpGroup(w)==='expired'},
+    {k:'bronze',  lb:'Bronze',  ic:'🥉', sub:'≥ 30 điểm', c:'#cd7f32',       t:w=>mvpGroup(w)==='bronze'},
+    {k:'all',     lb:'Tất cả',  ic:'◎',  sub:'mọi ví',    c:'var(--accent)', t:()=>true},
   ];
   const counts=defs.map(d=>ws.filter(w=>d.t(w)).length);
   const mx=Math.max(...counts.filter((_,i)=>defs[i].k!=='all'),1);
@@ -10459,8 +10453,7 @@ function computeMvpBuckets() {
   let ws = effectiveWallets().slice();
   if (mvpPlayer !== 'all') ws = ws.filter(w => (w.player||'') === mvpPlayer);
   const defs = [
-    { label:'Chưa farm',     icon:'🕳️', color:'var(--muted2)', sub:'tuần này chưa chi', pre:true, wtest:w=>mvpGroup(w)==='nofarm' },
-    { label:'Đang tích luỹ', icon:'⏳', color:'#d8a44f',       sub:'đang chi · <30',    pre:true, wtest:w=>mvpGroup(w)==='acc' },
+    { label:'Hết hạn', icon:'○', color:'#e06c6c', sub:'< 30 điểm', pre:true, wtest:w=>mvpGroup(w)==='expired' },
   ];
   const _tiers = MVP_TIERS.filter(t=>t.name!=='Unranked' && t.name!=='Black');  // 6 ô: bỏ Black, gộp vào Diamond
   _tiers.forEach((t,_ti)=>{
