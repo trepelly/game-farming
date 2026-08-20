@@ -942,7 +942,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(42px,.2fr) minmax(40px,.25fr) minmax(58px,1.1fr) minmax(42px,.85fr) minmax(44px,.9fr) minmax(44px,.9fr) minmax(40px,.9fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(42px,.2fr) minmax(48px,.25fr) minmax(58px,1.1fr) minmax(42px,.85fr) minmax(44px,.9fr) minmax(44px,.9fr) minmax(40px,.9fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -5218,7 +5218,7 @@ function renderLiteList(){
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(42px,.2fr) minmax(40px,.25fr) minmax(58px,1.1fr) minmax(42px,.85fr) minmax(44px,.9fr) minmax(44px,.9fr) minmax(40px,.9fr)';
+  const grid='22px minmax(74px,1.15fr) minmax(54px,.4fr) minmax(82px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(34px,.35fr) minmax(36px,.3fr) minmax(42px,.2fr) minmax(48px,.25fr) minmax(58px,1.1fr) minmax(42px,.85fr) minmax(44px,.9fr) minmax(44px,.9fr) minmax(40px,.9fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -5252,7 +5252,8 @@ function renderLiteList(){
         if (k===0) return '<div class="mvp-num" style="text-align:right;color:#e06c6c;font-weight:700" data-tip="Ví đang dưới 30 điểm — không có MVP">mất</div>';
         const col=k<=1?'#e06c6c':(k<=4?'#d8a44f':'#7fd88f');
         const tip=`Còn ${k} kỳ reset nữa là tụt dưới 30 điểm&#10;Rơi vào Thứ 5 ngày ${w.mvpDropWeek||'?'}&#10;(nếu từ giờ không chi thêm)`;
-        return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${col}" data-tip="${tip}">${k}<span style="font-size:8.5px;color:var(--muted2);font-weight:600">t</span></div>`;
+        const dt=w.mvpDropWeek?_mvD(w.mvpDropWeek):'';
+        return `<div class="mvp-num" style="text-align:right;line-height:1.15" data-tip="${tip}"><div style="font-weight:700;color:${col}">${k}<span style="font-size:8.5px;color:var(--muted2);font-weight:600">t</span></div>${dt?`<div style="font-size:8.5px;color:var(--muted2);font-weight:600">${dt}</div>`:''}</div>`;
       })()}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
