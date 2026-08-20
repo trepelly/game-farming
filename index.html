@@ -4430,6 +4430,25 @@ function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); con
 function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player'||c==='char'||c==='world')?'asc':'desc'}; renderLiteList(); }
 function liteScope(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return litePlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===litePlayer); }
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
+// Bản rút gọn cho bảng danh sách: từ 10 triệu trở lên đổi sang ký tự đơn vị.
+// Giá trị đầy đủ vẫn nằm trong tooltip nên không mất thông tin.
+// CP: nghìn -> k, triệu -> tr (giữ 1 số lẻ tới dưới 100tr)
+function _cpf(v){
+  if (!v) return '—';
+  if (v>=1e6) return String(v>=1e8?Math.round(v/1e6):Math.round(v/1e5)/10).replace('.',',')+'tr';
+  if (v>=1000) return Math.round(v/1000)+'k';
+  return String(Math.round(v));
+}
+function _lfc(n,d){
+  if (n==null) return '—';
+  const a=Math.abs(n);
+  const cut=(v,u)=>{ const x=v>=100?Math.round(v):Math.round(v*10)/10;
+                     return String(x).replace('.',',')+u; };
+  if (a>=1e12) return cut(n/1e12,'ng.tỷ');
+  if (a>=1e9)  return cut(n/1e9,'tỷ');
+  if (a>=1e7)  return cut(n/1e6,'tr');
+  return _lf(n,d);
+}
 // Dùng đúng nguồn logo app đang chạy (CoinMarketCap + ảnh NESO)
 const TOKEN_ICON = {
   'NESO':'https://cdn.mmogah.com/cdn-cgi/image/format=auto,metadata=none,quality=70,width=64/images/2025-05-21-16/maplestory-n-neso.png',
@@ -5219,7 +5238,7 @@ function renderLiteList(){
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
   const grid='22px minmax(76px,1.15fr) minmax(54px,.4fr) minmax(84px,1.25fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(58px,.35fr) minmax(46px,.3fr) minmax(50px,.35fr) minmax(58px,1fr) minmax(42px,.8fr) minmax(44px,.85fr) minmax(44px,.85fr) minmax(40px,.85fr)';
-  const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
+  const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lfc(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
       <div style="min-width:0;line-height:1.3">
@@ -5233,7 +5252,7 @@ function renderLiteList(){
       ${(()=>{ const c=topChar(w); const lv=(c&&c.level)||w.maxCpLevel||null;
         return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${lv?'var(--text2)':'var(--muted2)'}">${lv||'—'}</div>`; })()}
       ${(()=>{ const c=topChar(w); const cp=(c&&c.cp)||w.maxCp||null;
-        return `<div class="mvp-num" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" ${cp?`data-tip="CP: ${Math.round(cp).toLocaleString('vi-VN')}"`:''}>${cp?(cp>=1000?Math.round(cp/1000)+'k':Math.round(cp)):'—'}</div>`; })()}
+        return `<div class="mvp-num" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" ${cp?`data-tip="CP: ${Math.round(cp).toLocaleString('vi-VN')}"`:''}>${_cpf(cp)}</div>`; })()}
       ${liteBossCell(w)}
       ${(()=>{
         const k=w.mvpDropIn, pts=mvpPtsOf(w);
@@ -5297,7 +5316,7 @@ function renderLiteList(){
           <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap">${ws.reduce((s,w)=>s+((w.chars||[]).filter(c=>c.name).length),0)} nv</div>
           <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap">${(()=>{const ws2=[...new Set(ws.map(w=>{const c=topChar(w);return (c&&c.world)||w.maxCpWorld||null;}).filter(Boolean))]; return ws2.length?ws2.length+' world':'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=topChar(w);return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
-          <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+Math.round(Math.max(...cp)/1000)+'k':'—';})()}</div>
+          <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+_cpf(Math.max(...cp)):'—';})()}</div>
           ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
             return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
           ${(()=>{ const has=ws.filter(w=>w.mvpDropIn!=null);
