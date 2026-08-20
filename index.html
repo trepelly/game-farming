@@ -4791,9 +4791,48 @@ function _arcTip(a){
   return p.join(' · ');
 }
 // Trang bị của nhân vật: lấy từ danh sách NFT items app đã tải (tab NFT Items)
+// Khoá nhận dạng một NFT: assetKey là duy nhất; bản cache cũ không có thì ghép tạm
+function _itemKey(it){
+  const o=(it&&it.nftItem)||{};
+  return o.assetKey || o.tokenId || it.assetKey || it.tokenId ||
+         `${o.name||''}|${o.imageUrl||''}|${o.ownedCharacter||''}|${o.starforce||0}`;
+}
+function _dedupItems(list){
+  const seen=new Set(), out=[];
+  (list||[]).forEach(it=>{ const k=_itemKey(it); if(seen.has(k)) return; seen.add(k); out.push(it); });
+  return out;
+}
+// Tải NFT của một ví. Tham số phân trang đúng là paginationParam.pageNo — dùng
+// paginationRequest.pageNum thì API trả lại trang 1 nên danh sách bị nhân đôi.
+async function fetchNftItems(addr, maxPages){
+  let all=[], page=1, total=0; const seen=new Set();
+  const lim=maxPages||5;
+  do{
+    const url=`https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
+    const r=await fetch(msuProxy(url));
+    if(!r.ok) break;
+    const t=await r.text();
+    if(!t || t.trim().startsWith('<')) break;
+    const j=JSON.parse(t);
+    total=j.paginationResult?.totalCount||0;
+    const got=j.items||[];
+    if(!got.length) break;
+    let added=0;
+    got.forEach(it=>{ const k=_itemKey(it); if(seen.has(k)) return; seen.add(k); all.push(it); added++; });
+    if(!added) break;                       // trang lặp lại -> dừng, không nhân đôi
+    page++;
+    await new Promise(rs=>setTimeout(rs,220));
+  } while(all.length<total && page<=lim);
+  return all;
+}
+// Bản gọn để lưu cache — giữ assetKey để lần sau vẫn khử trùng lặp được
+function _slimItems(all){
+  return (all||[]).map(it=>({ nftItem:{ assetKey:it.nftItem?.assetKey, name:it.nftItem?.name, imageUrl:it.nftItem?.imageUrl, ownedCharacter:it.nftItem?.ownedCharacter, starforce:it.nftItem?.starforce },
+    category:{ tier3:{ label: it.category?.tier3?.label || it.category?.tier2?.label || '' } } }));
+}
 const EQ_CACHE_TTL = 6*60*60*1000;   // 6 giờ
-const EQ_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuEqCache')||'{}'); }catch(e){ return {}; } })();
-function _saveEqCache(){ try{ localStorage.setItem('msuEqCache', JSON.stringify(EQ_CACHE)); }catch(e){} }
+const EQ_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuEqCache2')||'{}'); }catch(e){ return {}; } })();
+function _saveEqCache(){ try{ localStorage.setItem('msuEqCache2', JSON.stringify(EQ_CACHE)); }catch(e){} }
 let eqLoading = false;
 const _eqTried = new Set();
 let _eqTimer = null;
@@ -4822,22 +4861,10 @@ async function loadLiteItems(force){
   try{
     for (const w of todo){
       try{
-        let all=[], page=1, total=0;
-        do{
-          const url=`https://msu.io/navigator/api/navigator/inventory/${w.address}/items?requestType=RequestType_NftItem&location=Location_All&paginationRequest.pageNum=${page}&paginationRequest.pageSize=30`;
-          const r=await fetch(msuProxy(url));
-          if(!r.ok) break;
-          const t=await r.text();
-          if(!t || t.trim().startsWith('<')) break;
-          const j=JSON.parse(t);
-          total=j.paginationResult?.totalCount||0;
-          all=all.concat(j.items||[]);
-          page++;
-          await new Promise(rs=>setTimeout(rs,250));
-        } while(all.length<total && page<=4);
+        const all=await fetchNftItems(w.address,5);
         if (all.length){
           w.nftItemsFull=all; ok++;
-          EQ_CACHE[(w.address||'').toLowerCase()] = { ts: Date.now(), items: all.map(it=>({ nftItem:{ name:it.nftItem?.name, imageUrl:it.nftItem?.imageUrl, ownedCharacter:it.nftItem?.ownedCharacter }, category:{ tier3:{ label: it.category?.tier3?.label || it.category?.tier2?.label || '' } } })) };
+          EQ_CACHE[(w.address||'').toLowerCase()] = { ts: Date.now(), items: _slimItems(all) };
           _saveEqCache();
         }
       }catch(e){}
@@ -4874,22 +4901,10 @@ async function eqHover(addr){
   _eqHoverBusy.add(addr);
   _refreshHoverTip(addr, true);                    // hiện "đang tải…" ngay
   try{
-    let all=[], page=1, total=0;
-    do{
-      const url=`https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_NftItem&location=Location_All&paginationRequest.pageNum=${page}&paginationRequest.pageSize=30`;
-      const r=await fetch(msuProxy(url));
-      if(!r.ok) break;
-      const t=await r.text();
-      if(!t || t.trim().startsWith('<')) break;
-      const j=JSON.parse(t);
-      total=j.paginationResult?.totalCount||0;
-      all=all.concat(j.items||[]);
-      page++;
-      await new Promise(rs=>setTimeout(rs,200));
-    } while(all.length<total && page<=4);
+    const all=await fetchNftItems(addr,5);
     if (all.length){
       w.nftItemsFull=all;
-      EQ_CACHE[(addr||'').toLowerCase()]={ ts:Date.now(), items: all.map(it=>({ nftItem:{ name:it.nftItem?.name, imageUrl:it.nftItem?.imageUrl, ownedCharacter:it.nftItem?.ownedCharacter }, category:{ tier3:{ label: it.category?.tier3?.label || it.category?.tier2?.label || '' } } })) };
+      EQ_CACHE[(addr||'').toLowerCase()]={ ts:Date.now(), items:_slimItems(all) };
       _saveEqCache();
     }
   }catch(e){}
@@ -5025,7 +5040,7 @@ function _eqName(el, name, cat){
   l.style.color = name ? '#eef2f7' : '#7b8494';
 }
 function charEquipItems(w, charName){
-  const list = (w && w.nftItemsFull) || [];
+  const list = _dedupItems((w && w.nftItemsFull) || []);
   const out = [];
   list.forEach(it=>{
     const o = it.nftItem; if(!o) return;
@@ -10125,6 +10140,7 @@ async function loadTeamNftCounts() {
         page++;
         await new Promise(rs=>setTimeout(rs,200));
       } while (allItems.length < total && page <= 5);
+      allItems = _dedupItems(allItems);
 
       // Classify NFT: in character vs in wallet
       const inChar = allItems.filter(it => it.nftItem?.ownedCharacter).length;
@@ -11146,7 +11162,7 @@ async function renderItemsTab(address, type) {
         page++;
         await new Promise(rs=>setTimeout(rs,300));
       } while (all.length < total && page <= 5);
-      items = all;
+      items = _dedupItems(all);
     } catch(e) {
       return `<div style="color:var(--red);padding:12px;font-size:11px">Lỗi tải items: ${e.message}</div>`;
     }
