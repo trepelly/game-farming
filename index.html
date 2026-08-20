@@ -5212,13 +5212,13 @@ function renderLiteList(){
                lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
                world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
                cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
-               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), boss:w=>liteMissingBosses(w).length,
+               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), boss:w=>liteMissingBosses(w).length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al)=>`<div onclick="setLiteSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='24px minmax(84px,1fr) 62px minmax(92px,1.1fr) 62px 38px 58px 68px 44px 42px minmax(66px,.85fr) minmax(46px,.55fr) minmax(50px,.58fr) minmax(50px,.58fr) minmax(44px,.5fr)';
+  const grid='24px minmax(84px,1fr) 62px minmax(92px,1.1fr) 62px 38px 58px 68px 44px 42px 52px minmax(66px,.85fr) minmax(46px,.55fr) minmax(50px,.58fr) minmax(50px,.58fr) minmax(44px,.5fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lf(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -5236,7 +5236,16 @@ function renderLiteList(){
         return `<div class="mvp-num" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" ${cp?`data-tip="CP: ${Math.round(cp).toLocaleString('vi-VN')}"`:''}>${cp?(cp>=1000?Math.round(cp/1000)+'k':Math.round(cp)):'—'}</div>`; })()}
       ${liteBossCell(w)}
       <div class="mvp-num" style="text-align:right">${w.mvpBronzeWeeks!=null?`<span style="color:${w.mvpBronzeWeeks>=13?'#7fd88f':'#d8a44f'};font-weight:600">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
-      <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_lf(mvpPtsOf(w))}</div>
+      <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text);cursor:pointer" onclick="openMvpPop(event,'${w.address}')" data-tip="Xem cửa sổ 13 tuần">${_lf(mvpPtsOf(w))}</div>
+      ${(()=>{
+        const np=w.mvpNextPoints, cp=mvpPtsOf(w), ex=w.mvpExpiring||0;
+        if (np==null) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+        // mất MVP sau reset = đỏ; tụt hạng nhưng còn MVP = vàng; giữ nguyên = xám
+        const drop = np<30 && cp>=30, down = getTier(np).name!==getTier(cp).name;
+        const col = drop?'#e06c6c':(down?'#d8a44f':(ex?'var(--text2)':'var(--muted2)'));
+        const tip = `Điểm sau reset Thứ 5&#10;Tuần ${w.mvpWindowFrom||'?'} rời cửa sổ 13 tuần${ex?`&#10;Mất ${ex} điểm → ${getTier(np).name}`:'&#10;Không mất điểm nào'}`;
+        return `<div class="mvp-num" style="text-align:right;cursor:pointer" onclick="openMvpPop(event,'${w.address}')" data-tip="${tip}"><span style="color:${col};font-weight:700">${_lf(np)}</span>${ex?`<span style="font-size:9px;color:var(--muted2)">−${ex}</span>`:''}</div>`;
+      })()}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
       ${cellN(w.avax,4,'var(--blue)','AVAX',(w.avax||0)*avaxRate)}
@@ -5261,7 +5270,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','right')}${hc('weeks','13W','right')}${hc('pts','Điểm','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','right')}${hc('weeks','13W','right')}${hc('pts','Điểm','right')}${hc('next','Tuần sau','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
@@ -5275,6 +5284,11 @@ function renderLiteList(){
             return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
           <div class="mvp-num" style="text-align:right;color:var(--text)">${nW?tWeeks+'<span style="font-size:9px;color:var(--muted2)">/'+(nW*13)+'</span>':'—'}</div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${_lf(tPts)}</div>
+          ${(()=>{ const has=ws.filter(w=>w.mvpNextPoints!=null);
+            if(!has.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+            const tNext=has.reduce((a,w)=>a+w.mvpNextPoints,0), lost=tPts-tNext;
+            const nDrop=has.filter(w=>w.mvpNextPoints<30 && mvpPtsOf(w)>=30).length;
+            return `<div class="mvp-num" style="text-align:right;color:${nDrop?'#e06c6c':'var(--text)'}" data-tip="Tổng điểm sau reset Thứ 5&#10;Mất ${_lf(lost)} điểm${nDrop?`&#10;${nDrop} ví rớt khỏi Bronze`:''}">${_lf(tNext)}${nDrop?`<span style="font-size:9px;color:#e06c6c"> ${nDrop}↓</span>`:''}</div>`; })()}
           ${cellN(T('neso'),0,'var(--green)','Tổng NESO',T('neso')*nesoRate)}
           ${cellN(T('nxpc'),2,'var(--green)','Tổng NXPC',T('nxpc')*nxpcRate)}
           ${cellN(T('avax'),4,'var(--blue)','Tổng AVAX',T('avax')*avaxRate)}
