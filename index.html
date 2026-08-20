@@ -2100,6 +2100,8 @@ const MVP_TIERS = [
 ];
 // ── Hằng số nghiệp vụ (chỉnh 1 chỗ khi biết số thật) ──
 const MVP_NESO_PER_POINT = 100000;   // 1 điểm MVP = 100.000 NESO chi ra
+const MVP_WINDOW_WEEKS   = 13;       // điểm chỉ tính trong 13 tuần lịch gần nhất, tuần thứ 14 rơi khỏi cửa sổ
+const MVP_WEEK_TARGET    = 230000;   // giá trị MVP cần chi mỗi tuần để giữ mốc Bronze (13 x 230k ≈ 3 triệu = 30 điểm)
 const VALUE_PER_UPGRADE  = 413;      // USD ước tính thu thêm mỗi lần 1 ví lên hạng (cần hiệu chỉnh)
 const RECON_RATIO        = 1;        // hệ số hiệu chỉnh (=1 tới khi có dữ liệu tuần thật)
 function getTier(pts) { return MVP_TIERS.find(t=>pts>=t.min&&pts<=t.max)||MVP_TIERS[0]; }
@@ -5243,7 +5245,7 @@ function renderLiteList(){
     </div>`).join('');
   const T=k=>ws.reduce((s,w)=>s+(w[k]||0),0);
   const tPts=ws.reduce((s,w)=>s+mvpPtsOf(w),0), tWeeks=ws.filter(w=>w.mvpBronzeWeeks!=null).reduce((s,w)=>s+w.mvpBronzeWeeks,0), nW=ws.filter(w=>w.mvpBronzeWeeks!=null).length;
-  const tWeek=ws.reduce((s,w)=>s+(w.mvpWeekValue||0),0), nOk=ws.filter(w=>(w.mvpWeekValue||0)>=230000).length;
+  const tWeek=ws.reduce((s,w)=>s+(w.mvpWeekValue||0),0), nOk=ws.filter(w=>(w.mvpWeekValue||0)>=MVP_WEEK_TARGET).length;
   try { ensureCharImgs(ws.map(w=>(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]).filter(Boolean)); } catch(e){}
   try { ensureWalletItems(ws); } catch(e){}
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">
@@ -9502,58 +9504,73 @@ function getWeekKey(dateStr) {
   return thu.toISOString().slice(0,10);
 }
 
+// Dịch một khoá tuần đi n tuần
+function weekKeyShift(key, n){
+  const d=new Date(key+'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate()+7*n);
+  return d.toISOString().slice(0,10);
+}
+function currentWeekKey(){ return getWeekKey(new Date().toISOString().slice(0,10)); }
+// 13 tuần LỊCH gần nhất tính tới tuần hiện tại — tuần không chi tiêu vẫn nằm trong cửa sổ với 0 điểm
+function mvpWindowKeys(endKey){
+  const e=endKey||currentWeekKey(), out=[];
+  for (let i=MVP_WINDOW_WEEKS-1;i>=0;i--) out.push(weekKeyShift(e,-i));
+  return out;
+}
+// Gộp giá trị MVP theo tuần: enhancement 100% + (out NFT + out FT) 5%
+function mvpWeekMap(rows){
+  const m={};
+  (rows||[]).forEach(r=>{
+    const k=getWeekKey(r.day);
+    const enh=r.out_enhancement_amount||r.out_crystal_amount||0;
+    const nft=r.out_nft_amount||0, ft=r.out_ft_amount||0;
+    m[k]=(m[k]||0)+enh+(nft+ft)*0.05;
+  });
+  return m;
+}
+function mvpPtsOfValue(v){ return Math.floor((v||0)/MVP_NESO_PER_POINT); }
+
 // Build weekly breakdown from daily rows
 function buildWeeklyRows(allRows) {
-  // Group by week
-  const weekMap = {};
-  allRows.forEach(r => {
-    const key = getWeekKey(r.day);
-    if (!weekMap[key]) weekMap[key] = [];
-    weekMap[key].push(r);
-  });
+  const wmap = mvpWeekMap(allRows);
+  const dataKeys = Object.keys(wmap).sort();
+  const curKey = currentWeekKey();
+  const winKeys = mvpWindowKeys(curKey);
+  const inWindow = new Set(winKeys);
 
-  // Sort weeks, take last 13
-  const allKeys   = Object.keys(weekMap).sort();
-  const last13    = allKeys.slice(-13);
-  const inWindow  = new Set(last13);
+  // Dải tuần liên tục: từ tuần có dữ liệu sớm nhất (hoặc đầu cửa sổ) tới tuần hiện tại.
+  // Tuần không chi tiêu vẫn phải có mặt, nếu không sẽ không thấy điểm rụng đi.
+  let start = dataKeys.length ? dataKeys[0] : winKeys[0];
+  if (start > winKeys[0]) start = winKeys[0];
+  const keys=[];
+  for (let k=start; k<=curKey; k=weekKeyShift(k,1)){ keys.push(k); if (keys.length>400) break; }
 
-  const rows = [];
-  let cumulative = 0;
-  allKeys.forEach((key, i) => {
-    const weekRows = weekMap[key];
-    const calc = calcMvpFromRows(weekRows);
-    if (inWindow.has(key)) cumulative += calc.points;
+  const nowUtc = new Date();
+  return keys.map((key,i)=>{
+    const weekEnhance = wmap[key]||0;
+    // Tổng trượt: cộng dồn 13 tuần kết thúc ở tuần này, rồi mới chia 100.000
+    let roll=0;
+    for (let j=0;j<MVP_WINDOW_WEEKS;j++) roll += wmap[weekKeyShift(key,-j)]||0;
+    const cum = mvpPtsOfValue(roll);
 
-    // Sum MVP formula value for this week: Enhancement×100% + (OutNFT+OutFT)×5%
-    const weekEnhance = weekRows.reduce((s,r)=>{
-      const enh = r.out_enhancement_amount||r.out_crystal_amount||0;
-      const nft = r.out_nft_amount||0;
-      const ft  = r.out_ft_amount||0;
-      return s + enh + (nft+ft)*0.05;
-    },0);
-
-    const weekStart = new Date(key + 'T00:00:00Z');
-    const weekEnd   = new Date(weekStart);
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    const weekStart=new Date(key+'T00:00:00Z');
+    const weekEnd=new Date(weekStart);
+    weekEnd.setUTCDate(weekEnd.getUTCDate()+6);
     weekEnd.setUTCHours(23,59,59,0);
 
-    // Is this the current week?
-    const nowUtc = new Date();
-    const isCurrentWeek = nowUtc >= weekStart && nowUtc <= weekEnd;
-
-    rows.push({
-      weekNum:          i + 1,
+    return {
+      weekNum:          i+1,
+      weekKey:          key,
       periodStart:      weekStart,
       periodEnd:        weekEnd,
-      weeklyPoints:     inWindow.has(key) ? calc.points : 0,
-      cumulativePoints: inWindow.has(key) ? cumulative : 0,
-      tier:             getTier(inWindow.has(key) ? cumulative : 0),
+      weeklyPoints:     mvpPtsOfValue(weekEnhance),
+      cumulativePoints: cum,
+      tier:             getTier(cum),
       inWindow:         inWindow.has(key),
       enhance:          weekEnhance,
-      isCurrentWeek:    isCurrentWeek,
-    });
+      isCurrentWeek:    key===curKey && nowUtc>=weekStart && nowUtc<=weekEnd,
+    };
   });
-  return rows;
 }
 
 function fmtDateTime(d) {
@@ -9602,6 +9619,21 @@ function renderMvpResult(address, rows, totalPts, label) {
         </div>
         <div style="text-align:right;font-size:9px;color:var(--muted2);margin-top:3px">${progPct.toFixed(0)}% · còn ${f(next.min - totalPts)} điểm lên ${next.name}</div>
       </div>` : `<div style="margin-bottom:16px;font-size:11px;color:var(--amber);font-weight:700;text-align:center">🏆 Đã đạt tier cao nhất (${tier.name})</div>`}
+      ${(()=>{
+        const win=rows.filter(r=>r.inWindow);
+        if(!win.length) return '';
+        const first=win[0], cur=win[win.length-1];
+        const drop=mvpPtsOfValue(Math.max(0,(win.reduce((a,r)=>a+r.enhance,0))-first.enhance));
+        const lost=totalPts-drop;
+        const nextTierNm=getTier(drop);
+        const stillOk=drop>=30;
+        const bar=(c,t)=>`<div style="flex:1;min-width:150px;background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:8px 10px"><div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">${t}</div><div style="font-size:12px;font-weight:700;color:${c}">`;
+        return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          ${bar('var(--text)','Cửa sổ tính điểm')}${fmtDateTime(first.periodStart).slice(0,10)} → ${fmtDateTime(cur.periodEnd).slice(0,10)}</div></div>
+          ${bar(lost>0?'var(--amber)':'var(--muted2)',`Tuần ${first.weekKey} rời cửa sổ`)}${lost>0?'−'+f(lost)+' điểm':'0 điểm'}</div></div>
+          ${bar(stillOk?'var(--green)':'var(--red)','Điểm sau reset Thứ 5 tới')}${f(drop)} điểm · ${nextTierNm.name==='Unranked'?'mất MVP':nextTierNm.icon+' '+nextTierNm.name}</div></div>
+        </div>`;
+      })()}
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead><tr style="background:var(--surface);border-bottom:1px solid var(--border2)">
@@ -9620,7 +9652,7 @@ function renderMvpResult(address, rows, totalPts, label) {
               <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDateTime(r.periodStart)}</td>
               <td style="padding:7px 10px;font-family:monospace;font-size:11px">${fmtDateTime(r.periodEnd)}</td>
               <td style="padding:7px 10px;text-align:right;font-weight:600">
-                ${r.inWindow ? `<span style="color:${r.enhance>=230000?'var(--green)':r.isCurrentWeek?'var(--amber)':'var(--muted2)'}">${f(r.enhance)}</span>${r.isCurrentWeek?`<div style="font-size:9px;color:var(--muted2)">${r.enhance>=230000?'✓ đủ 230k':'cần '+f(Math.max(0,230000-r.enhance))+' nữa'}</div>`:''}` : '<span style="color:var(--muted2)">—</span>'}
+                ${r.inWindow ? `<span style="color:${r.enhance>=MVP_WEEK_TARGET?'var(--green)':r.isCurrentWeek?'var(--amber)':'var(--muted2)'}">${f(r.enhance)}</span>${r.isCurrentWeek?`<div style="font-size:9px;color:var(--muted2)">${r.enhance>=MVP_WEEK_TARGET?'✓ đủ 230k':'cần '+f(Math.max(0,MVP_WEEK_TARGET-r.enhance))+' nữa'}</div>`:''}` : '<span style="color:var(--muted2)">—</span>'}
               </td>
               <td style="padding:7px 10px;text-align:right;color:${r.weeklyPoints>0?'var(--green)':'var(--muted2)'}">${f(r.weeklyPoints)}</td>
               <td style="padding:7px 10px;text-align:right;font-weight:600">${f(r.cumulativePoints)}</td>
@@ -10219,12 +10251,26 @@ async function loadTeamMvpPoints() {
       } else {
         teamWallets[idx].crystalTotal = null;
       }
-      const allKeys = [...new Set(rows.map(x=>getWeekKey(x.day)))].sort().slice(-13);
-      const winRows = rows.filter(r => allKeys.includes(getWeekKey(r.day)));
+      // Cửa sổ là 13 tuần lịch gần nhất, KHÔNG phải 13 tuần có giao dịch:
+      // ví ngừng chi sẽ rụng dần điểm và hết MVP đúng như trong game.
+      const winKeys = mvpWindowKeys();
+      const winSet  = new Set(winKeys);
+      const winRows = rows.filter(r => winSet.has(getWeekKey(r.day)));
       const calc = calcMvpFromRows(winRows);
       // Set directly on the teamWallets object
       teamWallets[idx].mvpPoints = calc.points;
       teamWallets[idx].mvpTier   = getTier(calc.points);
+      // Tuần cũ nhất sẽ rời cửa sổ sau kỳ reset Thứ 5 tới -> điểm bị mất
+      {
+        const wmap = mvpWeekMap(rows);
+        const oldVal = wmap[winKeys[0]] || 0;
+        const nextVal = Math.max(0, calc.eligible - oldVal);
+        teamWallets[idx].mvpWeekMap    = wmap;
+        teamWallets[idx].mvpWindowFrom = winKeys[0];
+        teamWallets[idx].mvpExpiring   = calc.points - mvpPtsOfValue(nextVal);
+        teamWallets[idx].mvpNextPoints = mvpPtsOfValue(nextVal);
+        teamWallets[idx].mvpNextTierNm = getTier(mvpPtsOfValue(nextVal)).name;
+      }
       // Tổng thu (claim + bán + transfer, trừ swap) & NESO đã chi cho MVP (enhancement + out nft/ft) — toàn bộ lịch sử từ MVP_LAUNCH
       let inSum = 0, mvpSpentSum = 0;
       rows.forEach(r => {
@@ -10485,7 +10531,7 @@ function renderMvpList(){
       <div class="mvp-hide-sm">${w.player?`<span onclick="copyFlash(this,'${(w.player||'').replace(/'/g,"")}')" data-tip="Nhấp để copy" style="cursor:pointer;font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right" data-tip="Số tuần được tính MVP trong 13 tuần gần nhất">${w.mvpBronzeWeeks!=null?`<span style="font-weight:700;color:${w.mvpBronzeWeeks>=13?'#7fd88f':(w.mvpBronzeWeeks>0?'#d8a44f':'var(--muted2)')}">${w.mvpBronzeWeeks}</span><span style="font-size:9px;color:var(--muted2)">/13</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;font-weight:700;color:var(--text)">${_mvpFmt(mvpPtsOf(w))}</div>
-      <div class="mvp-num" style="text-align:right" data-tip="Giá trị MVP đã chi tuần này&#10;${w.mvpWeekValue!=null?_nesoTip(w.mvpWeekValue):'chưa có dữ liệu'}">${w.mvpWeekValue!=null?`<span style="color:${w.mvpWeekValue>=230000?'#7fd88f':'#d8a44f'};font-weight:600">${_mvpFmt(w.mvpWeekValue)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
+      <div class="mvp-num" style="text-align:right" data-tip="Giá trị MVP đã chi tuần này&#10;${w.mvpWeekValue!=null?_nesoTip(w.mvpWeekValue):'chưa có dữ liệu'}">${w.mvpWeekValue!=null?`<span style="color:${w.mvpWeekValue>=MVP_WEEK_TARGET?'#7fd88f':'#d8a44f'};font-weight:600">${_mvpFmt(w.mvpWeekValue)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       <div class="mvp-num" style="text-align:right;color:#7fd88f" ${w.neso!=null?`data-tip="${_nesoTip(w.neso)}"`:''}>${w.neso!=null?_mvpFmt(w.neso):'—'}</div>
       <div class="mvp-hide-sm" style="text-align:right">${nt(w)}</div>
     </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví ở hạng này.</div>';
@@ -10508,7 +10554,7 @@ function renderMvpList(){
           <div class="mvp-hide-sm"></div>
           <div class="mvp-num" style="text-align:right" data-tip="Tổng số tuần được tính MVP của ${twN} ví (tối đa ${twN*13})">${twN?`<span style="color:var(--text)">${_mvpFmt(tw)}</span><span style="font-size:9px;color:var(--muted2)">/${twN*13}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
           <div class="mvp-num" style="text-align:right;color:var(--text)">${_mvpFmt(tp)}</div>
-          ${(()=>{ const tw=rows.filter(x=>x.mvpWeekValue!=null).reduce((a,x)=>a+x.mvpWeekValue,0); const nOk=rows.filter(x=>(x.mvpWeekValue||0)>=230000).length;
+          ${(()=>{ const tw=rows.filter(x=>x.mvpWeekValue!=null).reduce((a,x)=>a+x.mvpWeekValue,0); const nOk=rows.filter(x=>(x.mvpWeekValue||0)>=MVP_WEEK_TARGET).length;
             return `<div class="mvp-num" style="text-align:right;color:#d8a44f" data-tip="Tổng chi tuần này&#10;${_nesoTip(tw)}&#10;${nOk} ví đã đủ 230k">${_mvpFmt(tw)}<span style="font-size:9px;color:var(--muted2)"> · ${nOk}✓</span></div>`; })()}
           <div class="mvp-num" style="text-align:right;color:#7fd88f" data-tip="Tổng NESO hiện có&#10;${_nesoTip(tn)}">${_mvpFmt(tn)}</div>
           <div class="mvp-hide-sm" style="text-align:right;font-weight:600;color:var(--muted2);font-size:10px">TB ${_mvpFmt(tp/rows.length)} điểm/ví</div>
@@ -10865,19 +10911,22 @@ function updateMvpCell(w) {
   const cells = document.querySelectorAll('#team-tbody td[data-addr="'+w.address+'"]');
   if(cells.length && w.mvpPoints!=null) {
     const pts=w.mvpPoints;
-    cells[0].innerHTML = `<span style="color:${pts<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${pts<30?'700':'600'};font-size:13px">${pts}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`;
+    const _exp = w.mvpExpiring||0;
+    const _tip = _exp>0 ? `Sau reset Thứ 5 tới: ${w.mvpNextPoints} điểm (${w.mvpNextTierNm})&#10;Tuần ${w.mvpWindowFrom} rơi khỏi cửa sổ 13 tuần, mất ${_exp} điểm` : '';
+    cells[0].setAttribute('data-tip', _tip);
+    cells[0].innerHTML = `<span style="color:${pts<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${pts<30?'700':'600'};font-size:13px">${pts}</span>${(pts>=30 && (w.mvpNextPoints!=null) && w.mvpNextPoints<30)?'<span style="color:#f5a524;margin-left:3px" title="Tuần tới rớt khỏi Bronze"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>':''}${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px" id="mvp-cd-${w.address.slice(-8)}">${w.mvpBronzeWeeks>0?'Week '+w.mvpBronzeWeeks:'—'}</div>`;
   }
 
   // Update Chi tuần này cell
   const wkEl = document.getElementById('mvp-week-'+w.address.slice(-8));
   if(wkEl) {
     const v = w.mvpWeekValue || 0;
-    const enough = v >= 230000;
+    const enough = v >= MVP_WEEK_TARGET;
     const f230 = n => Math.round(n).toLocaleString('vi-VN');
     if(w.mvpPoints==null) {
       wkEl.innerHTML = '<span style="color:var(--muted2);font-size:10px">...</span>';
     } else {
-      wkEl.innerHTML = `<span style="color:${enough?'var(--green)':'var(--amber)'};font-weight:600">${f230(v)}</span><div style="font-size:9px;color:var(--muted2)">${enough?'✓ đủ':'cần '+f230(Math.max(0,230000-v))}</div>`;
+      wkEl.innerHTML = `<span style="color:${enough?'var(--green)':'var(--amber)'};font-weight:600">${f230(v)}</span><div style="font-size:9px;color:var(--muted2)">${enough?'✓ đủ':'cần '+f230(Math.max(0,MVP_WEEK_TARGET-v))}</div>`;
     }
   }
 
@@ -11321,8 +11370,8 @@ async function switchExpandTab(address, tab) {
     } else if (tab === 'mvp') {
       const rows13w    = await fetchDailyData(address, MVP_LAUNCH);
       const weeklyRows = buildWeeklyRows(rows13w);
-      const allKeys_   = [...new Set(rows13w.map(x=>getWeekKey(x.day)))].sort().slice(-13);
-      const winRows    = rows13w.filter(r=>allKeys_.includes(getWeekKey(r.day)));
+      const win_       = new Set(mvpWindowKeys());
+      const winRows    = rows13w.filter(r=>win_.has(getWeekKey(r.day)));
       const calc       = calcMvpFromRows(winRows);
       expandTabCache[cKey] = renderMvpResult(address, weeklyRows, calc.points, address.slice(0,6)+'...'+address.slice(-4));
     } else if (tab === 'nftitems') {
@@ -11570,8 +11619,8 @@ async function loadExpandMvp(cont, address, key) {
   try {
     const rows13w    = await fetchDailyData(address, MVP_LAUNCH);
     const weeklyRows = buildWeeklyRows(rows13w);
-    const allKeys2   = [...new Set(rows13w.map(x=>getWeekKey(x.day)))].sort().slice(-13);
-    const winRows    = rows13w.filter(r=>allKeys2.includes(getWeekKey(r.day)));
+    const win_       = new Set(mvpWindowKeys());
+    const winRows    = rows13w.filter(r=>win_.has(getWeekKey(r.day)));
     const calc       = calcMvpFromRows(winRows);
     const html_      = renderMvpResult(address, weeklyRows, calc.points, address.slice(0,6)+'...'+address.slice(-4));
     expandContentCache[cacheKey] = html_;
