@@ -5244,7 +5244,7 @@ function renderLiteList(){
         const drop = np<30 && cp>=30, down = getTier(np).name!==getTier(cp).name;
         const col = drop?'#e06c6c':(down?'#d8a44f':(ex?'var(--text2)':'var(--muted2)'));
         const tip = `Điểm sau reset Thứ 5&#10;Tuần ${w.mvpWindowFrom||'?'} rời cửa sổ 13 tuần${ex?`&#10;Mất ${ex} điểm → ${getTier(np).name}`:'&#10;Không mất điểm nào'}`;
-        return `<div class="mvp-num" style="text-align:right;cursor:pointer;line-height:1.15" onclick="openMvpPop(event,'${w.address}')" data-tip="${tip}"><div style="color:${col};font-weight:700">${_lf(np)}</div>${ex?`<div style="font-size:8.5px;color:var(--muted2)">−${_lf(ex)}</div>`:''}</div>`;
+        return `<div class="mvp-num" style="text-align:right;cursor:pointer;font-weight:700;color:${col}" onclick="openMvpPop(event,'${w.address}')" data-tip="${tip}">${_lf(np)}</div>`;
       })()}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
@@ -5288,7 +5288,7 @@ function renderLiteList(){
             if(!has.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
             const tNext=has.reduce((a,w)=>a+w.mvpNextPoints,0), lost=tPts-tNext;
             const nDrop=has.filter(w=>w.mvpNextPoints<30 && mvpPtsOf(w)>=30).length;
-            return `<div class="mvp-num" style="text-align:right;line-height:1.15;color:${nDrop?'#e06c6c':'var(--text)'}" data-tip="Tổng điểm sau reset Thứ 5&#10;Mất ${_lf(lost)} điểm${nDrop?`&#10;${nDrop} ví rớt khỏi Bronze`:''}"><div>${_lf(tNext)}</div>${nDrop?`<div style="font-size:8.5px;color:#e06c6c">${nDrop} rớt</div>`:''}</div>`; })()}
+            return `<div class="mvp-num" style="text-align:right;color:${nDrop?'#e06c6c':'var(--text)'}" data-tip="Tổng điểm sau reset Thứ 5&#10;Mất ${_lf(lost)} điểm${nDrop?`&#10;${nDrop} ví rớt khỏi Bronze`:''}">${_lf(tNext)}</div>`; })()}
           ${cellN(T('neso'),0,'var(--green)','Tổng NESO',T('neso')*nesoRate)}
           ${cellN(T('nxpc'),2,'var(--green)','Tổng NXPC',T('nxpc')*nxpcRate)}
           ${cellN(T('avax'),4,'var(--blue)','Tổng AVAX',T('avax')*avaxRate)}
