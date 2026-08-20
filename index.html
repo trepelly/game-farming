@@ -4548,32 +4548,39 @@ function charSkillTier(ak,t){ const c=SKILL_CACHE[ak]; return (c&&c.tiers&&c.tie
 const _skillTried=new Set();
 
 // Trang skill trả về JSON: { skillSet:[ {skillTier, skills:[{skillId,skillName,currentLevel,vMatrixSlotLevel,imageUrl}]} ] }
-function _parseSkillSet(txt){
-  let arr=null;
-  // 1) cả body là JSON
-  try{ const j=JSON.parse(txt); if (j && Array.isArray(j.skillSet)) arr=j.skillSet; }catch(e){}
-  // 2) JSON nhúng trong HTML/RSC payload -> cắt mảng cân bằng ngoặc sau chữ skillSet
-  if (!arr){
-    const k=txt.indexOf('skillSet');
+// Cắt một khối JSON cân bằng ngoặc đứng sau tên khoá, chịu được cả payload bị escape \"
+function _cutJson(txt, key, open, test){
+  const close = open==='[' ? ']' : '}';
+  let from=0;
+  for(;;){
+    const k=txt.indexOf(key, from);
     if (k<0) return null;
-    const b=txt.indexOf('[', k);
+    from=k+key.length;
+    const b=txt.indexOf(open, k);
     if (b<0) return null;
-    let d=0, q=false, esc=false, end=-1;
+    if (b-k > 40) continue;                 // khoá không gắn với khối này
+    let d=0,q=false,esc=false,end=-1;
     for (let i=b;i<txt.length;i++){
       const ch=txt[i];
       if (esc){ esc=false; continue; }
       if (ch==='\\'){ esc=true; continue; }
       if (q){ if (ch==='"') q=false; continue; }
       if (ch==='"'){ q=true; continue; }
-      if (ch==='[') d++;
-      else if (ch===']'){ d--; if(!d){ end=i+1; break; } }
+      if (ch===open) d++;
+      else if (ch===close){ d--; if(!d){ end=i+1; break; } }
     }
-    if (end<0) return null;
+    if (end<0) continue;
     const raw=txt.slice(b,end);
     for (const cand of [raw, raw.replace(/\\"/g,'"').replace(/\\\\/g,'\\')]){
-      try{ const p=JSON.parse(cand); if (Array.isArray(p)){ arr=p; break; } }catch(e){}
+      try{ const p=JSON.parse(cand); if (p && typeof p==='object' && (!test || test(p))) return p; }catch(e){}
     }
   }
+}
+function _parseSkillSet(txt){
+  let arr=null;
+  // 1) cả body là JSON
+  try{ const j=JSON.parse(txt); if (j && Array.isArray(j.skillSet)) arr=j.skillSet; }catch(e){}
+  if (!arr){ const p=_cutJson(txt,'skillSet','[', o=>Array.isArray(o)&&o.some(g=>g&&g.skills)); if (Array.isArray(p)) arr=p; }
   if (!Array.isArray(arr)) return null;
   const tiers={};
   arr.forEach(g=>{
@@ -4656,53 +4663,132 @@ async function debugArcane(ak){
 }
 try{ window.debugArcane=debugArcane; }catch(e){}
 function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
+const CHAR_INFO_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharInfo')||'{}'); }catch(e){ return {}; } })();
+function _saveCharInfoCache(){ try{ localStorage.setItem('msuCharInfo', JSON.stringify(CHAR_INFO_CACHE)); }catch(e){} }
+function charInfo(ak){ return CHAR_INFO_CACHE[ak]||null; }
+
+// Trang nhân vật trả về { character:{ imageUrl, common:{...}, apStat:{...}, wearing:{ equip, arcaneSymbols:{ slots:[{itemId,level,maxLevel,currentExp,totalExp,arcaneForce,stat}] } } } }
+function _parseCharJson(txt){
+  let c=null;
+  try{ const j=JSON.parse(txt); c=(j&&j.character)||((j&&j.common)?j:null); }catch(e){}
+  if (!c) c=_cutJson(txt,'character','{', o=>o&&o.common&&o.common.level!=null);
+  if (!c || !c.common) return null;
+
+  const w=c.wearing||{}, arcS=(w.arcaneSymbols||{});
+  const iconOf=id=>`https://api-static.msu.io/itemimages/icon/${id}.png`;
+  const arc=(arcS.slots||[]).filter(k=>k&&+k.itemId>0).map(k=>({
+    id:String(k.itemId), url:k.imageUrl||iconOf(k.itemId),
+    lv:+(k.level||0), max:+(k.maxLevel||0),
+    exp:+(k.currentExp||0), tot:+(k.totalExp||0),
+    af:+(k.arcaneForce||0), stat:k.stat||{}
+  }));
+  const ids=[];
+  const push=o=>{ if(o&&+o.itemId>0){ const v=String(o.itemId); if(!ids.includes(v)) ids.push(v); } };
+  Object.values(w.equip||{}).forEach(push);
+  Object.values(w.cashEquip||{}).forEach(push);
+  Object.values(w.pet||{}).forEach(p=>{ push(p); push(p&&p.accessory); });
+  arc.forEach(k=>{ if(!ids.includes(k.id)) ids.push(k.id); });
+
+  const cm=c.common||{}, ap=c.apStat||{};
+  const num=o=>(o&&typeof o==='object')?+(o.total||0):+(o||0);
+  return {
+    ak:c.assetKey||'', img:c.imageUrl||'',
+    name:cm.name||'', level:+(cm.level||0), world:cm.worldId||'',
+    job:(cm.job&&cm.job.jobName)||'', jobTier:(cm.job&&cm.job.tier)||0,
+    levelRank:(c.rankingInfo&&c.rankingInfo.levelRank)||0,
+    jobRank:(c.rankingInfo&&c.rankingInfo.jobRank)||0,
+    atk:+(ap.attackPower||0),
+    bossDmg:num(ap.bossMonsterDamage), ignoreDef:num(ap.ignoreDefence),
+    critRate:num(ap.criticalRate), critDmg:num(ap.criticalDamage),
+    finalDmg:num(ap.finalDamage), starforce:+(cm.starforceSum||0),
+    af:+(arcS.totalArcaneForce||0), afStat:arcS.totalStat||{},
+    arc, ids, upd:c.updatedAt||''
+  };
+}
+
+// Thử API JSON trước, nhớ URL chạy được; cuối cùng đọc JSON nhúng trong trang
+function _charUrls(ak){
+  const u=[
+    `https://msu.io/navigator/api/navigator/character/${ak}`,
+    `https://msu.io/navigator/api/navigator/characters/${ak}`,
+    `https://msu.io/navigator/api/navigator/character/${ak}/detail`,
+    `https://msu.io/navigator/character/${ak}`
+  ];
+  let saved=null; try{ saved=localStorage.getItem('MSU_CHAR_PATTERN'); }catch(e){}
+  if (saved && saved.includes('{ak}')) u.unshift(saved.replace('{ak}', ak));
+  // suy ra từ URL skill đã chạy được: .../character/{ak}/skills -> .../character/{ak}
+  try{
+    const sp=localStorage.getItem('MSU_SKILL_PATTERN');
+    if (sp && /\/skills?$/.test(sp)) u.unshift(sp.replace(/\/skills?$/,'').replace('{ak}', ak));
+  }catch(e){}
+  return u.filter((x,i)=>u.indexOf(x)===i);
+}
+
 async function fetchCharImg(ak){
   if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
-  const _ids=(CHAR_EQUIP_CACHE[ak]||[]).filter(x=>/^1712\d{3}$/.test(String(x)));
-  const _needLv = _ids.length>0 && !Object.keys(ARC_LV_CACHE[ak]||{}).length;
-  if (CHAR_IMG_CACHE[ak] && CHAR_EQUIP_CACHE[ak] && !_needLv) return CHAR_IMG_CACHE[ak];
+  if (CHAR_INFO_CACHE[ak] && CHAR_IMG_CACHE[ak]) return CHAR_IMG_CACHE[ak];
   _charImgTried.add(ak);
-  try{
-    const r = await fetch(msuProxy(`https://msu.io/navigator/character/${ak}`));
-    if (!r.ok) return null;
-    const t = await r.text();
-    const m = t.match(/https:\/\/gamedatahub-static\.msu\.io\/[^"'\\ )]+charimages\/static\/[^"'\\ )]+\.png/);
-    if (m){ CHAR_IMG_CACHE[ak]=m[0]; _saveCharImgCache(); }
-    // Icon vật phẩm + level của Arcane Symbol (Lv.N nằm ngay sau icon)
-    const ids=[]; const re=/itemimages\/icon\/(\d{5,9})\.png/g; let x;
-    while ((x=re.exec(t))){ const id=x[1]; if (!ids.includes(id)) ids.push(id); }
-    CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache();
-    // Level Arcane: "Lv.N" nằm ngay sau icon symbol, nhưng cách nhau nhiều thẻ HTML
-    const lvs={};
-    const reA=/itemimages\/icon\/(1712\d{3})\.png/g; let a1;
-    while ((a1=reA.exec(t))){
-      const id=a1[1];
-      if (lvs[id]) continue;
-      const after=t.slice(a1.index, a1.index+4000);
-      const m=after.match(/Lv\.?\s*(\d{1,2})\b/i);
-      if (m) lvs[id]=+m[1];
-    }
-    if (!Object.keys(lvs).length){        // dự phòng: ghép theo thứ tự trong vùng Arcane
-      const ai=t.search(/Arcane/i);
-      if (ai>=0){
-        const seg=t.slice(ai, ai+30000);
-        const sIds=[...seg.matchAll(/itemimages\/icon\/(1712\d{3})\.png/g)].map(m=>m[1]);
-        const sLvs=[...seg.matchAll(/Lv\.?\s*(\d{1,2})\b/gi)].map(m=>+m[1]);
-        sIds.forEach((id,k)=>{ if(sLvs[k]!=null && !lvs[id]) lvs[id]=sLvs[k]; });
+  for (const url of _charUrls(ak)){
+    try{
+      const r=await fetch(msuProxy(url));
+      if(!r.ok) continue;
+      const t=await r.text();
+      const info=_parseCharJson(t);
+      if (info){
+        CHAR_INFO_CACHE[ak]=info; _saveCharInfoCache();
+        if (info.img){ CHAR_IMG_CACHE[ak]=info.img; _saveCharImgCache(); }
+        if (info.ids.length){ CHAR_EQUIP_CACHE[ak]=info.ids.slice(0,24); _saveCharEquipCache(); }
+        const lvs={}; info.arc.forEach(k=>{ if(k.lv) lvs[k.id]=k.lv; });
+        if (Object.keys(lvs).length){ ARC_LV_CACHE[ak]=lvs; _saveArcLvCache(); }
+        try{ localStorage.setItem('MSU_CHAR_PATTERN', url.replace(ak,'{ak}')); }catch(e){}
+        return CHAR_IMG_CACHE[ak]||null;
       }
-    }
-    if (Object.keys(lvs).length){ ARC_LV_CACHE[ak]=lvs; _saveArcLvCache(); }
-
-    return CHAR_IMG_CACHE[ak]||null;
-  }catch(e){}
+      // dự phòng cuối: trang HTML không có JSON -> lấy tạm ảnh + icon vật phẩm
+      const m=t.match(/https:\/\/gamedatahub-static\.msu\.io\/[^"'\\ )]+charimages\/static\/[^"'\\ )]+\.png/);
+      if (m){
+        CHAR_IMG_CACHE[ak]=m[0]; _saveCharImgCache();
+        const ids=[]; const re=/itemimages\/icon\/(\d{5,9})\.png/g; let x;
+        while ((x=re.exec(t))){ if(!ids.includes(x[1])) ids.push(x[1]); }
+        if (ids.length){ CHAR_EQUIP_CACHE[ak]=ids.slice(0,24); _saveCharEquipCache(); }
+        return CHAR_IMG_CACHE[ak];
+      }
+    }catch(e){}
+  }
   return null;
 }
+// Chẩn đoán: từng URL trả về gì
+async function debugArcane(ak){
+  const out=[];
+  for (const url of _charUrls(ak)){
+    try{
+      const r=await fetch(msuProxy(url)); const t=await r.text();
+      const p=_parseCharJson(t);
+      out.push({ url, status:r.status, len:t.length,
+        doc:t.slice(0,100),
+        arcane: p?p.arc.map(k=>`${k.id} Lv.${k.lv}/${k.max}`).join(' , ')||'(không đeo symbol)' : '(không đọc được character)',
+        arcaneForce: p?p.af:'-' });
+    }catch(e){ out.push({ url, loi:String(e) }); }
+  }
+  console.table(out); console.log(out); return out;
+}
+try{ window.debugArcane=debugArcane; window.CHAR_INFO_CACHE=CHAR_INFO_CACHE; window._parseCharJson=_parseCharJson; }catch(e){}
 // Arcane Symbol có item id dạng 1712xxx — lọc riêng, không lẫn NFT/trang bị
 function charArcaneIds(ak){ return (CHAR_EQUIP_CACHE[ak]||[]).filter(id=>/^1712\d{3}$/.test(String(id))); }
 function charEquipIcons(ak){ return charArcaneIds(ak).map(id=>`https://api-static.msu.io/itemimages/icon/${id}.png`); }
 function charArcaneList(ak){
+  const info=CHAR_INFO_CACHE[ak];
+  if (info && info.arc && info.arc.length) return info.arc;
   const lv=ARC_LV_CACHE[ak]||{};
   return charArcaneIds(ak).map(id=>({ id, lv: lv[id]||null, url:`https://api-static.msu.io/itemimages/icon/${id}.png` }));
+}
+function charArcForce(ak){ const i=CHAR_INFO_CACHE[ak]; return i?i.af:0; }
+// Chú thích cho một ô symbol: cấp, kinh nghiệm, Arcane Force, chỉ số cộng thêm
+function _arcTip(a){
+  const p=[`Arcane Symbol${a.lv?` · Lv.${a.lv}${a.max?'/'+a.max:''}`:''}`];
+  if (a.exp!=null && a.tot) p.push(`EXP ${a.exp}/${a.tot}`);
+  if (a.af) p.push(`Arcane Force +${a.af}`);
+  const st=a.stat||{}; Object.keys(st).forEach(k=>{ if(st[k]) p.push(`${k.toUpperCase()} +${st[k]}`); });
+  return p.join(' · ');
 }
 // Trang bị của nhân vật: lấy từ danh sách NFT items app đã tải (tab NFT Items)
 const EQ_CACHE_TTL = 6*60*60*1000;   // 6 giờ
@@ -4898,9 +4984,9 @@ function charPopHtml(w){
           ${top.world?`<div class="mp-stat mp-span2"><span class="mp-label">World</span><span class="mp-value">${_mvpEsc(top.world)}</span></div>`:''}
         </div>
         <div class="mp-sec">
-          <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count">${arc.length}</span></div>
+          <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count" data-tip="${charArcForce(top.ak)?`Tổng Arcane Force ${charArcForce(top.ak)} · ${arcL.length} symbol đang đeo`:`${arcL.length} symbol đang đeo`}">${charArcForce(top.ak)||arcL.length}</span></div>
           <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
-            return a?`<span class="mp-arc mp-arc-on" data-tip="Arcane Symbol${a.lv?' · Lv.'+a.lv:''}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
+            return a?`<span class="mp-arc mp-arc-on" data-tip="${_mvpEsc(_arcTip(a))}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
                     :`<span class="mp-arc mp-arc-empty"><span style="font-size:11px">--</span></span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
@@ -4950,9 +5036,8 @@ function charEquipItems(w, charName){
 }
 let _charImgTimer=null;
 async function ensureCharImgs(list){
-  const needLv=c=>{ const ids=(CHAR_EQUIP_CACHE[c.ak]||[]).filter(x=>/^1712\d{3}$/.test(String(x)));
-    return ids.length>0 && !Object.keys(ARC_LV_CACHE[c.ak]||{}).length; };
-  const need=list.filter(c=>c&&c.ak&&!_charImgTried.has(c.ak)&&(!CHAR_IMG_CACHE[c.ak]||!CHAR_EQUIP_CACHE[c.ak]||needLv(c))).slice(0,6);
+  // chưa có bản JSON đầy đủ thì tải lại, kể cả khi đã có ảnh từ bản quét cũ
+  const need=list.filter(c=>c&&c.ak&&!_charImgTried.has(c.ak)&&(!CHAR_INFO_CACHE[c.ak]||!CHAR_IMG_CACHE[c.ak])).slice(0,6);
   if (!need.length) return;
   let got=false;
   for (const c of need){ const u=await fetchCharImg(c.ak); if(u) got=true; await new Promise(r=>setTimeout(r,120)); }
