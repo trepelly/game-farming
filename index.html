@@ -4445,6 +4445,21 @@ function _cpf(v){
   if (v>=1000) return Math.round(v/1000)+'K';
   return String(Math.round(v));
 }
+// Bản rút gọn mạnh cho chỗ hẹp: K từ 1.000, M từ 1 triệu.
+// Số chữ số lẻ giảm dần khi phần nguyên dài ra, và tự dồn lên đơn vị lớn hơn
+// khi làm tròn chạm 1.000 (999.999 -> 1M chứ không phải 1000K).
+function _lfk(n){
+  if (n==null) return '—';
+  const a=Math.abs(n);
+  if (a<1000) return String(Math.round(n));
+  for (const [sc,u] of [[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']]){
+    if (a < sc*0.9995) continue;
+    const v=n/sc, av=Math.abs(v);
+    const d=av>=100?0:(av>=10?1:2);
+    return String(+v.toFixed(d)).replace('.',',')+u;
+  }
+  return String(Math.round(n));
+}
 function _lfc(n,d){
   if (n==null) return '—';
   const a=Math.abs(n);
@@ -4498,7 +4513,7 @@ function renderLitePlayers(){
   const all=Object.keys(P).filter(p=>!litePQuery||p.toLowerCase().includes(litePQuery)).sort((a,b)=>P[b].neso-P[a].neso);
   const tot={vi:ws.length, neso:ws.reduce((s,w)=>s+(w.neso||0),0)};
   const mx=Math.max(...all.map(p=>P[p].neso),1);
-  const bar=(d)=>`<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(d.neso/mx*100))}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:#7fd88f;white-space:nowrap" data-tip="NESO: ${_lf(d.neso)}">${_lfc(d.neso)}</span></div>`;
+  const bar=(d)=>`<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(d.neso/mx*100))}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:#7fd88f;white-space:nowrap" data-tip="NESO: ${_lf(d.neso)}">${_lfk(d.neso)}</span></div>`;
   const row=(name,d,idx)=>{ const sel=(name===litePlayer);
     return `<div class="mvp-prow ${sel?'on':''}" onclick="setLitePlayer('${(name||'').replace(/'/g,"")}')">
       <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
