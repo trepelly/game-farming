@@ -4424,7 +4424,14 @@ function clearLiteQuery(){ liteQuery=''; renderLiteList(); const i=document.getE
 let litePlayer='all', liteQuery='', litePQuery='', liteTier='all', liteSort={col:'neso',dir:'desc'};
 function setLitePQuery(v){ litePQuery=(v||'').toLowerCase(); renderLitePlayers(); applyLitePanelW(); const i=document.getElementById('lite-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); renderLiteList(); }
-function liteTierPass(w){ const p=mvpPtsOf(w); if(liteTier==='nofarm') return p<=0; if(liteTier==='acc') return p>0&&p<30; if(liteTier==='bronze') return p>=30; return true; }
+// Ví dưới 30 điểm được tách theo việc TUẦN NÀY có chi hay không —
+// trước đây chia theo 0 điểm / dưới 30 điểm nên hai nhóm nói gần như cùng một chuyện.
+function mvpGroup(w){
+  const p=mvpPtsOf(w);
+  if (p>=30) return 'bronze';
+  return (w.mvpWeekValue||0)>0 ? 'acc' : 'nofarm';
+}
+function liteTierPass(w){ return liteTier==='all' || mvpGroup(w)===liteTier; }
 function setLitePlayer(p){ litePlayer=(litePlayer===p)?'all':p; renderLiteTab(); }
 function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); const i=document.getElementById('lite-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player'||c==='char'||c==='world')?'asc':'desc'}; renderLiteList(); }
@@ -4534,12 +4541,12 @@ function renderLiteTiers(){
   const el=document.getElementById('lite-tiers'); if(!el) return;
   const ws=liteScope();
   const defs=[
-    {k:'nofarm', lb:'Chưa farm',     ic:'○',  sub:'0 điểm',  c:'var(--muted2)', t:p=>p<=0},
-    {k:'acc',    lb:'Đang tích luỹ', ic:'⏳', sub:'< 30',    c:'#9a9aab',       t:p=>p>0&&p<30},
-    {k:'bronze', lb:'Bronze',        ic:'🥉', sub:'≥ 30',    c:'#cd7f32',       t:p=>p>=30},
-    {k:'all',    lb:'Tất cả',        ic:'◎',  sub:'mọi ví',  c:'var(--accent)', t:()=>true},
+    {k:'nofarm', lb:'Chưa farm',     ic:'○',  sub:'tuần này chưa chi', c:'var(--muted2)', t:w=>mvpGroup(w)==='nofarm'},
+    {k:'acc',    lb:'Đang tích luỹ', ic:'⏳', sub:'đang chi · < 30',   c:'#d8a44f',       t:w=>mvpGroup(w)==='acc'},
+    {k:'bronze', lb:'Bronze',        ic:'🥉', sub:'≥ 30 điểm',         c:'#cd7f32',       t:w=>mvpGroup(w)==='bronze'},
+    {k:'all',    lb:'Tất cả',        ic:'◎',  sub:'mọi ví',            c:'var(--accent)', t:()=>true},
   ];
-  const counts=defs.map(d=>ws.filter(w=>d.t(mvpPtsOf(w))).length);
+  const counts=defs.map(d=>ws.filter(w=>d.t(w)).length);
   const mx=Math.max(...counts.filter((_,i)=>defs[i].k!=='all'),1);
   el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:13px 14px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:12px;font-weight:700;color:var(--text)">Phân bổ theo hạng</span><span style="font-size:10px;color:var(--muted2)">bấm để lọc</span><span style="margin-left:auto">${infoIcon('Bấm 1 ô để lọc bảng theo nhóm điểm MVP')}</span></div>
@@ -10452,8 +10459,8 @@ function computeMvpBuckets() {
   let ws = effectiveWallets().slice();
   if (mvpPlayer !== 'all') ws = ws.filter(w => (w.player||'') === mvpPlayer);
   const defs = [
-    { label:'Chưa farm',     icon:'🕳️', color:'var(--muted2)', sub:'0 điểm',   pre:true, test:p=>p<=0 },
-    { label:'Đang tích luỹ', icon:'⏳', color:'#9a9aab',       sub:'< 30', pre:true, test:p=>p>0 && p<30 },
+    { label:'Chưa farm',     icon:'🕳️', color:'var(--muted2)', sub:'tuần này chưa chi', pre:true, wtest:w=>mvpGroup(w)==='nofarm' },
+    { label:'Đang tích luỹ', icon:'⏳', color:'#d8a44f',       sub:'đang chi · <30',    pre:true, wtest:w=>mvpGroup(w)==='acc' },
   ];
   const _tiers = MVP_TIERS.filter(t=>t.name!=='Unranked' && t.name!=='Black');  // 6 ô: bỏ Black, gộp vào Diamond
   _tiers.forEach((t,_ti)=>{
@@ -10463,7 +10470,7 @@ function computeMvpBuckets() {
       pre:false, test: _last ? (p=>p>=t.min) : (p=>p>=t.min && p<=t.max) });
   });
   return defs.map(d=>{
-    const wallets = ws.filter(w=>d.test(mvpPtsOf(w)));
+    const wallets = ws.filter(w=>d.wtest ? d.wtest(w) : d.test(mvpPtsOf(w)));
     let segments;
     if (d.pre) {
       const enough  = wallets.filter(w=>w.neso!=null && (w.neso||0) >= mvpNesoNeed(w)).length;
