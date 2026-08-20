@@ -5268,7 +5268,7 @@ function renderLiteList(){
       <div>${w.player?`<span style="font-size:10px;font-weight:600;color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(w.player)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>
       ${liteCharCell(w)}
       ${(()=>{ const c=topChar(w); const wd=(c&&c.world)||w.maxCpWorld||null;
-        return `<div>${wd?`<span style="font-size:9.5px;font-weight:600;color:#38bdf8;background:color-mix(in srgb,#38bdf8 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(wd)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>`; })()}
+        return `<div style="display:flex;justify-content:flex-end">${wd?`<span style="font-size:9.5px;font-weight:600;color:#38bdf8;background:color-mix(in srgb,#38bdf8 12%,transparent);border-radius:5px;padding:1px 7px;white-space:nowrap">${_mvpEsc(wd)}</span>`:'<span style="color:var(--muted2)">—</span>'}</div>`; })()}
       ${(()=>{ const c=topChar(w); const lv=(c&&c.level)||w.maxCpLevel||null;
         return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${lv?'var(--text2)':'var(--muted2)'}">${lv||'—'}</div>`; })()}
       ${(()=>{ const c=topChar(w); const cp=(c&&c.cp)||w.maxCp||null;
@@ -5327,14 +5327,14 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','left','Số lượt boss chưa mở')}${hc('drop','Còn lại','left')}${hc('drop','Đáo hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','left','Số lượt boss chưa mở')}${hc('drop','Còn lại','left')}${hc('drop','Đáo hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
           <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${ws.length} ví</span></div>
           <div></div>
           <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap">${ws.reduce((s,w)=>s+((w.chars||[]).filter(c=>c.name).length),0)} nv</div>
-          <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap">${(()=>{const ws2=[...new Set(ws.map(w=>{const c=topChar(w);return (c&&c.world)||w.maxCpWorld||null;}).filter(Boolean))]; return ws2.length?ws2.length+' world':'—';})()}</div>
+          <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap;text-align:right">${(()=>{const ws2=[...new Set(ws.map(w=>{const c=topChar(w);return (c&&c.world)||w.maxCpWorld||null;}).filter(Boolean))]; return ws2.length?ws2.length+' world':'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=topChar(w);return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+_cpf(Math.max(...cp)):'—';})()}</div>
           ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
