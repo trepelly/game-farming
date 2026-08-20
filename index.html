@@ -5259,10 +5259,10 @@ function renderLiteList(){
         if (k==null || !wk) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
         const dd=daysToWeek(wk);
         const over=k===0||dd<0;
-        const txt=over ? (dd>=0?'hết hạn hôm nay':`quá hạn ${-dd} ngày`) : `còn ${dd} ngày`;
+        const txt=over ? (dd>=0?'hết hạn':`quá hạn ${-dd} ngày`) : `còn ${dd} ngày`;
         const c=(over||dd<=1)?'#e06c6c':(dd<=14?'#d8a44f':'#7fd88f');
         const tip=over
-          ? `${dd>=0?'Hết hạn hôm nay':'Đã quá hạn '+(-dd)+' ngày'} (Thứ 5 ngày ${wk})&#10;Ví hiện dưới 30 điểm · ${pts} điểm&#10;Bấm để xem cửa sổ 13 tuần`
+          ? `${dd>=0?'Hết hạn từ hôm nay':'Đã quá hạn '+(-dd)+' ngày'} (Thứ 5 ngày ${wk})&#10;Ví hiện dưới 30 điểm · ${pts} điểm&#10;Bấm để xem cửa sổ 13 tuần`
           : `Còn ${dd} ngày · ${k} kỳ reset nữa là tụt dưới 30 điểm&#10;Điểm hiện tại: ${pts} · sau reset Thứ 5: ${w.mvpNextPoints}&#10;Chi thêm trước hạn thì hạn được đẩy lùi&#10;Bấm để xem cửa sổ 13 tuần`;
         return `<div class="mvp-num" style="display:flex;align-items:center;justify-content:flex-end;white-space:nowrap;cursor:pointer" onclick="openMvpPop(event,'${w.address}')" data-tip="${tip}"><span style="padding:1px 7px;border-radius:7px;font-size:9.5px;font-weight:700;color:${c};background:color-mix(in srgb,${c} 16%,transparent);border:1px solid color-mix(in srgb,${c} 45%,transparent)">${txt}</span></div>`;
       })()}
