@@ -4552,6 +4552,13 @@ function renderLitePlayers(){
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span>`;
   };
   const mx=Math.max(...all.map(p=>P[p].neso),1);
+  // tiêu đề mỗi khu vực + tổng riêng của khu vực đó
+  const sect=(lb,c,d,tip)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px 5px;margin-top:2px" data-tip="${tip}&#10;${d.vi} ví · NESO ${_lf(d.neso)}">
+      <span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:${c};white-space:nowrap">${lb}</span>
+      <span style="flex:1;height:1px;background:var(--border2)"></span>
+      <span style="font-size:9px;color:var(--muted2);white-space:nowrap">${d.vi} ví</span>
+      <span class="mvp-num" style="font-size:9.5px;font-weight:700;color:${c};white-space:nowrap">${_lfk(d.neso)}</span>
+    </div>`;
   const bar=(d)=>`<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(d.neso/mx*100))}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:#7fd88f;white-space:nowrap" data-tip="NESO: ${_lf(d.neso)}">${_lfk(d.neso)}</span></div>`;
   const row=(name,d,idx)=>{ const sel=(name===litePlayer);
     return `<div class="mvp-prow ${sel?'on':''}" onclick="setLitePlayer('${(name||'').replace(/'/g,"")}')">
@@ -4563,11 +4570,14 @@ function renderLitePlayers(){
         <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${litePlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${tot.vi} ví</span></div>${bar(tot)}</div>
       </div>
       <div style="padding:9px 2px 6px"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
-      <div id="lite-plist" style="height:${litePanelH}px;min-height:120px;max-height:70vh;overflow-y:auto;resize:vertical;display:flex;flex-direction:column;gap:2px" onmouseup="_saveLitePanelH()">${all.length?all.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}</div>
-      ${totOut.vi?`<div class="mvp-prow" style="border-top:1px solid var(--border2);border-radius:0;margin-top:4px;padding-top:9px;cursor:default" data-tip="Ví ngoại được theo dõi riêng&#10;Không cộng vào TỔNG phía trên&#10;NESO: ${_lf(totOut.neso)}">
-        <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#d8a44f">Ví ngoại</span><span style="font-size:9.5px;color:var(--muted2)">${totOut.vi} ví</span></div></div>
-        <span class="mvp-num" style="font-size:9.5px;color:#d8a44f;white-space:nowrap">${_lfk(totOut.neso)}</span>
-      </div>`:''}
+      <div id="lite-plist" style="height:${litePanelH}px;min-height:120px;max-height:70vh;overflow-y:auto;resize:vertical;display:flex;flex-direction:column;gap:2px" onmouseup="_saveLitePanelH()">${
+        (!inner.length && !outer.length)
+          ? '<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'
+          : `${sect('Ví nhóm', 'var(--muted2)', tot, 'Ví của nhóm — cộng vào TỔNG')}
+             ${inner.length?inner.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:8px 12px;font-size:10.5px;color:var(--muted2)">Chưa có ví nhóm</div>'}
+             ${(outer.length||totOut.vi)?`${sect('Ví ngoại', '#d8a44f', totOut, 'Theo dõi riêng — KHÔNG cộng vào TỔNG')}
+             ${outer.length?outer.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:8px 12px;font-size:10.5px;color:var(--muted2)">Chưa có ví ngoại</div>'}`:''}`
+      }</div>
       <div style="text-align:center;font-size:8.5px;color:var(--muted2);opacity:.6;margin-top:3px">kéo mép dưới / góc phải để đổi kích thước</div>
     </div>`;
 }
