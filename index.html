@@ -6914,7 +6914,7 @@ function renderTeam() {
       }</td>
       <td style="text-align:center;white-space:nowrap">${w.maxCpJob ? `<span style="color:#a3e635;font-weight:600;font-size:11px">${w.maxCpJob}</span>` : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')}</td>
       <td style="text-align:center;white-space:nowrap">${w.maxCpLevel!=null ? `<span style="color:#fbbf24;font-weight:700;font-size:12px">${w.maxCpLevel}</span>` : (w.cpLoaded ? '<span style="color:var(--muted2);font-size:11px">—</span>' : '<span style="color:var(--muted2);font-size:9px">⏳</span>')}</td>
-      <td style="text-align:right" data-addr="${w.address}">
+      <td style="text-align:right;cursor:pointer" data-addr="${w.address}" onclick="openMvpPop(event,'${w.address}')" title="Xem cửa sổ 13 tuần">
         ${w.mvpPoints!=null
           ? `<span style="color:${w.mvpPoints<30?'#ffffff':(w.mvpTier?.color||'var(--muted2)')};font-weight:${w.mvpPoints<30?'700':'600'};font-size:13px">${w.mvpPoints}</span>${w.mvpManual!=null?'<span title="MVP nhập tay" style="font-size:9px;margin-left:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>':''}<div style="font-size:9px;color:var(--muted2);font-weight:500;margin-top:2px">${w.mvpTier?.name||''}</div>`
           : '<span style="font-size:10px;color:var(--muted2)">...</span>'}
@@ -10263,6 +10263,15 @@ async function loadTeamMvpPoints() {
       // Tuần cũ nhất sẽ rời cửa sổ sau kỳ reset Thứ 5 tới -> điểm bị mất
       {
         const wmap = mvpWeekMap(rows);
+        // giữ lại các ngày có chi trong cửa sổ để xem 13 tuần đã quét tới đâu
+        teamWallets[idx].mvpDays = rows
+          .filter(r=>winSet.has(getWeekKey(r.day)))
+          .map(r=>({ d:r.day,
+                     v:(r.out_enhancement_amount||r.out_crystal_amount||0)+((r.out_nft_amount||0)+(r.out_ft_amount||0))*0.05,
+                     e:r.out_enhancement_amount||r.out_crystal_amount||0,
+                     n:(r.out_nft_amount||0)+(r.out_ft_amount||0) }))
+          .filter(x=>x.v>0)
+          .sort((a,b)=>a.d<b.d?-1:1);
         const oldVal = wmap[winKeys[0]] || 0;
         const nextVal = Math.max(0, calc.eligible - oldVal);
         teamWallets[idx].mvpWeekMap    = wmap;
@@ -10902,6 +10911,120 @@ function renderMvpSim() {
 
 
 
+
+// ══════════════ POPOVER CỬA SỔ 13 TUẦN MVP ══════════════
+function closeMvpPop(){ const p=document.getElementById('mvp-pop'); if(p) p.remove(); }
+function _mvpPopOut(e){
+  const p=document.getElementById('mvp-pop');
+  if (p && p.contains(e.target)){ document.addEventListener('mousedown', _mvpPopOut, {once:true}); return; }
+  closeMvpPop();
+}
+function openMvpPop(ev, addr){
+  ev.stopPropagation();
+  const cur=document.getElementById('mvp-pop');
+  if (cur && cur.dataset.addr===addr){ closeMvpPop(); return; }
+  closeMvpPop();
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
+  const p=document.createElement('div'); p.id='mvp-pop'; p.dataset.addr=addr;
+  p.style.cssText='position:fixed;z-index:10050;box-shadow:0 24px 60px rgba(0,0,0,.55);border-radius:14px';
+  p.innerHTML=mvpPopHtml(w);
+  document.body.appendChild(p);
+  const r=p.getBoundingClientRect();
+  let x=(ev.clientX||0)+12, y=(ev.clientY||0)+12;
+  if (x+r.width>innerWidth-8)  x=Math.max(8, innerWidth-r.width-8);
+  if (y+r.height>innerHeight-8) y=Math.max(8, innerHeight-r.height-8);
+  p.style.left=x+'px'; p.style.top=y+'px';
+  setTimeout(()=>{ document.addEventListener('mousedown', _mvpPopOut, {once:true}); }, 0);
+}
+const _mvK = v => v>=1e6 ? (v/1e6).toFixed(v>=1e7?0:1).replace('.',',')+'tr'
+              : v>=1000 ? Math.round(v/1000)+'k' : Math.round(v);
+const _mvD = d => d.slice(8,10)+'/'+d.slice(5,7);
+
+function mvpPopHtml(w){
+  if (w.mvpPoints==null) return '<div class="mvp-pop-box"><div class="mvp-pop-empty">Chưa tải xong dữ liệu MVP</div></div>';
+  const keys=mvpWindowKeys(), curKey=currentWeekKey();
+  const wmap=w.mvpWeekMap||{}, days=w.mvpDays||[];
+  const byWeek={}; days.forEach(x=>{ const k=getWeekKey(x.d); (byWeek[k]=byWeek[k]||[]).push(x); });
+
+  const total=keys.reduce((a,k)=>a+(wmap[k]||0),0);
+  const pts=mvpPtsOfValue(total);
+  const dropVal=wmap[keys[0]]||0;
+  const afterPts=mvpPtsOfValue(Math.max(0,total-dropVal));
+  const tier=getTier(pts), afterTier=getTier(afterPts);
+  const keepNeed=Math.max(0, tier.min-afterPts);          // điểm cần thêm để giữ hạng sau Thứ 5
+  const activeWeeks=keys.filter(k=>(wmap[k]||0)>0).length;
+
+  const rows=keys.map((k,i)=>{
+    const val=wmap[k]||0, wp=mvpPtsOfValue(val);
+    const end=weekKeyShift(k,1); const endD=new Date(end+'T00:00:00Z'); endD.setUTCDate(endD.getUTCDate()-1);
+    const isCur=k===curKey, isDrop=i===0;
+    const ds=(byWeek[k]||[]).sort((a,b)=>a.d<b.d?-1:1);
+    const chips=ds.length
+      ? ds.map(x=>`<span class="mvp-day" data-tip="${x.d}&#10;Enhancement: ${Math.round(x.e).toLocaleString('vi-VN')}&#10;NFT/FT (5%): ${Math.round(x.n*0.05).toLocaleString('vi-VN')}">${_mvD(x.d)} · ${_mvK(x.v)}</span>`).join('')
+      : '<span class="mvp-day mvp-day-off">không chi</span>';
+    return `<div class="mvp-wrow${isCur?' mvp-cur':''}${isDrop?' mvp-drop':''}">
+      <div class="mvp-wk">
+        <span class="mvp-wn">T${i+1}</span>
+        <span class="mvp-wd">${_mvD(k)}–${_mvD(endD.toISOString().slice(0,10))}</span>
+        ${isCur?'<span class="mvp-tag mvp-tag-cur">tuần này</span>':''}
+        ${isDrop?'<span class="mvp-tag mvp-tag-drop">rơi sau reset</span>':''}
+      </div>
+      <div class="mvp-days">${chips}</div>
+      <div class="mvp-wv ${val>=MVP_WEEK_TARGET?'ok':(val>0?'low':'zero')}">${val>0?_mvK(val):'—'}<span class="mvp-wp">${wp>0?wp+'đ':''}</span></div>
+    </div>`;
+  }).join('');
+
+  return `<div class="mvp-pop-box">
+    <div class="mvp-pop-head">
+      <div>
+        <div class="mvp-pop-title">${_mvpEsc(w.label||w.address.slice(0,6))}</div>
+        <div class="mvp-pop-sub">Cửa sổ ${_mvD(keys[0])} → ${_mvD(new Date(new Date(curKey+'T00:00:00Z').getTime()+6*864e5).toISOString().slice(0,10))} · ${activeWeeks}/13 tuần có chi</div>
+      </div>
+      <div class="mvp-pop-pts" style="color:${tier.color}">${pts}<span>${tier.name}</span></div>
+    </div>
+    <div class="mvp-wlist">${rows}</div>
+    <div class="mvp-pop-foot">
+      <div><span>Sau reset Thứ 5</span><b style="color:${afterPts>=tier.min?'var(--green)':'var(--amber)'}">${afterPts} điểm · ${afterTier.name}</b></div>
+      ${(()=>{
+        const isUn = tier.name==='Unranked';
+        const goal = isUn ? 30 : tier.min;                     // chưa có MVP thì mục tiêu là Bronze
+        const need = Math.max(0, goal-afterPts);
+        const lb   = isUn ? 'Lên Bronze' : `Giữ hạng ${tier.name}`;
+        return `<div><span>${lb}</span><b style="color:${need?'var(--amber)':'var(--green)'}">${need?'cần thêm '+need+' điểm · '+_mvK(need*MVP_NESO_PER_POINT)+' NESO':'đã đủ'}</b></div>`;
+      })()}
+    </div>
+  </div>
+  <style>
+    #mvp-pop .mvp-pop-box{width:410px;max-height:70vh;display:flex;flex-direction:column;color:#eef2f7;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#1c2027,#14171c);border:1px solid #2b313b;font-size:11px}
+    #mvp-pop .mvp-pop-empty{padding:14px;color:#96a0ae}
+    #mvp-pop .mvp-pop-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #2b313b}
+    #mvp-pop .mvp-pop-title{font-size:13px;font-weight:800}
+    #mvp-pop .mvp-pop-sub{font-size:10px;color:#96a0ae;margin-top:2px}
+    #mvp-pop .mvp-pop-pts{font-size:20px;font-weight:800;line-height:1;text-align:right}
+    #mvp-pop .mvp-pop-pts span{display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+    #mvp-pop .mvp-wlist{overflow-y:auto}
+    #mvp-pop .mvp-wrow{display:grid;grid-template-columns:118px minmax(0,1fr) 62px;gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid #22262d}
+    #mvp-pop .mvp-wrow:nth-child(even){background:rgba(255,255,255,.02)}
+    #mvp-pop .mvp-cur{background:rgba(99,102,241,.14)!important;box-shadow:inset 2px 0 0 #6366f1}
+    #mvp-pop .mvp-drop{box-shadow:inset 2px 0 0 #f5a524}
+    #mvp-pop .mvp-wk{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+    #mvp-pop .mvp-wn{font-weight:800;color:#96a0ae;font-size:10px;min-width:20px}
+    #mvp-pop .mvp-wd{font-family:'Chakra Petch',monospace;font-size:10.5px;color:#c4ccd8}
+    #mvp-pop .mvp-tag{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:1px 4px;border-radius:4px}
+    #mvp-pop .mvp-tag-cur{background:#6366f133;color:#a5b4fc}
+    #mvp-pop .mvp-tag-drop{background:#f5a52426;color:#f5a524}
+    #mvp-pop .mvp-days{display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+    #mvp-pop .mvp-day{font-size:9.5px;padding:1px 5px;border-radius:5px;background:#232830;color:#cfd6e0;white-space:nowrap;cursor:help}
+    #mvp-pop .mvp-day-off{background:transparent;color:#5c6673;font-style:italic;cursor:default}
+    #mvp-pop .mvp-wv{text-align:right;font-weight:700;font-size:11.5px}
+    #mvp-pop .mvp-wv.ok{color:#7fd88f} #mvp-pop .mvp-wv.low{color:#d8a44f} #mvp-pop .mvp-wv.zero{color:#5c6673}
+    #mvp-pop .mvp-wp{display:block;font-size:9px;font-weight:600;color:#96a0ae}
+    #mvp-pop .mvp-pop-foot{border-top:1px solid #2b313b;padding:8px 12px;display:flex;flex-direction:column;gap:4px}
+    #mvp-pop .mvp-pop-foot div{display:flex;justify-content:space-between;gap:10px}
+    #mvp-pop .mvp-pop-foot span{color:#96a0ae}
+  </style>`;
+}
 
 function updateMvpCell(w) {
   const tw = (window.teamWallets||[]).find(x=>x.address===w.address);
