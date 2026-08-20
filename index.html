@@ -5282,8 +5282,12 @@ function renderLiteList(){
           <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+Math.round(Math.max(...cp)/1000)+'k':'—';})()}</div>
           ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
             return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
-          <div class="mvp-num" style="text-align:right;color:var(--text)">${nW?tWeeks+'<span style="font-size:9px;color:var(--muted2)">/'+(nW*13)+'</span>':'—'}</div>
-          <div class="mvp-num" style="text-align:right;color:var(--text)">${_lf(tPts)}</div>
+          ${(()=>{ const act=ws.filter(w=>(w.mvpWeekValue||0)>0).length;
+            return `<div class="mvp-num" style="text-align:right;line-height:1.15;color:${act?'#7fd88f':'var(--muted2)'}" data-tip="Ví có chi MVP trong tuần này (từ Thứ 5)&#10;${act}/${ws.length} ví đang farm&#10;${ws.length-act} ví chưa chi đồng nào">${act}<div style="font-size:8.5px;color:var(--muted2);font-weight:600">/${ws.length} ví</div></div>`; })()}
+          ${(()=>{ const ok=ws.filter(w=>mvpPtsOf(w)>=30).length;
+            const short=ws.filter(w=>mvpPtsOf(w)<30);
+            const needPts=short.reduce((a,w)=>a+(30-mvpPtsOf(w)),0);
+            return `<div class="mvp-num" style="text-align:right;line-height:1.15;color:#7fd88f" data-tip="${ok}/${ws.length} ví đạt Bronze (≥30 điểm)&#10;${short.length} ví còn thiếu, tổng ${_lf(needPts)} điểm ≈ ${_lf(needPts*MVP_NESO_PER_POINT)} NESO&#10;Tổng điểm toàn bộ: ${_lf(tPts)}">${ok}${short.length?`<div style="font-size:8.5px;color:#d8a44f;font-weight:600">${short.length} thiếu</div>`:'<div style="font-size:8.5px;color:var(--muted2);font-weight:600">đủ cả</div>'}</div>`; })()}
           ${(()=>{ const has=ws.filter(w=>w.mvpNextPoints!=null);
             if(!has.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
             const tNext=has.reduce((a,w)=>a+w.mvpNextPoints,0), lost=tPts-tNext;
