@@ -4434,7 +4434,32 @@ function liteTierPass(w){ return liteTier==='all' || mvpGroup(w)===liteTier; }
 function setLitePlayer(p){ litePlayer=(litePlayer===p)?'all':p; renderLiteTab(); }
 function setLiteQuery(v){ liteQuery=(v||'').toLowerCase(); renderLiteList(); const i=document.getElementById('lite-search'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteSort(c){ if(liteSort.col===c) liteSort.dir=(liteSort.dir==='desc'?'asc':'desc'); else liteSort={col:c,dir:(c==='name'||c==='player'||c==='char'||c==='world')?'asc':'desc'}; renderLiteList(); }
-function liteScope(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return litePlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===litePlayer); }
+// Nhãn ví: mặc định là NỘI BỘ. Người chơi được đánh dấu "ngoại" chỉ theo dõi riêng,
+// không cộng vào tổng chung của các ví khác.
+function extPlayers(){
+  try{ return (teamSettings && teamSettings.extPlayers) || {}; }catch(e){ return {}; }
+}
+function isExtPlayer(name){ return !!extPlayers()[name]; }
+function isExtWallet(w){ return isExtPlayer(w && (w.player||'(chưa gán)')); }
+async function toggleExtPlayer(ev, name){
+  if (ev) ev.stopPropagation();
+  if (!(typeof teamUser!=='undefined' && teamUser && teamUser.role==='admin')) return;
+  try{
+    teamSettings = teamSettings || {};
+    const m = teamSettings.extPlayers = teamSettings.extPlayers || {};
+    if (m[name]) delete m[name]; else m[name]=true;
+    // đang lọc đúng người chơi vừa đổi nhãn -> bỏ lọc để tổng hiển thị lại cho đúng
+    if (litePlayer===name) litePlayer='all';
+    renderLiteTab();
+    await saveTeamData();
+  }catch(e){ console.warn('toggleExtPlayer', e); }
+}
+function liteScope(){
+  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  // "Tất cả" = chỉ ví nội bộ; muốn xem ví ngoại thì bấm đúng dòng người chơi đó
+  return litePlayer==='all' ? ws.filter(w=>!isExtWallet(w))
+                            : ws.filter(w=>(w.player||'(chưa gán)')===litePlayer);
+}
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
 // Bản rút gọn cho bảng danh sách: từ 10 triệu trở lên đổi sang ký tự đơn vị.
 // Giá trị đầy đủ vẫn nằm trong tooltip nên không mất thông tin.
@@ -4510,14 +4535,28 @@ function renderLitePlayers(){
   const el=document.getElementById('lite-players'); if(!el) return;
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
   const P={}; ws.forEach(w=>{ const pl=w.player||'(chưa gán)'; (P[pl]=P[pl]||{vi:0,neso:0}); P[pl].vi++; P[pl].neso+=(w.neso||0); });
-  const all=Object.keys(P).filter(p=>!litePQuery||p.toLowerCase().includes(litePQuery)).sort((a,b)=>P[b].neso-P[a].neso);
-  const tot={vi:ws.length, neso:ws.reduce((s,w)=>s+(w.neso||0),0)};
+  const found=Object.keys(P).filter(p=>!litePQuery||p.toLowerCase().includes(litePQuery)).sort((a,b)=>P[b].neso-P[a].neso);
+  const inner=found.filter(p=>!isExtPlayer(p)), outer=found.filter(p=>isExtPlayer(p));
+  const all=inner.concat(outer);                       // ví ngoại xếp cuối
+  // TỔNG chỉ cộng ví nội bộ; ví ngoại có dòng tổng riêng
+  const wIn=ws.filter(w=>!isExtWallet(w)), wOut=ws.filter(w=>isExtWallet(w));
+  const tot={vi:wIn.length, neso:wIn.reduce((s,w)=>s+(w.neso||0),0)};
+  const totOut={vi:wOut.length, neso:wOut.reduce((s,w)=>s+(w.neso||0),0)};
+  const isAdm=!!(typeof teamUser!=='undefined'&&teamUser&&teamUser.role==='admin');
+  const extBadge=(name)=>{
+    const on=isExtPlayer(name);
+    if (!on && !isAdm) return '';
+    const t=on?'Ví ngoại — theo dõi riêng, không cộng vào tổng'+(isAdm?'&#10;Bấm để chuyển về nội bộ':'')
+              :'Ví nội bộ&#10;Bấm để đánh dấu là ví ngoại';
+    return `<span ${isAdm?`onclick="toggleExtPlayer(event,'${(name||'').replace(/'/g,"")}')" style="cursor:pointer;"`:'style="'}${on?'':'opacity:.35;'}display:inline-flex;align-items:center;flex-shrink:0;color:${on?'#d8a44f':'var(--muted2)'}" data-tip="${t}">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span>`;
+  };
   const mx=Math.max(...all.map(p=>P[p].neso),1);
   const bar=(d)=>`<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(d.neso/mx*100))}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:#7fd88f;white-space:nowrap" data-tip="NESO: ${_lf(d.neso)}">${_lfk(d.neso)}</span></div>`;
   const row=(name,d,idx)=>{ const sel=(name===litePlayer);
     return `<div class="mvp-prow ${sel?'on':''}" onclick="setLitePlayer('${(name||'').replace(/'/g,"")}')">
       <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
-      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi} ví</span></div>${bar(d)}</div></div>`; };
+      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':(isExtPlayer(name)?'#d8a44f':'var(--text2)')};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${extBadge(name)}${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi} ví</span></div>${bar(d)}</div></div>`; };
   el.innerHTML=`<div id="lite-pwrap" onmouseup="_saveLitePanelW()" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px;width:100%;box-sizing:border-box;min-width:210px;max-width:560px;overflow:hidden;resize:horizontal">
       <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Ví theo người chơi${infoIcon('Bấm 1 dòng để lọc bảng bên phải · thanh = NESO đang có')}</div></div>
       <div class="mvp-prow ${litePlayer==='all'?'on':''}" onclick="setLitePlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
@@ -4525,6 +4564,10 @@ function renderLitePlayers(){
       </div>
       <div style="padding:9px 2px 6px"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
       <div id="lite-plist" style="height:${litePanelH}px;min-height:120px;max-height:70vh;overflow-y:auto;resize:vertical;display:flex;flex-direction:column;gap:2px" onmouseup="_saveLitePanelH()">${all.length?all.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}</div>
+      ${totOut.vi?`<div class="mvp-prow" style="border-top:1px solid var(--border2);border-radius:0;margin-top:4px;padding-top:9px;cursor:default" data-tip="Ví ngoại được theo dõi riêng&#10;Không cộng vào TỔNG phía trên&#10;NESO: ${_lf(totOut.neso)}">
+        <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#d8a44f">Ví ngoại</span><span style="font-size:9.5px;color:var(--muted2)">${totOut.vi} ví</span></div></div>
+        <span class="mvp-num" style="font-size:9.5px;color:#d8a44f;white-space:nowrap">${_lfk(totOut.neso)}</span>
+      </div>`:''}
       <div style="text-align:center;font-size:8.5px;color:var(--muted2);opacity:.6;margin-top:3px">kéo mép dưới / góc phải để đổi kích thước</div>
     </div>`;
 }
