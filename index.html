@@ -882,54 +882,55 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-tier-cell:hover{border-color:var(--border3)}
 .mvp-tier-cell.on{border-color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,var(--card))}
 
-/* ── Panel Ví theo người chơi (bản nén dòng 32px) ── */
-.lpp{background:#101014;border:1px solid #22222a;border-radius:12px;padding:12px 0 8px;width:100%;box-sizing:border-box;min-width:210px;max-width:560px;overflow:hidden;resize:horizontal}
-.lpp-hd{padding:0 12px 10px;border-bottom:1px solid #1c1c23}
+/* ── Panel Ví theo người chơi: bố cục nén 32px, khung + hiệu ứng theo theme chung ── */
+.lpp{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 0 8px;width:100%;box-sizing:border-box;min-width:210px;max-width:560px;overflow:hidden;resize:horizontal}
+.lpp-hd{padding:0 12px 10px;border-bottom:1px solid var(--border2)}
 .lpp-t1{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.lpp-title{font-size:13px;font-weight:600;color:#dcdce4}
-.lpp-cnt{font-size:11px;color:#6b6b77}
-.lpp-t2{display:flex;align-items:baseline;gap:8px;margin-top:6px;cursor:pointer;border-radius:6px}
-.lpp-t2:hover .lpp-tot{color:#a89bf0}
-.lpp-tot{font-size:24px;font-weight:600;letter-spacing:-.02em;color:#f2f2f6;line-height:1.1;transition:color .12s}
-.lpp-tlb{font-size:11px;color:#6b6b77}
+.lpp-title{font-size:13px;font-weight:800;color:var(--text)}
+.lpp-cnt{font-size:10.5px;color:var(--muted2)}
+.lpp-t2{display:flex;align-items:baseline;gap:8px;margin-top:6px;cursor:pointer;border-radius:8px;padding:2px 4px;margin-left:-4px;transition:.12s}
+.lpp-t2:hover{background:var(--bg2)}
+.lpp-tot{font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--text);line-height:1.1;transition:color .12s}
+.lpp-t2:hover .lpp-tot{color:var(--accent)}
+.lpp-tlb{font-size:10.5px;color:var(--muted2)}
 .lpp-search{padding:9px 12px 8px}
-.lpp-search input{width:100%;box-sizing:border-box;padding:6px 10px;border-radius:7px;border:1px solid #26262f;background:#14141a;color:#dcdce4;font-size:12px;outline:none;font-family:inherit}
-.lpp-search input:focus{border-color:#3a3358}
-.lpp-cols{display:flex;align-items:center;gap:8px;padding:5px 12px;background:#14141a;border-top:1px solid #1c1c23;border-bottom:1px solid #1c1c23;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b77}
-.lpp-cols span{cursor:pointer;white-space:nowrap}
-.lpp-cols span:hover{color:#dcdce4}
-.lpp-cols .on{color:#8b7ae8}
-.lpp-gh{display:flex;align-items:center;gap:6px;padding:7px 12px 5px}
-.lpp-gt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
-.lpp-gm{margin-left:auto;font-size:10px;color:#6b6b77;white-space:nowrap}
-.lpp-i{width:13px;height:13px;border-radius:50%;border:1px solid #2f5c47;color:#4e8f70;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex-shrink:0}
-.lpp-i:hover{border-color:#4e8f70;color:#63c08f}
+.lpp-search input{width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--input-bg);color:var(--text);font-size:11.5px;outline:none;font-family:inherit;transition:.12s}
+.lpp-search input:focus{border-color:var(--accent)}
+.lpp-cols{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg2);border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted2)}
+.lpp-cols span{cursor:pointer;white-space:nowrap;transition:.12s}
+.lpp-cols span:hover{color:var(--text2)}
+.lpp-cols .on{color:var(--accent)}
+.lpp-gh{display:flex;align-items:center;gap:6px;padding:8px 12px 5px}
+.lpp-gt{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.lpp-gm{margin-left:auto;font-size:9.5px;color:var(--muted2);white-space:nowrap}
+.lpp-i{width:13px;height:13px;border-radius:50%;border:1px solid color-mix(in srgb,var(--green) 45%,transparent);color:var(--green);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex-shrink:0;opacity:.75;transition:.12s}
+.lpp-i:hover{opacity:1}
 .lpp-scroll{max-height:165px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;resize:vertical}
 .lpp-scroll::-webkit-scrollbar{width:6px}
 .lpp-scroll::-webkit-scrollbar-track{background:transparent}
-.lpp-scroll::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:3px}
-.lpp-row{position:relative;height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-left:2px solid transparent;cursor:pointer;box-sizing:border-box}
-.lpp-row:hover{background:#16161d;border-left-color:#3a3358}
-.lpp-row.on{border-left-color:#8b7ae8;background:#17142b}
-.lpp-bg{position:absolute;left:0;top:0;bottom:0;background:#1c1930;pointer-events:none}
-.lpp-row.on .lpp-bg{background:#241f42}
-.lpp-ext .lpp-bg{background:#10201a}
-.lpp-nm{position:relative;flex:1;min-width:0;font-size:13px;color:#dcdce4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lpp-row.on .lpp-nm{color:#f2f2f6}
-.lpp-vi{position:relative;width:30px;text-align:right;font-size:11px;color:#6b6b77;flex-shrink:0}
-.lpp-bal{position:relative;width:62px;text-align:right;font-size:12px;color:#eaeaf0;font-variant-numeric:tabular-nums;flex-shrink:0}
-.lpp-row.on .lpp-bal{color:#f2f2f6}
-.lpp-ext .lpp-bal{color:#63c08f}
-.lpp-row.zero .lpp-nm{color:#6b6b77}
-.lpp-row.zero .lpp-bal{color:#3d3d46}
-.lpp-sw{position:relative;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid transparent;color:#4f4f5b;flex-shrink:0}
-.lpp-sw:hover{color:#cfcfda;border-color:#34343f;background:#1c1c24}
-.lpp-menu{background:#131319;border-left:2px solid #34343f;padding:7px 12px 8px}
-.lpp-mlb{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b77}
+.lpp-scroll::-webkit-scrollbar-thumb{background:var(--border3,var(--border2));border-radius:3px}
+.lpp-row{position:relative;height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-left:2px solid transparent;cursor:pointer;box-sizing:border-box;transition:.12s}
+.lpp-row:hover{background:var(--bg2);border-left-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.lpp-row.on{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.lpp-bg{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--accent) 11%,transparent);pointer-events:none;transition:width .2s}
+.lpp-row.on .lpp-bg{background:color-mix(in srgb,var(--accent) 20%,transparent)}
+.lpp-ext .lpp-bg{background:color-mix(in srgb,var(--green) 11%,transparent)}
+.lpp-ext:hover{border-left-color:color-mix(in srgb,var(--green) 45%,transparent)}
+.lpp-nm{position:relative;flex:1;min-width:0;font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lpp-row.on .lpp-nm{color:var(--accent)}
+.lpp-vi{position:relative;width:30px;text-align:right;font-size:9.5px;color:var(--muted2);flex-shrink:0}
+.lpp-bal{position:relative;width:62px;text-align:right;font-size:11px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;flex-shrink:0}
+.lpp-ext .lpp-bal{color:var(--green)}
+.lpp-row.zero .lpp-nm{color:var(--muted2);font-weight:600}
+.lpp-row.zero .lpp-bal{color:var(--muted2);opacity:.55;font-weight:600}
+.lpp-sw{position:relative;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid transparent;color:var(--muted2);opacity:.5;flex-shrink:0;transition:.12s}
+.lpp-sw:hover{opacity:1;color:var(--text2);border-color:var(--border2);background:var(--surface)}
+.lpp-menu{background:var(--bg2);border-left:2px solid var(--border2);padding:7px 12px 8px}
+.lpp-mlb{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2)}
 .lpp-mrow{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
-.lpp-mbtn{background:#191921;border:1px solid #26262f;border-radius:5px;font-size:11px;padding:3px 9px;color:#dcdce4;cursor:pointer;white-space:nowrap;font-family:inherit}
-.lpp-mbtn:hover{border-color:#3a3358;background:#1c1c24}
-.lpp-empty{padding:10px 12px;font-size:11px;color:#6b6b77}
+.lpp-mbtn{background:var(--surface);border:1px solid var(--border2);border-radius:6px;font-size:10.5px;padding:3px 9px;color:var(--text2);cursor:pointer;white-space:nowrap;font-family:inherit;transition:.12s}
+.lpp-mbtn:hover{border-color:var(--accent);color:var(--text)}
+.lpp-empty{padding:10px 12px;font-size:10.5px;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
@@ -4639,8 +4640,8 @@ function renderLitePlayers(){
   const menu=(name,ext)=>`<div class="lpp-menu">
       <div class="lpp-mlb">Chuyển sang nhóm</div>
       <div class="lpp-mrow">
-        <button class="lpp-mbtn" onclick="setPlayerGroup(event,'${esc(name)}',false)" style="${ext?'':'border-color:#3a3358'}">${ext?'':'<span style="color:#8b7ae8">✓</span> '}Ví nhóm</button>
-        <button class="lpp-mbtn" onclick="setPlayerGroup(event,'${esc(name)}',true)" style="${ext?'border-color:#2f5c47':''}">${ext?'<span style="color:#63c08f">✓</span> ':''}Ví ngoại</button>
+        <button class="lpp-mbtn" onclick="setPlayerGroup(event,'${esc(name)}',false)" style="${ext?'':'border-color:var(--accent)'}">${ext?'':'<span style="color:var(--accent)">✓</span> '}Ví nhóm</button>
+        <button class="lpp-mbtn" onclick="setPlayerGroup(event,'${esc(name)}',true)" style="${ext?'border-color:var(--green)':''}">${ext?'<span style="color:var(--green)">✓</span> ':''}Ví ngoại</button>
       </div>
     </div>`;
 
@@ -4671,7 +4672,7 @@ function renderLitePlayers(){
       <div class="lpp-hd">
         <div class="lpp-t1"><span class="lpp-title">Ví theo người chơi</span><span class="lpp-cnt mvp-num">${tot.vi} ví</span></div>
         <div class="lpp-t2" onclick="setLitePlayer('all')" data-tip="Bấm để xem lại toàn bộ ví nhóm&#10;NESO: ${_lf(tot.neso)}">
-          <span class="lpp-tot mvp-num" style="${litePlayer==='all'?'':'color:#dcdce4'}">${_lfk(tot.neso)}</span>
+          <span class="lpp-tot mvp-num">${_lfk(tot.neso)}</span>
           <span class="lpp-tlb">tổng ví nhóm</span>
         </div>
       </div>
@@ -4679,8 +4680,8 @@ function renderLitePlayers(){
       <div class="lpp-cols">${hc('name','Người chơi')}${hc('vi','Ví',30)}${hc('neso','Số dư',62)}</div>
       ${(!inner.length && !outer.length)
         ? '<div class="lpp-empty" style="text-align:center;padding:14px">Không có người chơi khớp</div>'
-        : `${group('Ví nhóm','#6d5fd0',inner,tot,'nhom',false)}
-           ${(outer.length||totOut.vi)?group('Ví ngoại','#3f8f6a',outer,totOut,'ngoai',true):''}`}
+        : `${group('Ví nhóm','var(--accent)',inner,tot,'nhom',false)}
+           ${(outer.length||totOut.vi)?group('Ví ngoại','var(--green)',outer,totOut,'ngoai',true):''}`}
     </div>`;
 }
 
