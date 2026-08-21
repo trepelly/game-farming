@@ -993,6 +993,15 @@ td:first-child{text-align:left;color:var(--muted2)}
 .itip-sec{margin-top:8px;padding-top:7px;border-top:1px solid #232a33;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .itip-sec.pot{color:#63c08f}.itip-sec.bon{color:#e0a75e}
 .itip-p{color:#8fd7ae;font-size:10.5px}.itip-b{color:#f0c68a;font-size:10.5px}
+.itip-set{margin-top:8px;padding-top:7px;border-top:1px solid #232a33}
+.itip-set-nm{font-size:11px;font-weight:800;color:#8fb4e8}
+.itip-pcs{display:flex;gap:4px;margin:5px 0 6px;flex-wrap:wrap}
+.itip-pc{width:26px;height:26px;border-radius:6px;border:1px solid #262d38;background:#171c24;display:flex;align-items:center;justify-content:center;opacity:.32}
+.itip-pc.on{opacity:1;border-color:#4a4331;background:linear-gradient(160deg,#26221a,#1d2129)}
+.itip-pc img{width:80%;height:80%;object-fit:contain}
+.itip-ef{display:flex;gap:6px;font-size:10px;color:#5b6270;line-height:1.5}
+.itip-ef b{color:#7e8798;font-weight:800;flex-shrink:0;width:22px}
+.itip-ef.on{color:#8fd7ae}.itip-ef.on b{color:#63c08f}
 .itip-hd{display:flex;gap:9px;align-items:flex-start}
 .itip-hd img{width:38px;height:38px;object-fit:contain;flex-shrink:0;border-radius:7px;background:#171c24;border:1px solid #262d38;padding:3px}
 .itip-note{margin-top:7px;padding-top:6px;border-top:1px solid #232a33;font-size:9.5px;color:#6b7280}
@@ -5384,6 +5393,82 @@ async function debugItem(key){
 }
 try{ window.debugItem=debugItem; window.ITEM_CACHE=ITEM_CACHE; }catch(e){}
 
+// ══════════ Bộ trang bị (item set) ══════════
+const SET_CACHE=(()=>{ try{ return JSON.parse(localStorage.getItem('msuSet1')||'{}'); }catch(e){ return {}; } })();
+function _saveSetCache(){ try{ localStorage.setItem('msuSet1', JSON.stringify(SET_CACHE)); }catch(e){} }
+const _setTried=new Set();
+function _parseItemSet(txt){
+  let o=null;
+  try{ const j=JSON.parse(txt); o=j&&(j.itemSet||j); }catch(e){}
+  if (!o || !o.pieces) o=_cutJson(txt,'itemSet','{', x=>x&&Array.isArray(x.pieces));
+  if (!o || !Array.isArray(o.pieces)) return null;
+  return {
+    id:o.setId||0, name:o.setName||'',
+    pieces:o.pieces.map(x=>({ id:+(x.itemId||0), name:x.representName||'', type:(x.typeName||'').replace(/[()]/g,''),
+                              url:x.imageUrl||'' })),
+    effects:(o.effects||[]).map(e=>({ cnt:+(e.equipCount||0), desc:[].concat(e.desc||[]) })).sort((a,b)=>a.cnt-b.cnt),
+  };
+}
+function _setUrls(id){
+  const u=[`https://msu.io/navigator/api/navigator/item-set/${id}`,
+           `https://msu.io/navigator/api/navigator/itemset/${id}`,
+           `https://msu.io/navigator/api/navigator/item/set/${id}`,
+           `https://msu.io/navigator/api/navigator/set/${id}`];
+  let saved=null; try{ saved=localStorage.getItem('MSU_SET_PATTERN'); }catch(e){}
+  if (saved && saved.includes('{id}')) u.unshift(saved.replace('{id}', id));
+  return u.filter((x,i)=>u.indexOf(x)===i);
+}
+async function fetchItemSet(id){
+  if (!id || SET_CACHE[id] || _setTried.has(id)) return SET_CACHE[id]||null;
+  _setTried.add(id);
+  for (const url of _setUrls(id)){
+    try{ const r=await fetch(msuProxy(url)); if(!r.ok) continue;
+      const d=_parseItemSet(await r.text());
+      if (d){ SET_CACHE[id]=d; _saveSetCache();
+        try{ localStorage.setItem('MSU_SET_PATTERN', url.replace(String(id),'{id}')); }catch(e){}
+        return d; }
+    }catch(e){}
+  }
+  return null;
+}
+async function debugItemSet(id){
+  const out=[];
+  for (const url of _setUrls(id)){
+    try{ const r=await fetch(msuProxy(url)); const t=await r.text();
+      const d=_parseItemSet(t);
+      out.push({url,status:r.status,len:t.length,doc:t.slice(0,120),set:d?`${d.name} · ${d.pieces.length} món · ${d.effects.length} mốc`:'không đọc được'});
+    }catch(e){ out.push({url,loi:String(e)}); }
+  }
+  console.table(out); console.log(out); return out;
+}
+// Nạp một bộ đã biết vào cache thủ công (dán JSON từ Network vào đây)
+function addItemSet(json){
+  const d=_parseItemSet(typeof json==='string'?json:JSON.stringify(json));
+  if(!d||!d.id) return console.warn('Không đọc được bộ');
+  SET_CACHE[d.id]=d; _saveSetCache();
+  console.log('Đã lưu bộ', d.id, d.name, '·', d.pieces.length, 'món');
+  const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr);
+  return d;
+}
+// Tra bộ theo itemId từ những bộ đã có trong cache
+function setOfItem(itemId){
+  const k=Object.keys(SET_CACHE);
+  for (const id of k){ const st=SET_CACHE[id]; if(st&&st.pieces&&st.pieces.some(p=>p.id===+itemId)) return st; }
+  return null;
+}
+// Khối bộ trang bị: món nào đang mặc thì sáng, mốc hiệu ứng nào đạt thì xanh
+function setBlockHtml(st, wornIds){
+  if(!st) return '';
+  const worn=new Set((wornIds||[]).map(Number));
+  const cnt=st.pieces.filter(p=>p.id&&worn.has(p.id)).length;
+  return `<div class="itip-set">
+    <div class="itip-set-nm">${_iEsc(st.name)} <span style="color:#5b6270;font-weight:600">${cnt}/${st.pieces.length}</span></div>
+    <div class="itip-pcs">${st.pieces.map(p=>`<span class="itip-pc${p.id&&worn.has(p.id)?' on':''}" data-tip="${_iEsc(p.name)}${p.type?' · '+_iEsc(p.type):''}"><img src="${p.url}" onerror="this.remove()"></span>`).join('')}</div>
+    ${st.effects.map(e=>`<div class="itip-ef${cnt>=e.cnt?' on':''}"><b>${e.cnt} món</b><span>${e.desc.map(_iEsc).join(' · ')}</span></div>`).join('')}
+  </div>`;
+}
+try{ window.debugItemSet=debugItemSet; window.addItemSet=addItemSet; window.SET_CACHE=SET_CACHE; }catch(e){}
+
 // ── Dựng tooltip ──
 const _iEsc=x=>_mvpEsc(String(x==null?'':x));
 function _itipRows(rows){
@@ -5408,6 +5493,7 @@ function itemTipHtml(d, fallback){
         ${d.potGrade?`<div class="itip-r"><span>Potential</span><b style="color:#8fd7ae">${_iEsc(d.potGrade)}</b></div>`:''}
         ${d.bonGrade?`<div class="itip-r"><span>Bonus potential</span><b style="color:#f0c68a">${_iEsc(d.bonGrade)}</b></div>`:''}
       </div>`:''}
+    ${d.itemId?setBlockHtml(setOfItem(d.itemId), d.wornIds):''}
     ${(d.minted||d.sbt||d.ownedBy)?`<div class="itip-note">${[d.minted?'Đã mint':'', d.sbt?'SBT':'', d.ownedBy?('Đang mặc: '+_iEsc(d.ownedBy)):''].filter(Boolean).join(' · ')}</div>`:''}
     ${d.pot&&d.pot.length?`<div class="itip-sec pot">Potential${d.potGrade?` (${_iEsc(d.potGrade)})`:''}</div>${d.pot.map(x=>`<div class="itip-p">${_iEsc(x)}</div>`).join('')}`:''}
     ${d.bon&&d.bon.length?`<div class="itip-sec bon">Bonus potential${d.bonGrade?` (${_iEsc(d.bonGrade)})`:''}</div>${d.bon.map(x=>`<div class="itip-b">${_iEsc(x)}</div>`).join('')}`:''}
@@ -5429,9 +5515,11 @@ document.addEventListener('mouseover', e=>{
   const el=e.target&&e.target.closest&&e.target.closest('[data-ikey]');
   if(!el) return;
   const k=el.getAttribute('data-ikey'); if(!k) return;
+  const worn=(el.getAttribute('data-iworn')||'').split(',').filter(Boolean);
   const cached=ITEM_CACHE[k];
-  if (cached){ el.setAttribute('data-tiph', itemTipHtml(cached)); return; }
+  if (cached){ cached.wornIds=worn; el.setAttribute('data-tiph', itemTipHtml(cached)); return; }
   fetchItemDetail(k).then(d=>{ if(!d) return;
+    d.wornIds=worn;
     el.setAttribute('data-tiph', itemTipHtml(d));
     if (el.matches(':hover')) { try{ showTip({clientX:_tipXY.x, clientY:_tipXY.y}, el.getAttribute('data-tip'), el.getAttribute('data-tiph')); }catch(err){} }
   });
@@ -5478,6 +5566,7 @@ function eqGridHtml(ak, eq){
   const pick=keys=>{ for(const k of keys){ if(src[k]) return src[k]; } return null; };
   const sub=(lb,c)=>`<div class="mp-eq-sub"><span>${lb}</span><i></i><b>${c}</b></div>`;
   const used=new Set();
+  const wornIds=Object.values(src).map(x=>x.id).join(',');
   const cells=EQ_GRID.map(rowArr=>rowArr.map(key=>{
     if(!key) return '<div class="mp-slot void"></div>';
     const [lb,keys]=EQ_SLOT[key];
@@ -5489,7 +5578,7 @@ function eqGridHtml(ak, eq){
     const tiph=(ITEM_CACHE[it.assetKey]?itemTipHtml(ITEM_CACHE[it.assetKey])
       :itemTipBasic({name:nft?nft.name:('#'+it.id), cat:nft?nft.cat:'', img:it.url, sf:nft?nft.sf:0, slot:lb, nft:it.mintable,
         note:it.assetKey?'Đang tải chỉ số chi tiết…':'Không phải NFT — chưa có chỉ số chi tiết'})).replace(/"/g,'&quot;');
-    return `<div class="mp-slot has"${it.assetKey?` data-ikey="${it.assetKey}"`:''} data-tiph="${tiph}" data-tip="${_mvpEsc(tip)}"${nft?` onclick="copyFlash(this,'${String(nft.name||'').replace(/'/g,'')}')"`:''}>
+    return `<div class="mp-slot has"${it.assetKey?` data-ikey="${it.assetKey}" data-iworn="${wornIds}"`:''} data-tiph="${tiph}" data-tip="${_mvpEsc(tip)}"${nft?` onclick="copyFlash(this,'${String(nft.name||'').replace(/'/g,'')}')"`:''}>
       <span class="mp-slot-lb">${lb}</span><img src="${it.url}" loading="lazy" onerror="this.remove()">
       ${nft&&nft.sf?`<span class="mp-slot-sf">★${nft.sf}</span>`:''}</div>`;
   }).join('')).join('');
