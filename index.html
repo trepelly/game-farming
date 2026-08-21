@@ -4444,6 +4444,13 @@ function isExtWallet(w){ return isExtPlayer(w && (w.player||'(chưa gán)')); }
 async function toggleExtPlayer(ev, name){
   if (ev) ev.stopPropagation();
   if (!(typeof teamUser!=='undefined' && teamUser && teamUser.role==='admin')) return;
+  const toExt = !isExtPlayer(name);
+  const n = ((typeof effectiveWallets==='function')?effectiveWallets():teamWallets||[])
+              .filter(w=>(w.player||'(chưa gán)')===name).length;
+  const msg = toExt
+    ? `Chuyển "${name}" (${n} ví) sang VÍ NGOẠI?\n\nVí ngoại được theo dõi riêng và KHÔNG cộng vào tổng của nhóm.`
+    : `Chuyển "${name}" (${n} ví) về VÍ NHÓM?\n\nCác ví này sẽ được cộng lại vào tổng của nhóm.`;
+  if (!confirm(msg)) return;
   try{
     teamSettings = teamSettings || {};
     const m = teamSettings.extPlayers = teamSettings.extPlayers || {};
@@ -4546,10 +4553,10 @@ function renderLitePlayers(){
   const extBadge=(name)=>{
     const on=isExtPlayer(name);
     if (!on && !isAdm) return '';
-    const t=on?'Ví ngoại — theo dõi riêng, không cộng vào tổng'+(isAdm?'&#10;Bấm để chuyển về nội bộ':'')
-              :'Ví nội bộ&#10;Bấm để đánh dấu là ví ngoại';
+    const t=on?'Đang là VÍ NGOẠI — theo dõi riêng, không cộng vào tổng'+(isAdm?'&#10;Bấm để chuyển về Ví nhóm':'')
+              :'Đang là VÍ NHÓM&#10;Bấm để chuyển sang Ví ngoại';
     return `<span ${isAdm?`onclick="toggleExtPlayer(event,'${(name||'').replace(/'/g,"")}')" style="cursor:pointer;"`:'style="'}${on?'':'opacity:.35;'}display:inline-flex;align-items:center;flex-shrink:0;color:${on?'#d8a44f':'var(--muted2)'}" data-tip="${t}">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></span>`;
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 8 16 13"/><path d="M21 8H9a5 5 0 0 0-5 5"/><polyline points="8 21 3 16 8 11"/><path d="M3 16h12a5 5 0 0 0 5-5"/></svg></span>`;
   };
   const mx=Math.max(...all.map(p=>P[p].neso),1);
   // tiêu đề mỗi khu vực + tổng riêng của khu vực đó
@@ -4573,7 +4580,7 @@ function renderLitePlayers(){
       <div id="lite-plist" style="height:${litePanelH}px;min-height:120px;max-height:70vh;overflow-y:auto;resize:vertical;display:flex;flex-direction:column;gap:2px" onmouseup="_saveLitePanelH()">${
         (!inner.length && !outer.length)
           ? '<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'
-          : `${sect('Ví nhóm', 'var(--muted2)', tot, 'Ví của nhóm — cộng vào TỔNG')}
+          : `${sect('Ví nhóm', 'var(--accent)', tot, 'Ví của nhóm — cộng vào TỔNG')}
              ${inner.length?inner.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:8px 12px;font-size:10.5px;color:var(--muted2)">Chưa có ví nhóm</div>'}
              ${(outer.length||totOut.vi)?`${sect('Ví ngoại', '#d8a44f', totOut, 'Theo dõi riêng — KHÔNG cộng vào TỔNG')}
              ${outer.length?outer.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:8px 12px;font-size:10.5px;color:var(--muted2)">Chưa có ví ngoại</div>'}`:''}`
