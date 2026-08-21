@@ -980,6 +980,22 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-left::-webkit-scrollbar,.mp-mid::-webkit-scrollbar,.mp-right::-webkit-scrollbar{width:6px}
 .mp-left::-webkit-scrollbar-track,.mp-mid::-webkit-scrollbar-track,.mp-right::-webkit-scrollbar-track{background:transparent}
 .mp-left::-webkit-scrollbar-thumb,.mp-mid::-webkit-scrollbar-thumb,.mp-right::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
+.itip{width:262px;background:#0f1319;border:1px solid #2b313b;border-radius:10px;padding:10px 12px 11px;color:#c8cede;font-size:11px;line-height:1.45}
+.itip-star{color:#f6d36b;font-size:10px;letter-spacing:1px;margin-bottom:3px;word-break:break-all}
+.itip-name{font-size:13.5px;font-weight:800;color:#f6d36b;line-height:1.2}
+.itip-cat{font-size:10px;color:#7e8798;margin-top:2px}
+.itip-req{font-size:10.5px;color:#c8cede;margin-top:6px;padding-top:6px;border-top:1px solid #232a33}
+.itip-rows{margin-top:6px;padding-top:6px;border-top:1px solid #232a33}
+.itip-r{display:flex;align-items:baseline;gap:8px}
+.itip-r span:first-child{color:#9aa3b2;flex:1;min-width:0}
+.itip-r b{color:#e8edf7;font-weight:800;white-space:nowrap}
+.itip-r i{color:#7e8798;font-style:normal;font-size:9.5px;white-space:nowrap}
+.itip-sec{margin-top:8px;padding-top:7px;border-top:1px solid #232a33;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.itip-sec.pot{color:#63c08f}.itip-sec.bon{color:#e0a75e}
+.itip-p{color:#8fd7ae;font-size:10.5px}.itip-b{color:#f0c68a;font-size:10.5px}
+.itip-hd{display:flex;gap:9px;align-items:flex-start}
+.itip-hd img{width:38px;height:38px;object-fit:contain;flex-shrink:0;border-radius:7px;background:#171c24;border:1px solid #262d38;padding:3px}
+.itip-note{margin-top:7px;padding-top:6px;border-top:1px solid #232a33;font-size:9.5px;color:#6b7280}
 .mp-node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .mp-node{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:8px;background:#1b2029;border:1px solid #2b313b;overflow:hidden}
 .mp-node img{width:82%;height:82%;object-fit:contain}
@@ -5028,6 +5044,21 @@ function charArcaneList(ak){
   return charArcaneIds(ak).map(id=>({ id, lv: lv[id]||null, url:`https://api-static.msu.io/itemimages/icon/${id}.png` }));
 }
 function charArcForce(ak){ const i=CHAR_INFO_CACHE[ak]; return i?i.af:0; }
+// Bảng chi tiết cho một Arcane Symbol
+function _arcTipHtml(a){
+  const st=a.stat||{}, rows=[];
+  if (a.af) rows.push({lb:'Arcane Force', v:a.af});
+  Object.keys(st).forEach(k=>{ if(st[k]) rows.push({lb:k.toUpperCase(), v:st[k]}); });
+  const pct=(a.tot&&a.exp!=null)?Math.min(100,Math.round(a.exp/a.tot*100)):null;
+  return `<div class="itip">
+    <div class="itip-hd"><img src="${a.url}" onerror="this.remove()">
+      <div style="min-width:0"><div class="itip-name">Arcane Symbol</div>
+        <div class="itip-cat">Item &gt; Symbol &gt; Arcane</div></div></div>
+    <div class="itip-req">Lv. ${a.lv||0}${a.max?` / ${a.max}`:''}${pct!=null?` · EXP ${a.exp}/${a.tot} (${pct}%)`:''}</div>
+    ${_itipRows(rows)}
+    ${pct!=null?`<div style="margin-top:7px;height:4px;border-radius:2px;background:#232a33;overflow:hidden"><div style="height:100%;width:${pct}%;background:#8b7ae8"></div></div>`:''}
+  </div>`;
+}
 // Chú thích cho một ô symbol: cấp, kinh nghiệm, Arcane Force, chỉ số cộng thêm
 function _arcTip(a){
   const p=[`Arcane Symbol${a.lv?` · Lv.${a.lv}${a.max?'/'+a.max:''}`:''}`];
@@ -5260,6 +5291,131 @@ function _popCharRows(others){
       <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
     </div>`; }).join('');
 }
+// ══════════ Chi tiết vật phẩm cho tooltip ══════════
+const ITEM_CACHE=(()=>{ try{ return JSON.parse(localStorage.getItem('msuItem1')||'{}'); }catch(e){ return {}; } })();
+function _saveItemCache(){ try{ localStorage.setItem('msuItem1', JSON.stringify(ITEM_CACHE)); }catch(e){} }
+const _itemTried=new Set();
+
+// Nhặt các trường quen thuộc ra khỏi bất kể API trả về hình dạng nào
+function _parseItemDetail(txt){
+  let o=null;
+  try{ o=JSON.parse(txt); }catch(e){}
+  if (o && (o.item||o.nftItem||o.data)) o=o.item||o.nftItem||o.data;
+  if (!o) o=_cutJson(txt,'item','{', x=>x&&(x.name||x.itemName));
+  if (!o || !(o.name||o.itemName)) return null;
+  const num=v=>(v&&typeof v==='object')?(+v.total||+v.value||0):+(v||0);
+  const opt=o.itemOption||o.option||o.stat||o.stats||o;
+  const line=(lb,v,base,add)=>({lb, v:num(v), base:base==null?null:num(base), add:add==null?null:num(add)});
+  const rows=[];
+  const M=[['STR','str'],['DEX','dex'],['INT','int'],['LUK','luk'],
+           ['Max HP','maxHp','hp'],['Max MP','maxMp','mp'],
+           ['ATT','attackPower','pad','att'],['MATT','magicAttackPower','mad','matt'],
+           ['DEF','defence','def'],['Speed','speed'],['Jump','jump'],
+           ['All Stat%','allStat','allStatRate'],['Boss DMG%','bossDamage','bossMonsterDamage'],
+           ['Ignore DEF%','ignoreDefence'],['Crit DMG%','criticalDamage']];
+  M.forEach(([lb,...keys])=>{
+    for(const k of keys){
+      if (opt[k]!=null && num(opt[k])){
+        const b=opt[k+'Base']!=null?opt[k+'Base']:(opt[k]&&opt[k].base);
+        const a=opt[k+'Bonus']!=null?opt[k+'Bonus']:(opt[k]&&opt[k].enhance);
+        rows.push(line(lb,opt[k],b,a)); return;
+      }
+    }
+  });
+  const arr=v=>Array.isArray(v)?v:(v?[v]:[]);
+  const descOf=x=>typeof x==='string'?x:(x&&(x.desc||x.description||x.optionDesc||x.name))||'';
+  return {
+    name:o.name||o.itemName, cat:(o.category&&(o.category.label||o.category.tier3?.label))||o.categoryLabel||'',
+    req:num(o.reqLevel||o.requiredLevel||(o.requirement&&o.requirement.level)),
+    job:o.reqJob||o.requiredJob||(o.requirement&&o.requirement.job)||'',
+    star:num(o.starforce||o.star||o.starForce), maxStar:num(o.maxStarforce||o.maxStar),
+    img:o.imageUrl||'', rows,
+    pot:arr(o.potential||o.potentialOptions||o.potentials).map(descOf).filter(Boolean),
+    potGrade:(o.potentialGrade||o.potentialRank||''),
+    bon:arr(o.additionalPotential||o.bonusPotential||o.additionalPotentials).map(descOf).filter(Boolean),
+    bonGrade:(o.additionalPotentialGrade||o.bonusPotentialGrade||''),
+  };
+}
+function _itemUrls(key){
+  const u=[`https://msu.io/navigator/api/navigator/item/${key}`,
+           `https://msu.io/navigator/api/navigator/items/${key}`,
+           `https://msu.io/navigator/api/navigator/inventory/item/${key}`,
+           `https://msu.io/marketplace/api/marketplace/items/${key}`];
+  let saved=null; try{ saved=localStorage.getItem('MSU_ITEM_PATTERN'); }catch(e){}
+  if (saved && saved.includes('{key}')) u.unshift(saved.replace('{key}', key));
+  return u.filter((x,i)=>u.indexOf(x)===i);
+}
+async function fetchItemDetail(key){
+  if (!key || ITEM_CACHE[key] || _itemTried.has(key)) return ITEM_CACHE[key]||null;
+  _itemTried.add(key);
+  for (const url of _itemUrls(key)){
+    try{
+      const r=await fetch(msuProxy(url)); if(!r.ok) continue;
+      const d=_parseItemDetail(await r.text());
+      if (d){ ITEM_CACHE[key]=d; _saveItemCache();
+        try{ localStorage.setItem('MSU_ITEM_PATTERN', url.replace(key,'{key}')); }catch(e){}
+        return d; }
+    }catch(e){}
+  }
+  return null;
+}
+async function debugItem(key){
+  const out=[];
+  for (const url of _itemUrls(key)){
+    try{ const r=await fetch(msuProxy(url)); const t=await r.text();
+      out.push({url,status:r.status,len:t.length,doc:t.slice(0,140),parsed:_parseItemDetail(t)?'đọc được ✓':'không đọc được'});
+    }catch(e){ out.push({url,loi:String(e)}); }
+  }
+  console.table(out); console.log(out); return out;
+}
+try{ window.debugItem=debugItem; window.ITEM_CACHE=ITEM_CACHE; }catch(e){}
+
+// ── Dựng tooltip ──
+const _iEsc=x=>_mvpEsc(String(x==null?'':x));
+function _itipRows(rows){
+  if(!rows||!rows.length) return '';
+  return `<div class="itip-rows">${rows.map(r=>`<div class="itip-r"><span>${_iEsc(r.lb)}</span><b>${r.v>0?'+':''}${r.v.toLocaleString('vi-VN')}</b>${(r.base!=null&&r.add!=null&&(r.base||r.add))?`<i>(${r.base}+${r.add})</i>`:''}</div>`).join('')}</div>`;
+}
+function itemTipHtml(d, fallback){
+  if(!d) return fallback||'';
+  const stars=d.star?('★'.repeat(Math.min(d.star,25))):'';
+  return `<div class="itip">
+    ${stars?`<div class="itip-star">${stars}${d.maxStar?` <span style="color:#5b6270">${d.star}/${d.maxStar}</span>`:''}</div>`:''}
+    <div class="itip-hd">${d.img?`<img src="${d.img}" onerror="this.remove()">`:''}
+      <div style="min-width:0"><div class="itip-name">${_iEsc(d.name)}</div>
+      ${d.cat?`<div class="itip-cat">${_iEsc(d.cat)}</div>`:''}</div></div>
+    ${(d.req||d.job)?`<div class="itip-req">${d.req?`REQ LV. ${d.req}`:''}${d.req&&d.job?' · ':''}${_iEsc(d.job||'')}</div>`:''}
+    ${_itipRows(d.rows)}
+    ${d.pot&&d.pot.length?`<div class="itip-sec pot">Potential${d.potGrade?` (${_iEsc(d.potGrade)})`:''}</div>${d.pot.map(x=>`<div class="itip-p">${_iEsc(x)}</div>`).join('')}`:''}
+    ${d.bon&&d.bon.length?`<div class="itip-sec bon">Bonus potential${d.bonGrade?` (${_iEsc(d.bonGrade)})`:''}</div>${d.bon.map(x=>`<div class="itip-b">${_iEsc(x)}</div>`).join('')}`:''}
+  </div>`;
+}
+// Tooltip tạm khi chưa tải được chi tiết: dùng đúng những gì đã có
+function itemTipBasic(o){
+  return `<div class="itip">
+    ${o.sf?`<div class="itip-star">${'★'.repeat(Math.min(o.sf,25))}</div>`:''}
+    <div class="itip-hd">${o.img?`<img src="${o.img}" onerror="this.remove()">`:''}
+      <div style="min-width:0"><div class="itip-name">${_iEsc(o.name||'—')}</div>
+      ${o.cat?`<div class="itip-cat">${_iEsc(o.cat)}</div>`:''}</div></div>
+    ${o.slot?`<div class="itip-req">Ô: ${_iEsc(o.slot)}${o.nft?' · NFT':''}</div>`:''}
+    ${o.note?`<div class="itip-note">${_iEsc(o.note)}</div>`:''}
+  </div>`;
+}
+// Hover vào ô có assetKey -> tải chi tiết rồi thay tooltip ngay tại chỗ
+document.addEventListener('mouseover', e=>{
+  const el=e.target&&e.target.closest&&e.target.closest('[data-ikey]');
+  if(!el) return;
+  const k=el.getAttribute('data-ikey'); if(!k) return;
+  const cached=ITEM_CACHE[k];
+  if (cached){ el.setAttribute('data-tiph', itemTipHtml(cached)); return; }
+  fetchItemDetail(k).then(d=>{ if(!d) return;
+    el.setAttribute('data-tiph', itemTipHtml(d));
+    if (el.matches(':hover')) { try{ showTip({clientX:_tipXY.x, clientY:_tipXY.y}, el.getAttribute('data-tip'), el.getAttribute('data-tiph')); }catch(err){} }
+  });
+}, true);
+let _tipXY={x:0,y:0};
+document.addEventListener('mousemove', e=>{ _tipXY={x:e.clientX,y:e.clientY}; }, true);
+
 // Sơ đồ trang bị kiểu cửa sổ trong game: 5 cột, ô trống để giữ đúng vị trí
 const EQ_GRID=[
   ['ring1', null,      'cap',     null,       'emblem'],
@@ -5307,7 +5463,10 @@ function eqGridHtml(ak, eq){
     keys.forEach(k=>{ if(src[k]) used.add(k); });
     const nft=byId[it.id];
     const tip=[lb, nft?nft.name:('#'+it.id), nft&&nft.sf?('★'+nft.sf):'', it.mintable?'NFT':''].filter(Boolean).join(' · ');
-    return `<div class="mp-slot has" data-tip="${_mvpEsc(tip)}"${nft?` onclick="copyFlash(this,'${String(nft.name||'').replace(/'/g,'')}')"`:''}>
+    const tiph=(ITEM_CACHE[it.assetKey]?itemTipHtml(ITEM_CACHE[it.assetKey])
+      :itemTipBasic({name:nft?nft.name:('#'+it.id), cat:nft?nft.cat:'', img:it.url, sf:nft?nft.sf:0, slot:lb, nft:it.mintable,
+        note:it.assetKey?'Đang tải chỉ số chi tiết…':'Không phải NFT — chưa có chỉ số chi tiết'})).replace(/"/g,'&quot;');
+    return `<div class="mp-slot has"${it.assetKey?` data-ikey="${it.assetKey}"`:''} data-tiph="${tiph}" data-tip="${_mvpEsc(tip)}"${nft?` onclick="copyFlash(this,'${String(nft.name||'').replace(/'/g,'')}')"`:''}>
       <span class="mp-slot-lb">${lb}</span><img src="${it.url}" loading="lazy" onerror="this.remove()">
       ${nft&&nft.sf?`<span class="mp-slot-sf">★${nft.sf}</span>`:''}</div>`;
   }).join('')).join('');
@@ -5333,6 +5492,16 @@ function eqGridHtml(ak, eq){
         ${p.acc?`<span class="mp-pet-acc"><img src="${p.acc.url}" loading="lazy" onerror="this.remove()"></span>`:''}</div>`; }).join('')}</div>`:'';
 
   return `<div class="mp-grid">${cells}</div>${extraHtml}${cashHtml}${petHtml}`;
+}
+// Bảng chi tiết cho một node Tier 5
+function _skillTipHtml(n){
+  return `<div class="itip">
+    <div class="itip-hd"><img src="${n.url}" onerror="this.remove()">
+      <div style="min-width:0"><div class="itip-name">${_iEsc(n.name)}</div>
+        <div class="itip-cat">Skill &gt; Tier 5 &gt; V Matrix</div></div></div>
+    <div class="itip-req">Level ${n.lv||0}${n.vm?` · Slot Lv. ${n.vm}`:''}</div>
+    <div class="itip-note">Nhấp để copy tên skill</div>
+  </div>`;
 }
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
@@ -5367,7 +5536,7 @@ function charPopHtml(w){
         <div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count" data-tip="${charArcForce(top.ak)?`Tổng Arcane Force ${charArcForce(top.ak)} · ${arcL.length} symbol đang đeo`:`${arcL.length} symbol đang đeo`}">${charArcForce(top.ak)||arcL.length}</span></div>
           <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
-            return a?`<span class="mp-arc mp-arc-on" data-tip="${_mvpEsc(_arcTip(a))}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
+            return a?`<span class="mp-arc mp-arc-on" data-tip="${_mvpEsc(_arcTip(a))}" data-tiph="${_arcTipHtml(a).replace(/"/g,'&quot;')}"><img src="${a.url}" loading="lazy" onerror="this.remove()"><span class="mp-arc-lv">${a.lv?'Lv.'+a.lv:'—'}</span></span>`
                     :`<span class="mp-arc mp-arc-empty"><span style="font-size:11px">--</span></span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
@@ -5382,7 +5551,7 @@ function charPopHtml(w){
       </div>
       <div class="mp-mid">
         <div class="mp-others-head"><span class="mp-label">Tier 5</span><span class="mp-count">${nodes.length}</span></div>
-        ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}')" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
+        ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}')" data-tiph="${_skillTipHtml(n).replace(/"/g,'&quot;')}" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
             <span class="mp-eq"><img src="${n.url}" loading="lazy" onerror="this.remove()"></span>
             <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(n.name)}</span><span class="mp-eq-cat">Level ${n.lv}</span></span>
           </div>`).join('')}</div>`
@@ -5399,7 +5568,7 @@ function charPopHtml(w){
         </div>
         ${charPopEqView==='grid'
           ? eqGridHtml(top.ak, eq)
-          : (eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
+          : (eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="${_mvpEsc(e.name)}" data-tiph="${itemTipBasic({name:e.name,cat:e.cat,img:e.img,sf:e.sf,note:'Nhấp để copy tên'}).replace(/"/g,'&quot;')}">
             <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
             <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
             ${e.sf?`<span class="mp-sf">★${e.sf}</span>`:''}
