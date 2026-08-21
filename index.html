@@ -958,7 +958,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-eq-more{font-size:9.5px;color:#5b6270;padding:2px 2px 0}
 .mp-wide{width:auto;max-width:none}
 .mp-cols{display:flex;align-items:stretch}
-.mp-left{width:206px;flex-shrink:0}
+.mp-left{width:206px;flex-shrink:0;max-height:min(78vh,760px);overflow-y:auto}
 .mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0}
 .mp-sec{padding:9px 11px 4px}
 .mp-arc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
@@ -975,8 +975,11 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
 .mp-right-grid{width:352px!important}
-.mp-right{max-height:420px;overflow-y:auto}
-.mp-mid{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:420px;overflow-y:auto}
+.mp-right{max-height:min(78vh,760px);overflow-y:auto}
+.mp-mid{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
+.mp-left::-webkit-scrollbar,.mp-mid::-webkit-scrollbar,.mp-right::-webkit-scrollbar{width:6px}
+.mp-left::-webkit-scrollbar-track,.mp-mid::-webkit-scrollbar-track,.mp-right::-webkit-scrollbar-track{background:transparent}
+.mp-left::-webkit-scrollbar-thumb,.mp-mid::-webkit-scrollbar-thumb,.mp-right::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
 .mp-node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .mp-node{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:8px;background:#1b2029;border:1px solid #2b313b;overflow:hidden}
 .mp-node img{width:82%;height:82%;object-fit:contain}
@@ -5358,8 +5361,8 @@ function charPopHtml(w){
         </div>
         <div class="mp-stats">
           ${stat('Level', top.level||'—')}
-          ${stat('CP', top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—', '#f6d36b')}
-          ${top.world?`<div class="mp-stat mp-span2"><span class="mp-label">World</span><span class="mp-value">${_mvpEsc(top.world)}</span></div>`:''}
+          ${stat('World', top.world?_mvpEsc(top.world):'—')}
+          <div class="mp-stat mp-span2"><span class="mp-label">CP</span><span class="mp-value" style="color:#f6d36b">${top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—'}</span></div>
         </div>
         <div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count" data-tip="${charArcForce(top.ak)?`Tổng Arcane Force ${charArcForce(top.ak)} · ${arcL.length} symbol đang đeo`:`${arcL.length} symbol đang đeo`}">${charArcForce(top.ak)||arcL.length}</span></div>
