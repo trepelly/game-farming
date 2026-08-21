@@ -974,6 +974,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-sf{flex-shrink:0;font-size:9.5px;font-weight:800;color:#f6d36b;font-family:'JetBrains Mono',monospace;background:rgba(246,211,107,.12);border-radius:5px;padding:1px 5px}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
+.mp-right-grid{width:352px!important}
 .mp-right{max-height:420px;overflow-y:auto}
 .mp-mid{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:420px;overflow-y:auto}
 .mp-node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
@@ -991,17 +992,21 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-eqv button{background:#1a1f26;border:1px solid #2b313b;border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#8b93a1;cursor:pointer;font-family:inherit;transition:.12s}
 .mp-eqv button:hover{color:#e6e9ef;border-color:#3d4653}
 .mp-eqv button.on{color:#a5b4fc;border-color:#4c53a8;background:#232a44}
-.mp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
-.mp-slot{position:relative;aspect-ratio:1;border-radius:8px;border:1px solid #2b313b;background:#1b2028;display:flex;align-items:center;justify-content:center;transition:.12s}
+.mp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.mp-slot{position:relative;aspect-ratio:1;border-radius:9px;border:1px solid #2b313b;background:#1b2028;display:flex;align-items:center;justify-content:center;transition:.12s}
 .mp-slot.has{background:linear-gradient(160deg,#26221a,#1d2129);border-color:#4a4331;cursor:pointer}
 .mp-slot.has:hover{border-color:#8a7a45;transform:translateY(-1px)}
 .mp-slot.void{border:none;background:transparent}
-.mp-slot img{width:74%;height:74%;object-fit:contain}
-.mp-slot-lb{position:absolute;top:3px;left:0;right:0;text-align:center;font-size:6.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;line-height:1.15;pointer-events:none}
+.mp-slot img{width:72%;height:72%;object-fit:contain;margin-top:5px}
+.mp-slot-lb{position:absolute;top:4px;left:0;right:0;text-align:center;font-size:7.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;line-height:1.15;pointer-events:none}
 .mp-slot.has .mp-slot-lb{color:#a08a4e}
-.mp-slot-sf{position:absolute;bottom:2px;right:3px;font-size:8px;font-weight:800;color:#f6d36b}
-.mp-pets{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
-.mp-pet{width:52px;height:52px;border-radius:8px;border:1px solid #2b313b;background:#1b2028;display:flex;align-items:center;justify-content:center;position:relative}
+.mp-slot-sf{position:absolute;bottom:3px;right:4px;font-size:9px;font-weight:800;color:#f6d36b}
+.mp-eq-sub{display:flex;align-items:center;gap:6px;margin:10px 0 6px}
+.mp-eq-sub span{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#8b93a1;white-space:nowrap}
+.mp-eq-sub i{flex:1;height:1px;background:#2b313b}
+.mp-eq-sub b{font-size:9px;color:#6b7280;font-weight:700}
+.mp-pets{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.mp-pet{aspect-ratio:1;border-radius:9px;border:1px solid #2b313b;background:#1b2028;display:flex;align-items:center;justify-content:center;position:relative}
 .mp-pet img{width:74%;height:74%;object-fit:contain}
 .mp-pet .mp-pet-acc{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:6px;border:1px solid #2b313b;background:#141920;display:flex;align-items:center;justify-content:center}
 .mp-pet .mp-pet-acc img{width:80%;height:80%}
@@ -5274,10 +5279,8 @@ const EQ_SLOT={
   belt:['Belt',['belt']], pocket:['Pocket',['pocket','pocketItem']],
 };
 let charPopEqView=(()=>{ try{ return localStorage.getItem('msuEqView')||'list'; }catch(e){ return 'list'; } })();
-let charPopEqTab='equip';
 function setEqView(v){ charPopEqView=v; try{ localStorage.setItem('msuEqView',v); }catch(e){}
   const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr); }
-function setEqTab(t){ charPopEqTab=t; const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr); }
 
 // Ghép tên/sao từ danh sách NFT theo id trong đường dẫn ảnh
 function _eqByItemId(eq){
@@ -5288,18 +5291,10 @@ function _eqByItemId(eq){
 function eqGridHtml(ak, eq){
   const info=charInfo(ak);
   if(!info || !info.eqSlots) return '<div class="mp-eq-more">Đang tải sơ đồ trang bị…</div>';
-  const src = charPopEqTab==='dec' ? (info.cashSlots||{}) : (info.eqSlots||{});
+  const src = info.eqSlots||{};
   const byId=_eqByItemId(eq);
   const pick=keys=>{ for(const k of keys){ if(src[k]) return src[k]; } return null; };
-
-  if (charPopEqTab==='pet'){
-    const pets=info.pets||[];
-    if(!pets.length) return '<div class="mp-eq-more">Không có pet</div>';
-    return `<div class="mp-pets">${pets.map(p=>{ const it=byId[p.id];
-      return `<div class="mp-pet" data-tip="${_mvpEsc(it?it.name:'Pet #'+p.id)}"><img src="${p.url}" loading="lazy" onerror="this.remove()">
-        ${p.acc?`<span class="mp-pet-acc"><img src="${p.acc.url}" loading="lazy" onerror="this.remove()"></span>`:''}</div>`; }).join('')}</div>`;
-  }
-
+  const sub=(lb,c)=>`<div class="mp-eq-sub"><span>${lb}</span><i></i><b>${c}</b></div>`;
   const used=new Set();
   const cells=EQ_GRID.map(rowArr=>rowArr.map(key=>{
     if(!key) return '<div class="mp-slot void"></div>';
@@ -5316,11 +5311,25 @@ function eqGridHtml(ak, eq){
 
   // ô nào API trả về mà sơ đồ chưa có chỗ thì xếp thêm bên dưới
   const extra=Object.keys(src).filter(k=>!used.has(k));
-  const extraHtml=extra.length?`<div class="mp-grid" style="margin-top:5px">${extra.slice(0,10).map(k=>{
+  const extraHtml=extra.length?sub('Ô khác',extra.length)+`<div class="mp-grid">${extra.slice(0,10).map(k=>{
       const it=src[k], nft=byId[it.id];
       return `<div class="mp-slot has" data-tip="${_mvpEsc([k, nft?nft.name:('#'+it.id)].join(' · '))}"><span class="mp-slot-lb">${_mvpEsc(k)}</span><img src="${it.url}" loading="lazy" onerror="this.remove()"></div>`;
     }).join('')}</div>`:'';
-  return `<div class="mp-grid">${cells}</div>${extraHtml}`;
+
+  // Đồ trang trí (cash) và pet nằm ngay dưới sơ đồ, không phải bấm qua tab
+  const cash=info.cashSlots||{};
+  const cashKeys=Object.keys(cash);
+  const cashHtml=cashKeys.length?sub('Trang trí',cashKeys.length)+`<div class="mp-grid">${cashKeys.slice(0,10).map(k=>{
+      const it=cash[k], nft=byId[it.id], lb=(EQ_SLOT[k]&&EQ_SLOT[k][0])||k;
+      return `<div class="mp-slot has" data-tip="${_mvpEsc([lb, nft?nft.name:('#'+it.id)].join(' · '))}"><span class="mp-slot-lb">${_mvpEsc(lb)}</span><img src="${it.url}" loading="lazy" onerror="this.remove()"></div>`;
+    }).join('')}</div>`:'';
+
+  const pets=info.pets||[];
+  const petHtml=pets.length?sub('Pet',pets.length)+`<div class="mp-pets">${pets.map(p=>{ const it=byId[p.id];
+      return `<div class="mp-pet" data-tip="${_mvpEsc(it?it.name:'Pet #'+p.id)}"><img src="${p.url}" loading="lazy" onerror="this.remove()">
+        ${p.acc?`<span class="mp-pet-acc"><img src="${p.acc.url}" loading="lazy" onerror="this.remove()"></span>`:''}</div>`; }).join('')}</div>`:'';
+
+  return `<div class="mp-grid">${cells}</div>${extraHtml}${cashHtml}${petHtml}`;
 }
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
@@ -5376,7 +5385,7 @@ function charPopHtml(w){
           </div>`).join('')}</div>`
                      :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
       </div>
-      <div class="mp-right ${(charPopEqView==='list'&&eq.length>9)?'mp-right-wide':''}">
+      <div class="mp-right ${charPopEqView==='grid'?'mp-right-grid':(eq.length>9?'mp-right-wide':'')}">
         <div class="mp-others-head">
           <span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span>
           <span class="mp-count">${eq.length}</span>
@@ -5386,9 +5395,7 @@ function charPopHtml(w){
           </span>
         </div>
         ${charPopEqView==='grid'
-          ? `<div class="mp-eqv" style="margin:0 0 6px">
-              ${['equip','dec','pet'].map(t=>`<button class="${charPopEqTab===t?'on':''}" onclick="setEqTab('${t}')">${t==='equip'?'Equip':(t==='dec'?'Dec.':'Pet')}</button>`).join('')}
-            </div>${eqGridHtml(top.ak, eq)}`
+          ? eqGridHtml(top.ak, eq)
           : (eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
             <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
             <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
