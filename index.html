@@ -881,6 +881,55 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-tier-cell{flex:1 1 0;min-width:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 12px;cursor:pointer;transition:.12s}
 .mvp-tier-cell:hover{border-color:var(--border3)}
 .mvp-tier-cell.on{border-color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,var(--card))}
+
+/* ── Panel Ví theo người chơi (bản nén dòng 32px) ── */
+.lpp{background:#101014;border:1px solid #22222a;border-radius:12px;padding:12px 0 8px;width:100%;box-sizing:border-box;min-width:210px;max-width:560px;overflow:hidden;resize:horizontal}
+.lpp-hd{padding:0 12px 10px;border-bottom:1px solid #1c1c23}
+.lpp-t1{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lpp-title{font-size:13px;font-weight:600;color:#dcdce4}
+.lpp-cnt{font-size:11px;color:#6b6b77}
+.lpp-t2{display:flex;align-items:baseline;gap:8px;margin-top:6px;cursor:pointer;border-radius:6px}
+.lpp-t2:hover .lpp-tot{color:#a89bf0}
+.lpp-tot{font-size:24px;font-weight:600;letter-spacing:-.02em;color:#f2f2f6;line-height:1.1;transition:color .12s}
+.lpp-tlb{font-size:11px;color:#6b6b77}
+.lpp-search{padding:9px 12px 8px}
+.lpp-search input{width:100%;box-sizing:border-box;padding:6px 10px;border-radius:7px;border:1px solid #26262f;background:#14141a;color:#dcdce4;font-size:12px;outline:none;font-family:inherit}
+.lpp-search input:focus{border-color:#3a3358}
+.lpp-cols{display:flex;align-items:center;gap:8px;padding:5px 12px;background:#14141a;border-top:1px solid #1c1c23;border-bottom:1px solid #1c1c23;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b77}
+.lpp-cols span{cursor:pointer;white-space:nowrap}
+.lpp-cols span:hover{color:#dcdce4}
+.lpp-cols .on{color:#8b7ae8}
+.lpp-gh{display:flex;align-items:center;gap:6px;padding:7px 12px 5px}
+.lpp-gt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.lpp-gm{margin-left:auto;font-size:10px;color:#6b6b77;white-space:nowrap}
+.lpp-i{width:13px;height:13px;border-radius:50%;border:1px solid #2f5c47;color:#4e8f70;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex-shrink:0}
+.lpp-i:hover{border-color:#4e8f70;color:#63c08f}
+.lpp-scroll{max-height:165px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;resize:vertical}
+.lpp-scroll::-webkit-scrollbar{width:6px}
+.lpp-scroll::-webkit-scrollbar-track{background:transparent}
+.lpp-scroll::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:3px}
+.lpp-row{position:relative;height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-left:2px solid transparent;cursor:pointer;box-sizing:border-box}
+.lpp-row:hover{background:#16161d;border-left-color:#3a3358}
+.lpp-row.on{border-left-color:#8b7ae8;background:#17142b}
+.lpp-bg{position:absolute;left:0;top:0;bottom:0;background:#1c1930;pointer-events:none}
+.lpp-row.on .lpp-bg{background:#241f42}
+.lpp-ext .lpp-bg{background:#10201a}
+.lpp-nm{position:relative;flex:1;min-width:0;font-size:13px;color:#dcdce4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lpp-row.on .lpp-nm{color:#f2f2f6}
+.lpp-vi{position:relative;width:30px;text-align:right;font-size:11px;color:#6b6b77;flex-shrink:0}
+.lpp-bal{position:relative;width:62px;text-align:right;font-size:12px;color:#eaeaf0;font-variant-numeric:tabular-nums;flex-shrink:0}
+.lpp-row.on .lpp-bal{color:#f2f2f6}
+.lpp-ext .lpp-bal{color:#63c08f}
+.lpp-row.zero .lpp-nm{color:#6b6b77}
+.lpp-row.zero .lpp-bal{color:#3d3d46}
+.lpp-sw{position:relative;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid transparent;color:#4f4f5b;flex-shrink:0}
+.lpp-sw:hover{color:#cfcfda;border-color:#34343f;background:#1c1c24}
+.lpp-menu{background:#131319;border-left:2px solid #34343f;padding:7px 12px 8px}
+.lpp-mlb{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b77}
+.lpp-mrow{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.lpp-mbtn{background:#191921;border:1px solid #26262f;border-radius:5px;font-size:11px;padding:3px 9px;color:#dcdce4;cursor:pointer;white-space:nowrap;font-family:inherit}
+.lpp-mbtn:hover{border-color:#3a3358;background:#1c1c24}
+.lpp-empty{padding:10px 12px;font-size:11px;color:#6b6b77}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
@@ -4421,11 +4470,34 @@ function _saveLitePanelW(){
   if (w>=210 && w<=560 && w!==litePanelW){ litePanelW=w; try{ localStorage.setItem('litePanelW', String(w)); }catch(e){} applyLitePanelW(); }
 }
 let litePanelH=(()=>{ const v=parseInt(localStorage.getItem('litePanelH')||'330',10); return (v>=120&&v<=900)?v:330; })();
-function _saveLitePanelH(){ const el=document.getElementById('lite-plist'); if(!el) return; const h=Math.round(el.getBoundingClientRect().height); if(h>=120){ litePanelH=h; try{ localStorage.setItem('litePanelH', String(h)); }catch(e){} } }
+function _saveLitePanelH(){ /* chiều cao giờ do từng vùng cuộn nhóm tự quản, giữ hàm để không vỡ lời gọi cũ */ }
 let liteLv200=false;
 function toggleLiteLv200(){ liteLv200=!liteLv200; renderLiteList(); }
 function clearLiteQuery(){ liteQuery=''; renderLiteList(); const i=document.getElementById('lite-search'); if(i) i.focus(); }
 let litePlayer='all', liteQuery='', litePQuery='', liteTier='all', liteSort={col:'neso',dir:'desc'};
+let litePSort={col:'neso',dir:'desc'};   // sắp xếp panel người chơi
+let _litePMenu=null;                     // id dòng đang mở khối chọn nhóm
+function setLitePSort(col){
+  if (litePSort.col===col) litePSort.dir = litePSort.dir==='desc'?'asc':'desc';
+  else litePSort={col, dir: col==='name'?'asc':'desc'};
+  renderLitePlayers();
+}
+function toggleGroupMenu(ev,id){ if(ev) ev.stopPropagation(); _litePMenu=(_litePMenu===id)?null:id; renderLitePlayers(); }
+// Đổi nhóm cho một người chơi. Khối chọn nhóm đã là bước xác nhận nên không hỏi lại.
+async function setPlayerGroup(ev, name, ext){
+  if (ev) ev.stopPropagation();
+  _litePMenu=null;
+  if (!(typeof teamUser!=='undefined' && teamUser && teamUser.role==='admin')) { renderLitePlayers(); return; }
+  if (isExtPlayer(name)===!!ext){ renderLitePlayers(); return; }
+  try{
+    teamSettings=teamSettings||{};
+    const m=teamSettings.extPlayers=teamSettings.extPlayers||{};
+    if (ext) m[name]=true; else delete m[name];
+    if (litePlayer===name) litePlayer='all';
+    renderLiteTab();
+    await saveTeamData();
+  }catch(e){ console.warn('setPlayerGroup', e); }
+}
 function setLitePQuery(v){ litePQuery=(v||'').toLowerCase(); renderLitePlayers(); applyLitePanelW(); const i=document.getElementById('lite-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setLiteTier(k){ liteTier=(liteTier===k)?'all':k; renderLiteTiers(); renderLiteList(); }
 // Dưới 30 điểm là mất quyền farm, không cần tách nhỏ thêm
@@ -4541,51 +4613,74 @@ function renderLiteTab(){
 function renderLitePlayers(){
   const el=document.getElementById('lite-players'); if(!el) return;
   const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const isAdm=!!(typeof teamUser!=='undefined'&&teamUser&&teamUser.role==='admin');
+
   const P={}; ws.forEach(w=>{ const pl=w.player||'(chưa gán)'; (P[pl]=P[pl]||{vi:0,neso:0}); P[pl].vi++; P[pl].neso+=(w.neso||0); });
-  const found=Object.keys(P).filter(p=>!litePQuery||p.toLowerCase().includes(litePQuery)).sort((a,b)=>P[b].neso-P[a].neso);
-  const inner=found.filter(p=>!isExtPlayer(p)), outer=found.filter(p=>isExtPlayer(p));
-  const all=inner.concat(outer);                       // ví ngoại xếp cuối
-  // TỔNG chỉ cộng ví nội bộ; ví ngoại có dòng tổng riêng
+  const found=Object.keys(P).filter(p=>!litePQuery||p.toLowerCase().includes(litePQuery));
+  const dir=litePSort.dir==='asc'?1:-1;
+  const cmp=(a,b)=>{
+    if (litePSort.col==='name') return a.localeCompare(b)*dir;
+    const k=litePSort.col==='vi'?'vi':'neso';
+    return ((P[a][k]-P[b][k])||(P[b].neso-P[a].neso))*dir;
+  };
+  const inner=found.filter(p=>!isExtPlayer(p)).sort(cmp);
+  const outer=found.filter(p=>isExtPlayer(p)).sort(cmp);
+
   const wIn=ws.filter(w=>!isExtWallet(w)), wOut=ws.filter(w=>isExtWallet(w));
   const tot={vi:wIn.length, neso:wIn.reduce((s,w)=>s+(w.neso||0),0)};
   const totOut={vi:wOut.length, neso:wOut.reduce((s,w)=>s+(w.neso||0),0)};
-  const isAdm=!!(typeof teamUser!=='undefined'&&teamUser&&teamUser.role==='admin');
-  const extBadge=(name)=>{
-    const on=isExtPlayer(name);
-    if (!on && !isAdm) return '';
-    const t=on?'Đang là VÍ NGOẠI — theo dõi riêng, không cộng vào tổng'+(isAdm?'&#10;Bấm để chuyển về Ví nhóm':'')
-              :'Đang là VÍ NHÓM&#10;Bấm để chuyển sang Ví ngoại';
-    return `<span ${isAdm?`onclick="toggleExtPlayer(event,'${(name||'').replace(/'/g,"")}')" style="cursor:pointer;"`:'style="'}${on?'':'opacity:.35;'}display:inline-flex;align-items:center;flex-shrink:0;color:${on?'#d8a44f':'var(--muted2)'}" data-tip="${t}">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 8 16 13"/><path d="M21 8H9a5 5 0 0 0-5 5"/><polyline points="8 21 3 16 8 11"/><path d="M3 16h12a5 5 0 0 0 5-5"/></svg></span>`;
-  };
-  const mx=Math.max(...all.map(p=>P[p].neso),1);
-  // tiêu đề mỗi khu vực + tổng riêng của khu vực đó
-  const sect=(lb,c,d,tip)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px 5px;margin-top:2px" data-tip="${tip}&#10;${d.vi} ví · NESO ${_lf(d.neso)}">
-      <span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:${c};white-space:nowrap">${lb}</span>
-      <span style="flex:1;height:1px;background:var(--border2)"></span>
-      <span style="font-size:9px;color:var(--muted2);white-space:nowrap">${d.vi} ví</span>
-      <span class="mvp-num" style="font-size:9.5px;font-weight:700;color:${c};white-space:nowrap">${_lfk(d.neso)}</span>
-    </div>`;
-  const bar=(d)=>`<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(d.neso/mx*100))}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:#7fd88f;white-space:nowrap" data-tip="NESO: ${_lf(d.neso)}">${_lfk(d.neso)}</span></div>`;
-  const row=(name,d,idx)=>{ const sel=(name===litePlayer);
-    return `<div class="mvp-prow ${sel?'on':''}" onclick="setLitePlayer('${(name||'').replace(/'/g,"")}')">
-      <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
-      <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':(isExtPlayer(name)?'#d8a44f':'var(--text2)')};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${extBadge(name)}${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi} ví</span></div>${bar(d)}</div></div>`; };
-  el.innerHTML=`<div id="lite-pwrap" onmouseup="_saveLitePanelW()" style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px;width:100%;box-sizing:border-box;min-width:210px;max-width:560px;overflow:hidden;resize:horizontal">
-      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Ví theo người chơi${infoIcon('Bấm 1 dòng để lọc bảng bên phải · thanh = NESO đang có')}</div></div>
-      <div class="mvp-prow ${litePlayer==='all'?'on':''}" onclick="setLitePlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
-        <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${litePlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${tot.vi} ví</span></div>${bar(tot)}</div>
+  const mx=Math.max(...found.map(p=>P[p].neso), 1);
+  const esc=n=>(n||'').replace(/'/g,"\\'");
+
+  const swap=(name,id)=>isAdm?`<span class="lpp-sw" onclick="toggleGroupMenu(event,'${id}')" data-tip="Chuyển nhóm cho ${_mvpEsc(name)}">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 8 16 13"/><path d="M21 8H9a5 5 0 0 0-5 5"/><polyline points="8 21 3 16 8 11"/><path d="M3 16h12a5 5 0 0 0 5-5"/></svg></span>`:'';
+
+  // khối chọn nhóm giãn ra ngay dưới dòng (panel overflow:hidden nên không dùng popover)
+  const menu=(name,ext)=>`<div class="lpp-menu">
+      <div class="lpp-mlb">Chuyển sang nhóm</div>
+      <div class="lpp-mrow">
+        <button class="lpp-mbtn" onclick="setPlayerGroup(event,'${esc(name)}',false)" style="${ext?'':'border-color:#3a3358'}">${ext?'':'<span style="color:#8b7ae8">✓</span> '}Ví nhóm</button>
+        <button class="lpp-mbtn" onclick="setPlayerGroup(event,'${esc(name)}',true)" style="${ext?'border-color:#2f5c47':''}">${ext?'<span style="color:#63c08f">✓</span> ':''}Ví ngoại</button>
       </div>
-      <div style="padding:9px 2px 6px"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
-      <div id="lite-plist" style="height:${litePanelH}px;min-height:120px;max-height:70vh;overflow-y:auto;resize:vertical;display:flex;flex-direction:column;gap:2px" onmouseup="_saveLitePanelH()">${
-        (!inner.length && !outer.length)
-          ? '<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'
-          : `${sect('Ví nhóm', 'var(--accent)', tot, 'Ví của nhóm — cộng vào TỔNG')}
-             ${inner.length?inner.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:8px 12px;font-size:10.5px;color:var(--muted2)">Chưa có ví nhóm</div>'}
-             ${(outer.length||totOut.vi)?`${sect('Ví ngoại', '#d8a44f', totOut, 'Theo dõi riêng — KHÔNG cộng vào TỔNG')}
-             ${outer.length?outer.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:8px 12px;font-size:10.5px;color:var(--muted2)">Chưa có ví ngoại</div>'}`:''}`
-      }</div>
-      <div style="text-align:center;font-size:8.5px;color:var(--muted2);opacity:.6;margin-top:3px">kéo mép dưới / góc phải để đổi kích thước</div>
+    </div>`;
+
+  const row=(name,id,ext)=>{
+    const d=P[name], sel=(name===litePlayer), zero=!d.neso;
+    const pct=zero?0:Math.max(2,Math.min(100,d.neso/mx*100));
+    return `<div class="lpp-row${sel?' on':''}${zero?' zero':''}${ext?' lpp-ext':''}" onclick="setLitePlayer('${esc(name)}')" data-tip="${_mvpEsc(name)}&#10;${d.vi} ví · NESO ${_lf(d.neso)}">
+        ${zero?'':`<div class="lpp-bg" style="width:${pct}%"></div>`}
+        <span class="lpp-nm">${_mvpEsc(name)}</span>
+        ${swap(name,id)}
+        <span class="lpp-vi mvp-num">${d.vi}</span>
+        <span class="lpp-bal mvp-num">${_lfk(d.neso)}</span>
+      </div>${_litePMenu===id?menu(name,ext):''}`;
+  };
+
+  const hc=(col,lb,w)=>`<span class="${litePSort.col===col?'on':''}" onclick="setLitePSort('${col}')" style="${w?`width:${w}px;text-align:right;`:'flex:1;min-width:0;'}">${lb}${litePSort.col===col?(litePSort.dir==='desc'?' ↓':' ↑'):''}</span>`;
+
+  const group=(lb,color,list,d,pfx,ext)=>`
+    <div class="lpp-gh">
+      <span class="lpp-gt" style="color:${color}">${lb}</span>
+      ${ext?'<span class="lpp-i" data-tip="Chỉ theo dõi — không tính vào tổng số dư">i</span>':''}
+      <span class="lpp-gm">${d.vi} ví · ${_lfk(d.neso)}${ext?' · ngoài tổng':''}</span>
+    </div>
+    <div class="lpp-scroll">${list.length?list.map((p,i)=>row(p,`${pfx}-${i}`,ext)).join('')
+      :`<div class="lpp-empty">${ext?'Chưa có ví ngoại':'Chưa có ví nhóm'}</div>`}</div>`;
+
+  el.innerHTML=`<div class="lpp" id="lite-pwrap" onmouseup="_saveLitePanelW()">
+      <div class="lpp-hd">
+        <div class="lpp-t1"><span class="lpp-title">Ví theo người chơi</span><span class="lpp-cnt mvp-num">${tot.vi} ví</span></div>
+        <div class="lpp-t2" onclick="setLitePlayer('all')" data-tip="Bấm để xem lại toàn bộ ví nhóm&#10;NESO: ${_lf(tot.neso)}">
+          <span class="lpp-tot mvp-num" style="${litePlayer==='all'?'':'color:#dcdce4'}">${_lfk(tot.neso)}</span>
+          <span class="lpp-tlb">tổng ví nhóm</span>
+        </div>
+      </div>
+      <div class="lpp-search"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…"></div>
+      <div class="lpp-cols">${hc('name','Người chơi')}${hc('vi','Ví',30)}${hc('neso','Số dư',62)}</div>
+      ${(!inner.length && !outer.length)
+        ? '<div class="lpp-empty" style="text-align:center;padding:14px">Không có người chơi khớp</div>'
+        : `${group('Ví nhóm','#6d5fd0',inner,tot,'nhom',false)}
+           ${(outer.length||totOut.vi)?group('Ví ngoại','#3f8f6a',outer,totOut,'ngoai',true):''}`}
     </div>`;
 }
 
