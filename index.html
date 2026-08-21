@@ -896,20 +896,22 @@ td:first-child{text-align:left;color:var(--muted2)}
 .lpp-search{padding:9px 12px 8px}
 .lpp-search input{width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--input-bg);color:var(--text);font-size:11.5px;outline:none;font-family:inherit;transition:.12s}
 .lpp-search input:focus{border-color:var(--accent)}
-.lpp-cols{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg2);border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted2)}
+.lpp-cols{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg2);border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted2)}
 .lpp-cols span{cursor:pointer;white-space:nowrap;transition:.12s}
 .lpp-cols span:hover{color:var(--text2)}
 .lpp-cols .on{color:var(--accent)}
 .lpp-gh{display:flex;align-items:center;gap:6px;padding:8px 12px 5px}
 .lpp-gt{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
-.lpp-gm{margin-left:auto;font-size:9.5px;color:var(--muted2);white-space:nowrap}
+.lpp-gsp{flex:1;min-width:0}
+.lpp-gvi{width:26px;text-align:right;font-size:9.5px;color:var(--muted2);flex-shrink:0}
+.lpp-gbal{width:58px;text-align:right;font-size:9.5px;font-weight:700;flex-shrink:0}
 .lpp-i{width:13px;height:13px;border-radius:50%;border:1px solid color-mix(in srgb,var(--green) 45%,transparent);color:var(--green);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:help;flex-shrink:0;opacity:.75;transition:.12s}
 .lpp-i:hover{opacity:1}
 .lpp-scroll{max-height:165px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;resize:vertical}
 .lpp-scroll::-webkit-scrollbar{width:6px}
 .lpp-scroll::-webkit-scrollbar-track{background:transparent}
 .lpp-scroll::-webkit-scrollbar-thumb{background:var(--border3,var(--border2));border-radius:3px}
-.lpp-row{position:relative;height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-left:2px solid transparent;cursor:pointer;box-sizing:border-box;transition:.12s}
+.lpp-row{position:relative;height:32px;display:flex;align-items:center;gap:6px;padding:0 12px;border-left:2px solid transparent;cursor:pointer;box-sizing:border-box;transition:.12s}
 .lpp-row:hover{background:var(--bg2);border-left-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 .lpp-row.on{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .lpp-bg{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--accent) 11%,transparent);pointer-events:none;transition:width .2s}
@@ -918,8 +920,8 @@ td:first-child{text-align:left;color:var(--muted2)}
 .lpp-ext:hover{border-left-color:color-mix(in srgb,var(--green) 45%,transparent)}
 .lpp-nm{position:relative;flex:1;min-width:0;font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lpp-row.on .lpp-nm{color:var(--accent)}
-.lpp-vi{position:relative;width:30px;text-align:right;font-size:9.5px;color:var(--muted2);flex-shrink:0}
-.lpp-bal{position:relative;width:62px;text-align:right;font-size:11px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;flex-shrink:0}
+.lpp-vi{position:relative;width:26px;text-align:right;font-size:9.5px;color:var(--muted2);flex-shrink:0}
+.lpp-bal{position:relative;width:58px;text-align:right;font-size:11px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;flex-shrink:0}
 .lpp-ext .lpp-bal{color:var(--green)}
 .lpp-row.zero .lpp-nm{color:var(--muted2);font-weight:600}
 .lpp-row.zero .lpp-bal{color:var(--muted2);opacity:.55;font-weight:600}
@@ -4634,7 +4636,7 @@ function renderLitePlayers(){
   const esc=n=>(n||'').replace(/'/g,"\\'");
 
   const swap=(name,id)=>isAdm?`<span class="lpp-sw" onclick="toggleGroupMenu(event,'${id}')" data-tip="Chuyển nhóm cho ${_mvpEsc(name)}">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 8 16 13"/><path d="M21 8H9a5 5 0 0 0-5 5"/><polyline points="8 21 3 16 8 11"/><path d="M3 16h12a5 5 0 0 0 5-5"/></svg></span>`:'';
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 5 21 9 17 13"/><line x1="21" y1="9" x2="3" y2="9"/><polyline points="7 11 3 15 7 19"/><line x1="3" y1="15" x2="21" y2="15"/></svg></span>`:'';
 
   // khối chọn nhóm giãn ra ngay dưới dòng (panel overflow:hidden nên không dùng popover)
   const menu=(name,ext)=>`<div class="lpp-menu">
@@ -4657,13 +4659,15 @@ function renderLitePlayers(){
       </div>${_litePMenu===id?menu(name,ext):''}`;
   };
 
-  const hc=(col,lb,w)=>`<span class="${litePSort.col===col?'on':''}" onclick="setLitePSort('${col}')" style="${w?`width:${w}px;text-align:right;`:'flex:1;min-width:0;'}">${lb}${litePSort.col===col?(litePSort.dir==='desc'?' ↓':' ↑'):''}</span>`;
+  const hc=(col,lb,w)=>`<span class="${litePSort.col===col?'on':''}" onclick="setLitePSort('${col}')" style="${w?`width:${w}px;text-align:right;flex-shrink:0;`:'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;'}">${lb}${litePSort.col===col?(litePSort.dir==='desc'?' ↓':' ↑'):''}</span>`;
 
   const group=(lb,color,list,d,pfx,ext)=>`
     <div class="lpp-gh">
       <span class="lpp-gt" style="color:${color}">${lb}</span>
       ${ext?'<span class="lpp-i" data-tip="Chỉ theo dõi — không tính vào tổng số dư">i</span>':''}
-      <span class="lpp-gm">${d.vi} ví · ${_lfk(d.neso)}${ext?' · ngoài tổng':''}</span>
+      <span class="lpp-gsp"></span>${isAdm?'<span style="width:20px;flex-shrink:0"></span>':''}
+      <span class="lpp-gvi mvp-num">${d.vi}</span>
+      <span class="lpp-gbal mvp-num" style="color:${color}">${_lfk(d.neso)}</span>
     </div>
     <div class="lpp-scroll">${list.length?list.map((p,i)=>row(p,`${pfx}-${i}`,ext)).join('')
       :`<div class="lpp-empty">${ext?'Chưa có ví ngoại':'Chưa có ví nhóm'}</div>`}</div>`;
@@ -4677,7 +4681,7 @@ function renderLitePlayers(){
         </div>
       </div>
       <div class="lpp-search"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…"></div>
-      <div class="lpp-cols">${hc('name','Người chơi')}${hc('vi','Ví',30)}${hc('neso','Số dư',62)}</div>
+      <div class="lpp-cols">${hc('name','Người chơi')}${isAdm?'<span style="width:20px;flex-shrink:0"></span>':''}${hc('vi','Ví',26)}${hc('neso','Số dư',58)}</div>
       ${(!inner.length && !outer.length)
         ? '<div class="lpp-empty" style="text-align:center;padding:14px">Không có người chơi khớp</div>'
         : `${group('Ví nhóm','var(--accent)',inner,tot,'nhom',false)}
