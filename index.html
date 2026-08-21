@@ -983,6 +983,19 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-copy{cursor:pointer}
 .mp-copy:hover{filter:brightness(1.25)}
 .mp-eq-list{display:flex;flex-direction:column;gap:3px}
+.mp-oth-scroll{max-height:188px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain}
+.mp-oth-scroll::-webkit-scrollbar{width:6px}
+.mp-oth-scroll::-webkit-scrollbar-track{background:transparent}
+.mp-oth-scroll::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
+.mp-oth-bar{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.mp-oth-q{flex:1;min-width:0;background:#1a1f26;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#e6e9ef;font-size:10.5px;font-family:inherit;outline:none}
+.mp-oth-q:focus{border-color:#4c53a8}
+.mp-oth-q::placeholder{color:#6b7280}
+.mp-oth-sort{display:flex;gap:3px;flex-shrink:0}
+.mp-oth-sb{background:#1a1f26;border:1px solid #2b313b;border-radius:6px;padding:3px 6px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#8b93a1;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.12s}
+.mp-oth-sb:hover{color:#e6e9ef;border-color:#3d4653}
+.mp-oth-sb.on{color:#a5b4fc;border-color:#4c53a8;background:#232a44}
+.mp-oth-none{font-size:10px;color:#6b7280;padding:8px 2px;text-align:center}
 .mp-eq-row{display:flex;align-items:center;gap:7px;background:#1f242c;border:1px solid #2b313b;border-radius:8px;padding:4px 8px;min-width:0}
 .mp-eq-name{display:block;font-size:10.5px;font-weight:700;color:#eef2f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
 .mp-eq-cat{display:block;font-size:9px;color:#7b8494;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25}
@@ -5169,6 +5182,52 @@ function _charPopRefresh(addr){
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
   p.innerHTML=charPopHtml(w);
 }
+let charPopQ='', charPopSort={col:'cp',dir:'desc'};
+function setPopCharQ(v){ charPopQ=(v||'').toLowerCase(); _popCharsRefresh(); }
+function setPopCharSort(col){
+  if (charPopSort.col===col) charPopSort.dir = charPopSort.dir==='desc'?'asc':'desc';
+  else charPopSort={col, dir: col==='name'?'asc':'desc'};
+  _popCharsRefresh(true);
+}
+// Lọc + sắp xếp danh sách nhân vật khác
+function _popCharsList(others){
+  const q=charPopQ.trim();
+  const hit=c=>!q || [c.name, c.job, 'lv'+(c.level||''), String(c.level||'')]
+      .some(x=>String(x||'').toLowerCase().includes(q));
+  const dir=charPopSort.dir==='asc'?1:-1;
+  return others.filter(hit).sort((a,b)=>{
+    if (charPopSort.col==='name') return String(a.name||'').localeCompare(String(b.name||''))*dir;
+    const k=charPopSort.col==='level'?'level':'cp';
+    return (((a[k]||0)-(b[k]||0)) || ((a.cp||0)-(b.cp||0)))*dir;
+  });
+}
+function _popCharsRefresh(withBar){
+  const p=document.getElementById('char-pop'); if(!p) return;
+  const box=p.querySelector('#mp-oth-list'); if(!box) return;
+  const w=((typeof effectiveWallets==='function')?effectiveWallets():(teamWallets||[])).find(x=>x.address===p.dataset.addr);
+  if(!w) return;
+  const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
+  const top=(charPopSel && cs.find(c=>c.ak===charPopSel)) || cs[0];
+  const others=cs.filter(c=>c!==top);
+  box.innerHTML=_popCharRows(others);
+  const cnt=p.querySelector('#mp-oth-count');
+  if(cnt){ const n=_popCharsList(others).length; cnt.textContent = n===others.length?others.length:`${n}/${others.length}`; }
+  if (withBar){ const bar=p.querySelector('#mp-oth-sort'); if(bar) bar.innerHTML=_popSortBtns(); }
+}
+function _popSortBtns(){
+  const b=(col,lb)=>`<button class="mp-oth-sb${charPopSort.col===col?' on':''}" onclick="setPopCharSort('${col}')">${lb}${charPopSort.col===col?(charPopSort.dir==='desc'?'↓':'↑'):''}</button>`;
+  return b('name','Tên')+b('level','Lv')+b('cp','CP');
+}
+function _popCharRows(others){
+  const list=_popCharsList(others);
+  if(!list.length) return '<div class="mp-oth-none">Không có nhân vật khớp</div>';
+  return list.map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
+    return `<div class="mp-eq-row mp-copy" onclick="selectPopChar('${c.ak||''}')" data-tip="Bấm để xem trang bị của ${_mvpEsc(c.name)}">
+      <span class="mp-ch-ava" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 50%,transparent),color-mix(in srgb,${cc} 16%,transparent));border:1.5px solid color-mix(in srgb,${cc} 60%,transparent);color:${cc}">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>
+      <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(c.name)}</span><span class="mp-eq-cat" style="color:${cc}">${_mvpEsc(c.job||'—')}</span></span>
+      <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
+    </div>`; }).join('');
+}
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
   if(!cs.length) return '<div class="mp-tooltip" style="padding:12px">Chưa có nhân vật</div>';
@@ -5206,13 +5265,13 @@ function charPopHtml(w){
                     :`<span class="mp-arc mp-arc-empty"><span style="font-size:11px">--</span></span>`; }).join('')}</div>
         </div>
         ${more>0?`<div class="mp-sec">
-          <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count">${more}</span></div>
-          <div class="mp-eq-list">${others.slice(0,7).map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
-            return `<div class="mp-eq-row mp-copy" onclick="selectPopChar('${c.ak||''}')" data-tip="Bấm để xem trang bị của ${_mvpEsc(c.name)}">
-              <span class="mp-ch-ava" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 50%,transparent),color-mix(in srgb,${cc} 16%,transparent));border:1.5px solid color-mix(in srgb,${cc} 60%,transparent);color:${cc}">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>
-              <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(c.name)}</span><span class="mp-eq-cat" style="color:${cc}">${_mvpEsc(c.job||'—')}</span></span>
-              <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
-            </div>`; }).join('')}${others.length>7?`<div class="mp-eq-more">+${others.length-7} nhân vật khác</div>`:''}${isSub?`<div class="mp-eq-more mp-copy" onclick="selectPopChar(null)" style="color:var(--accent)">↩ về nhân vật chính</div>`:''}</div>
+          <div class="mp-others-head"><span class="mp-label">Nhân vật khác</span><span class="mp-count" id="mp-oth-count">${_popCharsList(others).length===more?more:`${_popCharsList(others).length}/${more}`}</span></div>
+          ${more>3?`<div class="mp-oth-bar">
+            <input class="mp-oth-q" type="text" value="${_mvpEsc(charPopQ)}" oninput="setPopCharQ(this.value)" placeholder="Tìm tên · nghề · level…">
+            <span class="mp-oth-sort" id="mp-oth-sort">${_popSortBtns()}</span>
+          </div>`:''}
+          <div class="mp-eq-list mp-oth-scroll" id="mp-oth-list">${_popCharRows(others)}</div>
+          ${isSub?`<div class="mp-eq-more mp-copy" onclick="selectPopChar(null)" style="color:var(--accent);margin-top:4px">↩ về nhân vật chính</div>`:''}
         </div>`:''}
       </div>
       <div class="mp-mid">
