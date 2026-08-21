@@ -987,6 +987,24 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mp-oth-scroll::-webkit-scrollbar{width:6px}
 .mp-oth-scroll::-webkit-scrollbar-track{background:transparent}
 .mp-oth-scroll::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
+.mp-eqv{display:flex;gap:3px;margin-left:auto}
+.mp-eqv button{background:#1a1f26;border:1px solid #2b313b;border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#8b93a1;cursor:pointer;font-family:inherit;transition:.12s}
+.mp-eqv button:hover{color:#e6e9ef;border-color:#3d4653}
+.mp-eqv button.on{color:#a5b4fc;border-color:#4c53a8;background:#232a44}
+.mp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.mp-slot{position:relative;aspect-ratio:1;border-radius:8px;border:1px solid #2b313b;background:#1b2028;display:flex;align-items:center;justify-content:center;transition:.12s}
+.mp-slot.has{background:linear-gradient(160deg,#26221a,#1d2129);border-color:#4a4331;cursor:pointer}
+.mp-slot.has:hover{border-color:#8a7a45;transform:translateY(-1px)}
+.mp-slot.void{border:none;background:transparent}
+.mp-slot img{width:74%;height:74%;object-fit:contain}
+.mp-slot-lb{position:absolute;top:3px;left:0;right:0;text-align:center;font-size:6.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;line-height:1.15;pointer-events:none}
+.mp-slot.has .mp-slot-lb{color:#a08a4e}
+.mp-slot-sf{position:absolute;bottom:2px;right:3px;font-size:8px;font-weight:800;color:#f6d36b}
+.mp-pets{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.mp-pet{width:52px;height:52px;border-radius:8px;border:1px solid #2b313b;background:#1b2028;display:flex;align-items:center;justify-content:center;position:relative}
+.mp-pet img{width:74%;height:74%;object-fit:contain}
+.mp-pet .mp-pet-acc{position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:6px;border:1px solid #2b313b;background:#141920;display:flex;align-items:center;justify-content:center}
+.mp-pet .mp-pet-acc img{width:80%;height:80%}
 .mp-oth-bar{display:flex;align-items:center;gap:5px;margin-bottom:5px}
 .mp-oth-q{flex:1;min-width:0;background:#1a1f26;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#e6e9ef;font-size:10.5px;font-family:inherit;outline:none}
 .mp-oth-q:focus{border-color:#4c53a8}
@@ -4877,8 +4895,8 @@ async function debugArcane(ak){
 }
 try{ window.debugArcane=debugArcane; }catch(e){}
 function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
-const CHAR_INFO_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharInfo')||'{}'); }catch(e){ return {}; } })();
-function _saveCharInfoCache(){ try{ localStorage.setItem('msuCharInfo', JSON.stringify(CHAR_INFO_CACHE)); }catch(e){} }
+const CHAR_INFO_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharInfo2')||'{}'); }catch(e){ return {}; } })();
+function _saveCharInfoCache(){ try{ localStorage.setItem('msuCharInfo2', JSON.stringify(CHAR_INFO_CACHE)); }catch(e){} }
 function charInfo(ak){ return CHAR_INFO_CACHE[ak]||null; }
 
 // Trang nhân vật trả về { character:{ imageUrl, common:{...}, apStat:{...}, wearing:{ equip, arcaneSymbols:{ slots:[{itemId,level,maxLevel,currentExp,totalExp,arcaneForce,stat}] } } } }
@@ -4898,9 +4916,15 @@ function _parseCharJson(txt){
   }));
   const ids=[];
   const push=o=>{ if(o&&+o.itemId>0){ const v=String(o.itemId); if(!ids.includes(v)) ids.push(v); } };
-  Object.values(w.equip||{}).forEach(push);
-  Object.values(w.cashEquip||{}).forEach(push);
-  Object.values(w.pet||{}).forEach(p=>{ push(p); push(p&&p.accessory); });
+  const slotMap=src=>{ const m={};
+    Object.entries(src||{}).forEach(([k,o])=>{ if(!o||!(+o.itemId>0)) return;
+      m[k]={ id:String(o.itemId), url:o.imageUrl||iconOf(o.itemId), assetKey:o.assetKey||'', mintable:!!o.mintable };
+      push(o); });
+    return m; };
+  const eqSlots=slotMap(w.equip), cashSlots=slotMap(w.cashEquip);
+  const pets=Object.values(w.pet||{}).filter(x=>x&&+x.itemId>0).map(x=>{ push(x); push(x&&x.accessory);
+    return { id:String(x.itemId), url:x.imageUrl||iconOf(x.itemId),
+             acc: (x.accessory&&+x.accessory.itemId>0)?{ id:String(x.accessory.itemId), url:x.accessory.imageUrl||iconOf(x.accessory.itemId) }:null }; });
   arc.forEach(k=>{ if(!ids.includes(k.id)) ids.push(k.id); });
 
   const cm=c.common||{}, ap=c.apStat||{};
@@ -4916,7 +4940,7 @@ function _parseCharJson(txt){
     critRate:num(ap.criticalRate), critDmg:num(ap.criticalDamage),
     finalDmg:num(ap.finalDamage), starforce:+(cm.starforceSum||0),
     af:+(arcS.totalArcaneForce||0), afStat:arcS.totalStat||{},
-    arc, ids, upd:c.updatedAt||''
+    arc, ids, eqSlots, cashSlots, pets, upd:c.updatedAt||''
   };
 }
 
@@ -4940,7 +4964,7 @@ function _charUrls(ak){
 
 async function fetchCharImg(ak){
   if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
-  if (CHAR_INFO_CACHE[ak] && CHAR_IMG_CACHE[ak]) return CHAR_IMG_CACHE[ak];
+  if (CHAR_INFO_CACHE[ak] && CHAR_INFO_CACHE[ak].eqSlots && CHAR_IMG_CACHE[ak]) return CHAR_IMG_CACHE[ak];
   _charImgTried.add(ak);
   for (const url of _charUrls(ak)){
     try{
@@ -5228,6 +5252,76 @@ function _popCharRows(others){
       <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
     </div>`; }).join('');
 }
+// Sơ đồ trang bị kiểu cửa sổ trong game: 5 cột, ô trống để giữ đúng vị trí
+const EQ_GRID=[
+  ['ring1', null,      'cap',     null,       'emblem'],
+  ['ring2','pendant1', 'faceAcc', null,       'badge'],
+  ['ring3','pendant2', 'eyeAcc',  'earAcc',   'medal'],
+  ['ring4','weapon',   'clothes', 'shoulder', 'subWeapon'],
+  ['pocket','belt',    'pants',   'gloves',   'cape'],
+  [null,   null,       'shoes',   null,       null],
+];
+const EQ_SLOT={
+  ring1:['Ring',['ring1']], ring2:['Ring',['ring2']], ring3:['Ring',['ring3']], ring4:['Ring',['ring4']],
+  pendant1:['Pendant',['pendant','pendant1']], pendant2:['Pendant',['pendant2']],
+  cap:['Hat',['cap','hat']], faceAcc:['Face acc',['faceAccessory','faceAcc','face']],
+  eyeAcc:['Eye acc',['eyeAccessory','eyeAcc','eye','glasses']], earAcc:['Ear acc',['earAccessory','earAcc','earrings','ear']],
+  emblem:['Emblem',['emblem']], badge:['Badge',['badge']], medal:['Medal',['medal']],
+  weapon:['Weapon',['weapon']], subWeapon:['Sub weapon',['subWeapon','shield','secondaryWeapon']],
+  shoulder:['Shoulder',['shoulder','shoulderPad','shoulderDecoration']],
+  clothes:['Top',['clothes','top','coat','overall']], pants:['Bottom',['pants','bottom','trousers']],
+  shoes:['Shoes',['shoes']], gloves:['Gloves',['gloves']], cape:['Cape',['cape']],
+  belt:['Belt',['belt']], pocket:['Pocket',['pocket','pocketItem']],
+};
+let charPopEqView=(()=>{ try{ return localStorage.getItem('msuEqView')||'list'; }catch(e){ return 'list'; } })();
+let charPopEqTab='equip';
+function setEqView(v){ charPopEqView=v; try{ localStorage.setItem('msuEqView',v); }catch(e){}
+  const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr); }
+function setEqTab(t){ charPopEqTab=t; const p=document.getElementById('char-pop'); if(p) _charPopRefresh(p.dataset.addr); }
+
+// Ghép tên/sao từ danh sách NFT theo id trong đường dẫn ảnh
+function _eqByItemId(eq){
+  const m={};
+  (eq||[]).forEach(e=>{ const g=String(e.img||'').match(/\/(\d{4,9})\.png/); if(g) m[g[1]]=e; });
+  return m;
+}
+function eqGridHtml(ak, eq){
+  const info=charInfo(ak);
+  if(!info || !info.eqSlots) return '<div class="mp-eq-more">Đang tải sơ đồ trang bị…</div>';
+  const src = charPopEqTab==='dec' ? (info.cashSlots||{}) : (info.eqSlots||{});
+  const byId=_eqByItemId(eq);
+  const pick=keys=>{ for(const k of keys){ if(src[k]) return src[k]; } return null; };
+
+  if (charPopEqTab==='pet'){
+    const pets=info.pets||[];
+    if(!pets.length) return '<div class="mp-eq-more">Không có pet</div>';
+    return `<div class="mp-pets">${pets.map(p=>{ const it=byId[p.id];
+      return `<div class="mp-pet" data-tip="${_mvpEsc(it?it.name:'Pet #'+p.id)}"><img src="${p.url}" loading="lazy" onerror="this.remove()">
+        ${p.acc?`<span class="mp-pet-acc"><img src="${p.acc.url}" loading="lazy" onerror="this.remove()"></span>`:''}</div>`; }).join('')}</div>`;
+  }
+
+  const used=new Set();
+  const cells=EQ_GRID.map(rowArr=>rowArr.map(key=>{
+    if(!key) return '<div class="mp-slot void"></div>';
+    const [lb,keys]=EQ_SLOT[key];
+    const it=pick(keys);
+    if(!it) return `<div class="mp-slot"><span class="mp-slot-lb">${lb}</span></div>`;
+    keys.forEach(k=>{ if(src[k]) used.add(k); });
+    const nft=byId[it.id];
+    const tip=[lb, nft?nft.name:('#'+it.id), nft&&nft.sf?('★'+nft.sf):'', it.mintable?'NFT':''].filter(Boolean).join(' · ');
+    return `<div class="mp-slot has" data-tip="${_mvpEsc(tip)}"${nft?` onclick="copyFlash(this,'${String(nft.name||'').replace(/'/g,'')}')"`:''}>
+      <span class="mp-slot-lb">${lb}</span><img src="${it.url}" loading="lazy" onerror="this.remove()">
+      ${nft&&nft.sf?`<span class="mp-slot-sf">★${nft.sf}</span>`:''}</div>`;
+  }).join('')).join('');
+
+  // ô nào API trả về mà sơ đồ chưa có chỗ thì xếp thêm bên dưới
+  const extra=Object.keys(src).filter(k=>!used.has(k));
+  const extraHtml=extra.length?`<div class="mp-grid" style="margin-top:5px">${extra.slice(0,10).map(k=>{
+      const it=src[k], nft=byId[it.id];
+      return `<div class="mp-slot has" data-tip="${_mvpEsc([k, nft?nft.name:('#'+it.id)].join(' · '))}"><span class="mp-slot-lb">${_mvpEsc(k)}</span><img src="${it.url}" loading="lazy" onerror="this.remove()"></div>`;
+    }).join('')}</div>`:'';
+  return `<div class="mp-grid">${cells}</div>${extraHtml}`;
+}
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
   if(!cs.length) return '<div class="mp-tooltip" style="padding:12px">Chưa có nhân vật</div>';
@@ -5282,14 +5376,25 @@ function charPopHtml(w){
           </div>`).join('')}</div>`
                      :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
       </div>
-      <div class="mp-right ${eq.length>9?'mp-right-wide':''}">
-        <div class="mp-others-head"><span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span><span class="mp-count">${eq.length}</span></div>
-        ${eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
+      <div class="mp-right ${(charPopEqView==='list'&&eq.length>9)?'mp-right-wide':''}">
+        <div class="mp-others-head">
+          <span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span>
+          <span class="mp-count">${eq.length}</span>
+          <span class="mp-eqv">
+            <button class="${charPopEqView==='list'?'on':''}" onclick="setEqView('list')" data-tip="Xem dạng danh sách">Danh sách</button>
+            <button class="${charPopEqView==='grid'?'on':''}" onclick="setEqView('grid')" data-tip="Xem dạng sơ đồ ô trang bị">Sơ đồ</button>
+          </span>
+        </div>
+        ${charPopEqView==='grid'
+          ? `<div class="mp-eqv" style="margin:0 0 6px">
+              ${['equip','dec','pet'].map(t=>`<button class="${charPopEqTab===t?'on':''}" onclick="setEqTab('${t}')">${t==='equip'?'Equip':(t==='dec'?'Dec.':'Pet')}</button>`).join('')}
+            </div>${eqGridHtml(top.ak, eq)}`
+          : (eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="Nhấp để copy tên">
             <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
             <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
             ${e.sf?`<span class="mp-sf">★${e.sf}</span>`:''}
           </div>`).join('')}</div>`
-          :`<div class="mp-eq-more">đang tải hoặc chưa có dữ liệu…</div>`}
+          :`<div class="mp-eq-more">đang tải hoặc chưa có dữ liệu…</div>`)}
       </div>
     </div>
   </div>`;
