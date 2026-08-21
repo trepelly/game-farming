@@ -5297,9 +5297,18 @@ function _saveItemCache(){ try{ localStorage.setItem('msuItem1', JSON.stringify(
 const _itemTried=new Set();
 
 // Nhặt các trường quen thuộc ra khỏi bất kể API trả về hình dạng nào
+const POT_GRADE=['','Rare','Epic','Unique','Legendary','Mythic'];
+const _potName=g=>POT_GRADE[+g]||(g?('Grade '+g):'');
 function _parseItemDetail(txt){
-  let o=null;
+  let o=null, hold=null;
   try{ o=JSON.parse(txt); }catch(e){}
+  // trang navigator/nft/{assetKey} trả về { holdingItems:[ { category, tokenInfo, nftItem } ] }
+  if (!o || !o.holdingItems){ const h=_cutJson(txt,'holdingItems','[', x=>Array.isArray(x)&&x.length&&x[0]&&x[0].nftItem); if(h) o={holdingItems:h}; }
+  if (o && Array.isArray(o.holdingItems) && o.holdingItems.length){
+    hold=o.holdingItems[0];
+    o=Object.assign({}, hold.nftItem||{}, {
+      category: hold.category||null, tokenInfo: hold.tokenInfo||null, owner: hold.owner||null });
+  }
   if (o && (o.item||o.nftItem||o.data)) o=o.item||o.nftItem||o.data;
   if (!o) o=_cutJson(txt,'item','{', x=>x&&(x.name||x.itemName));
   if (!o || !(o.name||o.itemName)) return null;
@@ -5331,15 +5340,20 @@ function _parseItemDetail(txt){
     star:num(o.starforce||o.star||o.starForce), maxStar:num(o.maxStarforce||o.maxStar),
     img:o.imageUrl||'', rows,
     pot:arr(o.potential||o.potentialOptions||o.potentials).map(descOf).filter(Boolean),
-    potGrade:(o.potentialGrade||o.potentialRank||''),
+    potGrade:(typeof o.potentialGrade==='number')?_potName(o.potentialGrade):(o.potentialGrade||o.potentialRank||''),
     bon:arr(o.additionalPotential||o.bonusPotential||o.additionalPotentials).map(descOf).filter(Boolean),
-    bonGrade:(o.additionalPotentialGrade||o.bonusPotentialGrade||''),
+    bonGrade:(typeof o.bonusPotentialGrade==='number')?_potName(o.bonusPotentialGrade):(o.additionalPotentialGrade||o.bonusPotentialGrade||''),
+    itemId:o.itemId||0, assetKey:o.assetKey||'',
+    minted:!!o.isMinted, sbt:!!o.isSbt,
+    mintNo:(o.tokenInfo&&o.tokenInfo.mintingNo)||'', tokenId:(o.tokenInfo&&o.tokenInfo.tokenId)||'',
+    owner:(o.owner&&(o.owner.nickname||o.owner.walletAddr))||'',
+    ownedBy:o.ownedCharacter||'',
   };
 }
 function _itemUrls(key){
-  const u=[`https://msu.io/navigator/api/navigator/item/${key}`,
-           `https://msu.io/navigator/api/navigator/items/${key}`,
-           `https://msu.io/navigator/api/navigator/inventory/item/${key}`,
+  const u=[`https://msu.io/navigator/api/navigator/nft/${key}`,
+           `https://msu.io/navigator/nft/${key}`,
+           `https://msu.io/navigator/api/navigator/item/${key}`,
            `https://msu.io/marketplace/api/marketplace/items/${key}`];
   let saved=null; try{ saved=localStorage.getItem('MSU_ITEM_PATTERN'); }catch(e){}
   if (saved && saved.includes('{key}')) u.unshift(saved.replace('{key}', key));
@@ -5374,7 +5388,7 @@ try{ window.debugItem=debugItem; window.ITEM_CACHE=ITEM_CACHE; }catch(e){}
 const _iEsc=x=>_mvpEsc(String(x==null?'':x));
 function _itipRows(rows){
   if(!rows||!rows.length) return '';
-  return `<div class="itip-rows">${rows.map(r=>`<div class="itip-r"><span>${_iEsc(r.lb)}</span><b>${r.v>0?'+':''}${r.v.toLocaleString('vi-VN')}</b>${(r.base!=null&&r.add!=null&&(r.base||r.add))?`<i>(${r.base}+${r.add})</i>`:''}</div>`).join('')}</div>`;
+  return `<div class="itip-rows">${rows.map(r=>`<div class="itip-r"><span>${_iEsc(r.lb)}</span><b>${r.raw?_iEsc(r.v):((r.v>0?'+':'')+Number(r.v).toLocaleString('vi-VN'))}</b>${(r.base!=null&&r.add!=null&&(r.base||r.add))?`<i>(${r.base}+${r.add})</i>`:''}</div>`).join('')}</div>`;
 }
 function itemTipHtml(d, fallback){
   if(!d) return fallback||'';
@@ -5386,6 +5400,15 @@ function itemTipHtml(d, fallback){
       ${d.cat?`<div class="itip-cat">${_iEsc(d.cat)}</div>`:''}</div></div>
     ${(d.req||d.job)?`<div class="itip-req">${d.req?`REQ LV. ${d.req}`:''}${d.req&&d.job?' · ':''}${_iEsc(d.job||'')}</div>`:''}
     ${_itipRows(d.rows)}
+    ${(!d.rows||!d.rows.length)?_itipRows([
+        d.itemId?{lb:'Item ID', v:d.itemId, raw:true}:null,
+        d.mintNo?{lb:'Minting No', v:d.mintNo, raw:true}:null,
+      ].filter(Boolean)):''}
+    ${(d.potGrade||d.bonGrade)&&!(d.pot&&d.pot.length)&&!(d.bon&&d.bon.length)?`<div class="itip-rows">
+        ${d.potGrade?`<div class="itip-r"><span>Potential</span><b style="color:#8fd7ae">${_iEsc(d.potGrade)}</b></div>`:''}
+        ${d.bonGrade?`<div class="itip-r"><span>Bonus potential</span><b style="color:#f0c68a">${_iEsc(d.bonGrade)}</b></div>`:''}
+      </div>`:''}
+    ${(d.minted||d.sbt||d.ownedBy)?`<div class="itip-note">${[d.minted?'Đã mint':'', d.sbt?'SBT':'', d.ownedBy?('Đang mặc: '+_iEsc(d.ownedBy)):''].filter(Boolean).join(' · ')}</div>`:''}
     ${d.pot&&d.pot.length?`<div class="itip-sec pot">Potential${d.potGrade?` (${_iEsc(d.potGrade)})`:''}</div>${d.pot.map(x=>`<div class="itip-p">${_iEsc(x)}</div>`).join('')}`:''}
     ${d.bon&&d.bon.length?`<div class="itip-sec bon">Bonus potential${d.bonGrade?` (${_iEsc(d.bonGrade)})`:''}</div>${d.bon.map(x=>`<div class="itip-b">${_iEsc(x)}</div>`).join('')}`:''}
   </div>`;
