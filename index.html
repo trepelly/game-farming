@@ -842,7 +842,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- TAB: Bossing -->
       <div class="tabpanel" id="tab-boss" style="display:none">
-        <div class="mvp-2col">
+        <div class="mvp-2col" id="boss-2col">
           <div id="boss-players"></div>
           <div id="boss-main" style="min-width:0">
             <div id="boss-kpi"></div>
@@ -853,7 +853,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- TAB: Phân bổ MVP -->
       <div class="tabpanel" id="tab-mvp" style="display:none">
-<div class="mvp-2col">
+<div class="mvp-2col" id="mvp-2col-g">
 <div id="mvp-players"></div>
 <div id="mvp-main" style="min-width:0">
         <div id="mvp-kpi"></div>
@@ -865,7 +865,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 
       <!-- TAB: Dòng tiền -->
       <div class="tabpanel" id="tab-flow" style="display:none">
-      <div class="flow-2col">
+      <div class="flow-2col" id="flow-2col-g">
       <div id="flow-players"></div>
       <div id="flow-main" style="min-width:0">
       <!-- Bộ chọn bảng + KPI tổng (gộp 1 thẻ) -->
@@ -4533,8 +4533,22 @@ function renderBossMatrix(){
 
 
 // ===== TAB VÍ (LITE) — mỗi ô 1 con số, chi tiết trong tooltip =====
-let litePanelW=(()=>{ const v=parseInt(localStorage.getItem('litePanelW')||'300',10); return (v>=210&&v<=560)?v:300; })();
-function applyLitePanelW(){ const g=document.getElementById('lite-2col'); if(g) g.style.gridTemplateColumns=litePanelW+'px 1fr'; }
+const LPP_MIN=232, LPP_MAX=560;
+// Mặc định gọn nhất; kéo mép panel ở tab nào cũng đổi chung cho tất cả các tab
+let litePanelW=(()=>{ const v=parseInt(localStorage.getItem('litePanelW')||String(LPP_MIN),10); return (v>=LPP_MIN&&v<=LPP_MAX)?v:LPP_MIN; })();
+const LPP_GRIDS=['lite-2col','boss-2col','mvp-2col-g','flow-2col-g'];
+function applyLitePanelW(){
+  LPP_GRIDS.forEach(id=>{ const g=document.getElementById(id); if(g) g.style.gridTemplateColumns=litePanelW+'px 1fr'; });
+}
+// Kéo mép bất kỳ panel nào cũng lưu và áp cho các tab còn lại
+function _savePanelW(el){
+  if(!el) return;
+  const w=Math.round(el.getBoundingClientRect().width);
+  if (w>=LPP_MIN && w<=LPP_MAX && w!==litePanelW){
+    litePanelW=w; try{ localStorage.setItem('litePanelW', String(w)); }catch(e){}
+    applyLitePanelW();
+  }
+}
 function _saveLitePanelW(){
   const el=document.getElementById('lite-pwrap'); if(!el) return;
   const w=Math.round(el.getBoundingClientRect().width);
@@ -4684,6 +4698,18 @@ function renderLiteTab(){
 // Panel người chơi dạng nén 32px — dùng chung cho tab Ví, Bossing, MVP, Dòng tiền.
 // cfg: { title, hint, total:{lb,val,sub}, cols:[{k,lb,w,val,fmt}], rows:[{name,vals,ratio,dim,tip}],
 //        sel, onPick, sort:{col,dir}, onSort, query, onQuery, groups:[{lb,color,ext,rows,total}] }
+// Chia danh sách người chơi thành khu Ví nhóm / Ví ngoại theo đúng cách tab Ví làm
+function lppGroups(names, mkRow, totals){
+  const inner=names.filter(p=>!isExtPlayer(p)), outer=names.filter(p=>isExtPlayer(p));
+  const gs=[{ lb:'Ví nhóm', color:'var(--accent)', rows:inner.map(mkRow),
+              vals:(totals&&totals.inner)||[], empty:'Chưa có ví nhóm',
+              tip:'Ví của nhóm — tính vào tổng' }];
+  if (outer.length || (totals&&totals.hasOuter))
+    gs.push({ lb:'Ví ngoại', color:'var(--green)', ext:true, rows:outer.map(r=>Object.assign(mkRow(r),{ext:true})),
+              vals:(totals&&totals.outer)||[], empty:'Chưa có ví ngoại',
+              tip:'Chỉ theo dõi — không tính vào tổng' });
+  return gs;
+}
 function lppPanelHtml(cfg){
   const c=cfg||{}, cols=c.cols||[];
   const spacerW=c.spacer||0;
@@ -4707,7 +4733,7 @@ function lppPanelHtml(cfg){
     </div>
     <div class="lpp-scroll">${g.rows.length?g.rows.map(row).join(''):`<div class="lpp-empty">${g.empty||'Chưa có ví'}</div>`}</div>`;
 
-  return `<div class="lpp">
+  return `<div class="lpp" onmouseup="_savePanelW(this)">
     <div class="lpp-hd">
       <div class="lpp-t1"><span class="lpp-title">${c.title}</span><span class="lpp-cnt mvp-num">${c.count||''}</span></div>
       <div class="lpp-t2" onclick="${c.onPick}('all')" data-tip="${_mvpEsc(c.totalTip||'Bấm để xem tất cả')}">
@@ -4779,7 +4805,7 @@ function renderLitePlayers(){
     <div class="lpp-scroll">${list.length?list.map((p,i)=>row(p,`${pfx}-${i}`,ext)).join('')
       :`<div class="lpp-empty">${ext?'Chưa có ví ngoại':'Chưa có ví nhóm'}</div>`}</div>`;
 
-  el.innerHTML=`<div class="lpp" id="lite-pwrap" onmouseup="_saveLitePanelW()">
+  el.innerHTML=`<div class="lpp" id="lite-pwrap" onmouseup="_savePanelW(this)">
       <div class="lpp-hd">
         <div class="lpp-t1"><span class="lpp-title">Ví theo người chơi</span><span class="lpp-cnt mvp-num">${tot.vi} ví</span></div>
         <div class="lpp-t2" onclick="setLitePlayer('all')" data-tip="Bấm để xem lại toàn bộ ví nhóm&#10;NESO: ${_lf(tot.neso)}">
@@ -6038,12 +6064,14 @@ function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossM
 
 function renderBossPlayers(){
   const el=document.getElementById('boss-players'); if(!el) return;
-  const ws=effectiveWallets();
+  const ws=allWallets();
   const tot=bossTotalCount();
   const P={};
   ws.forEach(w=>{ const pl=w.player||'(chưa gán)'; (P[pl]=P[pl]||{vi:0,done:0}); P[pl].vi++; P[pl].done+=bossDoneCount(w.address); });
   const all=Object.keys(P);
-  const totAll={vi:ws.length, done:ws.reduce((s,w)=>s+bossDoneCount(w.address),0)};
+  const wIn=ws.filter(w=>!isExtWallet(w)), wOut=ws.filter(w=>isExtWallet(w));
+  const totAll={vi:wIn.length, done:wIn.reduce((s,w)=>s+bossDoneCount(w.address),0)};
+  const totOut={vi:wOut.length, done:wOut.reduce((s,w)=>s+bossDoneCount(w.address),0)};
   let players=all.filter(p=>!bossPQuery||p.toLowerCase().includes(bossPQuery));
   const keys={ name:p=>p.toLowerCase(), vi:p=>P[p].vi, done:p=>P[p].done };
   const kf=keys[bossPSort.col]||keys.done;
@@ -6056,10 +6084,13 @@ function renderBossPlayers(){
     query:bossPQuery, onQuery:'setBossPQuery',
     cols:[{k:'vi',lb:'Ví',w:24},{k:'done',lb:'Đã mở',w:56}],
     allRatios:players.map(p=>P[p].done),
-    rows:players.map(p=>({ name:p, ratio:P[p].done, dim:!P[p].done,
-      vals:[P[p].vi, `${P[p].done}<span style="font-size:8.5px;color:var(--muted2)">/${tot*P[p].vi}</span>`],
-      tip:`${p}\n${P[p].vi} ví · ${P[p].done}/${tot*P[p].vi} cửa đã mở` })),
+    groups:lppGroups(players,
+      p=>({ name:p, ratio:P[p].done, dim:!P[p].done,
+            vals:[P[p].vi, `${P[p].done}<span style="font-size:8.5px;color:var(--muted2)">/${tot*P[p].vi}</span>`],
+            tip:`${p}\n${P[p].vi} ví · ${P[p].done}/${tot*P[p].vi} cửa đã mở` }),
+      { inner:[totAll.vi, `${totAll.done}`], outer:[totOut.vi, `${totOut.done}`], hasOuter:!!totOut.vi }),
   });
+  applyLitePanelW();
 }
 function setBossWallet(a){ bossWallet = (bossWallet===a)?'all':a; renderBossTab(); }
 function renderBossKpi(){
@@ -6154,7 +6185,7 @@ function renderBossGrid(){
 
 function renderMvpPlayers(){
   const el = document.getElementById('mvp-players'); if(!el) return;
-  const ws = effectiveWallets();
+  const ws = allWallets();
   const P = {};
   ws.forEach(w => {
     const pl = w.player || '(chưa gán)';
@@ -6164,7 +6195,9 @@ function renderMvpPlayers(){
     if (w.mvpPoints!=null || w.mvpManual!=null){ if (pts>=30) P[pl].farm++; else P[pl].need++; }
   });
   const all = Object.keys(P);
-  const tot = all.reduce((t,pl)=>{ t.vi+=P[pl].vi; t.farm+=P[pl].farm; t.need+=P[pl].need; return t; }, {vi:0,farm:0,need:0});
+  const sum=list=>list.reduce((t,pl)=>{ t.vi+=P[pl].vi; t.farm+=P[pl].farm; t.need+=P[pl].need; return t; }, {vi:0,farm:0,need:0});
+  const tot    = sum(all.filter(pl=>!isExtPlayer(pl)));
+  const totOut = sum(all.filter(pl=>isExtPlayer(pl)));
   let players = all.filter(pl => !mvpPQuery || pl.toLowerCase().includes(mvpPQuery));
   const keys = { name: pl=>pl.toLowerCase(), vi: pl=>P[pl].vi, farm: pl=>P[pl].farm };
   const kf = keys[mvpPSort.col] || keys.farm;
@@ -6177,10 +6210,13 @@ function renderMvpPlayers(){
     query:mvpPQuery, onQuery:'setMvpPQuery',
     cols:[{k:'vi',lb:'Ví',w:24},{k:'farm',lb:'Đạt',w:56}],
     allRatios:players.map(pl=>P[pl].farm),
-    rows:players.map(pl=>({ name:pl, ratio:P[pl].farm, dim:!P[pl].farm,
-      vals:[P[pl].vi, `<span style="color:${P[pl].farm?'#7fd88f':'var(--muted2)'}">${P[pl].farm}</span><span style="font-size:8.5px;color:var(--muted2)">/${P[pl].vi}</span>`],
-      tip:`${pl}\n${P[pl].farm} ví đạt Bronze · ${P[pl].need} ví còn thiếu` })),
+    groups:lppGroups(players,
+      pl=>({ name:pl, ratio:P[pl].farm, dim:!P[pl].farm,
+             vals:[P[pl].vi, `<span style="color:${P[pl].farm?'#7fd88f':'var(--muted2)'}">${P[pl].farm}</span><span style="font-size:8.5px;color:var(--muted2)">/${P[pl].vi}</span>`],
+             tip:`${pl}\n${P[pl].farm} ví đạt Bronze · ${P[pl].need} ví còn thiếu` }),
+      { inner:[tot.vi, `${tot.farm}`], outer:[totOut.vi, `${totOut.farm}`], hasOuter:!!totOut.vi }),
   });
+  applyLitePanelW();
 }
 let flowPQuery = '';
 let flowPSort = {col:'neso', dir:'desc'};
@@ -6215,7 +6251,9 @@ function renderFlowPlayers(){
   const {P, empty} = _flowAgg();
   if (empty){ el.innerHTML=`<div class="lpp"><div class="lpp-empty" style="text-align:center;padding:16px">Đang tải dòng tiền theo người chơi…</div></div>`; return; }
   const all=Object.keys(P);
-  const tot=all.reduce((t,pl)=>{ t.thu+=P[pl].thu; t.chi+=P[pl].chi; t.neso+=(P[pl].neso||0); t.vi+=P[pl].vi.size; return t; },{thu:0,chi:0,neso:0,vi:0});
+  const sumF=list=>list.reduce((t,pl)=>{ t.thu+=P[pl].thu; t.chi+=P[pl].chi; t.neso+=(P[pl].neso||0); t.vi+=P[pl].vi.size; return t; },{thu:0,chi:0,neso:0,vi:0});
+  const tot    = sumF(all.filter(pl=>!isExtPlayer(pl)));
+  const totOut = sumF(all.filter(pl=>isExtPlayer(pl)));
   let players=all.filter(pl=>!flowPQuery||pl.toLowerCase().includes(flowPQuery));
   const keys={ name:pl=>pl.toLowerCase(), vi:pl=>P[pl].vi.size, neso:pl=>P[pl].neso||0 };
   const kf=keys[flowPSort.col]||keys.neso;
@@ -6228,10 +6266,13 @@ function renderFlowPlayers(){
     query:flowPQuery, onQuery:'setFlowPQuery',
     cols:[{k:'vi',lb:'Ví',w:24},{k:'neso',lb:'NESO',w:56}],
     allRatios:players.map(pl=>P[pl].neso||0),
-    rows:players.map(pl=>({ name:pl, ratio:P[pl].neso||0, dim:!(P[pl].neso>0),
-      vals:[P[pl].vi.size, _lfk(P[pl].neso||0)],
-      tip:`${pl}\n${P[pl].vi.size} ví · NESO ${_lf(P[pl].neso||0)}` })),
+    groups:lppGroups(players,
+      pl=>({ name:pl, ratio:P[pl].neso||0, dim:!(P[pl].neso>0),
+             vals:[P[pl].vi.size, _lfk(P[pl].neso||0)],
+             tip:`${pl}\n${P[pl].vi.size} ví · NESO ${_lf(P[pl].neso||0)}` }),
+      { inner:[tot.vi, _lfk(tot.neso)], outer:[totOut.vi, _lfk(totOut.neso)], hasOuter:!!totOut.vi }),
   });
+  applyLitePanelW();
 }
 function _flowDetailKey(){ return flowChart==='swap' ? 'revenue' : flowChart; }   // chart "Swap out" dùng key revenue
 function syncFlowDetail(){
