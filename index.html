@@ -4681,6 +4681,45 @@ function renderLiteTab(){
   try{ renderLiteTiers(); }catch(e){ console.warn('lite tiers', e); }
   try{ renderLiteList(); }catch(e){ console.warn('lite list', e); }
 }
+// Panel người chơi dạng nén 32px — dùng chung cho tab Ví, Bossing, MVP, Dòng tiền.
+// cfg: { title, hint, total:{lb,val,sub}, cols:[{k,lb,w,val,fmt}], rows:[{name,vals,ratio,dim,tip}],
+//        sel, onPick, sort:{col,dir}, onSort, query, onQuery, groups:[{lb,color,ext,rows,total}] }
+function lppPanelHtml(cfg){
+  const c=cfg||{}, cols=c.cols||[];
+  const spacerW=c.spacer||0;
+  const hc=col=>`<span class="${c.sort&&c.sort.col===col.k?'on':''}" onclick="event.stopPropagation();${c.onSort}('${col.k}')" style="width:${col.w}px;text-align:right;flex-shrink:0">${col.lb}${c.sort&&c.sort.col===col.k?(c.sort.dir==='desc'?' ↓':' ↑'):''}</span>`;
+  const nameH=`<span class="${c.sort&&c.sort.col==='name'?'on':''}" onclick="event.stopPropagation();${c.onSort}('name')" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Người chơi${c.sort&&c.sort.col==='name'?(c.sort.dir==='desc'?' ↓':' ↑'):''}</span>`;
+  const mx=Math.max(...(c.allRatios||[1]),1);
+
+  const row=r=>{
+    const sel=(r.name===c.sel), pct=r.ratio>0?Math.max(2,Math.min(100,r.ratio/mx*100)):0;
+    return `<div class="lpp-row${sel?' on':''}${r.dim?' zero':''}${r.ext?' lpp-ext':''}" onclick="${c.onPick}('${String(r.name||'').replace(/'/g,"")}')" data-tip="${_mvpEsc(r.tip||r.name)}">
+      ${pct?`<div class="lpp-bg" style="width:${pct}%"></div>`:''}
+      <span class="lpp-nm">${_mvpEsc(r.name)}</span>${r.extra||''}
+      ${cols.map((col,i)=>`<span class="mvp-num ${i===cols.length-1?'lpp-bal':'lpp-vi'}" style="width:${col.w}px">${r.vals[i]}</span>`).join('')}
+    </div>`;
+  };
+  const sect=(g)=>`<div class="lpp-gh" data-tip="${_mvpEsc(g.tip||'')}">
+      <span class="lpp-gt" style="color:${g.color}">${g.lb}</span>
+      ${g.ext?'<span class="lpp-i" data-tip="Chỉ theo dõi — không tính vào tổng">i</span>':''}
+      <span class="lpp-gsp"></span>${spacerW?`<span style="width:${spacerW}px;flex-shrink:0"></span>`:''}
+      ${(g.vals||[]).map((v,i)=>`<span class="lpp-gm mvp-num ${i===cols.length-1?'lpp-gbal':'lpp-gvi'}" style="width:${cols[i]?cols[i].w:40}px${i===cols.length-1?`;color:${g.color};font-weight:700`:''}">${v}</span>`).join('')}
+    </div>
+    <div class="lpp-scroll">${g.rows.length?g.rows.map(row).join(''):`<div class="lpp-empty">${g.empty||'Chưa có ví'}</div>`}</div>`;
+
+  return `<div class="lpp">
+    <div class="lpp-hd">
+      <div class="lpp-t1"><span class="lpp-title">${c.title}</span><span class="lpp-cnt mvp-num">${c.count||''}</span></div>
+      <div class="lpp-t2" onclick="${c.onPick}('all')" data-tip="${_mvpEsc(c.totalTip||'Bấm để xem tất cả')}">
+        <span class="lpp-tot mvp-num">${c.total}</span><span class="lpp-tlb">${c.totalLb||''}</span>
+      </div>
+    </div>
+    <div class="lpp-search"><input type="text" value="${_mvpEsc(c.query||'')}" oninput="${c.onQuery}(this.value)" placeholder="Tìm tên người chơi…"></div>
+    <div class="lpp-cols">${nameH}${spacerW?`<span style="width:${spacerW}px;flex-shrink:0"></span>`:''}${cols.map(hc).join('')}</div>
+    ${(c.groups||[]).length ? c.groups.map(sect).join('')
+      : `<div class="lpp-scroll">${(c.rows||[]).length?c.rows.map(row).join(''):'<div class="lpp-empty" style="text-align:center;padding:14px">Không có người chơi khớp</div>'}</div>`}
+  </div>`;
+}
 function renderLitePlayers(){
   const el=document.getElementById('lite-players'); if(!el) return;
   const ws=allWallets();          // panel phải thấy cả ví ngoại để dựng khu riêng
@@ -5999,7 +6038,7 @@ function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossM
 
 function renderBossPlayers(){
   const el=document.getElementById('boss-players'); if(!el) return;
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const ws=effectiveWallets();
   const tot=bossTotalCount();
   const P={};
   ws.forEach(w=>{ const pl=w.player||'(chưa gán)'; (P[pl]=P[pl]||{vi:0,done:0}); P[pl].vi++; P[pl].done+=bossDoneCount(w.address); });
@@ -6009,37 +6048,20 @@ function renderBossPlayers(){
   const keys={ name:p=>p.toLowerCase(), vi:p=>P[p].vi, done:p=>P[p].done };
   const kf=keys[bossPSort.col]||keys.done;
   players.sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossPSort.dir==='desc'?-r:r; });
-  const bar=(done,max)=>{ const pct=max?Math.round(done/max*100):0;
-    return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:var(--muted2);white-space:nowrap">${done}<span style="opacity:.6">/${max}</span></span></div>`; };
-  const arw=c=>bossPSort.col===c?(bossPSort.dir==='desc'?' ↓':' ↑'):'';
-  const hc=(c,l)=>`<span onclick="event.stopPropagation();setBossPSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;color:${bossPSort.col===c?'var(--accent)':'inherit'}">${l}${arw(c)}</span>`;
-  const row=(name,d,idx)=>{ const sel=(name===bossPlayer);
-    return `<div class="mvp-prow ${sel?'on':''}" onclick="setBossPlayer('${(name||'').replace(/'/g,"")}')">
-        <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi} ví</span></div>
-          ${bar(d.done, tot*d.vi)}
-        </div>
-      </div>`; };
-  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
-      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Bossing theo người chơi${infoIcon('Bấm 1 dòng để lọc boss theo người chơi · thanh = số cửa boss đã mở trên tổng ('+tot+' cửa mỗi ví)')}</div></div>
-      <div class="mvp-prow ${bossPlayer==='all'?'on':''}" onclick="setBossPlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${bossPlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${totAll.vi} ví</span></div>
-          ${bar(totAll.done, tot*(totAll.vi||1))}
-        </div>
-      </div>
-      <div style="padding:9px 2px 6px"><input id="boss-psearch" type="text" value="${_mvpEsc(bossPQuery)}" oninput="setBossPQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">
-        <span style="width:16px">#</span>${hc('name','Người chơi')}<span style="margin-left:auto">${hc('vi','Ví')}</span><span>${hc('done','Đã mở')}</span>
-      </div>
-      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:4px">
-        ${players.length?players.map((p,i)=>row(p,P[p],i+1)).join(''):'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}
-      </div>
-    </div>`;
+  el.innerHTML=lppPanelHtml({
+    title:'Bossing theo người chơi', count:`${totAll.vi} ví`,
+    total:`${totAll.done}`, totalLb:`/ ${tot*(totAll.vi||1)} cửa đã mở`,
+    totalTip:`Bấm để bỏ lọc\n${totAll.done}/${tot*(totAll.vi||1)} cửa boss đã mở`,
+    sel:bossPlayer, onPick:'setBossPlayer', onSort:'setBossPSort', sort:bossPSort,
+    query:bossPQuery, onQuery:'setBossPQuery',
+    cols:[{k:'vi',lb:'Ví',w:24},{k:'done',lb:'Đã mở',w:56}],
+    allRatios:players.map(p=>P[p].done),
+    rows:players.map(p=>({ name:p, ratio:P[p].done, dim:!P[p].done,
+      vals:[P[p].vi, `${P[p].done}<span style="font-size:8.5px;color:var(--muted2)">/${tot*P[p].vi}</span>`],
+      tip:`${p}\n${P[p].vi} ví · ${P[p].done}/${tot*P[p].vi} cửa đã mở` })),
+  });
 }
 function setBossWallet(a){ bossWallet = (bossWallet===a)?'all':a; renderBossTab(); }
-
 function renderBossKpi(){
   const el=document.getElementById('boss-kpi'); if(!el) return;
   const ws=bossScopeWallets();
@@ -6132,7 +6154,7 @@ function renderBossGrid(){
 
 function renderMvpPlayers(){
   const el = document.getElementById('mvp-players'); if(!el) return;
-  const ws = (typeof effectiveWallets==='function') ? effectiveWallets() : (typeof teamWallets!=='undefined'?teamWallets:[]);
+  const ws = effectiveWallets();
   const P = {};
   ws.forEach(w => {
     const pl = w.player || '(chưa gán)';
@@ -6147,40 +6169,19 @@ function renderMvpPlayers(){
   const keys = { name: pl=>pl.toLowerCase(), vi: pl=>P[pl].vi, farm: pl=>P[pl].farm };
   const kf = keys[mvpPSort.col] || keys.farm;
   players.sort((a,b)=>{ const x=kf(a), y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return mvpPSort.dir==='desc'?-r:r; });
-  const bar = (d) => { const done = d.farm+d.need>0 ? Math.round(d.farm/(d.farm+d.need)*100) : (d.vi?100:0);
-    return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${done}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" style="font-size:9px;color:var(--muted2);white-space:nowrap">${d.farm}<span style="opacity:.6">/${d.farm+d.need}</span></span></div>`; };
-  const totRow = `<div class="mvp-prow ${mvpPlayer==='all'?'on':''}" onclick="setMvpPlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${mvpPlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${tot.vi} ví</span></div>
-        ${bar(tot)}
-      </div>
-    </div>`;
-  const arw = c => mvpPSort.col===c ? (mvpPSort.dir==='desc'?' ↓':' ↑') : '';
-  const hc = (c,l,al) => `<span onclick="event.stopPropagation();setMvpPSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${mvpPSort.col===c?'var(--accent)':'inherit'}">${l}${arw(c)}</span>`;
-  const rowHtml = (name, d, idx) => {
-    const sel = (name===mvpPlayer);
-    const badge = sel ? `<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>` : '';
-    return `<div class="mvp-prow ${sel?'on':''}" onclick="setMvpPlayer('${(name||'').replace(/'/g,"")}')">
-        <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${badge}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi} ví</span></div>
-          ${bar(d)}
-        </div>
-      </div>`;
-  };
-  el.innerHTML = `<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
-      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Phân bổ theo người chơi${infoIcon('Bấm 1 dòng để lọc toàn bộ bên phải theo người chơi đó · thanh màu = số ví đã farm / tổng cần')}</div></div>
-      ${totRow}
-      <div style="padding:9px 2px 6px"><input id="mvp-psearch" type="text" value="${_mvpEsc(mvpPQuery)}" oninput="setMvpPQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">
-        <span style="width:16px">#</span>${hc('name','Người chơi')}<span style="margin-left:auto">${hc('vi','Ví')}</span><span>${hc('farm','Đã farm')}</span>
-      </div>
-      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:4px">
-        ${players.length ? players.map((pl,i)=>rowHtml(pl, P[pl], i+1)).join('') : '<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}
-      </div>
-    </div>`;
+  el.innerHTML=lppPanelHtml({
+    title:'MVP theo người chơi', count:`${tot.vi} ví`,
+    total:`${tot.farm}`, totalLb:`/ ${tot.vi} ví đạt Bronze`,
+    totalTip:`Bấm để bỏ lọc\n${tot.farm} ví đạt Bronze · ${tot.need} ví còn thiếu`,
+    sel:mvpPlayer, onPick:'setMvpPlayer', onSort:'setMvpPSort', sort:mvpPSort,
+    query:mvpPQuery, onQuery:'setMvpPQuery',
+    cols:[{k:'vi',lb:'Ví',w:24},{k:'farm',lb:'Đạt',w:56}],
+    allRatios:players.map(pl=>P[pl].farm),
+    rows:players.map(pl=>({ name:pl, ratio:P[pl].farm, dim:!P[pl].farm,
+      vals:[P[pl].vi, `<span style="color:${P[pl].farm?'#7fd88f':'var(--muted2)'}">${P[pl].farm}</span><span style="font-size:8.5px;color:var(--muted2)">/${P[pl].vi}</span>`],
+      tip:`${pl}\n${P[pl].farm} ví đạt Bronze · ${P[pl].need} ví còn thiếu` })),
+  });
 }
-
 let flowPQuery = '';
 let flowPSort = {col:'neso', dir:'desc'};
 function setFlowPQuery(v){ flowPQuery=(v||'').toLowerCase(); renderFlowPlayers(); const i=document.getElementById('flow-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
@@ -6212,47 +6213,25 @@ function renderChartPlayerBadges(){
 function renderFlowPlayers(){
   const el=document.getElementById('flow-players'); if(!el) return;
   const {P, empty} = _flowAgg();
-  const fv = n => Math.round(n||0).toLocaleString('vi-VN');
-  if (empty){ el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 16px;font-size:11.5px;color:var(--muted2)">Đang tải dòng tiền theo người chơi…</div>`; return; }
+  if (empty){ el.innerHTML=`<div class="lpp"><div class="lpp-empty" style="text-align:center;padding:16px">Đang tải dòng tiền theo người chơi…</div></div>`; return; }
   const all=Object.keys(P);
-  const tot=all.reduce((t,pl)=>{ t.thu+=P[pl].thu; t.chi+=P[pl].chi; t.swap+=P[pl].swap; t.neso+=(P[pl].neso||0); t.vi+=P[pl].vi.size; return t; },{thu:0,chi:0,swap:0,neso:0,vi:0});
+  const tot=all.reduce((t,pl)=>{ t.thu+=P[pl].thu; t.chi+=P[pl].chi; t.neso+=(P[pl].neso||0); t.vi+=P[pl].vi.size; return t; },{thu:0,chi:0,neso:0,vi:0});
   let players=all.filter(pl=>!flowPQuery||pl.toLowerCase().includes(flowPQuery));
-  const netOf=pl=>P[pl].thu-P[pl].chi;
   const keys={ name:pl=>pl.toLowerCase(), vi:pl=>P[pl].vi.size, neso:pl=>P[pl].neso||0 };
   const kf=keys[flowPSort.col]||keys.neso;
   players.sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return flowPSort.dir==='desc'?-r:r; });
-  const maxNeso=Math.max(...all.map(pl=>P[pl].neso||0),1);
-  const bar=(d)=>{ const pct=Math.min(100,Math.round((d.neso||0)/maxNeso*100));
-    return `<div style="display:flex;align-items:center;gap:7px;margin-top:5px"><div style="flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#7fd88f;border-radius:3px"></div></div><span class="mvp-num" data-tip="${_nesoTip(d.neso||0)}" style="font-size:9px;color:#7fd88f;white-space:nowrap;cursor:help">${fv(d.neso||0)}</span></div>`; };
-  const totRow=`<div class="mvp-prow ${flowPlayer==='all'?'on':''}" onclick="setFlowPlayer('all')" style="border-bottom:1px solid var(--border2);border-radius:0;padding-bottom:11px">
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:var(--text)">TỔNG</span>${flowPlayer==='all'?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${tot.vi} ví</span></div>
-        ${bar(tot)}
-      </div>
-    </div>`;
-  const arw=c=>flowPSort.col===c?(flowPSort.dir==='desc'?' ↓':' ↑'):'';
-  const hc=(c,l)=>`<span onclick="event.stopPropagation();setFlowPSort('${c}')" data-tip="Bấm để sắp xếp" style="cursor:pointer;color:${flowPSort.col===c?'var(--accent)':'inherit'}">${l}${arw(c)}</span>`;
-  const rowHtml=(name,d,idx)=>{ const sel=(name===flowPlayer);
-    return `<div class="mvp-prow ${sel?'on':''}" onclick="setFlowPlayer('${(name||'').replace(/'/g,"")}')">
-        <span class="mvp-num" style="font-size:10px;color:var(--muted2);width:16px;flex-shrink:0">${idx}</span>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;font-weight:700;color:${sel?'var(--accent)':'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_mvpEsc(name)}</span>${sel?'<span style="font-size:8.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-radius:4px;padding:1px 5px">đang xem</span>':''}<span class="mvp-num" style="font-size:10px;color:var(--muted2);margin-left:auto">${d.vi.size} ví</span></div>
-          ${bar(d)}
-        </div>
-      </div>`; };
-  el.innerHTML=`<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 12px">
-      <div style="padding:0 4px 8px"><div style="display:flex;align-items:center;font-size:13px;font-weight:800;color:var(--text)">Dòng tiền theo người chơi${infoIcon('Bấm 1 dòng để lọc biểu đồ theo người chơi đó · thanh màu = NESO hiện có trong ví')}</div></div>
-      ${totRow}
-      <div style="padding:9px 2px 6px"><input id="flow-psearch" type="text" value="${_mvpEsc(flowPQuery)}" oninput="setFlowPQuery(this.value)" placeholder="Tìm tên người chơi…" style="width:100%;box-sizing:border-box;padding:6px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11.5px"></div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)">
-        <span style="width:16px">#</span>${hc('name','Người chơi')}<span style="margin-left:auto">${hc('vi','Ví')}</span><span>${hc('neso','NESO')}</span>
-      </div>
-      <div style="max-height:330px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:4px">
-        ${players.length?players.map((pl,i)=>rowHtml(pl,P[pl],i+1)).join(''):'<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted2)">Không tìm thấy người chơi.</div>'}
-      </div>
-    </div>`;
-  renderFlowWallets();
-  try{ renderChartPlayerBadges(); }catch(e){}
+  el.innerHTML=lppPanelHtml({
+    title:'Dòng tiền theo người chơi', count:`${tot.vi} ví`,
+    total:_lfk(tot.neso), totalLb:'NESO thu về',
+    totalTip:`Bấm để bỏ lọc\nNESO: ${_lf(tot.neso)}`,
+    sel:flowPlayer, onPick:'setFlowPlayer', onSort:'setFlowPSort', sort:flowPSort,
+    query:flowPQuery, onQuery:'setFlowPQuery',
+    cols:[{k:'vi',lb:'Ví',w:24},{k:'neso',lb:'NESO',w:56}],
+    allRatios:players.map(pl=>P[pl].neso||0),
+    rows:players.map(pl=>({ name:pl, ratio:P[pl].neso||0, dim:!(P[pl].neso>0),
+      vals:[P[pl].vi.size, _lfk(P[pl].neso||0)],
+      tip:`${pl}\n${P[pl].vi.size} ví · NESO ${_lf(P[pl].neso||0)}` })),
+  });
 }
 function _flowDetailKey(){ return flowChart==='swap' ? 'revenue' : flowChart; }   // chart "Swap out" dùng key revenue
 function syncFlowDetail(){
