@@ -4605,8 +4605,8 @@ async function toggleExtPlayer(ev, name){
   }catch(e){ console.warn('toggleExtPlayer', e); }
 }
 function liteScope(){
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
-  // "Tất cả" = chỉ ví nội bộ; muốn xem ví ngoại thì bấm đúng dòng người chơi đó
+  const ws=allWallets();
+  // "Tất cả" = chỉ ví nhóm; muốn xem ví ngoại thì bấm đúng dòng người chơi đó
   return litePlayer==='all' ? ws.filter(w=>!isExtWallet(w))
                             : ws.filter(w=>(w.player||'(chưa gán)')===litePlayer);
 }
@@ -4683,7 +4683,7 @@ function renderLiteTab(){
 }
 function renderLitePlayers(){
   const el=document.getElementById('lite-players'); if(!el) return;
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const ws=allWallets();          // panel phải thấy cả ví ngoại để dựng khu riêng
   const isAdm=!!(typeof teamUser!=='undefined'&&teamUser&&teamUser.role==='admin');
 
   const P={}; ws.forEach(w=>{ const pl=w.player||'(chưa gán)'; (P[pl]=P[pl]||{vi:0,neso:0}); P[pl].vi++; P[pl].neso+=(w.neso||0); });
@@ -5207,7 +5207,7 @@ function _refreshHoverTip(addr, loading){
   try{
     const cell=document.querySelector(`#lite-list [data-eqcell="${addr}"]`);
     if(!cell) return;
-    const ws=(typeof effectiveWallets==='function')?effectiveWallets():teamWallets;
+    const ws=allWallets();
     const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
     const fresh=liteCharCell(w, loading);
     const tmp=document.createElement('div'); tmp.innerHTML=fresh;
@@ -5239,7 +5239,7 @@ function openCharPop(ev, addr){
   charPopSel = null;
   try{ eqHover(addr); }catch(e){}
   try{ const cs=(w0=>((w0&&w0.chars)||[]).filter(c=>c.ak))(((typeof teamWallets!=='undefined'?teamWallets:[])||[]).find(x=>x.address===addr)); ensureCharImgs(cs); if(cs[0]) ensureSkills(cs[0].ak); }catch(e){}
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const ws=allWallets();
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
   const p=document.createElement('div'); p.id='char-pop'; p.dataset.addr=addr;
   p.style.cssText='position:fixed;z-index:10050;box-shadow:0 24px 60px rgba(0,0,0,.55);border-radius:16px;max-height:calc(100vh - 16px);overflow:hidden';
@@ -5261,7 +5261,7 @@ function _clampCharPop(p){
 }
 function _charPopRefresh(addr){
   const p=document.getElementById('char-pop'); if(!p || p.dataset.addr!==addr) return;
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():teamWallets;
+  const ws=allWallets();
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
   p.innerHTML=charPopHtml(w);
   _clampCharPop(p);
@@ -5288,7 +5288,7 @@ function _popCharsList(others){
 function _popCharsRefresh(withBar){
   const p=document.getElementById('char-pop'); if(!p) return;
   const box=p.querySelector('#mp-oth-list'); if(!box) return;
-  const w=((typeof effectiveWallets==='function')?effectiveWallets():(teamWallets||[])).find(x=>x.address===p.dataset.addr);
+  const w=allWallets().find(x=>x.address===p.dataset.addr);
   if(!w) return;
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
   const top=(charPopSel && cs.find(c=>c.ak===charPopSel)) || cs[0];
@@ -6829,7 +6829,8 @@ let _overviewCollapsed = (()=>{ try { return localStorage.getItem('msuOverviewCo
 function toggleOverview(){ _overviewCollapsed = !_overviewCollapsed; try { localStorage.setItem('msuOverviewCollapsed', _overviewCollapsed ? '1' : '0'); } catch(e){} try { renderTeam(); } catch(e){} }   // null = xem như admin; hoặc {role,username,players,viewAll}
 function effUser(){ return _viewAs || teamUser || {}; }
 function isRealAdmin(){ return teamUser && teamUser.role === 'admin'; }
-function effectiveWallets(){
+// Danh sách ví theo quyền xem, CÒN gồm cả ví ngoại
+function allWallets(){
   const all = (typeof teamWallets!=='undefined' && teamWallets) ? teamWallets : [];
   const eu = effUser();
   if (eu.role === 'member' && !eu.viewAll) {
@@ -6837,6 +6838,13 @@ function effectiveWallets(){
     return all.filter(w => mine.includes(w.player));
   }
   return all;
+}
+// Mặc định của toàn bộ dashboard: KHÔNG gồm ví ngoại.
+// Ví ngoại chỉ xuất hiện ở khu "Ví ngoại" trong tab Ví, nên mọi tổng, biểu đồ,
+// bảng đội, dòng tiền, MVP… đều không được cộng chúng vào.
+function effectiveWallets(){
+  const all = allWallets();
+  try{ return all.filter(w => !isExtWallet(w)); }catch(e){ return all; }
 }
 function applyRoleUI(u){
   const isAdmin = !!(u && u.role === 'admin');
@@ -7507,7 +7515,8 @@ function renderTeam() {
   const query   = (document.getElementById('team-search')?.value||'').toLowerCase().trim();
 
   // Filter by search
-  let displayWallets = teamWallets.map((w,i) => ({...w, origIdx: i}));
+  // ví ngoại chỉ sống trong khu riêng ở tab Ví, không lên bảng đội
+  let displayWallets = teamWallets.map((w,i) => ({...w, origIdx: i})).filter(w => !isExtWallet(w));
   { const eu = effUser();
     if (eu.role === 'member' && !eu.viewAll) {
       const mine = (eu.players && eu.players.length) ? eu.players : (eu.player ? [eu.player] : []);
@@ -11694,7 +11703,7 @@ function openMvpPop(ev, addr){
   const cur=document.getElementById('mvp-pop');
   if (cur && cur.dataset.addr===addr){ closeMvpPop(); return; }
   closeMvpPop();
-  const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]);
+  const ws=allWallets();
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
   const p=document.createElement('div'); p.id='mvp-pop'; p.dataset.addr=addr;
   p.style.cssText='position:fixed;z-index:10050;box-shadow:0 24px 60px rgba(0,0,0,.55);border-radius:14px';
