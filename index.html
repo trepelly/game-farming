@@ -3962,7 +3962,7 @@ let bossPSort = {col:'done', dir:'desc'};
 function setBossPQuery(v){ bossPQuery=(v||'').toLowerCase(); renderBossPlayers(); const i=document.getElementById('boss-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setBossPSort(c){ if(bossPSort.col===c) bossPSort.dir=(bossPSort.dir==='desc'?'asc':'desc'); else bossPSort={col:c,dir:(c==='name'?'asc':'desc')}; renderBossPlayers(); }
 function setBossPlayer(p){ bossPlayer = (bossPlayer===p)?'all':p; bossWallet='all'; renderBossTab(); }
-function bossScopeWallets(){ const ws=(typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]); return bossPlayer==='all'?ws:ws.filter(w=>(w.player||'(chưa gán)')===bossPlayer); }
+function bossScopeWallets(){ return scopeFor(bossPlayer); }
 function bossImg(b){ return `https://maplen.gg/images/bosses/${b.img}.png`; }
 function bossClears(){ return (typeof teamSettings!=='undefined' && teamSettings && teamSettings.bossClears) || {}; }
 function bossHas(addr, id){ const m=bossClears()[addr]; return !!(m && m[id]); }
@@ -4618,12 +4618,7 @@ async function toggleExtPlayer(ev, name){
     await saveTeamData();
   }catch(e){ console.warn('toggleExtPlayer', e); }
 }
-function liteScope(){
-  const ws=allWallets();
-  // "Tất cả" = chỉ ví nhóm; muốn xem ví ngoại thì bấm đúng dòng người chơi đó
-  return litePlayer==='all' ? ws.filter(w=>!isExtWallet(w))
-                            : ws.filter(w=>(w.player||'(chưa gán)')===litePlayer);
-}
+function liteScope(){ return scopeFor(litePlayer); }
 function _lf(n,d){ return n==null?'—':(d?Number(n).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d}):Math.round(n).toLocaleString('vi-VN')); }
 // Bản rút gọn cho bảng danh sách: từ 10 triệu trở lên đổi sang ký tự đơn vị.
 // Giá trị đầy đủ vẫn nằm trong tooltip nên không mất thông tin.
@@ -6849,6 +6844,13 @@ let _overviewCollapsed = (()=>{ try { return localStorage.getItem('msuOverviewCo
 function toggleOverview(){ _overviewCollapsed = !_overviewCollapsed; try { localStorage.setItem('msuOverviewCollapsed', _overviewCollapsed ? '1' : '0'); } catch(e){} try { renderTeam(); } catch(e){} }   // null = xem như admin; hoặc {role,username,players,viewAll}
 function effUser(){ return _viewAs || teamUser || {}; }
 function isRealAdmin(){ return teamUser && teamUser.role === 'admin'; }
+// Phạm vi dữ liệu của một tab theo người chơi đang chọn.
+// 'all' = chỉ ví nhóm; chọn đúng tên một người chơi ngoại thì tab hiển thị ví của họ.
+function scopeFor(sel){
+  const ws = allWallets();
+  return (!sel || sel==='all') ? ws.filter(w=>!isExtWallet(w))
+                               : ws.filter(w=>(w.player||'(chưa gán)')===sel);
+}
 // Danh sách ví theo quyền xem, CÒN gồm cả ví ngoại
 function allWallets(){
   const all = (typeof teamWallets!=='undefined' && teamWallets) ? teamWallets : [];
@@ -8853,8 +8855,7 @@ function setClaimChartMode(mode) {
 async function loadClaimChart() {
   const wrap = document.getElementById('claim-chart-wrap');
   if (!wrap) return;
-  let wallets = effectiveWallets();
-  if (typeof flowPlayer!=="undefined" && flowPlayer!=="all") wallets = wallets.filter(w => (w.player||"")===flowPlayer);
+  let wallets = scopeFor(typeof flowPlayer!=="undefined"?flowPlayer:'all');
   if (!wallets.length) { wrap.style.display='none'; return; }
   wrap.style.display = (typeof flowChart==='undefined' || flowChart==='claim') ? 'block' : 'none';
 
@@ -9119,8 +9120,7 @@ function setSpendChartMode(mode) {
 async function loadSpendChart() {
   const wrap = document.getElementById('spend-chart-wrap');
   if (!wrap) return;
-  let wallets = effectiveWallets();
-  if (typeof flowPlayer!=="undefined" && flowPlayer!=="all") wallets = wallets.filter(w => (w.player||"")===flowPlayer);
+  let wallets = scopeFor(typeof flowPlayer!=="undefined"?flowPlayer:'all');
   if (!wallets.length) { wrap.style.display='none'; return; }
   wrap.style.display = (typeof flowChart==='undefined' || flowChart==='spend') ? 'block' : 'none';
 
@@ -9634,8 +9634,7 @@ function renderUsdtChart() {
   const wrap = document.getElementById('usdt-chart-wrap');
   const body = document.getElementById('usdt-chart-body');
   if (!wrap || !body) return;
-  let ws = teamWallets || [];
-  if (typeof flowPlayer!=='undefined' && flowPlayer!=='all') ws = ws.filter(w => (w.player||'')===flowPlayer);
+  let ws = scopeFor(typeof flowPlayer!=='undefined'?flowPlayer:'all');
   if (!ws.length) { wrap.style.display='none'; return; }
   wrap.style.display = (typeof flowChart==='undefined' || flowChart==='usdt') ? 'block' : 'none';
 
@@ -9744,8 +9743,7 @@ function renderUsdtChart() {
 async function loadSwapChart() {
   const wrap = document.getElementById('swap-chart-wrap');
   if (!wrap) return;
-  let wallets = effectiveWallets();
-  if (typeof flowPlayer!=="undefined" && flowPlayer!=="all") wallets = wallets.filter(w => (w.player||"")===flowPlayer);
+  let wallets = scopeFor(typeof flowPlayer!=="undefined"?flowPlayer:'all');
   if (!wallets.length) { wrap.style.display='none'; return; }
   wrap.style.display = (typeof flowChart==='undefined' || flowChart==='swap') ? 'block' : 'none';
 
@@ -11158,8 +11156,7 @@ function setMvpPlayer(p){
   try { if (typeof renderMvpPlayers==='function') renderMvpPlayers(); } catch(e){}
 }
 function computeMvpBuckets() {
-  let ws = effectiveWallets().slice();
-  if (mvpPlayer !== 'all') ws = ws.filter(w => (w.player||'') === mvpPlayer);
+  let ws = scopeFor(mvpPlayer).slice();
   const defs = [
     { label:'Hết hạn', icon:'○', color:'#e06c6c', sub:'< 30 điểm', pre:true, wtest:w=>mvpGroup(w)==='expired' },
   ];
