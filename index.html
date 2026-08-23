@@ -3910,7 +3910,8 @@ function _sumChart(data, period) {
 }
 let flowPlayer = 'all';
 async function setFlowPlayer(p){
-  flowPlayer = p || 'all';
+  // bấm lại đúng người chơi đang chọn thì bỏ lọc, giống các tab khác
+  flowPlayer = (flowPlayer === p) ? 'all' : (p || 'all');
   renderFlowPlayerSelect();
   try { await loadClaimChart(); } catch(e){}
   try { await loadSpendChart(); } catch(e){}
@@ -6218,7 +6219,8 @@ let flowPSort = {col:'neso', dir:'desc'};
 function setFlowPQuery(v){ flowPQuery=(v||'').toLowerCase(); renderFlowPlayers(); const i=document.getElementById('flow-psearch'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 function setFlowPSort(c){ if(flowPSort.col===c) flowPSort.dir=(flowPSort.dir==='desc'?'asc':'desc'); else flowPSort={col:c, dir:(c==='name'?'asc':'desc')}; renderFlowPlayers(); }
 function _flowAgg(){
-  const ws = (typeof effectiveWallets==='function') ? effectiveWallets() : (typeof teamWallets!=='undefined'?teamWallets:[]);
+  // Phải gồm cả ví ngoại, nếu không dòng tiền của chúng rơi nhầm vào "(chưa gán)" của khu Ví nhóm
+  const ws = allWallets();
   const byAddr={}, byLabel={};
   ws.forEach(w=>{ if(w.address) byAddr[(w.address||'').toLowerCase()]=w.player||''; if(w.label) byLabel[w.label]=w.player||''; });
   const playerOf = r => { const a=(r.address||'').toLowerCase(); return (a&&byAddr[a]!=null)?byAddr[a]:(byLabel[r.label]||''); };
