@@ -4540,7 +4540,26 @@ let litePanelW=(()=>{ const v=parseInt(localStorage.getItem('litePanelW')||Strin
 const LPP_GRIDS=['lite-2col','boss-2col','mvp-2col-g','flow-2col-g'];
 function applyLitePanelW(){
   LPP_GRIDS.forEach(id=>{ const g=document.getElementById(id); if(g) g.style.gridTemplateColumns=litePanelW+'px 1fr'; });
+  _reflowTabs();
 }
+// Bảng/biểu đồ ở cột phải vẽ theo bề rộng thật, nên panel đổi cỡ là phải vẽ lại.
+// Chỉ gọi các hàm vẽ lại từ dữ liệu đã có — không hàm nào gọi mạng.
+let _reflowT=null;
+function _reflowTabs(){
+  clearTimeout(_reflowT);
+  _reflowT=setTimeout(()=>{
+    ['renderBossMatrix','renderBossGrid','renderMvpDistChart','renderClaimChart','renderSpendChart',
+     'renderSwapChart','renderSwapinChart','renderUsdtChart','renderFlowNet','renderFlowWallets','renderLiteList']
+      .forEach(fn=>{ try{ if(typeof window[fn]==='function') window[fn](); }catch(e){} });
+  }, 60);
+}
+// Đổi cỡ cửa sổ cũng phải vẽ lại y như vậy
+try{
+  if (!window._lppResizeHooked){
+    window._lppResizeHooked=true;
+    window.addEventListener('resize', ()=>_reflowTabs());
+  }
+}catch(e){}
 // Kéo mép bất kỳ panel nào cũng lưu và áp cho các tab còn lại
 function _savePanelW(el){
   if(!el) return;
