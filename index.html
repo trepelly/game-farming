@@ -877,13 +877,13 @@ td:first-child{text-align:left;color:var(--muted2)}
         <div id="flow-net" style="flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,1fr)"></div>
       </div>
       <!-- NESO CLAIM CHART -->
-      <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}#flow-net{grid-template-columns:repeat(4,1fr)!important;margin-bottom:16px!important}.mvp-2col,.flow-2col{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+      <style>@media(max-width:820px){.flow-grid{grid-template-columns:1fr!important}}#flow-net{grid-template-columns:repeat(4,1fr)!important;margin-bottom:16px!important}.mvp-2col,.flow-2col{display:grid;grid-template-columns:232px 1fr;gap:14px;align-items:start}.mvp-2col>*,.flow-2col>*{min-width:0}
 .mvp-tier-cell{flex:1 1 0;min-width:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 12px;cursor:pointer;transition:.12s}
 .mvp-tier-cell:hover{border-color:var(--border3)}
 .mvp-tier-cell.on{border-color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,var(--card))}
 
 /* ── Panel Ví theo người chơi: bố cục nén 32px, khung + hiệu ứng theo theme chung ── */
-.lpp{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 0 8px;width:100%;box-sizing:border-box;min-width:210px;max-width:560px;overflow:hidden;resize:horizontal}
+.lpp{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 0 8px;width:100%;box-sizing:border-box;min-width:232px;max-width:560px;overflow:hidden;resize:horizontal}
 .lpp-hd{padding:0 12px 10px;border-bottom:1px solid var(--border2)}
 .lpp-t1{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .lpp-title{font-size:13px;font-weight:800;color:var(--text)}
@@ -4563,11 +4563,14 @@ try{
 // Kéo mép bất kỳ panel nào cũng lưu và áp cho các tab còn lại
 function _savePanelW(el){
   if(!el) return;
-  const w=Math.round(el.getBoundingClientRect().width);
-  if (w>=LPP_MIN && w<=LPP_MAX && w!==litePanelW){
+  const raw=Math.round(el.getBoundingClientRect().width);
+  const w=Math.min(LPP_MAX, Math.max(LPP_MIN, raw));
+  if (w!==litePanelW){
     litePanelW=w; try{ localStorage.setItem('litePanelW', String(w)); }catch(e){}
     applyLitePanelW();
   }
+  // bỏ bề rộng inline do thao tác kéo đặt vào, để panel luôn lấp kín cột
+  el.style.width='';
 }
 function _saveLitePanelW(){
   const el=document.getElementById('lite-pwrap'); if(!el) return;
