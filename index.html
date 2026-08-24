@@ -936,7 +936,12 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-prow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:.12s}
 .mvp-prow:hover{background:var(--bg2)}
 .mvp-prow.on{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
+.boss-mx-row:nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.cd-row{display:grid;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.cd-row.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.cd-row:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}.flow-wrow{display:grid;grid-template-columns:30px minmax(0,1fr) 112px 112px 112px 120px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}.flow-wrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}.flow-wrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}#msu-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:10700;display:flex;align-items:flex-start;gap:9px;max-width:min(420px,88vw);background:var(--card);border:1px solid var(--border2);border-left:3px solid var(--green);border-radius:10px;padding:9px 13px;box-shadow:0 16px 40px rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .16s,transform .16s}
+#msu-toast.on{opacity:1;transform:translate(-50%,0)}
+#msu-toast svg{flex-shrink:0;color:var(--green);margin-top:1px}
+#msu-toast .tt-t{font-size:11.5px;font-weight:700;color:var(--text);line-height:1.35}
+#msu-toast .tt-s{font-size:10.5px;color:var(--muted2);margin-top:2px;line-height:1.4;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 #ui-tip.ui-tip-card{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 18px 46px rgba(0,0,0,.5)!important;white-space:normal!important}
 #ui-tip.ui-tip-card .itip{max-height:min(80vh,720px);overflow-y:auto}
 #ui-tip.ui-tip-card .itip::-webkit-scrollbar{width:5px}
@@ -3788,8 +3793,9 @@ function walletFlagPills(w) {
 }
 // đỏ = mất tiền nếu không xử lý tuần này
 function walletHasRed(w){ return walletFlags(w).some(k => WALLET_FLAG_DEF[k].color==='#ef4444'); }
-function copyFlash(el, text){
+function copyFlash(el, text, what){
   try { navigator.clipboard.writeText(text); } catch(e){}
+  try { showToast('Đã copy '+(what||'tên'), text); } catch(e){}
   const o = el.style.color, ob = el.style.background;
   el.style.color = 'var(--green)';
   el.setAttribute('data-copied','1');
@@ -5583,6 +5589,19 @@ function setBlockHtml(st, wornIds){
 }
 try{ window.debugItemSet=debugItemSet; window.addItemSet=addItemSet; window.SET_CACHE=SET_CACHE; }catch(e){}
 
+// Thông báo ngắn ở giữa dưới màn hình, tự tắt sau vài giây
+let _toastT=null;
+function showToast(title, sub, ms){
+  let t=document.getElementById('msu-toast');
+  if(!t){ t=document.createElement('div'); t.id='msu-toast'; document.body.appendChild(t); }
+  t.innerHTML=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <div style="min-width:0"><div class="tt-t">${_mvpEsc(title)}</div>${sub?`<div class="tt-s">${_mvpEsc(sub)}</div>`:''}</div>`;
+  requestAnimationFrame(()=>t.classList.add('on'));
+  clearTimeout(_toastT);
+  _toastT=setTimeout(()=>{ t.classList.remove('on'); }, ms||2600);
+}
+try{ window.showToast=showToast; }catch(e){}
+
 // Copy từ tooltip. Tooltip không bắt được chuột (pointer-events:none) nên
 // copy phải thực hiện từ chính ô đang hover.
 function _flash(el, ok){
@@ -5610,6 +5629,9 @@ function copyItemTip(ev, el, fallbackName){
   if(!txt) return;
   try{ navigator.clipboard.writeText(txt); }catch(e){}
   _flash(el, true);
+  const lines=txt.split('\n').length;
+  showToast(lines>1?`Đã copy cả bảng · ${lines} dòng`:'Đã copy tên',
+            lines>1 ? txt.split('\n').slice(0,2).join(' · ')+' …' : txt);
 }
 try{ window.copyItemTip=copyItemTip; }catch(e){}
 
@@ -5799,7 +5821,7 @@ function charPopHtml(w){
             return `<span class="mp-avatar" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 55%,transparent),color-mix(in srgb,${cc} 18%,transparent));border:1.5px solid color-mix(in srgb,${cc} 65%,transparent);color:${cc}">${_mvpEsc((top.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>`; })()}
           <div style="min-width:0">
             <div class="mp-class" style="color:${col}">${_mvpEsc(top.job||'—')}${isSub?'<span class="mp-sub-tag">nhân vật phụ</span>':''}</div>
-            <div class="mp-account mp-copy" onclick="copyFlash(this,'${cp(top.name)}')" data-tip="Nhấp để copy tên nhân vật">${_mvpEsc(top.name)}</div>
+            <div class="mp-account mp-copy" onclick="copyFlash(this,'${cp(top.name)}','tên nhân vật')" data-tip="Nhấp để copy tên nhân vật">${_mvpEsc(top.name)}</div>
           </div>
         </div>
         <div class="mp-stats">
@@ -5825,7 +5847,7 @@ function charPopHtml(w){
       </div>
       <div class="mp-mid">
         <div class="mp-others-head"><span class="mp-label">Tier 5</span><span class="mp-count">${nodes.length}</span></div>
-        ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}')" data-tiph="${_skillTipHtml(n).replace(/"/g,'&quot;')}" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
+        ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}','tên skill')" data-tiph="${_skillTipHtml(n).replace(/"/g,'&quot;')}" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
             <span class="mp-eq"><img src="${n.url}" loading="lazy" onerror="this.remove()"></span>
             <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(n.name)}</span><span class="mp-eq-cat">Level ${n.lv}</span></span>
           </div>`).join('')}</div>`
