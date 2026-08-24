@@ -5403,55 +5403,74 @@ const _itemTried=new Set();
 // Nhặt các trường quen thuộc ra khỏi bất kể API trả về hình dạng nào
 const POT_GRADE=['','Rare','Epic','Unique','Legendary','Mythic'];
 const _potName=g=>POT_GRADE[+g]||(g?('Grade '+g):'');
+// Thứ tự và tên dòng chỉ số theo đúng tooltip trong game
+const ITEM_STATS=[
+  ['bdr','Boss Damage',1],['imdr','Ignored Enemy DEF',1],['statr','All Stats',1],
+  ['knockback','Knockback Chance',1],
+  ['pad','ATT',0],['mad','MATT',0],['def','DEF',0],['pdd','DEF',0],
+  ['str','STR',0],['dex','DEX',0],['int','INT',0],['luk','LUK',0],
+  ['maxHp','Max HP',0],['maxMp','Max MP',0],
+  ['speed','Speed',0],['jump','Jump',0],
+];
 function _parseItemDetail(txt){
-  let o=null, hold=null;
+  let o=null, holdCat=null, holdTok=null, holdOwner=null;
   try{ o=JSON.parse(txt); }catch(e){}
-  // trang navigator/nft/{assetKey} trả về { holdingItems:[ { category, tokenInfo, nftItem } ] }
-  if (!o || !o.holdingItems){ const h=_cutJson(txt,'holdingItems','[', x=>Array.isArray(x)&&x.length&&x[0]&&x[0].nftItem); if(h) o={holdingItems:h}; }
-  if (o && Array.isArray(o.holdingItems) && o.holdingItems.length){
-    hold=o.holdingItems[0];
-    o=Object.assign({}, hold.nftItem||{}, {
-      category: hold.category||null, tokenInfo: hold.tokenInfo||null, owner: hold.owner||null });
+  if (o && o.item) o=o.item;                                   // dạng { item:{...} } của trang chi tiết
+  if (!o || !(o.name||o.itemName||(o.common&&o.common.itemName))){
+    const j=_cutJson(txt,'item','{', x=>x&&(x.common||x.stats||x.name));
+    if (j) o=j;
   }
-  if (o && (o.item||o.nftItem||o.data)) o=o.item||o.nftItem||o.data;
-  if (!o) o=_cutJson(txt,'item','{', x=>x&&(x.name||x.itemName));
-  if (!o || !(o.name||o.itemName)) return null;
-  const num=v=>(v&&typeof v==='object')?(+v.total||+v.value||0):+(v||0);
-  const opt=o.itemOption||o.option||o.stat||o.stats||o;
-  const line=(lb,v,base,add)=>({lb, v:num(v), base:base==null?null:num(base), add:add==null?null:num(add)});
-  const rows=[];
-  const M=[['STR','str'],['DEX','dex'],['INT','int'],['LUK','luk'],
-           ['Max HP','maxHp','hp'],['Max MP','maxMp','mp'],
-           ['ATT','attackPower','pad','att'],['MATT','magicAttackPower','mad','matt'],
-           ['DEF','defence','def'],['Speed','speed'],['Jump','jump'],
-           ['All Stat%','allStat','allStatRate'],['Boss DMG%','bossDamage','bossMonsterDamage'],
-           ['Ignore DEF%','ignoreDefence'],['Crit DMG%','criticalDamage']];
-  M.forEach(([lb,...keys])=>{
-    for(const k of keys){
-      if (opt[k]!=null && num(opt[k])){
-        const b=opt[k+'Base']!=null?opt[k+'Base']:(opt[k]&&opt[k].base);
-        const a=opt[k+'Bonus']!=null?opt[k+'Bonus']:(opt[k]&&opt[k].enhance);
-        rows.push(line(lb,opt[k],b,a)); return;
-      }
+  // dạng { holdingItems:[ {category, tokenInfo, nftItem} ] } của trang NFT
+  if (!o || !(o.name||o.itemName||(o.common&&o.common.itemName))){
+    let h=(o&&o.holdingItems)||_cutJson(txt,'holdingItems','[', x=>Array.isArray(x)&&x.length&&x[0]&&x[0].nftItem);
+    if (Array.isArray(h)&&h.length){
+      holdCat=h[0].category; holdTok=h[0].tokenInfo; holdOwner=h[0].owner;
+      o=h[0].nftItem;
     }
+  }
+  if (!o) return null;
+  const cm=o.common||{}, st=o.stats||o.itemOption||{}, rq=o.required||{}, en=o.enhance||{};
+  const name=o.name||o.itemName||cm.itemName;
+  if (!name) return null;
+
+  const num=v=>(v&&typeof v==='object')?+(v.total||0):+(v||0);
+  const rows=[];
+  ITEM_STATS.forEach(([k,lb,pct])=>{
+    const v=st[k]; if(v==null) return;
+    const t=num(v); if(!t) return;
+    const parts=(v&&typeof v==='object')
+      ? [['',v.base],['',v.extra],['',v.enhance]].map(x=>+x[1]||0).filter(x=>x)
+      : [];
+    rows.push({ lb, v:t, pct:!!pct, parts:(parts.length>1?parts:null) });
   });
-  const arr=v=>Array.isArray(v)?v:(v?[v]:[]);
-  const descOf=x=>typeof x==='string'?x:(x&&(x.desc||x.description||x.optionDesc||x.name))||'';
+  if (+st.attackSpeed) rows.push({ lb:'Attack Speed', v:+st.attackSpeed, raw:(+st.attackSpeed)+' Level' });
+
+  const optList=src=>['option1','option2','option3','option4']
+      .map(k=>src&&src[k]).filter(x=>x&&x.label)
+      .map(x=>({ label:x.label, grade:+(x.grade||0) }));
+  const pot=optList(en.potential), bon=optList(en.bonusPotential);
+  const gradeOf=(list, fb)=>{ const g=Math.max(0,...list.map(x=>x.grade)); return _potName(g||fb||0); };
+
+  const cat=(o.category&&o.category.label)||(holdCat&&holdCat.label)||'';
+  const tok=o.tokenInfo||holdTok||{};
+  const own=o.owner||holdOwner||{};
   return {
-    name:o.name||o.itemName, cat:(o.category&&(o.category.label||o.category.tier3?.label))||o.categoryLabel||'',
-    req:num(o.reqLevel||o.requiredLevel||(o.requirement&&o.requirement.level)),
-    job:o.reqJob||o.requiredJob||(o.requirement&&o.requirement.job)||'',
-    star:num(o.starforce||o.star||o.starForce), maxStar:num(o.maxStarforce||o.maxStar),
-    img:o.imageUrl||'', rows,
-    pot:arr(o.potential||o.potentialOptions||o.potentials).map(descOf).filter(Boolean),
-    potGrade:(typeof o.potentialGrade==='number')?_potName(o.potentialGrade):(o.potentialGrade||o.potentialRank||''),
-    bon:arr(o.additionalPotential||o.bonusPotential||o.additionalPotentials).map(descOf).filter(Boolean),
-    bonGrade:(typeof o.bonusPotentialGrade==='number')?_potName(o.bonusPotentialGrade):(o.additionalPotentialGrade||o.bonusPotentialGrade||''),
-    itemId:o.itemId||0, assetKey:o.assetKey||'',
-    minted:!!o.isMinted, sbt:!!o.isSbt,
-    mintNo:(o.tokenInfo&&o.tokenInfo.mintingNo)||'', tokenId:(o.tokenInfo&&o.tokenInfo.tokenId)||'',
-    owner:(o.owner&&(o.owner.nickname||o.owner.walletAddr))||'',
+    name, cat, img:o.imageUrl||'',
+    itemId:cm.itemId||o.itemId||0, assetKey:o.assetKey||'',
+    req:+(rq.level||0),
+    reqStat:['str','dex','int','luk'].map(k=>({k:k.toUpperCase(), v:+(rq[k]||0)})).filter(x=>x.v),
+    job:(rq.job&&rq.job.className)||'',
+    star:+((en.starforce&&en.starforce.enhanced)||o.starforce||0),
+    maxStar:+((en.starforce&&en.starforce.maxStarforce)||cm.maxStarforce||o.maxStarforce||0),
+    rows,
+    pot:pot.map(x=>x.label), potGrade:pot.length?gradeOf(pot,o.potentialGrade):(o.potentialGrade?_potName(o.potentialGrade):''),
+    bon:bon.map(x=>x.label), bonGrade:bon.length?gradeOf(bon,o.bonusPotentialGrade):(o.bonusPotentialGrade?_potName(o.bonusPotentialGrade):''),
+    setId:+(cm.setItemId||0),
+    minted:!!(o.isMinted||(o.status&&o.status.isMinted)), sbt:!!(cm.isSbt||o.isSbt),
+    mintNo:tok.mintingNo||'', tokenId:tok.tokenId||'',
+    owner:own.nickname||own.walletAddr||'',
     ownedBy:o.ownedCharacter||'',
+    boss:!!cm.isBossReward,
   };
 }
 function _itemUrls(key){
@@ -5568,27 +5587,37 @@ try{ window.debugItemSet=debugItemSet; window.addItemSet=addItemSet; window.SET_
 const _iEsc=x=>_mvpEsc(String(x==null?'':x));
 function _itipRows(rows){
   if(!rows||!rows.length) return '';
-  return `<div class="itip-rows">${rows.map(r=>`<div class="itip-r"><span>${_iEsc(r.lb)}</span><b>${r.raw?_iEsc(r.v):((r.v>0?'+':'')+Number(r.v).toLocaleString('vi-VN'))}</b>${(r.base!=null&&r.add!=null&&(r.base||r.add))?`<i>(${r.base}+${r.add})</i>`:''}</div>`).join('')}</div>`;
+  const one=r=>{
+    if (r.raw) return `<b>${_iEsc(r.raw)}</b>`;
+    const u=r.pct?'%':'';
+    const main=`<b>+${Number(r.v).toLocaleString('vi-VN')}${u}</b>`;
+    const br=r.parts?`<i>(${r.parts.map(x=>x.toLocaleString('vi-VN')+u).join(' + ')})</i>`
+            :((r.base!=null&&r.add!=null&&(r.base||r.add))?`<i>(${r.base}+${r.add})</i>`:'');
+    return main+br;
+  };
+  return `<div class="itip-rows">${rows.map(r=>`<div class="itip-r"><span>${_iEsc(r.lb)}</span>${one(r)}</div>`).join('')}</div>`;
 }
 function itemTipHtml(d, fallback){
   if(!d) return fallback||'';
-  const stars=d.star?('★'.repeat(Math.min(d.star,25))):'';
+  const mx=d.maxStar||25;
+  const stars=(d.star||d.maxStar)?`${'★'.repeat(Math.min(d.star||0,mx))}<span style="color:#3a3f4a">${'☆'.repeat(Math.max(0,mx-(d.star||0)))}</span>`:'';
+  const req=[d.req?`REQ LV. ${d.req}`:'', ...(d.reqStat||[]).map(x=>`${x.k} ${x.v}`), d.job].filter(Boolean).join(' · ');
   return `<div class="itip">
-    ${stars?`<div class="itip-star">${stars}${d.maxStar?` <span style="color:#5b6270">${d.star}/${d.maxStar}</span>`:''}</div>`:''}
+    ${stars?`<div class="itip-star">${stars}${d.maxStar?` <span style="color:#5b6270">${d.star||0}/${d.maxStar}</span>`:''}</div>`:''}
     <div class="itip-hd">${d.img?`<img src="${d.img}" onerror="this.remove()">`:''}
-      <div style="min-width:0"><div class="itip-name">${_iEsc(d.name)}</div>
+      <div style="min-width:0"><div class="itip-name">${_iEsc(d.name)}${d.mintNo?` <span style="color:#7e8798;font-size:11px;font-weight:600">#${_iEsc(d.mintNo)}</span>`:''}</div>
       ${d.cat?`<div class="itip-cat">${_iEsc(d.cat)}</div>`:''}</div></div>
-    ${(d.req||d.job)?`<div class="itip-req">${d.req?`REQ LV. ${d.req}`:''}${d.req&&d.job?' · ':''}${_iEsc(d.job||'')}</div>`:''}
+    ${req?`<div class="itip-req">${_iEsc(req)}</div>`:''}
     ${_itipRows(d.rows)}
     ${(!d.rows||!d.rows.length)?_itipRows([
-        d.itemId?{lb:'Item ID', v:d.itemId, raw:true}:null,
-        d.mintNo?{lb:'Minting No', v:d.mintNo, raw:true}:null,
+        d.itemId?{lb:'Item ID', raw:String(d.itemId)}:null,
+        d.mintNo?{lb:'Minting No', raw:'#'+d.mintNo}:null,
       ].filter(Boolean)):''}
     ${(d.potGrade||d.bonGrade)&&!(d.pot&&d.pot.length)&&!(d.bon&&d.bon.length)?`<div class="itip-rows">
         ${d.potGrade?`<div class="itip-r"><span>Potential</span><b style="color:#8fd7ae">${_iEsc(d.potGrade)}</b></div>`:''}
         ${d.bonGrade?`<div class="itip-r"><span>Bonus potential</span><b style="color:#f0c68a">${_iEsc(d.bonGrade)}</b></div>`:''}
       </div>`:''}
-    ${d.itemId?setBlockHtml(setOfItem(d.itemId), d.wornIds):''}
+    ${(d.setId&&SET_CACHE[d.setId])?setBlockHtml(SET_CACHE[d.setId], d.wornIds):(d.itemId?setBlockHtml(setOfItem(d.itemId), d.wornIds):'')}
     ${(d.minted||d.sbt||d.ownedBy)?`<div class="itip-note">${[d.minted?'Đã mint':'', d.sbt?'SBT':'', d.ownedBy?('Đang mặc: '+_iEsc(d.ownedBy)):''].filter(Boolean).join(' · ')}</div>`:''}
     ${d.pot&&d.pot.length?`<div class="itip-sec pot">Potential${d.potGrade?` (${_iEsc(d.potGrade)})`:''}</div>${d.pot.map(x=>`<div class="itip-p">${_iEsc(x)}</div>`).join('')}`:''}
     ${d.bon&&d.bon.length?`<div class="itip-sec bon">Bonus potential${d.bonGrade?` (${_iEsc(d.bonGrade)})`:''}</div>${d.bon.map(x=>`<div class="itip-b">${_iEsc(x)}</div>`).join('')}`:''}
@@ -5611,13 +5640,20 @@ document.addEventListener('mouseover', e=>{
   if(!el) return;
   const k=el.getAttribute('data-ikey'); if(!k) return;
   const worn=(el.getAttribute('data-iworn')||'').split(',').filter(Boolean);
-  const cached=ITEM_CACHE[k];
-  if (cached){ cached.wornIds=worn; el.setAttribute('data-tiph', itemTipHtml(cached)); return; }
-  fetchItemDetail(k).then(d=>{ if(!d) return;
+  const redraw=d=>{
     d.wornIds=worn;
     el.setAttribute('data-tiph', itemTipHtml(d));
     if (el.matches(':hover')) { try{ showTip({clientX:_tipXY.x, clientY:_tipXY.y}, el.getAttribute('data-tip'), el.getAttribute('data-tiph')); }catch(err){} }
-  });
+  };
+  const withSet=d=>{
+    if (!d) return;
+    redraw(d);
+    // món thuộc một bộ -> tải bộ đó rồi vẽ lại kèm khối hiệu ứng bộ
+    if (d.setId && !SET_CACHE[d.setId]) fetchItemSet(d.setId).then(st=>{ if(st) redraw(d); });
+  };
+  const cached=ITEM_CACHE[k];
+  if (cached){ withSet(cached); return; }
+  fetchItemDetail(k).then(withSet);
 }, true);
 let _tipXY={x:0,y:0};
 document.addEventListener('mousemove', e=>{ _tipXY={x:e.clientX,y:e.clientY}; }, true);
