@@ -5583,6 +5583,36 @@ function setBlockHtml(st, wornIds){
 }
 try{ window.debugItemSet=debugItemSet; window.addItemSet=addItemSet; window.SET_CACHE=SET_CACHE; }catch(e){}
 
+// Copy từ tooltip. Tooltip không bắt được chuột (pointer-events:none) nên
+// copy phải thực hiện từ chính ô đang hover.
+function _flash(el, ok){
+  const o=el.style.outline;
+  el.style.outline='2px solid '+(ok?'#7fd88f':'#e06c6c');
+  clearTimeout(el._cpT2); el._cpT2=setTimeout(()=>{ el.style.outline=o; }, 700);
+}
+function copyItemTip(ev, el, fallbackName){
+  const key=el.getAttribute('data-ikey')||'';
+  const d=key?ITEM_CACHE[key]:null;
+  let txt;
+  if (ev && ev.shiftKey){
+    // Shift+nhấp: copy nguyên nội dung thẻ dưới dạng chữ
+    const box=document.createElement('div');
+    box.innerHTML=el.getAttribute('data-tiph')||'';
+    // đi theo đúng thứ tự hiển thị; riêng dòng chỉ số thì ghép nhãn + giá trị bằng khoảng trắng
+    txt=[...box.querySelectorAll('.itip-name,.itip-cat,.itip-req,.itip-r,.itip-sec,.itip-p,.itip-b,.itip-set-nm,.itip-ef')]
+        .map(x=>x.classList.contains('itip-r')||x.classList.contains('itip-ef')
+              ? [...x.children].map(c=>c.textContent.trim()).filter(Boolean).join(' ')
+              : x.textContent.replace(/\s+/g,' ').trim())
+        .filter(Boolean).join('\n');
+  } else {
+    txt=(d&&d.name)||fallbackName||'';
+  }
+  if(!txt) return;
+  try{ navigator.clipboard.writeText(txt); }catch(e){}
+  _flash(el, true);
+}
+try{ window.copyItemTip=copyItemTip; }catch(e){}
+
 // ── Dựng tooltip ──
 const _iEsc=x=>_mvpEsc(String(x==null?'':x));
 function _itipRows(rows){
@@ -5619,6 +5649,7 @@ function itemTipHtml(d, fallback){
       </div>`:''}
     ${(d.setId&&SET_CACHE[d.setId])?setBlockHtml(SET_CACHE[d.setId], d.wornIds):(d.itemId?setBlockHtml(setOfItem(d.itemId), d.wornIds):'')}
     ${(d.minted||d.sbt||d.ownedBy)?`<div class="itip-note">${[d.minted?'Đã mint':'', d.sbt?'SBT':'', d.ownedBy?('Đang mặc: '+_iEsc(d.ownedBy)):''].filter(Boolean).join(' · ')}</div>`:''}
+    <div class="itip-note" style="color:#5b6270">Nhấp: copy tên · Shift+nhấp: copy cả bảng</div>
     ${d.pot&&d.pot.length?`<div class="itip-sec pot">Potential${d.potGrade?` (${_iEsc(d.potGrade)})`:''}</div>${d.pot.map(x=>`<div class="itip-p">${_iEsc(x)}</div>`).join('')}`:''}
     ${d.bon&&d.bon.length?`<div class="itip-sec bon">Bonus potential${d.bonGrade?` (${_iEsc(d.bonGrade)})`:''}</div>${d.bon.map(x=>`<div class="itip-b">${_iEsc(x)}</div>`).join('')}`:''}
   </div>`;
@@ -5709,7 +5740,7 @@ function eqGridHtml(ak, eq){
     const tiph=(ITEM_CACHE[it.assetKey]?itemTipHtml(ITEM_CACHE[it.assetKey])
       :itemTipBasic({name:nft?nft.name:('#'+it.id), cat:nft?nft.cat:'', img:it.url, sf:nft?nft.sf:0, slot:lb, nft:it.mintable,
         note:it.assetKey?'Đang tải chỉ số chi tiết…':'Không phải NFT — chưa có chỉ số chi tiết'})).replace(/"/g,'&quot;');
-    return `<div class="mp-slot has"${it.assetKey?` data-ikey="${it.assetKey}" data-iworn="${wornIds}"`:''} data-tiph="${tiph}" data-tip="${_mvpEsc(tip)}"${nft?` onclick="copyFlash(this,'${String(nft.name||'').replace(/'/g,'')}')"`:''}>
+    return `<div class="mp-slot has"${it.assetKey?` data-ikey="${it.assetKey}" data-iworn="${wornIds}"`:''} data-tiph="${tiph}" data-tip="${_mvpEsc(tip)}" onclick="copyItemTip(event,this,'${String((nft&&nft.name)||('#'+it.id)).replace(/'/g,'')}')">
       <span class="mp-slot-lb">${lb}</span><img src="${it.url}" loading="lazy" onerror="this.remove()">
       ${nft&&nft.sf?`<span class="mp-slot-sf">★${nft.sf}</span>`:''}</div>`;
   }).join('')).join('');
@@ -5811,7 +5842,7 @@ function charPopHtml(w){
         </div>
         ${charPopEqView==='grid'
           ? eqGridHtml(top.ak, eq)
-          : (eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${cp(e.name)}')" data-tip="${_mvpEsc(e.name)}" data-tiph="${itemTipBasic({name:e.name,cat:e.cat,img:e.img,sf:e.sf,note:'Nhấp để copy tên'}).replace(/"/g,'&quot;')}">
+          : (eq.length?`<div class="mp-eq-list ${eq.length>9?'mp-eq-2col':''}">${eq.map(e=>`<div class="mp-eq-row mp-copy" onclick="copyItemTip(event,this,'${cp(e.name)}')" data-tip="${_mvpEsc(e.name)}" data-tiph="${itemTipBasic({name:e.name,cat:e.cat,img:e.img,sf:e.sf,note:'Nhấp để copy tên'}).replace(/"/g,'&quot;')}">
             <span class="mp-eq">${e.img?`<img src="${e.img}" loading="lazy" onerror="this.remove()">`:''}</span>
             <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(e.name)}</span><span class="mp-eq-cat">${_mvpEsc(e.cat||'')}</span></span>
             ${e.sf?`<span class="mp-sf">★${e.sf}</span>`:''}
