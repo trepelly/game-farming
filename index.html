@@ -5853,20 +5853,20 @@ function holdColHtml(w){
       <span class="mp-hold-q mvp-num"><b>${_lfk(x.tot)}</b><span class="w">${_lfk(x.on)}</span><span style="color:#4b5563">/</span><span class="c">${_lfk(x.off)}</span></span>
     </div>`).join('')}</div>`);
 
-  // NFT: gộp theo tên, đếm số món trên ví / trên nhân vật
+  // NFT: chỉ liệt kê món đang nằm trên ví — món đang mặc đã có ở cột Trang bị
   const map={};
   _dedupItems(w.nftItemsFull||[]).forEach(it=>{
-    const o=it.nftItem||{}; if(!o.name) return;
+    const o=it.nftItem||{}; if(!o.name || o.ownedCharacter) return;
     const k=o.name;
-    (map[k]=map[k]||{ name:o.name, url:o.imageUrl||'', cat:(it.category&&(it.category.tier3?.label||it.category.tier2?.label))||'', on:0, off:0 });
-    if (o.ownedCharacter) map[k].off++; else map[k].on++;
+    (map[k]=map[k]||{ name:o.name, url:o.imageUrl||'', cat:(it.category&&(it.category.tier3?.label||it.category.tier2?.label))||'', n:0 });
+    map[k].n++;
   });
-  const nfts=Object.values(map).sort((a,b)=>(b.on+b.off)-(a.on+a.off)||a.name.localeCompare(b.name));
-  if (nfts.length) rows.push(sub('NFT', nfts.length)+`<div class="mp-eq-list">${nfts.map(x=>`
-    <div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(x.name).replace(/'/g,'')}','tên vật phẩm')" data-tip="${_mvpEsc(x.name)}&#10;Trên ví: ${x.on}&#10;Trên nhân vật: ${x.off}">
+  const nfts=Object.values(map).sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name));
+  if (nfts.length) rows.push(sub('NFT trên ví', nfts.length)+`<div class="mp-eq-list">${nfts.map(x=>`
+    <div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(x.name).replace(/'/g,'')}','tên vật phẩm')" data-tip="${_mvpEsc(x.name)}&#10;Đang ở trên ví: ${x.n} món">
       <span class="mp-eq">${x.url?`<img src="${x.url}" loading="lazy" onerror="this.remove()">`:''}</span>
       <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(x.name)}</span><span class="mp-eq-cat">${_mvpEsc(x.cat)}</span></span>
-      <span class="mp-hold-q mvp-num"><b>${x.on+x.off}</b><span class="w">${x.on}</span><span style="color:#4b5563">/</span><span class="c">${x.off}</span></span>
+      ${x.n>1?`<span class="mp-hold-q mvp-num"><b>${x.n}</b></span>`:''}
     </div>`).join('')}</div>`);
 
   const tot=(w.nftCount||0)+(w.ftCount||0);
