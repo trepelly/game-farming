@@ -1062,6 +1062,20 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-eq-label{font-size:9.5px;color:#7b8494;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:13px}
 #ui-tip.mp-wrap{pointer-events:auto!important}
 .mp-others{padding:9px 11px 10px}
+.mp-hold-col{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
+.mp-hold-col::-webkit-scrollbar{width:6px}
+.mp-hold-col::-webkit-scrollbar-track{background:transparent}
+.mp-hold-col::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
+.mp-hold-sum{display:flex;gap:5px;margin-bottom:7px}
+.mp-hold-card{flex:1;min-width:0;border:1px solid #2b313b;border-radius:8px;padding:5px 7px;background:#1b2028}
+.mp-hold-card .k{font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#6b7280}
+.mp-hold-card .v{font-size:12px;font-weight:800;color:#e6e9ef;margin-top:1px}
+.mp-hold-card .s{font-size:9px;margin-top:1px;white-space:nowrap}
+.mp-hold-card .s .w{color:var(--accent);font-weight:700}
+.mp-hold-card .s .c{color:#38bdf8;font-weight:700}
+.mp-hold-card .s .sl{color:#4b5563}
+.mp-hold-q{margin-left:auto;text-align:right;flex-shrink:0;font-size:9.5px;line-height:1.25}
+.mp-hold-q b{display:block;font-size:10.5px;font-weight:800;color:#e6e9ef}
 .mp-hold{margin:8px 11px 0;border:1px solid #2b313b;border-radius:10px;overflow:hidden}
 .mp-hold-r{display:flex;align-items:center;gap:8px;padding:6px 9px;font-size:10.5px}
 .mp-hold-r+.mp-hold-r{border-top:1px solid #232a33}
@@ -5808,27 +5822,59 @@ function _skillTipHtml(n){
     <div class="itip-note">Nhấp để copy tên skill</div>
   </div>`;
 }
-// NFT và FT của ví, tách phần đang ở trên ví và phần đang ở trên nhân vật
-function holdBlockHtml(w){
+// Cột tài sản: 2 thẻ tổng NFT / FT rồi danh sách vật phẩm, cuộn được
+function holdColHtml(w){
   if (!w || (w.nftCount==null && w.ftCount==null)) return '';
   const f=v=>(v==null?'?':Number(v).toLocaleString('vi-VN'));
-  const pair=(a,b)=>`<span class="w"><b>${f(a)}</b></span><span class="sl">/</span><span class="c"><b>${f(b)}</b></span>`;
+  const split=(a,b)=>`<span class="w">${_lfk(a||0)}</span><span class="sl">/</span><span class="c">${_lfk(b||0)}</span>`;
+  const card=(k,tot,a,b,tip)=>`<div class="mp-hold-card" data-tip="${tip}">
+      <div class="k">${k}</div><div class="v mvp-num">${_lfk(tot||0)}</div>
+      <div class="s mvp-num">${split(a,b)}</div></div>`;
+
+  const sum=`<div class="mp-hold-sum">
+    ${w.nftCount!=null?card('NFT', w.nftCount, w.nftInWallet, w.nftInCharacter,
+        `NFT: ${f(w.nftCount)} món&#10;Trên ví (chưa trang bị): ${f(w.nftInWallet)}&#10;Trên nhân vật (đang dùng): ${f(w.nftInCharacter)}`):''}
+    ${w.ftCount!=null?card('FT', w.ftCount, w.ftOn, w.ftOff,
+        `FT (Exchange Currency): ${f(w.ftCount)}&#10;Trên ví: ${f(w.ftOn)}&#10;Trên nhân vật: ${f(w.ftOff)}`):''}
+  </div>`;
+
+  const sub=(lb,c)=>`<div class="mp-eq-sub"><span>${lb}</span><i></i><b>${c}</b></div>`;
   const rows=[];
-  if (w.nftCount!=null)
-    rows.push(`<div class="mp-hold-r" data-tip="NFT: ${f(w.nftCount)} món&#10;Trên ví (chưa trang bị): ${f(w.nftInWallet)}&#10;Trên nhân vật (đang dùng): ${f(w.nftInCharacter)}">
-      <span class="mp-hold-lb">NFT</span><span style="color:#8b93a1">${f(w.nftCount)} món</span>
-      <span class="mp-hold-v">${pair(w.nftInWallet, w.nftInCharacter)}</span></div>`);
-  if (w.ftCount!=null){
-    rows.push(`<div class="mp-hold-r" data-tip="FT (Exchange Currency): ${f(w.ftCount)}&#10;Trên ví: ${f(w.ftOn)}&#10;Trên nhân vật: ${f(w.ftOff)}">
-      <span class="mp-hold-lb">FT</span><span style="color:#8b93a1">${f(w.ftCount)}</span>
-      <span class="mp-hold-v">${pair(w.ftOn, w.ftOff)}</span></div>`);
-    const sub=[];
-    if (w.redFlorin!=null)  sub.push(`<span data-tip="Red Florin&#10;Trên ví: ${f(w.redOn)}&#10;Trên nhân vật: ${f(w.redOff)}"><b style="color:#ef4444">Red</b> ${f(w.redFlorin)} <span style="color:#4b5563">(${f(w.redOn)}/${f(w.redOff)})</span></span>`);
-    if (w.blueFlorin!=null) sub.push(`<span data-tip="Blue Florin&#10;Trên ví: ${f(w.blueOn)}&#10;Trên nhân vật: ${f(w.blueOff)}"><b style="color:#3b82f6">Blue</b> ${f(w.blueFlorin)} <span style="color:#4b5563">(${f(w.blueOn)}/${f(w.blueOff)})</span></span>`);
-    if (w.ftOther) sub.push(`<span><b>Khác</b> ${f(w.ftOther)}</span>`);
-    if (sub.length) rows.push(`<div class="mp-hold-sub">${sub.join('')}</div>`);
-  }
-  return `<div class="mp-hold" data-tip="Tím: đang ở trên ví · Xanh: đang ở trên nhân vật">${rows.join('')}</div>`;
+
+  // FT: tên + số lượng tách ví / nhân vật
+  const fts=(w.ftItemsFull||[]).map(it=>{
+    const o=it.ftItem||{}; const on=+(o.ownedOnchainQuantity||0), off=+(o.ownedOffchainQuantity||0);
+    return { name:o.name||'—', url:o.imageUrl||'', cat:(it.category&&(it.category.tier2?.label||it.category.tier1?.label))||'', on, off, tot:on+off };
+  }).filter(x=>x.tot).sort((a,b)=>b.tot-a.tot);
+  if (fts.length) rows.push(sub('FT', fts.length)+`<div class="mp-eq-list">${fts.map(x=>`
+    <div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(x.name).replace(/'/g,'')}','tên vật phẩm')" data-tip="${_mvpEsc(x.name)}&#10;Trên ví: ${f(x.on)}&#10;Trên nhân vật: ${f(x.off)}">
+      <span class="mp-eq">${x.url?`<img src="${x.url}" loading="lazy" onerror="this.remove()">`:''}</span>
+      <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(x.name)}</span><span class="mp-eq-cat">${_mvpEsc(x.cat)}</span></span>
+      <span class="mp-hold-q mvp-num"><b>${_lfk(x.tot)}</b><span class="w">${_lfk(x.on)}</span><span style="color:#4b5563">/</span><span class="c">${_lfk(x.off)}</span></span>
+    </div>`).join('')}</div>`);
+
+  // NFT: gộp theo tên, đếm số món trên ví / trên nhân vật
+  const map={};
+  _dedupItems(w.nftItemsFull||[]).forEach(it=>{
+    const o=it.nftItem||{}; if(!o.name) return;
+    const k=o.name;
+    (map[k]=map[k]||{ name:o.name, url:o.imageUrl||'', cat:(it.category&&(it.category.tier3?.label||it.category.tier2?.label))||'', on:0, off:0 });
+    if (o.ownedCharacter) map[k].off++; else map[k].on++;
+  });
+  const nfts=Object.values(map).sort((a,b)=>(b.on+b.off)-(a.on+a.off)||a.name.localeCompare(b.name));
+  if (nfts.length) rows.push(sub('NFT', nfts.length)+`<div class="mp-eq-list">${nfts.map(x=>`
+    <div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(x.name).replace(/'/g,'')}','tên vật phẩm')" data-tip="${_mvpEsc(x.name)}&#10;Trên ví: ${x.on}&#10;Trên nhân vật: ${x.off}">
+      <span class="mp-eq">${x.url?`<img src="${x.url}" loading="lazy" onerror="this.remove()">`:''}</span>
+      <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(x.name)}</span><span class="mp-eq-cat">${_mvpEsc(x.cat)}</span></span>
+      <span class="mp-hold-q mvp-num"><b>${x.on+x.off}</b><span class="w">${x.on}</span><span style="color:#4b5563">/</span><span class="c">${x.off}</span></span>
+    </div>`).join('')}</div>`);
+
+  const tot=(w.nftCount||0)+(w.ftCount||0);
+  return `<div class="mp-hold-col">
+    <div class="mp-others-head"><span class="mp-label">Tài sản</span><span class="mp-count" data-tip="Tím: đang ở trên ví&#10;Xanh: đang ở trên nhân vật">${_lfk(tot)}</span></div>
+    ${sum}
+    ${rows.length?rows.join(''):'<div class="mp-eq-more">chưa tải danh sách vật phẩm</div>'}
+  </div>`;
 }
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
@@ -5860,7 +5906,7 @@ function charPopHtml(w){
           ${stat('World', top.world?_mvpEsc(top.world):'—')}
           <div class="mp-stat mp-span2"><span class="mp-label">CP</span><span class="mp-value" style="color:#f6d36b">${top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—'}</span></div>
         </div>
-        ${holdBlockHtml(w)}
+
         <div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count" data-tip="${charArcForce(top.ak)?`Tổng Arcane Force ${charArcForce(top.ak)} · ${arcL.length} symbol đang đeo`:`${arcL.length} symbol đang đeo`}">${charArcForce(top.ak)||arcL.length}</span></div>
           <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
@@ -5885,6 +5931,7 @@ function charPopHtml(w){
           </div>`).join('')}</div>`
                      :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
       </div>
+      ${holdColHtml(w)}
       <div class="mp-right ${charPopEqView==='grid'?'mp-right-grid':(eq.length>9?'mp-right-wide':'')}">
         <div class="mp-others-head">
           <span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span>
