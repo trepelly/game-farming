@@ -1062,6 +1062,15 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-eq-label{font-size:9.5px;color:#7b8494;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:13px}
 #ui-tip.mp-wrap{pointer-events:auto!important}
 .mp-others{padding:9px 11px 10px}
+.mp-hold{margin:8px 11px 0;border:1px solid #2b313b;border-radius:10px;overflow:hidden}
+.mp-hold-r{display:flex;align-items:center;gap:8px;padding:6px 9px;font-size:10.5px}
+.mp-hold-r+.mp-hold-r{border-top:1px solid #232a33}
+.mp-hold-lb{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8b93a1;width:26px;flex-shrink:0}
+.mp-hold-v{margin-left:auto;display:flex;align-items:baseline;gap:4px;white-space:nowrap}
+.mp-hold-v b{font-weight:800}
+.mp-hold-v .w{color:var(--accent)} .mp-hold-v .c{color:#38bdf8} .mp-hold-v .sl{color:#5b6270}
+.mp-hold-sub{font-size:9px;color:#6b7280;padding:0 9px 6px;display:flex;gap:8px;flex-wrap:wrap}
+.mp-hold-sub span b{color:#8b93a1;font-weight:700}
 .mp-others-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .mp-count{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#5b6270}
 .mp-chips{display:flex;gap:5px;flex-wrap:wrap}
@@ -1069,7 +1078,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(52px,.35fr) minmax(52px,.35fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(12),.mvp-lrow.lite-row > div:nth-child(14){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(12){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -5799,6 +5808,28 @@ function _skillTipHtml(n){
     <div class="itip-note">Nhấp để copy tên skill</div>
   </div>`;
 }
+// NFT và FT của ví, tách phần đang ở trên ví và phần đang ở trên nhân vật
+function holdBlockHtml(w){
+  if (!w || (w.nftCount==null && w.ftCount==null)) return '';
+  const f=v=>(v==null?'?':Number(v).toLocaleString('vi-VN'));
+  const pair=(a,b)=>`<span class="w"><b>${f(a)}</b></span><span class="sl">/</span><span class="c"><b>${f(b)}</b></span>`;
+  const rows=[];
+  if (w.nftCount!=null)
+    rows.push(`<div class="mp-hold-r" data-tip="NFT: ${f(w.nftCount)} món&#10;Trên ví (chưa trang bị): ${f(w.nftInWallet)}&#10;Trên nhân vật (đang dùng): ${f(w.nftInCharacter)}">
+      <span class="mp-hold-lb">NFT</span><span style="color:#8b93a1">${f(w.nftCount)} món</span>
+      <span class="mp-hold-v">${pair(w.nftInWallet, w.nftInCharacter)}</span></div>`);
+  if (w.ftCount!=null){
+    rows.push(`<div class="mp-hold-r" data-tip="FT (Exchange Currency): ${f(w.ftCount)}&#10;Trên ví: ${f(w.ftOn)}&#10;Trên nhân vật: ${f(w.ftOff)}">
+      <span class="mp-hold-lb">FT</span><span style="color:#8b93a1">${f(w.ftCount)}</span>
+      <span class="mp-hold-v">${pair(w.ftOn, w.ftOff)}</span></div>`);
+    const sub=[];
+    if (w.redFlorin!=null)  sub.push(`<span data-tip="Red Florin&#10;Trên ví: ${f(w.redOn)}&#10;Trên nhân vật: ${f(w.redOff)}"><b style="color:#ef4444">Red</b> ${f(w.redFlorin)} <span style="color:#4b5563">(${f(w.redOn)}/${f(w.redOff)})</span></span>`);
+    if (w.blueFlorin!=null) sub.push(`<span data-tip="Blue Florin&#10;Trên ví: ${f(w.blueOn)}&#10;Trên nhân vật: ${f(w.blueOff)}"><b style="color:#3b82f6">Blue</b> ${f(w.blueFlorin)} <span style="color:#4b5563">(${f(w.blueOn)}/${f(w.blueOff)})</span></span>`);
+    if (w.ftOther) sub.push(`<span><b>Khác</b> ${f(w.ftOther)}</span>`);
+    if (sub.length) rows.push(`<div class="mp-hold-sub">${sub.join('')}</div>`);
+  }
+  return `<div class="mp-hold" data-tip="Tím: đang ở trên ví · Xanh: đang ở trên nhân vật">${rows.join('')}</div>`;
+}
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
   if(!cs.length) return '<div class="mp-tooltip" style="padding:12px">Chưa có nhân vật</div>';
@@ -5829,6 +5860,7 @@ function charPopHtml(w){
           ${stat('World', top.world?_mvpEsc(top.world):'—')}
           <div class="mp-stat mp-span2"><span class="mp-label">CP</span><span class="mp-value" style="color:#f6d36b">${top.cp?Math.round(top.cp).toLocaleString('vi-VN'):'—'}</span></div>
         </div>
+        ${holdBlockHtml(w)}
         <div class="mp-sec">
           <div class="mp-others-head"><span class="mp-label">Arcane Force</span><span class="mp-count" data-tip="${charArcForce(top.ak)?`Tổng Arcane Force ${charArcForce(top.ak)} · ${arcL.length} symbol đang đeo`:`${arcL.length} symbol đang đeo`}">${charArcForce(top.ak)||arcL.length}</span></div>
           <div class="mp-arc-grid">${Array.from({length:6}).map((_,k)=>{ const a=arcL[k];
@@ -6050,13 +6082,13 @@ function renderLiteList(){
                lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
                world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
                cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
-               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), nft:w=>(w.nftCount??-1), ft:w=>(w.ftCount??-1), boss:w=>liteMissingBosses(w).length,
+               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), boss:w=>liteMissingBosses(w).length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(52px,.35fr) minmax(52px,.35fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
+  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lfc(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -6102,22 +6134,6 @@ function renderLiteList(){
         const tip=`Cần chi thêm ${Math.round(need).toLocaleString('vi-VN')} NESO (${pts} điểm)&#10;${when}&#10;${enough?'Ví có đủ NESO để chi':'Ví đang thiếu '+Math.round(need-(w.neso||0)).toLocaleString('vi-VN')+' NESO'}`;
         return `<div class="mvp-num" style="text-align:right;font-weight:700;white-space:nowrap;color:${expired?'#e06c6c':'var(--text)'}" data-tip="${tip}">${_lf(need)}</div>`;
       })()}
-      ${(()=>{
-        if (w.nftCount==null) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
-        const iw=w.nftInWallet, ic=w.nftInCharacter;
-        const tip=`NFT: ${_lf(w.nftCount)} món&#10;Trên ví (chưa trang bị): ${iw==null?'?':_lf(iw)}&#10;Trên nhân vật (đang dùng): ${ic==null?'?':_lf(ic)}`;
-        return `<div class="mvp-num" style="text-align:right;white-space:nowrap" data-tip="${tip}"><span style="color:var(--accent);font-weight:700">${iw==null?'?':_lf(iw)}</span><span style="color:var(--muted2)">/</span><span style="color:#38bdf8;font-weight:700">${ic==null?'?':_lf(ic)}</span></div>`;
-      })()}
-      ${(()=>{
-        if (w.ftCount==null) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
-        const on=w.ftOn, off=w.ftOff;
-        const tip=[`FT (Exchange Currency): ${_lf(w.ftCount)}`,
-          `Trên ví: ${on==null?'?':_lf(on)} · Trên nhân vật: ${off==null?'?':_lf(off)}`,
-          w.redFlorin!=null?`Red Florin: ${_lf(w.redFlorin)} (ví ${_lf(w.redOn||0)} · nv ${_lf(w.redOff||0)})`:'',
-          w.blueFlorin!=null?`Blue Florin: ${_lf(w.blueFlorin)} (ví ${_lf(w.blueOn||0)} · nv ${_lf(w.blueOff||0)})`:'',
-          w.ftOther?`Khác: ${_lf(w.ftOther)}`:''].filter(Boolean).join('&#10;');
-        return `<div class="mvp-num" style="text-align:right;white-space:nowrap" data-tip="${tip}"><span style="color:var(--accent);font-weight:700">${on==null?'?':_lfk(on)}</span><span style="color:var(--muted2)">/</span><span style="color:#38bdf8;font-weight:700">${off==null?'?':_lfk(off)}</span></div>`;
-      })()}
       ${cellN(w.neso,0,'var(--green)','NESO',(w.neso||0)*nesoRate)}
       ${cellN(w.nxpc,2,'var(--green)','NXPC',(w.nxpc||0)*nxpcRate)}
       ${cellN(w.avax,4,'var(--blue)','AVAX',(w.avax||0)*avaxRate)}
@@ -6142,7 +6158,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','left','Số lượt boss chưa mở')}${hc('drop','MVP','left')}${hc('drop','Đáo hạn','right')}${hc('need','Cần chi','right')}${hc('nft','NFT','right')}${hc('ft','FT','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','left','Số lượt boss chưa mở')}${hc('drop','MVP','left')}${hc('drop','Đáo hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
@@ -6173,15 +6189,6 @@ function renderLiteList(){
             if(!tot) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
             const lack=has.filter(w=>(w.neso||0)<w.mvpDropNeed).length;
             return `<div class="mvp-num" style="text-align:right;white-space:nowrap;color:var(--text)" data-tip="Tổng NESO cần chi để không ví nào rớt&#10;${Math.round(tot).toLocaleString('vi-VN')} NESO · ${Math.ceil(tot/MVP_NESO_PER_POINT)} điểm&#10;${has.length} ví cần bù, ${lack} ví không đủ NESO trong ví">${_lfc(tot)}</div>`; })()}
-          ${(()=>{ const has=ws.filter(w=>w.nftCount!=null);
-            if(!has.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
-            const iw=has.reduce((a,w)=>a+(w.nftInWallet||0),0), ic=has.reduce((a,w)=>a+(w.nftInCharacter||0),0);
-            return `<div class="mvp-num" style="text-align:right;white-space:nowrap" data-tip="Tổng NFT: ${_lf(iw+ic)} món&#10;Trên ví: ${_lf(iw)}&#10;Trên nhân vật: ${_lf(ic)}&#10;${has.length}/${ws.length} ví đã tải"><span style="color:var(--accent)">${_lfk(iw)}</span><span style="color:var(--muted2)">/</span><span style="color:#38bdf8">${_lfk(ic)}</span></div>`; })()}
-          ${(()=>{ const has=ws.filter(w=>w.ftCount!=null);
-            if(!has.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
-            const on=has.reduce((a,w)=>a+(w.ftOn||0),0), off=has.reduce((a,w)=>a+(w.ftOff||0),0);
-            const red=has.reduce((a,w)=>a+(w.redFlorin||0),0), blue=has.reduce((a,w)=>a+(w.blueFlorin||0),0);
-            return `<div class="mvp-num" style="text-align:right;white-space:nowrap" data-tip="Tổng FT: ${_lf(on+off)}&#10;Trên ví: ${_lf(on)} · Trên nhân vật: ${_lf(off)}&#10;Red Florin: ${_lf(red)}&#10;Blue Florin: ${_lf(blue)}"><span style="color:var(--accent)">${_lfk(on)}</span><span style="color:var(--muted2)">/</span><span style="color:#38bdf8">${_lfk(off)}</span></div>`; })()}
           ${cellN(T('neso'),0,'var(--green)','Tổng NESO',T('neso')*nesoRate)}
           ${cellN(T('nxpc'),2,'var(--green)','Tổng NXPC',T('nxpc')*nxpcRate)}
           ${cellN(T('avax'),4,'var(--blue)','Tổng AVAX',T('avax')*avaxRate)}
