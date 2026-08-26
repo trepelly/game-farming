@@ -968,7 +968,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-wide{width:auto;max-width:none}
 .mp-cols{display:flex;align-items:stretch}
 .mp-left{width:206px;flex-shrink:0;max-height:min(78vh,760px);overflow-y:auto}
-.mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0}
+.mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0;flex-shrink:0}
 .mp-sec{padding:9px 11px 4px}
 .mp-arc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .mp-arc{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;border-radius:9px;background:#171b21;border:1px solid #23282f;padding:7px 2px 8px}
@@ -5923,15 +5923,6 @@ function charPopHtml(w){
           ${isSub?`<div class="mp-eq-more mp-copy" onclick="selectPopChar(null)" style="color:var(--accent);margin-top:4px">↩ về nhân vật chính</div>`:''}
         </div>`:''}
       </div>
-      <div class="mp-mid">
-        <div class="mp-others-head"><span class="mp-label">Tier 5</span><span class="mp-count">${nodes.length}</span></div>
-        ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}','tên skill')" data-tiph="${_skillTipHtml(n).replace(/"/g,'&quot;')}" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
-            <span class="mp-eq"><img src="${n.url}" loading="lazy" onerror="this.remove()"></span>
-            <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(n.name)}</span><span class="mp-eq-cat">Level ${n.lv}</span></span>
-          </div>`).join('')}</div>`
-                     :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
-      </div>
-      ${holdColHtml(w)}
       <div class="mp-right ${charPopEqView==='grid'?'mp-right-grid':(eq.length>9?'mp-right-wide':'')}">
         <div class="mp-others-head">
           <span class="mp-label">Trang bị · ${_mvpEsc(top.name)}</span>
@@ -5950,6 +5941,15 @@ function charPopHtml(w){
           </div>`).join('')}</div>`
           :`<div class="mp-eq-more">đang tải hoặc chưa có dữ liệu…</div>`)}
       </div>
+      <div class="mp-mid">
+        <div class="mp-others-head"><span class="mp-label">Tier 5</span><span class="mp-count">${nodes.length}</span></div>
+        ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}','tên skill')" data-tiph="${_skillTipHtml(n).replace(/"/g,'&quot;')}" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
+            <span class="mp-eq"><img src="${n.url}" loading="lazy" onerror="this.remove()"></span>
+            <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(n.name)}</span><span class="mp-eq-cat">Level ${n.lv}</span></span>
+          </div>`).join('')}</div>`
+                     :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
+      </div>
+      ${holdColHtml(w)}
     </div>
   </div>`;
 }
