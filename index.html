@@ -4,6 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#0d0d1a"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Game Farming"/>
 <title>Game Farming Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -398,6 +404,8 @@ td:first-child{text-align:left;color:var(--muted2)}
         <span id="hdr-avax-gas" style="color:var(--text);font-weight:700;font-family:'Chakra Petch',monospace">—</span>
       </div>
       <div id="hdr-updated" class="hdr-chip" style="display:inline-flex;align-items:center;color:var(--muted2);border-radius:8px;padding:5px 7px" title="Chưa cập nhật"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div>
+      <button id="pwa-install" onclick="installApp()" style="display:none;align-items:center;gap:5px;background:color-mix(in srgb,var(--accent) 14%,transparent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:6px;padding:4px 9px;color:var(--accent);cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;line-height:1;transition:.15s" data-tip="Cài đặt dashboard thành ứng dụng trên máy">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Cài đặt</button>
       <button id="tip-toggle" onclick="toggleTips()" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;line-height:1;transition:all .2s;display:inline-flex;align-items:center"></button>
       <button onclick="fetchLivePrices(true)" title="Cập nhật giá" style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--muted2);cursor:pointer;font-size:12px;line-height:1;transition:all .2s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">⟳</button>
     </div>
@@ -7654,6 +7662,48 @@ function toggleTips(){
   _syncTipBtn();
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_syncTipBtn); else _syncTipBtn(); }catch(e){}
+// ══════════ Cài đặt thành ứng dụng (PWA) ══════════
+let _pwaPrompt=null;
+function _pwaBtn(){ return document.getElementById('pwa-install'); }
+function _pwaShow(on){ const b=_pwaBtn(); if(b) b.style.display = on ? 'inline-flex' : 'none'; }
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); _pwaPrompt=e; _pwaShow(true);
+});
+window.addEventListener('appinstalled', ()=>{
+  _pwaPrompt=null; _pwaShow(false);
+  try{ showToast('Đã cài đặt', 'Mở Game Farming từ màn hình chính như một ứng dụng'); }catch(e){}
+});
+async function installApp(){
+  // iOS/Safari không có beforeinstallprompt -> chỉ dẫn thao tác thủ công
+  if (!_pwaPrompt){
+    try{ showToast('Cài đặt thủ công', 'Chrome: menu ⋮ → Cast, save and share → Cài đặt trang. iPhone: Chia sẻ → Thêm vào MH chính', 6000); }catch(e){}
+    return;
+  }
+  _pwaPrompt.prompt();
+  const r=await _pwaPrompt.userChoice.catch(()=>null);
+  if (r && r.outcome==='accepted'){ _pwaShow(false); }
+  _pwaPrompt=null;
+}
+// Đang chạy ở chế độ ứng dụng thì không cần mời cài nữa
+try{
+  if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) _pwaShow(false);
+  if ('serviceWorker' in navigator){
+    addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').then(reg=>{
+        // có bản mới -> nạp luôn, tránh chạy dashboard cũ
+        reg.addEventListener('updatefound', ()=>{
+          const w=reg.installing; if(!w) return;
+          w.addEventListener('statechange', ()=>{
+            if (w.state==='installed' && navigator.serviceWorker.controller) w.postMessage('skipWaiting');
+          });
+        });
+      }).catch(()=>{});
+      let reloaded=false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(!reloaded){ reloaded=true; location.reload(); } });
+    });
+  }
+}catch(e){}
+
 let _tipHideTimer=null;
 function hideTip(){
   const t = document.getElementById('ui-tip'); if(!t) return;
