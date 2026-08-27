@@ -4884,8 +4884,15 @@ function renderLiteTokens(){
   const nxpcRate=(typeof liveNxpcUsd==='number'&&liveNxpcUsd)?liveNxpcUsd:0;
   const avaxRate=(typeof liveAvaxUsd==='number'&&liveAvaxUsd)?liveAvaxUsd:0;
   const sum=k=>ws.reduce((s,w)=>s+(w[k]||0),0);
+  // Dưới 30 điểm MVP là mất quyền chuyển/giao dịch -> NESO trong ví đó coi như đang kẹt
+  const okW  = ws.filter(w=>mvpPtsOf(w)>=30), badW = ws.filter(w=>mvpPtsOf(w)<30);
+  const nesoOk  = okW.reduce((s,w)=>s+(w.neso||0),0);
+  const nesoBad = badW.reduce((s,w)=>s+(w.neso||0),0);
+  const nesoAll = nesoOk+nesoBad;
+  const pct = v => nesoAll ? Math.round(v/nesoAll*1000)/10 : 0;
   const items=[
-    {lb:'NESO',        v:sum('neso'),        d:0, usd:sum('neso')*nesoRate,   c:'var(--green)', g:'Henesys'},
+    {lb:'NESO',        v:sum('neso'),        d:0, usd:sum('neso')*nesoRate,   c:'var(--green)', g:'Henesys',
+     split:{ ok:nesoOk, bad:nesoBad, okN:okW.length, badN:badW.length, okP:pct(nesoOk), badP:pct(nesoBad) }},
     {lb:'NXPC',        v:sum('nxpc'),        d:2, usd:sum('nxpc')*nxpcRate,   c:'var(--green)', g:'Henesys'},
     {lb:'AVAX',        v:sum('avax'),        d:4, usd:sum('avax')*avaxRate,   c:'var(--blue)',  g:'Avalanche'},
     {lb:'NXPC(AVAX)',  v:sum('nxpc_avax'),   d:2, usd:sum('nxpc_avax')*nxpcRate, c:'var(--blue)', g:'Avalanche'},
@@ -4895,6 +4902,13 @@ function renderLiteTokens(){
       ${items.map((it,i)=>`<div style="padding:0 14px;${i?'border-left:1px solid var(--border2)':''}" ${_tokTipAttr(it.lb, _lf(it.v,it.d), it.usd, it.g)}>
         <div style="display:flex;align-items:center;gap:5px;min-width:0">${TOKEN_ICON[it.lb]?`<span style="width:15px;height:15px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${TOKEN_ICON[it.lb]}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:''}<span style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.g} · ${it.lb}</span></div>
         <div class="mvp-num" style="font-size:19px;font-weight:800;color:${it.c};margin-top:6px;line-height:1.1">${_lf(it.v,it.d)}</div>
+        ${it.split?`<div style="display:flex;align-items:center;gap:4px;margin-top:5px">
+            <div style="flex:1;height:4px;border-radius:2px;background:color-mix(in srgb,#e06c6c 45%,transparent);overflow:hidden;min-width:24px" data-tip="Hoán đổi được ${it.split.okP}% · Kẹt ${it.split.badP}%"><div style="height:100%;width:${it.split.okP}%;background:var(--green)"></div></div>
+          </div>
+          <div class="mvp-num" style="display:flex;gap:8px;margin-top:4px;font-size:9.5px;white-space:nowrap">
+            <span data-tip="NESO hoán đổi được&#10;${it.split.okN} ví còn MVP (≥30 điểm)&#10;${_lf(it.split.ok)} NESO"><span style="color:var(--green);font-weight:700">${_lfk(it.split.ok)}</span><span style="color:var(--muted2)"> ${it.split.okP}%</span></span>
+            <span data-tip="NESO đang kẹt&#10;${it.split.badN} ví hết hạn MVP (&lt;30 điểm)&#10;${_lf(it.split.bad)} NESO&#10;Không chuyển / giao dịch được cho tới khi đủ 30 điểm"><span style="color:#e06c6c;font-weight:700">${_lfk(it.split.bad)}</span><span style="color:var(--muted2)"> ${it.split.badP}%</span></span>
+          </div>`:''}
       </div>`).join('')}
     </div>`;
 }
