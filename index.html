@@ -4891,24 +4891,22 @@ function renderLiteTokens(){
   const nesoAll = nesoOk+nesoBad;
   const pct = v => nesoAll ? Math.round(v/nesoAll*1000)/10 : 0;
   const items=[
-    {lb:'NESO',        v:sum('neso'),        d:0, usd:sum('neso')*nesoRate,   c:'var(--green)', g:'Henesys',
-     split:{ ok:nesoOk, bad:nesoBad, okN:okW.length, badN:badW.length, okP:pct(nesoOk), badP:pct(nesoBad) }},
+    {lb:'NESO', ttl:'NESO KẸT',   v:nesoBad, d:0, usd:nesoBad*nesoRate, c:'#e06c6c', g:'Henesys',
+     sub:`${badW.length} ví hết hạn MVP · ${pct(nesoBad)}%`,
+     tip:`NESO đang kẹt&#10;${badW.length} ví dưới 30 điểm MVP&#10;${_lf(nesoBad)} NESO (${pct(nesoBad)}% tổng)&#10;Không chuyển / giao dịch được cho tới khi đủ 30 điểm`},
+    {lb:'NESO', ttl:'NESO HOÁN ĐỔI', v:nesoOk, d:0, usd:nesoOk*nesoRate, c:'var(--green)', g:'Henesys',
+     sub:`${okW.length} ví còn MVP · ${pct(nesoOk)}%`,
+     tip:`NESO hoán đổi được&#10;${okW.length} ví từ 30 điểm MVP trở lên&#10;${_lf(nesoOk)} NESO (${pct(nesoOk)}% tổng)&#10;Tổng NESO toàn bộ: ${_lf(nesoAll)}`},
     {lb:'NXPC',        v:sum('nxpc'),        d:2, usd:sum('nxpc')*nxpcRate,   c:'var(--green)', g:'Henesys'},
     {lb:'AVAX',        v:sum('avax'),        d:4, usd:sum('avax')*avaxRate,   c:'var(--blue)',  g:'Avalanche'},
     {lb:'NXPC(AVAX)',  v:sum('nxpc_avax'),   d:2, usd:sum('nxpc_avax')*nxpcRate, c:'var(--blue)', g:'Avalanche'},
     {lb:'USDT',        v:sum('usdt_avax_real'), d:2, usd:sum('usdt_avax_real'), c:'var(--blue)', g:'Avalanche'},
   ];
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 4px">
-      ${items.map((it,i)=>`<div style="padding:0 14px;${i?'border-left:1px solid var(--border2)':''}" ${_tokTipAttr(it.lb, _lf(it.v,it.d), it.usd, it.g)}>
-        <div style="display:flex;align-items:center;gap:5px;min-width:0">${TOKEN_ICON[it.lb]?`<span style="width:15px;height:15px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${TOKEN_ICON[it.lb]}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:''}<span style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.g} · ${it.lb}</span></div>
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 4px">
+      ${items.map((it,i)=>`<div style="padding:0 12px;${i?'border-left:1px solid var(--border2)':''}" ${it.tip?`data-tip="${it.tip}"`:_tokTipAttr(it.lb, _lf(it.v,it.d), it.usd, it.g)}>
+        <div style="display:flex;align-items:center;gap:5px;min-width:0">${TOKEN_ICON[it.lb]?`<span style="width:15px;height:15px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${TOKEN_ICON[it.lb]}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:''}<span style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.g} · ${it.ttl||it.lb}</span></div>
         <div class="mvp-num" style="font-size:19px;font-weight:800;color:${it.c};margin-top:6px;line-height:1.1">${_lf(it.v,it.d)}</div>
-        ${it.split?`<div style="display:flex;align-items:center;gap:4px;margin-top:5px">
-            <div style="flex:1;height:4px;border-radius:2px;background:color-mix(in srgb,#e06c6c 45%,transparent);overflow:hidden;min-width:24px" data-tip="Hoán đổi được ${it.split.okP}% · Kẹt ${it.split.badP}%"><div style="height:100%;width:${it.split.okP}%;background:var(--green)"></div></div>
-          </div>
-          <div class="mvp-num" style="display:flex;gap:8px;margin-top:4px;font-size:9.5px;white-space:nowrap">
-            <span data-tip="NESO hoán đổi được&#10;${it.split.okN} ví còn MVP (≥30 điểm)&#10;${_lf(it.split.ok)} NESO"><span style="color:var(--green);font-weight:700">${_lfk(it.split.ok)}</span><span style="color:var(--muted2)"> ${it.split.okP}%</span></span>
-            <span data-tip="NESO đang kẹt&#10;${it.split.badN} ví hết hạn MVP (&lt;30 điểm)&#10;${_lf(it.split.bad)} NESO&#10;Không chuyển / giao dịch được cho tới khi đủ 30 điểm"><span style="color:#e06c6c;font-weight:700">${_lfk(it.split.bad)}</span><span style="color:var(--muted2)"> ${it.split.badP}%</span></span>
-          </div>`:''}
+        ${it.sub?`<div class="mvp-num" style="font-size:9px;color:var(--muted2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.sub}</div>`:''}
       </div>`).join('')}
     </div>`;
 }
