@@ -1021,6 +1021,13 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .itip-ef.on{color:#8fd7ae}.itip-ef.on b{color:#63c08f}
 .itip-hd{display:flex;gap:9px;align-items:flex-start}
 .itip-hd img{width:38px;height:38px;object-fit:contain;flex-shrink:0;border-radius:7px;background:#171c24;border:1px solid #262d38;padding:3px}
+.itip-lv{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;border-radius:9px;background:linear-gradient(135deg,color-mix(in srgb,#8b7ae8 20%,transparent),color-mix(in srgb,#8b7ae8 6%,transparent));border:1px solid color-mix(in srgb,#8b7ae8 35%,transparent)}
+.itip-lv-k{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#a5b4fc}
+.itip-lv-v{font-size:26px;font-weight:800;line-height:1;color:#c7bdff;letter-spacing:-.02em}
+.itip-lv-mx{font-size:12px;font-weight:700;color:#6b7280;margin-left:2px}
+.itip-lv-bar{flex:1;min-width:40px;height:5px;border-radius:3px;background:#232a33;overflow:hidden}
+.itip-lv-bar div{height:100%;border-radius:3px;transition:width .2s}
+.itip-lv-slot{font-size:9.5px;color:#8b93a1;white-space:nowrap}
 .itip-note{margin-top:7px;padding-top:6px;border-top:1px solid #232a33;font-size:9.5px;color:#6b7280}
 .mp-node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .mp-node{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:8px;background:#1b2029;border:1px solid #2b313b;overflow:hidden}
@@ -5834,11 +5841,24 @@ function eqGridHtml(ak, eq){
 }
 // Bảng chi tiết cho một node Tier 5
 function _skillTipHtml(n){
+  // Node boost tối đa 60, node đặc biệt (Guided Arrow, Perfect Shot…) tối đa 25
+  const mx = (n.lv||0)>25 ? 60 : ((n.id&&String(n.id).startsWith('4000040')) ? 60 : 25);
+  const lv = n.lv||0;
+  const pct = Math.max(0, Math.min(100, Math.round(lv/mx*100)));
+  const maxed = lv>=mx;
+  const acc = maxed ? '#f6d36b' : '#8b7ae8';
   return `<div class="itip">
     <div class="itip-hd"><img src="${n.url}" onerror="this.remove()">
       <div style="min-width:0"><div class="itip-name">${_iEsc(n.name)}</div>
         <div class="itip-cat">Skill &gt; Tier 5 &gt; V Matrix</div></div></div>
-    <div class="itip-req">Level ${n.lv||0}${n.vm?` · Slot Lv. ${n.vm}`:''}</div>
+    <div class="itip-lv" style="background:linear-gradient(135deg,color-mix(in srgb,${acc} 20%,transparent),color-mix(in srgb,${acc} 6%,transparent));border-color:color-mix(in srgb,${acc} 35%,transparent)">
+      <div><div class="itip-lv-k" style="color:${maxed?'#f6d36b':'#a5b4fc'}">Level</div>
+        <div class="itip-lv-v" style="color:${maxed?'#f6d36b':'#c7bdff'}">${lv}<span class="itip-lv-mx">/${mx}</span></div></div>
+      <div style="flex:1;min-width:0">
+        <div class="itip-lv-bar"><div style="width:${pct}%;background:linear-gradient(90deg,${maxed?'#c9a227,#f6d36b':'#6d5fd0,#a89bf0'})"></div></div>
+        <div class="itip-lv-slot" style="margin-top:4px">${lv>=mx?'Đã tối đa':`còn ${mx-lv} cấp nữa là tối đa`}${n.vm?` · Slot Lv. ${n.vm}`:''}</div>
+      </div>
+    </div>
     <div class="itip-note">Nhấp để copy tên skill</div>
   </div>`;
 }
