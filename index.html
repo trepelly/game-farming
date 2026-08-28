@@ -5849,17 +5849,17 @@ function _skillTipHtml(n){
   const lv = n.lv||0;
   const pct = Math.max(0, Math.min(100, Math.round(lv/mx*100)));
   const maxed = lv>=mx;
-  const acc = maxed ? '#f6d36b' : '#8b7ae8';
+  const acc = '#f6d36b';                 // vàng như sao trên thẻ NFT
   return `<div class="itip">
     <div class="itip-hd"><img src="${n.url}" onerror="this.remove()">
       <div style="min-width:0"><div class="itip-name">${_iEsc(n.name)}</div>
         <div class="itip-cat">Skill &gt; Tier 5 &gt; V Matrix</div></div></div>
     <div class="itip-lv" style="background:linear-gradient(135deg,color-mix(in srgb,${acc} 20%,transparent),color-mix(in srgb,${acc} 6%,transparent));border-color:color-mix(in srgb,${acc} 35%,transparent)">
-      <div><div class="itip-lv-k" style="color:${maxed?'#f6d36b':'#a5b4fc'}">Level</div>
-        <div class="itip-lv-v" style="color:${maxed?'#f6d36b':'#c7bdff'}">${lv}<span class="itip-lv-mx">/${mx}</span></div></div>
+      <div><div class="itip-lv-k" style="color:#f6d36b;opacity:.85">Level</div>
+        <div class="itip-lv-v" style="color:#f6d36b">${lv}<span class="itip-lv-mx">/${mx}</span></div></div>
       <div style="flex:1;min-width:0">
-        <div class="itip-lv-bar"><div style="width:${pct}%;background:linear-gradient(90deg,${maxed?'#c9a227,#f6d36b':'#6d5fd0,#a89bf0'})"></div></div>
-        <div class="itip-lv-slot" style="margin-top:4px">${lv>=mx?'Đã tối đa':`còn ${mx-lv} cấp nữa là tối đa`}${n.vm?` · Slot Lv. ${n.vm}`:''}</div>
+        <div class="itip-lv-bar"><div style="width:${pct}%;background:linear-gradient(90deg,#c9a227,#f6d36b)"></div></div>
+        <div class="itip-lv-slot" style="margin-top:4px">${maxed?'★ Đã tối đa':`còn ${mx-lv} cấp nữa là tối đa`}${n.vm?` · Slot Lv. ${n.vm}`:''}</div>
       </div>
     </div>
     <div class="itip-note">Nhấp để copy tên skill</div>
@@ -5989,8 +5989,8 @@ function charPopHtml(w){
         ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}','tên skill')" data-tiph="${_skillTipHtml(n).replace(/"/g,'&quot;')}" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
             <span class="mp-eq"><img src="${n.url}" loading="lazy" onerror="this.remove()"></span>
             <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(n.name)}</span>${(()=>{
-              const mx=_skillMax(n), maxed=(n.lv||0)>=mx, c=maxed?'#f6d36b':'#a5b4fc';
-              return `<span class="mp-eq-cat" style="color:${c};font-weight:700">Lv. ${n.lv||0}<span style="color:var(--muted2);font-weight:600">/${mx}</span>${maxed?' ✦':''}</span>`;
+              const mx=_skillMax(n), maxed=(n.lv||0)>=mx;
+              return `<span class="mp-eq-cat" style="color:#f6d36b;font-weight:700">Lv. ${n.lv||0}<span style="color:var(--muted2);font-weight:600">/${mx}</span>${maxed?' ★':''}</span>`;
             })()}</span>
           </div>`).join('')}</div>`
                      :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
