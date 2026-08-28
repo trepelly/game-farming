@@ -5840,9 +5840,12 @@ function eqGridHtml(ak, eq){
   return `<div class="mp-grid">${cells}</div>${extraHtml}${cashHtml}${petHtml}`;
 }
 // Bảng chi tiết cho một node Tier 5
+// Node boost tối đa 60, node đặc biệt (Guided Arrow, Perfect Shot…) tối đa 25
+function _skillMax(n){
+  return (n.lv||0)>25 ? 60 : ((n.id&&String(n.id).startsWith('4000040')) ? 60 : 25);
+}
 function _skillTipHtml(n){
-  // Node boost tối đa 60, node đặc biệt (Guided Arrow, Perfect Shot…) tối đa 25
-  const mx = (n.lv||0)>25 ? 60 : ((n.id&&String(n.id).startsWith('4000040')) ? 60 : 25);
+  const mx = _skillMax(n);
   const lv = n.lv||0;
   const pct = Math.max(0, Math.min(100, Math.round(lv/mx*100)));
   const maxed = lv>=mx;
@@ -5985,7 +5988,10 @@ function charPopHtml(w){
         <div class="mp-others-head"><span class="mp-label">Tier 5</span><span class="mp-count">${nodes.length}</span></div>
         ${nodes.length?`<div class="mp-eq-list">${nodes.map(n=>`<div class="mp-eq-row mp-copy" onclick="copyFlash(this,'${String(n.name||'').replace(/'/g,'')}','tên skill')" data-tiph="${_skillTipHtml(n).replace(/"/g,'&quot;')}" data-tip="${_mvpEsc(n.name)} · Level ${n.lv}">
             <span class="mp-eq"><img src="${n.url}" loading="lazy" onerror="this.remove()"></span>
-            <span style="min-width:0"><span class="mp-eq-name">${_mvpEsc(n.name)}</span><span class="mp-eq-cat">Level ${n.lv}</span></span>
+            <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(n.name)}</span>${(()=>{
+              const mx=_skillMax(n), maxed=(n.lv||0)>=mx, c=maxed?'#f6d36b':'#a5b4fc';
+              return `<span class="mp-eq-cat" style="color:${c};font-weight:700">Lv. ${n.lv||0}<span style="color:var(--muted2);font-weight:600">/${mx}</span>${maxed?' ✦':''}</span>`;
+            })()}</span>
           </div>`).join('')}</div>`
                      :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
       </div>
