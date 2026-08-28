@@ -5318,6 +5318,47 @@ async function ensureWalletItems(list){
   if (changed){ clearTimeout(_eqTimer); _eqTimer=setTimeout(()=>{ try{ renderLiteList(); }catch(e){} }, 150); }
 }
 const _eqHoverBusy = new Set();
+const _ftBusy = new Set();
+// Tải danh sách FT (Exchange Currency) của một ví — cùng cách phân trang với NFT
+async function fetchFtItems(addr){
+  let all=[], page=1, total=0; const seen=new Set();
+  do{
+    const url=`https://msu.io/navigator/api/navigator/inventory/${addr}/items?requestType=RequestType_FtItem&location=Location_All&paginationParam.pageNo=${page}&paginationParam.pageSize=30`;
+    const r=await fetch(msuProxy(url));
+    if(!r.ok) break;
+    const t=await r.text();
+    if(!t || t.trim().startsWith('<')) break;
+    const j=JSON.parse(t);
+    total=j.paginationResult?.totalCount||0;
+    const got=j.items||[];
+    if(!got.length) break;
+    let added=0;
+    got.forEach(it=>{ const k=(it.ftItem&&(it.ftItem.assetKey||it.ftItem.name))||JSON.stringify(it); if(seen.has(k)) return; seen.add(k); all.push(it); added++; });
+    if(!added) break;
+    page++;
+    await new Promise(rs=>setTimeout(rs,220));
+  } while(all.length<total && page<=5);
+  return all;
+}
+// Mở popover nhân vật -> tự tải danh sách vật phẩm nếu ví chưa có
+async function ensureHoldings(addr){
+  const w=allWallets().find(x=>x.address===addr); if(!w) return;
+  const jobs=[];
+  if (!(w.ftItemsFull && w.ftItemsFull.length) && !_ftBusy.has(addr) && w.ftCount){
+    _ftBusy.add(addr);
+    jobs.push(fetchFtItems(addr).then(list=>{ if(list&&list.length) w.ftItemsFull=list; })
+      .catch(()=>{}).finally(()=>_ftBusy.delete(addr)));
+  }
+  if (!(w.nftItemsFull && w.nftItemsFull.length) && !_eqHoverBusy.has(addr)){
+    _eqHoverBusy.add(addr);
+    jobs.push(fetchNftItems(addr,5).then(list=>{
+        if(list&&list.length){ w.nftItemsFull=list; try{ EQ_CACHE[(addr||'').toLowerCase()]={ts:Date.now(),items:_slimItems(list)}; _saveEqCache(); }catch(e){} }
+      }).catch(()=>{}).finally(()=>_eqHoverBusy.delete(addr)));
+  }
+  if (!jobs.length) return;
+  await Promise.allSettled(jobs);
+  try{ _charPopRefresh(addr); }catch(e){}
+}
 let _lastTipXY = {x:0,y:0};
 document.addEventListener('mousemove', e=>{ _lastTipXY={x:e.clientX,y:e.clientY}; }, {passive:true});
 // Rê chuột vào ô nhân vật -> tự tải trang bị của ví đó rồi cập nhật tooltip đang mở
@@ -5386,6 +5427,7 @@ function openCharPop(ev, addr){
   document.body.appendChild(p);
   p.dataset.ax=(ev.clientX||0); p.dataset.ay=(ev.clientY||0);
   _clampCharPop(p);
+  try{ ensureHoldings(addr); }catch(e){}
   setTimeout(()=>{ document.addEventListener('mousedown', _charPopOut, {once:true}); }, 0);
 }
 // Giữ popover nằm trọn trong màn hình, kể cả sau khi đổi chế độ xem làm nội dung cao lên
@@ -5893,7 +5935,7 @@ function holdColHtml(w){
       `${_mvpEsc(x.name)}&#10;Trên ví: ${f(x.on)}&#10;Trên nhân vật: ${f(x.off)}&#10;Tổng: ${f(x.tot)}`)).join('')}</div>`);
   } else if (w.ftCount!=null){
     out.push(sub('FT · tiền tệ', 0));
-    out.push(`<div class="mp-eq-more">${w.ftCount?'chưa tải danh sách FT':'không có FT'}</div>`);
+    out.push(`<div class="mp-eq-more">${w.ftCount?(_ftBusy.has(w.address)?'đang tải danh sách FT…':'chưa tải danh sách FT'):'không có FT'}</div>`);
   }
 
   // ── NFT còn trên ví (món đang mặc đã nằm ở cột Trang bị) ──
@@ -5910,7 +5952,7 @@ function holdColHtml(w){
   out.push(nfts.length
     ? `<div class="mp-eq-list">${nfts.map(x=>rowHtml(x, x.n>1?`<span class="mp-hold-q mvp-num"><b>${x.n}</b></span>`:'',
         `${_mvpEsc(x.name)}&#10;Đang ở trên ví: ${x.n} món`)).join('')}</div>`
-    : `<div class="mp-eq-more">${w.nftInWallet?'chưa tải danh sách NFT':'không còn món nào trên ví'}</div>`);
+    : `<div class="mp-eq-more">${w.nftInWallet?(_eqHoverBusy.has(w.address)?'đang tải danh sách NFT…':'chưa tải danh sách NFT'):'không còn món nào trên ví'}</div>`);
 
   return `<div class="mp-hold-col">
     <div class="mp-others-head">
