@@ -5444,7 +5444,9 @@ function _clampCharPop(p){
   if (y+r.height>innerHeight-8) y=Math.max(8, Math.min(ay-r.height-12, innerHeight-r.height-8));
   p.style.left=x+'px'; p.style.top=y+'px';
 }
+let _snapBusy=false;
 function _charPopRefresh(addr){
+  if (_snapBusy) return;                 // đang chụp ảnh, đừng dựng lại DOM
   const p=document.getElementById('char-pop'); if(!p || p.dataset.addr!==addr) return;
   const ws=allWallets();
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
@@ -5980,16 +5982,31 @@ function _loadHtml2Canvas(){
   });
   return _h2cLoading;
 }
-// Tải sẵn ảnh qua proxy (có CORS). Chỉ đổi src khi ảnh proxy thực sự tải được,
-// nếu không thì giữ nguyên ảnh cũ — tuyệt đối không để mất ảnh trong bảng.
-function _preload(url){
-  return new Promise(res=>{
-    const im=new Image();
-    im.crossOrigin='anonymous';
-    im.onload=()=>res(true); im.onerror=()=>res(false);
-    im.src=url;
-    setTimeout(()=>res(false), 4000);
+// html2canvas tải lại ảnh trong iframe riêng của nó, ở đó ảnh msu.io lại dính CORS
+// nên ra ảnh trắng. Cách chắc chắn: nhúng sẵn ảnh thành data URL trước khi chụp.
+const _imgData=new Map();
+async function _toDataUrl(src){
+  if (_imgData.has(src)) return _imgData.get(src);
+  let out=null;
+  try{
+    const r=await fetch(msuProxy(src));
+    if (r.ok){
+      const b=await r.blob();
+      if (b && b.size && /^image\//.test(b.type||'image/png')){
+        out=await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(null); fr.readAsDataURL(b); });
+      }
+    }
+  }catch(e){}
+  _imgData.set(src, out);
+  return out;
+}
+// chạy song song nhưng có giới hạn để không dội hàng chục request cùng lúc
+async function _mapLimit(list, limit, fn){
+  const it=list[Symbol.iterator]();
+  const workers=Array.from({length:Math.min(limit,list.length)}, async ()=>{
+    for(;;){ const n=it.next(); if(n.done) return; await fn(n.value); }
   });
+  await Promise.all(workers);
 }
 // Chrome trả kết quả color-mix() dưới dạng color(srgb r g b / a).
 // html2canvas 1.4.1 không hiểu hàm color() nên phải quy về rgb() trước khi chụp.
@@ -6046,19 +6063,21 @@ async function _snapPrepare(root){
   const bar=root.querySelector('.mp-snap');
   if (bar){ const v=bar.style.visibility; push(()=>{ bar.style.visibility=v; }); bar.style.visibility='hidden'; }
 
-  // 4) ảnh ngoài -> proxy, và tạm gỡ onerror để ảnh hỏng không bị xoá khỏi DOM
+  // 4) nhúng ảnh thành data URL; tạm gỡ onerror để ảnh hỏng không bị xoá khỏi DOM
   const imgs=[...root.querySelectorAll('img')];
-  await Promise.all(imgs.map(async im=>{
+  imgs.forEach(im=>{
     const oe=im.getAttribute('onerror');
     if (oe){ im.removeAttribute('onerror'); push(()=>im.setAttribute('onerror', oe)); }
+  });
+  const ext=imgs.filter(im=>{ const s=im.getAttribute('src')||''; return /^https?:\/\//.test(s) && s.indexOf(location.origin)!==0; });
+  await _mapLimit(ext, 8, async im=>{
     const src=im.getAttribute('src')||'';
-    if (!/^https?:\/\//.test(src) || src.indexOf(location.origin)===0) return;
-    let prox; try{ prox=msuProxy(src); }catch(e){ return; }
-    if (!(await _preload(prox))) return;                 // proxy hỏng -> để nguyên
-    push(()=>{ im.setAttribute('src', src); im.removeAttribute('crossorigin'); });
-    im.setAttribute('crossorigin','anonymous');
-    im.setAttribute('src', prox);
-  }));
+    const data=await _toDataUrl(src);
+    if (!data) return;                                   // lấy không được -> để nguyên
+    push(()=>{ im.setAttribute('src', src); });
+    im.setAttribute('src', data);
+    if (!im.complete) await new Promise(r=>{ im.onload=im.onerror=r; setTimeout(r,800); });
+  });
 
   // 5) quy mọi màu color-mix về rgb() để thư viện chụp hiểu được
   _rgbifyTree(root, push);
@@ -6069,6 +6088,7 @@ async function _snapPrepare(root){
 }
 async function _popCanvas(p){
   const h2c=await _loadHtml2Canvas();
+  _snapBusy=true;
   const restore=await _snapPrepare(p);
   try{
     return await h2c(p, {
@@ -6079,7 +6099,7 @@ async function _popCanvas(p){
       scrollX:-scrollX, scrollY:-scrollY,
       ignoreElements:el=>el.classList && el.classList.contains('mp-snap'),
     });
-  } finally { restore(); }
+  } finally { restore(); _snapBusy=false; }
 }
 // Tên file: nhân vật chính của ví (CP cao nhất) + mã ví
 function _snapName(p){
