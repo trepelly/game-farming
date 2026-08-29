@@ -4691,12 +4691,51 @@ function refreshLiteSettings(){
   const ta=bd.querySelector('#lpp-bulk'); const keep=ta?ta.value:'';
   bd.innerHTML=liteSettingsHtml();
   const ta2=bd.querySelector('#lpp-bulk'); if(ta2) ta2.value=keep;
+  _lppRefreshUndo();
+}
+let _lppSetQ='';
+function setLiteSetQuery(v){ _lppSetQ=(v||'').toLowerCase(); _lppRefreshList(); }
+// chỉ dựng lại danh sách người chơi, giữ nguyên ô tìm đang gõ
+function _lppRefreshList(){
+  const box=document.getElementById('lpp-plist'); if(!box) return;
+  box.innerHTML=liteSettingsList();
+  const c=document.getElementById('lpp-pcount'); if(c) c.textContent=_lppMatch().length;
+}
+function _lppNames(){
+  const ws=allWallets();
+  const map={};
+  ws.forEach(w=>{ const k=w.player||'(chưa gán)';
+    (map[k]=map[k]||{n:0, chars:[]}).n++;
+    (w.chars||[]).forEach(c=>{ if(c&&c.name) map[k].chars.push(c.name); });
+  });
+  return map;
+}
+// tìm theo tên người chơi HOẶC tên nhân vật trong ví của họ
+function _lppMatch(){
+  const map=_lppNames(), q=_lppSetQ.trim();
+  return Object.keys(map).sort((a,b)=>a.localeCompare(b)).filter(pl=>{
+    if(!q) return true;
+    if (pl.toLowerCase().includes(q)) return true;
+    return map[pl].chars.some(c=>c.toLowerCase().includes(q));
+  });
+}
+function liteSettingsList(){
+  const map=_lppNames();
+  const esc=x=>(x||'').replace(/'/g,"");
+  const q=_lppSetQ.trim();
+  const list=_lppMatch();
+  if (!list.length) return '<div class="lpp-empty">Không tìm thấy người chơi hay nhân vật khớp</div>';
+  return list.map(pl=>{
+    const ex=isExtPlayer(pl), d=map[pl];
+    const hit=q && !pl.toLowerCase().includes(q) ? d.chars.filter(c=>c.toLowerCase().includes(q)).slice(0,3) : [];
+    return `<div class="lpp-grp">
+      <span>${_mvpEsc(pl)} <span style="color:var(--muted2)">· ${d.n} ví</span>${hit.length?`<br><span style="font-size:9.5px;color:var(--accent)">${_mvpEsc(hit.join(' · '))}</span>`:''}</span>
+      <button class="lpp-btn${ex?'':' pri'}" onclick="askPlayerGroup(event,'${esc(pl)}',false)">Nhóm</button>
+      <button class="lpp-btn" style="${ex?'border-color:var(--green);color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)':''}" onclick="askPlayerGroup(event,'${esc(pl)}',true)">Ngoại</button>
+    </div>`;
+  }).join('');
 }
 function liteSettingsHtml(){
-  const ws=allWallets();
-  const names=[...new Set(ws.map(w=>w.player||'(chưa gán)'))].sort((a,b)=>a.localeCompare(b));
-  const esc=x=>(x||'').replace(/'/g,"");
-  const cnt={}; ws.forEach(w=>{ const k=w.player||'(chưa gán)'; cnt[k]=(cnt[k]||0)+1; });
   return `<div class="lpp-set" style="border:none;background:transparent;padding:0">
     <div class="lpp-set-lb">Thêm ví</div>
     <textarea id="lpp-bulk" placeholder="0x1234...abcd&#10;Ví sếp, 0x5678...efgh&#10;Ví farm: 0xaaaa...1111"></textarea>
@@ -4704,13 +4743,16 @@ function liteSettingsHtml(){
       <span class="msg" id="lpp-bulk-msg">Mỗi dòng 1 ví · hỗ trợ “Tên, 0x…” · “Tên | 0x…”</span>
       <button class="lpp-btn pri" onclick="litePanelAddWallets()">Thêm ví</button>
     </div>
-    <div class="lpp-set-lb" style="margin-top:14px">Nhóm người chơi <span style="font-weight:600;text-transform:none;letter-spacing:0">· ví ngoại không tính vào tổng</span></div>
-    ${names.length?names.map(pl=>{ const ex=isExtPlayer(pl);
-      return `<div class="lpp-grp">
-        <span>${_mvpEsc(pl)} <span style="color:var(--muted2)">· ${cnt[pl]} ví</span></span>
-        <button class="lpp-btn${ex?'':' pri'}" onclick="setPlayerGroup(event,'${esc(pl)}',false)">Nhóm</button>
-        <button class="lpp-btn" style="${ex?'border-color:var(--green);color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)':''}" onclick="setPlayerGroup(event,'${esc(pl)}',true)">Ngoại</button>
-      </div>`; }).join(''):'<div class="lpp-empty">Chưa có người chơi</div>'}
+    <div class="lpp-set-lb" style="margin-top:14px;display:flex;align-items:center;gap:6px">
+      <span>Nhóm người chơi</span>
+      <span style="font-weight:600;text-transform:none;letter-spacing:0">· ví ngoại không tính vào tổng</span>
+      <span class="mvp-num" id="lpp-pcount" style="margin-left:auto;color:var(--muted2)">${_lppMatch().length}</span>
+    </div>
+    <input id="lpp-psearch" type="text" value="${_mvpEsc(_lppSetQ)}" oninput="setLiteSetQuery(this.value)"
+      placeholder="Tìm theo tên người chơi hoặc tên nhân vật…"
+      style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:6px 9px;color:var(--text);font-size:11px;font-family:inherit;outline:none;margin-bottom:4px">
+    <div id="lpp-plist">${liteSettingsList()}</div>
+    <div id="lpp-undo" style="margin-top:8px"></div>
   </div>`;
 }
 try{ window.openLiteSettings=openLiteSettings; window.closeLiteSettings=closeLiteSettings; window.liteSettingsHtml=liteSettingsHtml; }catch(e){}
@@ -4738,7 +4780,39 @@ async function litePanelAddWallets(){
 }
 try{ window.toggleLiteSettings=toggleLiteSettings; window.litePanelAddWallets=litePanelAddWallets; }catch(e){}
 function toggleGroupMenu(ev,id){ if(ev) ev.stopPropagation(); _litePMenu=(_litePMenu===id)?null:id; renderLitePlayers(); }
-// Đổi nhóm cho một người chơi. Khối chọn nhóm đã là bước xác nhận nên không hỏi lại.
+// Hỏi lại trước khi đổi nhóm, và cho hoàn tác nếu lỡ bấm nhầm
+let _lppUndo=null;
+async function askPlayerGroup(ev, name, ext){
+  if (ev) ev.stopPropagation();
+  if (isExtPlayer(name)===!!ext) return;                 // đã đúng nhóm rồi
+  const nVi=allWallets().filter(w=>(w.player||'(chưa gán)')===name).length;
+  const msg = ext
+    ? `Chuyển "${name}" (${nVi} ví) sang VÍ NGOẠI?\n\nVí ngoại chỉ để theo dõi, KHÔNG tính vào tổng và không hiện ở các tab khác.`
+    : `Chuyển "${name}" (${nVi} ví) về VÍ NHÓM?\n\nCác ví này sẽ được cộng lại vào mọi tổng của nhóm.`;
+  if (!confirm(msg)) return;
+  const was=isExtPlayer(name);
+  await setPlayerGroup(null, name, ext);
+  _lppUndo={name, ext:was};
+  showToast(ext?'Đã chuyển sang Ví ngoại':'Đã chuyển về Ví nhóm',
+            `${name} · ${nVi} ví — bấm "Hoàn tác" trong hộp thoại nếu nhầm`, 5000);
+  _lppRefreshUndo();
+}
+async function undoPlayerGroup(ev){
+  if (ev) ev.stopPropagation();
+  if (!_lppUndo) return;
+  const u=_lppUndo; _lppUndo=null;
+  await setPlayerGroup(null, u.name, u.ext);
+  showToast('Đã hoàn tác', `${u.name} về ${u.ext?'Ví ngoại':'Ví nhóm'}`);
+  _lppRefreshUndo();
+}
+function _lppRefreshUndo(){
+  const el=document.getElementById('lpp-undo'); if(!el) return;
+  el.innerHTML=_lppUndo
+    ? `<button class="lpp-btn" onclick="undoPlayerGroup(event)" style="border-color:var(--amber,#d8a44f);color:#d8a44f">↩ Hoàn tác: ${_mvpEsc(_lppUndo.name)}</button>`
+    : '';
+}
+try{ window.askPlayerGroup=askPlayerGroup; window.undoPlayerGroup=undoPlayerGroup; }catch(e){}
+// Đổi nhóm cho một người chơi (không hỏi — phần hỏi nằm ở askPlayerGroup).
 async function setPlayerGroup(ev, name, ext){
   if (ev) ev.stopPropagation();
   _litePMenu=null;
