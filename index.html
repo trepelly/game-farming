@@ -890,7 +890,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .mvp-tier-cell:hover{border-color:var(--border3)}
 .mvp-tier-cell.on{border-color:#d98a3d;background:color-mix(in srgb,#d98a3d 12%,var(--card))}
 
-/* ── Panel Ví theo người chơi: bố cục nén 32px, khung + hiệu ứng theo theme chung ── */
+/* ── Panel Người chơi: bố cục nén 32px, khung + hiệu ứng theo theme chung ── */
 .lpp{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 0 8px;width:100%;box-sizing:border-box;min-width:196px;max-width:560px;overflow:hidden;resize:horizontal}
 .lpp-hd{padding:0 12px 10px;border-bottom:1px solid var(--border2)}
 .lpp-t1{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -4677,7 +4677,7 @@ function openLiteSettings(ev){
   const d=document.createElement('div'); d.id='lpp-dlg';
   d.onclick=e=>{ if(e.target===d) closeLiteSettings(); };
   d.innerHTML=`<div class="dlg">
-      <div class="hd"><b>Cài đặt · Ví theo người chơi</b><button class="x" onclick="closeLiteSettings()">✕</button></div>
+      <div class="hd"><b>Cài đặt · Người chơi</b><button class="x" onclick="closeLiteSettings()">✕</button></div>
       <div class="bd" id="lpp-dlg-bd">${liteSettingsHtml()}</div>
     </div>`;
   document.body.appendChild(d);
@@ -4973,7 +4973,7 @@ function renderLitePlayers(){
 
   el.innerHTML=`<div class="lpp" id="lite-pwrap" onmouseup="_savePanelW(this)">
       <div class="lpp-hd">
-        <div class="lpp-t1"><span class="lpp-title">Ví theo người chơi</span>
+        <div class="lpp-t1"><span class="lpp-title">Người chơi</span>
         <span style="display:flex;align-items:center;gap:6px">
           <span class="lpp-cnt mvp-num">${tot.vi} ví</span>
           ${isAdm?`<span class="lpp-cog" onclick="openLiteSettings(event)" data-tip="Cài đặt: thêm ví · đổi nhóm người chơi"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>`:''}
@@ -6782,7 +6782,7 @@ function renderBossPlayers(){
   const kf=keys[bossPSort.col]||keys.done;
   players.sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return bossPSort.dir==='desc'?-r:r; });
   el.innerHTML=lppPanelHtml({
-    title:'Bossing theo người chơi', count:`${totAll.vi} ví`,
+    title:'Người chơi', count:`${totAll.vi} ví`,
     total:`${totAll.done}`, totalLb:`/ ${tot*(totAll.vi||1)} cửa đã mở`,
     totalTip:`Bấm để bỏ lọc\n${totAll.done}/${tot*(totAll.vi||1)} cửa boss đã mở`,
     sel:bossPlayer, onPick:'setBossPlayer', onSort:'setBossPSort', sort:bossPSort,
@@ -6908,7 +6908,7 @@ function renderMvpPlayers(){
   const kf = keys[mvpPSort.col] || keys.farm;
   players.sort((a,b)=>{ const x=kf(a), y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return mvpPSort.dir==='desc'?-r:r; });
   el.innerHTML=lppPanelHtml({
-    title:'MVP theo người chơi', count:`${tot.vi} ví`,
+    title:'Người chơi', count:`${tot.vi} ví`,
     total:`${tot.farm}`, totalLb:`/ ${tot.vi} ví đạt Bronze`,
     totalTip:`Bấm để bỏ lọc\n${tot.farm} ví đạt Bronze · ${tot.need} ví còn thiếu`,
     sel:mvpPlayer, onPick:'setMvpPlayer', onSort:'setMvpPSort', sort:mvpPSort,
@@ -6965,7 +6965,7 @@ function renderFlowPlayers(){
   const kf=keys[flowPSort.col]||keys.neso;
   players.sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return flowPSort.dir==='desc'?-r:r; });
   el.innerHTML=lppPanelHtml({
-    title:'Dòng tiền theo người chơi', count:`${tot.vi} ví`,
+    title:'Người chơi', count:`${tot.vi} ví`,
     total:_lfk(tot.neso), totalLb:'NESO thu về',
     totalTip:`Bấm để bỏ lọc\nNESO: ${_lf(tot.neso)}`,
     sel:flowPlayer, onPick:'setFlowPlayer', onSort:'setFlowPSort', sort:flowPSort,
