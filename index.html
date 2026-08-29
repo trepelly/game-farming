@@ -5991,6 +5991,33 @@ function _preload(url){
     setTimeout(()=>res(false), 4000);
   });
 }
+// Chrome trả kết quả color-mix() dưới dạng color(srgb r g b / a).
+// html2canvas 1.4.1 không hiểu hàm color() nên phải quy về rgb() trước khi chụp.
+function _rgbify(v){
+  if (!v || v.indexOf('color(')<0) return v;
+  return v.replace(/color\(\s*srgb\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s*(?:\/\s*([\d.eE+-]+%?)\s*)?\)/g,
+    (m,r,g,b,a)=>{
+      const c=x=>Math.max(0,Math.min(255,Math.round(parseFloat(x)*255)));
+      let al=1;
+      if (a!=null) al = a.endsWith('%') ? parseFloat(a)/100 : parseFloat(a);
+      return al>=1 ? `rgb(${c(r)}, ${c(g)}, ${c(b)})` : `rgba(${c(r)}, ${c(g)}, ${c(b)}, ${al})`;
+    });
+}
+const _COLOR_PROPS=['color','backgroundColor','backgroundImage','borderTopColor','borderRightColor',
+  'borderBottomColor','borderLeftColor','outlineColor','boxShadow','textDecorationColor','caretColor','fill','stroke'];
+function _rgbifyTree(root, push){
+  const els=[root, ...root.querySelectorAll('*')];
+  els.forEach(el=>{
+    let cs; try{ cs=getComputedStyle(el); }catch(e){ return; }
+    _COLOR_PROPS.forEach(pr=>{
+      let v; try{ v=cs[pr]; }catch(e){ return; }
+      if (!v || v.indexOf('color(')<0) return;
+      const old=el.style[pr];
+      push(()=>{ el.style[pr]=old; });
+      el.style[pr]=_rgbify(v);
+    });
+  });
+}
 async function _snapPrepare(root){
   const undo=[];
   const push=fn=>undo.push(fn);
@@ -6033,7 +6060,10 @@ async function _snapPrepare(root){
     im.setAttribute('src', prox);
   }));
 
-  // 5) chờ trình duyệt vẽ xong
+  // 5) quy mọi màu color-mix về rgb() để thư viện chụp hiểu được
+  _rgbifyTree(root, push);
+
+  // 6) chờ trình duyệt vẽ xong
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   return ()=>{ undo.reverse().forEach(fn=>{ try{ fn(); }catch(e){} }); };
 }
