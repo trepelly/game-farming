@@ -958,6 +958,7 @@ td:first-child{text-align:left;color:var(--muted2)}
 .lpp-btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
 .lpp-grp{display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--border2);margin-top:8px}
 .lpp-grp span{font-size:10.5px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.lpp-grp .no{flex:0 0 20px;text-align:right;color:var(--muted2);font-size:10px;font-weight:700}
 .lpp-menu{background:var(--bg2);border-left:2px solid var(--border2);padding:7px 12px 8px}
 .lpp-mlb{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2)}
 .lpp-mrow{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
@@ -4725,10 +4726,11 @@ function liteSettingsList(){
   const q=_lppSetQ.trim();
   const list=_lppMatch();
   if (!list.length) return '<div class="lpp-empty">Không tìm thấy người chơi hay nhân vật khớp</div>';
-  return list.map(pl=>{
+  return list.map((pl,i)=>{
     const ex=isExtPlayer(pl), d=map[pl];
     const hit=q && !pl.toLowerCase().includes(q) ? d.chars.filter(c=>c.toLowerCase().includes(q)).slice(0,3) : [];
     return `<div class="lpp-grp">
+      <span class="no mvp-num">${i+1}</span>
       <span>${_mvpEsc(pl)} <span style="color:var(--muted2)">· ${d.n} ví</span>${hit.length?`<br><span style="font-size:9.5px;color:var(--accent)">${_mvpEsc(hit.join(' · '))}</span>`:''}</span>
       <button class="lpp-btn${ex?'':' pri'}" onclick="askPlayerGroup(event,'${esc(pl)}',false)">Nhóm</button>
       <button class="lpp-btn" style="${ex?'border-color:var(--green);color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)':''}" onclick="askPlayerGroup(event,'${esc(pl)}',true)">Ngoại</button>
