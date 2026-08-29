@@ -6056,32 +6056,53 @@ async function snapCharPop(ev){
   const p=document.getElementById('char-pop'); if(!p) return;
   const btn=p.querySelector('.mp-snap button');
   const dl=!!(ev && ev.shiftKey);
+  const restoreBtn=()=>{ if(btn){ btn.disabled=false;
+    btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ảnh`; } };
   if (btn){ btn.disabled=true; btn.textContent='…'; }
-  try{
+
+  const name=(p.querySelector('.mp-account')?.textContent||'nhan-vat').trim().replace(/[^\w\-]+/g,'_');
+  const save=(blob,w,h)=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=`${name}.png`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    return `${name}.png · ${w}×${h}`;
+  };
+
+  // Chụp và trả về blob. Dùng chung cho cả hai nhánh.
+  let size={w:0,h:0};
+  const shot = (async ()=>{
     const canvas=await _popCanvas(p);
+    size={w:canvas.width,h:canvas.height};
     const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
     if(!blob) throw new Error('canvas rỗng');
-    const name=(p.querySelector('.mp-account')?.textContent||'nhan-vat').trim().replace(/[^\w\-]+/g,'_');
-    const save=()=>{
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob); a.download=`${name}.png`; a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
-      showToast('Đã tải ảnh', `${name}.png · ${canvas.width}×${canvas.height}`);
-    };
-    if (dl) return save();
-    try{
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      showToast('Đã copy ảnh', `${canvas.width}×${canvas.height} — dán thẳng vào chat`);
-    }catch(e){
-      // trình duyệt chặn ghi ảnh vào clipboard -> tải file thay thế
-      save();
-    }
-  }catch(e){
-    console.warn('snapCharPop', e);
-    showToast('Không chụp được ảnh', String((e&&e.message)||e), 6000);
-  }finally{
-    if (btn){ btn.disabled=false; btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ảnh`; }
+    return blob;
+  })();
+
+  if (dl){
+    try{ const blob=await shot; showToast('Đã tải ảnh', save(blob,size.w,size.h)); }
+    catch(e){ console.warn('snapCharPop', e); showToast('Không chụp được ảnh', String((e&&e.message)||e), 6000); }
+    finally{ restoreBtn(); }
+    return;
   }
+
+  // Ghi clipboard NGAY trong cú nhấp, đưa thẳng Promise vào ClipboardItem —
+  // nếu chờ ảnh xong rồi mới ghi thì Chrome coi như mất thao tác người dùng và từ chối.
+  try{
+    await navigator.clipboard.write([ new ClipboardItem({ 'image/png': shot }) ]);
+    showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — dán thẳng vào Discord`);
+    restoreBtn();
+    return;
+  }catch(e){
+    console.warn('clipboard.write', e);
+    // Không ghi được clipboard: phải nói rõ, vì ảnh CŨ vẫn còn trong clipboard
+    try{
+      const blob=await shot;
+      const info=save(blob,size.w,size.h);
+      showToast('Clipboard bị chặn — đã tải file', `${info}&#10;Đừng dán, hãy kéo file vào Discord (ảnh cũ vẫn nằm trong clipboard)`.replace('&#10;','\n'), 7000);
+    }catch(e2){
+      showToast('Không chụp được ảnh', String((e2&&e2.message)||e2), 6000);
+    }
+  }finally{ restoreBtn(); }
 }
 try{ window.snapCharPop=snapCharPop; }catch(e){}
 
