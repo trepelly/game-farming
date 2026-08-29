@@ -6051,26 +6051,27 @@ async function _popCanvas(p){
     });
   } finally { restore(); }
 }
+// Tên file: nhân vật chính của ví (CP cao nhất) + mã ví
+function _snapName(p){
+  const w=allWallets().find(x=>x.address===p.dataset.addr);
+  const main=(w&&(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0]);
+  const nm=(main&&main.name) || (p.querySelector('.mp-account')?.textContent||'nhan-vat');
+  const ad=(w&&w.address)||p.dataset.addr||'';
+  const code=ad ? `${ad.slice(0,6)}${ad.slice(-4)}` : '';
+  return [nm, code].filter(Boolean).join('_').trim().replace(/[^\w\-]+/g,'_');
+}
 async function snapCharPop(ev){
   if (ev) ev.stopPropagation();
   const p=document.getElementById('char-pop'); if(!p) return;
   const btn=p.querySelector('.mp-snap button');
-  const dl=!!(ev && ev.shiftKey);
+  const wantClip=!!(ev && ev.shiftKey);          // mặc định tải file, Shift mới copy
   const restoreBtn=()=>{ if(btn){ btn.disabled=false;
     btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ảnh`; } };
   if (btn){ btn.disabled=true; btn.textContent='…'; }
 
-  const name=(p.querySelector('.mp-account')?.textContent||'nhan-vat').trim().replace(/[^\w\-]+/g,'_');
-  const save=(blob,w,h)=>{
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob); a.download=`${name}.png`; a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
-    return `${name}.png · ${w}×${h}`;
-  };
-
-  // Chụp và trả về blob. Dùng chung cho cả hai nhánh.
+  const name=_snapName(p);
   let size={w:0,h:0};
-  const shot = (async ()=>{
+  const shot=(async ()=>{
     const canvas=await _popCanvas(p);
     size={w:canvas.width,h:canvas.height};
     const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
@@ -6078,31 +6079,38 @@ async function snapCharPop(ev){
     return blob;
   })();
 
-  if (dl){
-    try{ const blob=await shot; showToast('Đã tải ảnh', save(blob,size.w,size.h)); }
-    catch(e){ console.warn('snapCharPop', e); showToast('Không chụp được ảnh', String((e&&e.message)||e), 6000); }
-    finally{ restoreBtn(); }
-    return;
+  // Clipboard: phải gọi ngay trong cú nhấp, đưa Promise vào ClipboardItem
+  if (wantClip){
+    try{
+      await navigator.clipboard.write([ new ClipboardItem({ 'image/png': shot }) ]);
+      showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — dán vào Discord`);
+      restoreBtn(); return;
+    }catch(e){
+      console.warn('clipboard.write', e);
+      try{
+        const blob=await shot;
+        _download(blob, name+'.png');
+        showToast('Clipboard bị chặn — đã tải file', `${name}.png\nẢnh cũ vẫn nằm trong clipboard, hãy kéo file vào Discord thay vì dán`, 7000);
+      }catch(e2){ showToast('Không chụp được ảnh', String((e2&&e2.message)||e2), 6000); }
+      finally{ restoreBtn(); }
+      return;
+    }
   }
 
-  // Ghi clipboard NGAY trong cú nhấp, đưa thẳng Promise vào ClipboardItem —
-  // nếu chờ ảnh xong rồi mới ghi thì Chrome coi như mất thao tác người dùng và từ chối.
   try{
-    await navigator.clipboard.write([ new ClipboardItem({ 'image/png': shot }) ]);
-    showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — dán thẳng vào Discord`);
-    restoreBtn();
-    return;
+    const blob=await shot;
+    _download(blob, name+'.png');
+    showToast('Đã tải ảnh', `${name}.png · ${size.w}×${size.h}`);
   }catch(e){
-    console.warn('clipboard.write', e);
-    // Không ghi được clipboard: phải nói rõ, vì ảnh CŨ vẫn còn trong clipboard
-    try{
-      const blob=await shot;
-      const info=save(blob,size.w,size.h);
-      showToast('Clipboard bị chặn — đã tải file', `${info}&#10;Đừng dán, hãy kéo file vào Discord (ảnh cũ vẫn nằm trong clipboard)`.replace('&#10;','\n'), 7000);
-    }catch(e2){
-      showToast('Không chụp được ảnh', String((e2&&e2.message)||e2), 6000);
-    }
+    console.warn('snapCharPop', e);
+    showToast('Không chụp được ảnh', String((e&&e.message)||e), 6000);
   }finally{ restoreBtn(); }
+}
+function _download(blob, filename){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
 }
 try{ window.snapCharPop=snapCharPop; }catch(e){}
 
@@ -6122,7 +6130,7 @@ function charPopHtml(w){
   const stat=(lb,val,color)=>`<div class="mp-stat"><span class="mp-label">${lb}</span><span class="mp-value" style="${color?'color:'+color:''}">${val}</span></div>`;
   return `<div class="mp-tooltip mp-wide">
     <div class="mp-snap">
-      <button onclick="snapCharPop(event)" data-tip="Nhấp: copy ảnh toàn bộ bảng&#10;Shift+nhấp: tải về file PNG">
+      <button onclick="snapCharPop(event)" data-tip="Nhấp: tải ảnh PNG toàn bộ bảng&#10;Shift+nhấp: copy vào clipboard">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ảnh</button>
     </div>
     <div class="mp-cols">
