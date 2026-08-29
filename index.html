@@ -5432,6 +5432,7 @@ function openCharPop(ev, addr){
   p.dataset.ax=(ev.clientX||0); p.dataset.ay=(ev.clientY||0);
   _clampCharPop(p);
   try{ ensureHoldings(addr); }catch(e){}
+  try{ prefetchPopImages(p); }catch(e){}
   setTimeout(()=>{ document.addEventListener('mousedown', _charPopOut, {once:true}); }, 0);
 }
 // Giữ popover nằm trọn trong màn hình, kể cả sau khi đổi chế độ xem làm nội dung cao lên
@@ -5452,6 +5453,7 @@ function _charPopRefresh(addr){
   const w=(ws||[]).find(x=>x.address===addr); if(!w) return;
   p.innerHTML=charPopHtml(w);
   _clampCharPop(p);
+  try{ prefetchPopImages(p, 400); }catch(e){}   // nội dung mới -> nạp trước ảnh mới
 }
 let charPopQ='', charPopSort={col:'cp',dir:'desc'};
 function setPopCharQ(v){ charPopQ=(v||'').toLowerCase(); _popCharsRefresh(); }
@@ -6040,6 +6042,22 @@ function _rgbifyTree(root, push){
     });
   });
 }
+// Nạp trước ảnh của popover. Nếu để tới lúc bấm mới tải, việc chụp mất vài giây
+// và Chrome sẽ huỷ lệnh ghi clipboard vì chờ quá lâu.
+let _preT=null;
+function prefetchPopImages(root, delay){
+  clearTimeout(_preT);
+  _preT=setTimeout(async ()=>{
+    const el=root||document.getElementById('char-pop'); if(!el) return;
+    const list=[...el.querySelectorAll('img')]
+      .map(i=>i.getAttribute('src')||'')
+      .filter(sc=>/^https?:\/\//.test(sc) && sc.indexOf(location.origin)!==0 && !_imgData.has(sc));
+    if(!list.length) return;
+    await _mapLimit([...new Set(list)], 8, _toDataUrl);
+    const b=el.querySelector('.mp-snap button[data-act="clip"]');
+    if (b) b.setAttribute('data-tip','Copy ảnh toàn bộ bảng để dán vào tin nhắn');
+  }, delay==null?250:delay);
+}
 async function _snapPrepare(root){
   const undo=[];
   const push=fn=>undo.push(fn);
@@ -6075,14 +6093,20 @@ async function _snapPrepare(root){
     if (oe){ im.removeAttribute('onerror'); push(()=>im.setAttribute('onerror', oe)); }
   });
   const ext=imgs.filter(im=>{ const s=im.getAttribute('src')||''; return /^https?:\/\//.test(s) && s.indexOf(location.origin)!==0; });
+  const waits=[];
   await _mapLimit(ext, 8, async im=>{
     const src=im.getAttribute('src')||'';
     const data=await _toDataUrl(src);
     if (!data) return;                                   // lấy không được -> để nguyên
     push(()=>{ im.setAttribute('src', src); });
     im.setAttribute('src', data);
-    if (!im.complete) await new Promise(r=>{ im.onload=im.onerror=r; setTimeout(r,800); });
+    if (!im.complete){
+      // decode() giải mã data URL rất nhanh; không có thì chờ sự kiện load
+      waits.push(im.decode ? im.decode().catch(()=>{}) : new Promise(r=>{ im.onload=im.onerror=r; }));
+    }
   });
+  // chờ chung, tối đa 300ms — data URL vốn đã nằm sẵn trong bộ nhớ
+  if (waits.length) await Promise.race([Promise.all(waits), new Promise(r=>setTimeout(r,300))]);
 
   // 5) quy mọi màu color-mix về rgb() để thư viện chụp hiểu được
   _rgbifyTree(root, push);
@@ -6137,15 +6161,16 @@ async function snapCharPop(ev, mode){
     if(!b) throw new Error('canvas rỗng'); return b;
   });
   // Lưu file: dựng cả PNG lẫn JPEG rồi lấy cái nhẹ hơn
-  const shotFile=(async ()=>{
+  let _fileP=null;
+  const shotFile=()=>_fileP||(_fileP=(async ()=>{
     const c=await canvasP;
     const mk=(type,q)=>new Promise(r=>c.toBlob(r,type,q));
-    const [png,jpg]=await Promise.all([mk('image/png'), mk('image/jpeg',0.92)]);
+    const [png,jpg]=await Promise.all([shot.catch(()=>null), mk('image/jpeg',0.92)]);
     if (!png && !jpg) throw new Error('canvas rỗng');
     const pick=(jpg && png && jpg.size<png.size) ? {b:jpg,ext:'jpg'} : {b:(png||jpg),ext:png?'png':'jpg'};
     best={png:png&&png.size, jpg:jpg&&jpg.size, ext:pick.ext};
     return pick;
-  })();
+  })());
   const kb=v=>v==null?'?':(v>=1048576?(v/1048576).toFixed(1)+' MB':Math.round(v/1024)+' KB');
 
   if (wantClip){
@@ -6160,7 +6185,7 @@ async function snapCharPop(ev, mode){
         const blob=await shot;
         try{ await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);   // thử lại với ảnh đã xong
              showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — Ctrl+V vào tin nhắn`); done(); return; }catch(e2){}
-        const f=await shotFile;
+        const f=await shotFile();
         _download(f.b, `${name}.${f.ext}`);
         showToast('Clipboard bị chặn — đã lưu file', `${name}.${f.ext} · ${kb(f.b.size)}\nẢnh cũ vẫn nằm trong clipboard, hãy kéo file vào tin nhắn`, 7000);
       }catch(e3){ showToast('Không chụp được ảnh', String((e3&&e3.message)||e3), 6000); }
@@ -6170,7 +6195,7 @@ async function snapCharPop(ev, mode){
   }
 
   try{
-    const f=await shotFile;
+    const f=await shotFile();
     _download(f.b, `${name}.${f.ext}`);
     showToast('Đã lưu ảnh', `${name}.${f.ext} · ${size.w}×${size.h} · ${kb(f.b.size)}`
       + (best && best.png && best.jpg ? `\nPNG ${kb(best.png)} · JPEG ${kb(best.jpg)} — lấy bản nhẹ hơn` : ''));
