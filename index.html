@@ -5974,68 +5974,113 @@ function _loadHtml2Canvas(){
   _h2cLoading=new Promise((ok,no)=>{
     const sc=document.createElement('script');
     sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    sc.onload=()=>ok(window.html2canvas); sc.onerror=no;
+    sc.onload=()=>window.html2canvas?ok(window.html2canvas):no(new Error('html2canvas không nạp được'));
+    sc.onerror=()=>no(new Error('không tải được thư viện chụp ảnh'));
     document.head.appendChild(sc);
   });
   return _h2cLoading;
 }
-// Ảnh từ msu.io không có CORS -> canvas sẽ bị "nhiễm" và không xuất được.
-// Đổi tạm sang đường proxy của mình (có CORS) rồi trả lại như cũ sau khi chụp.
+// Tải sẵn ảnh qua proxy (có CORS). Chỉ đổi src khi ảnh proxy thực sự tải được,
+// nếu không thì giữ nguyên ảnh cũ — tuyệt đối không để mất ảnh trong bảng.
+function _preload(url){
+  return new Promise(res=>{
+    const im=new Image();
+    im.crossOrigin='anonymous';
+    im.onload=()=>res(true); im.onerror=()=>res(false);
+    im.src=url;
+    setTimeout(()=>res(false), 4000);
+  });
+}
 async function _snapPrepare(root){
   const undo=[];
-  root.querySelectorAll('img').forEach(im=>{
-    const src=im.getAttribute('src')||'';
-    if (/^https?:\/\//.test(src) && src.indexOf(location.origin)!==0){
-      undo.push([im, src]);
-      try{ im.setAttribute('src', msuProxy(src)); im.setAttribute('crossorigin','anonymous'); }catch(e){}
-    }
-  });
-  // mở hết các cột đang cuộn để ảnh có đủ nội dung
-  root.querySelectorAll('.mp-left,.mp-mid,.mp-right,.mp-hold-col,.mp-oth-scroll').forEach(el=>{
-    undo.push([el, null, el.style.maxHeight, el.style.overflowY]);
+  const push=fn=>undo.push(fn);
+
+  // 1) bỏ giới hạn chiều cao của chính popover và các cột cuộn
+  const boxes=[root, ...root.querySelectorAll('.mp-left,.mp-mid,.mp-right,.mp-hold-col,.mp-oth-scroll')];
+  boxes.forEach(el=>{
+    const mh=el.style.maxHeight, ov=el.style.overflowY, ovx=el.style.overflow;
+    push(()=>{ el.style.maxHeight=mh; el.style.overflowY=ov; el.style.overflow=ovx; });
     el.style.maxHeight='none'; el.style.overflowY='visible';
+    if (el===root) el.style.overflow='visible';
   });
-  const bar=root.querySelector('.mp-snap'); if(bar) bar.style.visibility='hidden';
-  // chờ ảnh proxy tải xong
-  await Promise.all([...root.querySelectorAll('img')].map(im=>im.complete?null:new Promise(r=>{ im.onload=im.onerror=r; setTimeout(r,1500); })).filter(Boolean));
-  return ()=>{
-    undo.forEach(([el, src, mh, ov])=>{
-      if (src!=null){ el.setAttribute('src', src); el.removeAttribute('crossorigin'); }
-      else { el.style.maxHeight=mh||''; el.style.overflowY=ov||''; }
+
+  // 2) popover đang position:fixed — html2canvas hay chụp lệch với phần tử fixed.
+  //    Đổi tạm sang absolute đúng toạ độ tài liệu để nó chụp như phần tử thường.
+  {
+    const r=root.getBoundingClientRect();
+    const st={pos:root.style.position, l:root.style.left, t:root.style.top};
+    push(()=>{ root.style.position=st.pos; root.style.left=st.l; root.style.top=st.t; });
+    root.style.position='absolute';
+    root.style.left=(r.left+scrollX)+'px';
+    root.style.top =(r.top +scrollY)+'px';
+  }
+
+  // 3) ẩn nút chụp khỏi ảnh của chính nó
+  const bar=root.querySelector('.mp-snap');
+  if (bar){ const v=bar.style.visibility; push(()=>{ bar.style.visibility=v; }); bar.style.visibility='hidden'; }
+
+  // 4) ảnh ngoài -> proxy, và tạm gỡ onerror để ảnh hỏng không bị xoá khỏi DOM
+  const imgs=[...root.querySelectorAll('img')];
+  await Promise.all(imgs.map(async im=>{
+    const oe=im.getAttribute('onerror');
+    if (oe){ im.removeAttribute('onerror'); push(()=>im.setAttribute('onerror', oe)); }
+    const src=im.getAttribute('src')||'';
+    if (!/^https?:\/\//.test(src) || src.indexOf(location.origin)===0) return;
+    let prox; try{ prox=msuProxy(src); }catch(e){ return; }
+    if (!(await _preload(prox))) return;                 // proxy hỏng -> để nguyên
+    push(()=>{ im.setAttribute('src', src); im.removeAttribute('crossorigin'); });
+    im.setAttribute('crossorigin','anonymous');
+    im.setAttribute('src', prox);
+  }));
+
+  // 5) chờ trình duyệt vẽ xong
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  return ()=>{ undo.reverse().forEach(fn=>{ try{ fn(); }catch(e){} }); };
+}
+async function _popCanvas(p){
+  const h2c=await _loadHtml2Canvas();
+  const restore=await _snapPrepare(p);
+  try{
+    return await h2c(p, {
+      backgroundColor:'#14171c', scale:2, useCORS:true, allowTaint:false, logging:false,
+      width:p.scrollWidth, height:p.scrollHeight,
+      windowWidth:Math.max(document.documentElement.clientWidth, p.scrollWidth),
+      windowHeight:Math.max(document.documentElement.clientHeight, p.scrollHeight),
+      scrollX:-scrollX, scrollY:-scrollY,
+      ignoreElements:el=>el.classList && el.classList.contains('mp-snap'),
     });
-    if(bar) bar.style.visibility='';
-  };
+  } finally { restore(); }
 }
 async function snapCharPop(ev){
   if (ev) ev.stopPropagation();
   const p=document.getElementById('char-pop'); if(!p) return;
   const btn=p.querySelector('.mp-snap button');
   const dl=!!(ev && ev.shiftKey);
-  if (btn){ btn.disabled=true; btn.style.opacity='.5'; }
-  let restore=null;
+  if (btn){ btn.disabled=true; btn.textContent='…'; }
   try{
-    const h2c=await _loadHtml2Canvas();
-    restore=await _snapPrepare(p);
-    const canvas=await h2c(p, { backgroundColor:'#14171c', scale:2, useCORS:true, logging:false,
-                                width:p.scrollWidth, height:p.scrollHeight, windowWidth:p.scrollWidth });
-    restore(); restore=null;
+    const canvas=await _popCanvas(p);
     const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
-    if(!blob) throw new Error('không tạo được ảnh');
+    if(!blob) throw new Error('canvas rỗng');
     const name=(p.querySelector('.mp-account')?.textContent||'nhan-vat').trim().replace(/[^\w\-]+/g,'_');
-    if (dl){
+    const save=()=>{
       const a=document.createElement('a');
       a.href=URL.createObjectURL(blob); a.download=`${name}.png`; a.click();
       setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
       showToast('Đã tải ảnh', `${name}.png · ${canvas.width}×${canvas.height}`);
-    } else {
+    };
+    if (dl) return save();
+    try{
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      showToast('Đã copy ảnh', `Bảng nhân vật ${canvas.width}×${canvas.height} — dán thẳng vào chat`);
+      showToast('Đã copy ảnh', `${canvas.width}×${canvas.height} — dán thẳng vào chat`);
+    }catch(e){
+      // trình duyệt chặn ghi ảnh vào clipboard -> tải file thay thế
+      save();
     }
   }catch(e){
-    if (restore) restore();
-    showToast('Không chụp được ảnh', String(e && e.message || e), 5000);
+    console.warn('snapCharPop', e);
+    showToast('Không chụp được ảnh', String((e&&e.message)||e), 6000);
   }finally{
-    if (btn){ btn.disabled=false; btn.style.opacity=''; }
+    if (btn){ btn.disabled=false; btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ảnh`; }
   }
 }
 try{ window.snapCharPop=snapCharPop; }catch(e){}
