@@ -6110,14 +6110,19 @@ function _snapName(p){
   const code=ad ? `${ad.slice(0,6)}${ad.slice(-4)}` : '';
   return [nm, code].filter(Boolean).join('_').trim().replace(/[^\w\-]+/g,'_');
 }
-async function snapCharPop(ev){
+async function snapCharPop(ev, mode){
   if (ev) ev.stopPropagation();
   const p=document.getElementById('char-pop'); if(!p) return;
-  const btn=p.querySelector('.mp-snap button');
-  const wantClip=!!(ev && ev.shiftKey);          // mặc định tải file, Shift mới copy
-  const restoreBtn=()=>{ if(btn){ btn.disabled=false;
-    btn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ảnh`; } };
-  if (btn){ btn.disabled=true; btn.textContent='…'; }
+  // mặc định copy; giữ Shift để đổi nhanh sang cách còn lại
+  let wantClip = (mode||'clip')==='clip';
+  if (ev && ev.shiftKey) wantClip=!wantClip;
+
+  const btns=[...p.querySelectorAll('.mp-snap button')];
+  const html0=btns.map(b=>b.innerHTML);
+  const done=()=>btns.forEach((b,i)=>{ b.disabled=false; b.innerHTML=html0[i]; });
+  btns.forEach(b=>{ b.disabled=true; });
+  const active=p.querySelector(`.mp-snap button[data-act="${wantClip?'clip':'file'}"]`)||btns[0];
+  if (active) active.innerHTML='…';
 
   const name=_snapName(p);
   let size={w:0,h:0};
@@ -6129,20 +6134,22 @@ async function snapCharPop(ev){
     return blob;
   })();
 
-  // Clipboard: phải gọi ngay trong cú nhấp, đưa Promise vào ClipboardItem
   if (wantClip){
     try{
+      // gọi ngay trong cú nhấp, đưa Promise vào ClipboardItem — trình duyệt mới chấp nhận
       await navigator.clipboard.write([ new ClipboardItem({ 'image/png': shot }) ]);
-      showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — dán vào Discord`);
-      restoreBtn(); return;
+      showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — Ctrl+V vào tin nhắn`);
+      done(); return;
     }catch(e){
       console.warn('clipboard.write', e);
       try{
         const blob=await shot;
+        try{ await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);   // thử lại với ảnh đã xong
+             showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — Ctrl+V vào tin nhắn`); done(); return; }catch(e2){}
         _download(blob, name+'.png');
-        showToast('Clipboard bị chặn — đã tải file', `${name}.png\nẢnh cũ vẫn nằm trong clipboard, hãy kéo file vào Discord thay vì dán`, 7000);
-      }catch(e2){ showToast('Không chụp được ảnh', String((e2&&e2.message)||e2), 6000); }
-      finally{ restoreBtn(); }
+        showToast('Clipboard bị chặn — đã lưu file', `${name}.png\nẢnh cũ vẫn nằm trong clipboard, hãy kéo file vào tin nhắn`, 7000);
+      }catch(e3){ showToast('Không chụp được ảnh', String((e3&&e3.message)||e3), 6000); }
+      finally{ done(); }
       return;
     }
   }
@@ -6150,11 +6157,11 @@ async function snapCharPop(ev){
   try{
     const blob=await shot;
     _download(blob, name+'.png');
-    showToast('Đã tải ảnh', `${name}.png · ${size.w}×${size.h}`);
+    showToast('Đã lưu ảnh', `${name}.png · ${size.w}×${size.h}`);
   }catch(e){
     console.warn('snapCharPop', e);
     showToast('Không chụp được ảnh', String((e&&e.message)||e), 6000);
-  }finally{ restoreBtn(); }
+  }finally{ done(); }
 }
 function _download(blob, filename){
   const a=document.createElement('a');
@@ -6180,8 +6187,10 @@ function charPopHtml(w){
   const stat=(lb,val,color)=>`<div class="mp-stat"><span class="mp-label">${lb}</span><span class="mp-value" style="${color?'color:'+color:''}">${val}</span></div>`;
   return `<div class="mp-tooltip mp-wide">
     <div class="mp-snap">
-      <button onclick="snapCharPop(event)" data-tip="Nhấp: tải ảnh PNG toàn bộ bảng&#10;Shift+nhấp: copy vào clipboard">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Ảnh</button>
+      <button data-act="clip" onclick="snapCharPop(event,'clip')" data-tip="Copy ảnh toàn bộ bảng để dán vào tin nhắn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Copy ảnh</button>
+      <button data-act="file" onclick="snapCharPop(event,'file')" data-tip="Lưu ảnh PNG về máy">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
     </div>
     <div class="mp-cols">
       <div class="mp-left">
