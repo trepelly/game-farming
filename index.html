@@ -958,6 +958,10 @@ td:first-child{text-align:left;color:var(--muted2)}
 .lpp-btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
 .lpp-grp{display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--border2);margin-top:8px}
 .lpp-grp span{font-size:10.5px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.lpp-sortbar{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}
+.lpp-sortbar button{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted2);cursor:pointer;font-family:inherit;white-space:nowrap;transition:.12s}
+.lpp-sortbar button:hover{color:var(--text2);border-color:var(--border3,var(--border2))}
+.lpp-sortbar button.on{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .lpp-grp .no{flex:0 0 20px;text-align:right;color:var(--muted2);font-size:10px;font-weight:700}
 .lpp-menu{background:var(--bg2);border-left:2px solid var(--border2);padding:7px 12px 8px}
 .lpp-mlb{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2)}
@@ -4695,18 +4699,33 @@ function refreshLiteSettings(){
   _lppRefreshUndo();
 }
 let _lppSetQ='';
+let _lppSetSort={col:'name', dir:'asc'};
 function setLiteSetQuery(v){ _lppSetQ=(v||'').toLowerCase(); _lppRefreshList(); }
+function setLiteSetSort(col){
+  if (_lppSetSort.col===col) _lppSetSort.dir = _lppSetSort.dir==='asc'?'desc':'asc';
+  else _lppSetSort={col, dir: col==='name'?'asc':'desc'};
+  _lppRefreshList(true);
+}
+function _lppSortBar(){
+  const b=(c,lb)=>`<button class="${_lppSetSort.col===c?'on':''}" onclick="setLiteSetSort('${c}')">${lb}${_lppSetSort.col===c?(_lppSetSort.dir==='asc'?' ↑':' ↓'):''}</button>`;
+  return `<div class="lpp-sortbar">${b('name','Tên')}${b('vi','Số ví')}${b('neso','Số dư')}${b('grp','Nhóm')}</div>`;
+}
 // chỉ dựng lại danh sách người chơi, giữ nguyên ô tìm đang gõ
-function _lppRefreshList(){
+function _lppRefreshList(withBar){
   const box=document.getElementById('lpp-plist'); if(!box) return;
   box.innerHTML=liteSettingsList();
   const c=document.getElementById('lpp-pcount'); if(c) c.textContent=_lppMatch().length;
+  if (withBar){
+    const bar=box.previousElementSibling;
+    if (bar && bar.classList.contains('lpp-sortbar')) bar.outerHTML=_lppSortBar();
+  }
 }
 function _lppNames(){
   const ws=allWallets();
   const map={};
   ws.forEach(w=>{ const k=w.player||'(chưa gán)';
-    (map[k]=map[k]||{n:0, chars:[]}).n++;
+    const e=(map[k]=map[k]||{n:0, neso:0, chars:[]});
+    e.n++; e.neso+=(w.neso||0);
     (w.chars||[]).forEach(c=>{ if(c&&c.name) map[k].chars.push(c.name); });
   });
   return map;
@@ -4714,10 +4733,22 @@ function _lppNames(){
 // tìm theo tên người chơi HOẶC tên nhân vật trong ví của họ
 function _lppMatch(){
   const map=_lppNames(), q=_lppSetQ.trim();
-  return Object.keys(map).sort((a,b)=>a.localeCompare(b)).filter(pl=>{
+  const hit=Object.keys(map).filter(pl=>{
     if(!q) return true;
     if (pl.toLowerCase().includes(q)) return true;
     return map[pl].chars.some(c=>c.toLowerCase().includes(q));
+  });
+  const dir=_lppSetSort.dir==='asc'?1:-1;
+  const key={
+    name: pl=>pl.toLowerCase(),
+    vi:   pl=>map[pl].n,
+    neso: pl=>map[pl].neso,
+    grp:  pl=>(isExtPlayer(pl)?1:0),
+  }[_lppSetSort.col] || (pl=>pl.toLowerCase());
+  return hit.sort((a,b)=>{
+    const x=key(a), y=key(b);
+    const r=(typeof x==='string') ? x.localeCompare(y) : (x-y);
+    return (r||a.localeCompare(b))*dir;
   });
 }
 function liteSettingsList(){
@@ -4731,7 +4762,7 @@ function liteSettingsList(){
     const hit=q && !pl.toLowerCase().includes(q) ? d.chars.filter(c=>c.toLowerCase().includes(q)).slice(0,3) : [];
     return `<div class="lpp-grp">
       <span class="no mvp-num">${i+1}</span>
-      <span>${_mvpEsc(pl)} <span style="color:var(--muted2)">· ${d.n} ví</span>${hit.length?`<br><span style="font-size:9.5px;color:var(--accent)">${_mvpEsc(hit.join(' · '))}</span>`:''}</span>
+      <span>${_mvpEsc(pl)} <span style="color:var(--muted2)">· ${d.n} ví · ${_lfk(d.neso)}</span>${hit.length?`<br><span style="font-size:9.5px;color:var(--accent)">${_mvpEsc(hit.join(' · '))}</span>`:''}</span>
       <button class="lpp-btn${ex?'':' pri'}" onclick="askPlayerGroup(event,'${esc(pl)}',false)">Nhóm</button>
       <button class="lpp-btn" style="${ex?'border-color:var(--green);color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)':''}" onclick="askPlayerGroup(event,'${esc(pl)}',true)">Ngoại</button>
     </div>`;
@@ -4753,6 +4784,7 @@ function liteSettingsHtml(){
     <input id="lpp-psearch" type="text" value="${_mvpEsc(_lppSetQ)}" oninput="setLiteSetQuery(this.value)"
       placeholder="Tìm theo tên người chơi hoặc tên nhân vật…"
       style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:6px 9px;color:var(--text);font-size:11px;font-family:inherit;outline:none;margin-bottom:4px">
+    ${_lppSortBar()}
     <div id="lpp-plist">${liteSettingsList()}</div>
     <div id="lpp-undo" style="margin-top:8px"></div>
   </div>`;
