@@ -245,12 +245,17 @@ export default {
         attempt++;
         await new Promise(r => setTimeout(r, 400 * attempt));
       }
-      body = await resp.text();
+      // Ảnh là dữ liệu nhị phân — đọc bằng resp.text() sẽ phá hỏng file.
+      // Chỉ chuyển sang text với những kiểu nội dung thực sự là chữ.
+      const ctype = resp.headers.get('Content-Type') || 'application/json';
+      const isText = /^(text\/|application\/(json|javascript|xml|xhtml))/i.test(ctype) || !resp.headers.get('Content-Type');
+      body = isText ? await resp.text() : await resp.arrayBuffer();
       return new Response(body, {
         status: resp.status,
         headers: {
-          'Content-Type': resp.headers.get('Content-Type') || 'application/json',
+          'Content-Type': ctype,
           'Access-Control-Allow-Origin': '*',
+          'Cross-Origin-Resource-Policy': 'cross-origin',
           'Cache-Control': (request.method === 'POST' || noCache) ? 'no-store' : 'public, max-age=600',
         },
       });

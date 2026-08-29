@@ -5987,16 +5987,21 @@ function _loadHtml2Canvas(){
 const _imgData=new Map();
 async function _toDataUrl(src){
   if (_imgData.has(src)) return _imgData.get(src);
+  // Thử lấy thẳng trước (CDN ảnh của msu thường cho CORS), hỏng thì mới qua proxy
+  const tries=[src, msuProxy(src)];
   let out=null;
-  try{
-    const r=await fetch(msuProxy(src));
-    if (r.ok){
-      const b=await r.blob();
-      if (b && b.size && /^image\//.test(b.type||'image/png')){
-        out=await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(null); fr.readAsDataURL(b); });
-      }
-    }
-  }catch(e){}
+  for (const u of tries){
+    try{
+      const r=await fetch(u, {mode:'cors', credentials:'omit'});
+      if (!r.ok) continue;
+      let b=await r.blob();
+      if (!b || !b.size) continue;
+      // proxy có thể trả sai kiểu nội dung -> ép về image/png cho chắc
+      if (!/^image\//.test(b.type||'')) b=new Blob([await b.arrayBuffer()], {type:'image/png'});
+      const data=await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>res(null); fr.readAsDataURL(b); });
+      if (data && data.length>64){ out=data; break; }      // dữ liệu quá ngắn = ảnh hỏng
+    }catch(e){}
+  }
   _imgData.set(src, out);
   return out;
 }
