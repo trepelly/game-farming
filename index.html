@@ -6130,14 +6130,23 @@ async function snapCharPop(ev, mode){
   if (active) active.innerHTML='…';
 
   const name=_snapName(p);
-  let size={w:0,h:0};
-  const shot=(async ()=>{
-    const canvas=await _popCanvas(p);
-    size={w:canvas.width,h:canvas.height};
-    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
-    if(!blob) throw new Error('canvas rỗng');
-    return blob;
+  let size={w:0,h:0}, best=null;
+  const canvasP=_popCanvas(p).then(c=>{ size={w:c.width,h:c.height}; return c; });
+  // Clipboard chỉ nhận image/png — các trình duyệt không cho dán JPEG
+  const shot=canvasP.then(c=>new Promise(r=>c.toBlob(r,'image/png'))).then(b=>{
+    if(!b) throw new Error('canvas rỗng'); return b;
+  });
+  // Lưu file: dựng cả PNG lẫn JPEG rồi lấy cái nhẹ hơn
+  const shotFile=(async ()=>{
+    const c=await canvasP;
+    const mk=(type,q)=>new Promise(r=>c.toBlob(r,type,q));
+    const [png,jpg]=await Promise.all([mk('image/png'), mk('image/jpeg',0.92)]);
+    if (!png && !jpg) throw new Error('canvas rỗng');
+    const pick=(jpg && png && jpg.size<png.size) ? {b:jpg,ext:'jpg'} : {b:(png||jpg),ext:png?'png':'jpg'};
+    best={png:png&&png.size, jpg:jpg&&jpg.size, ext:pick.ext};
+    return pick;
   })();
+  const kb=v=>v==null?'?':(v>=1048576?(v/1048576).toFixed(1)+' MB':Math.round(v/1024)+' KB');
 
   if (wantClip){
     try{
@@ -6151,8 +6160,9 @@ async function snapCharPop(ev, mode){
         const blob=await shot;
         try{ await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);   // thử lại với ảnh đã xong
              showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — Ctrl+V vào tin nhắn`); done(); return; }catch(e2){}
-        _download(blob, name+'.png');
-        showToast('Clipboard bị chặn — đã lưu file', `${name}.png\nẢnh cũ vẫn nằm trong clipboard, hãy kéo file vào tin nhắn`, 7000);
+        const f=await shotFile;
+        _download(f.b, `${name}.${f.ext}`);
+        showToast('Clipboard bị chặn — đã lưu file', `${name}.${f.ext} · ${kb(f.b.size)}\nẢnh cũ vẫn nằm trong clipboard, hãy kéo file vào tin nhắn`, 7000);
       }catch(e3){ showToast('Không chụp được ảnh', String((e3&&e3.message)||e3), 6000); }
       finally{ done(); }
       return;
@@ -6160,9 +6170,10 @@ async function snapCharPop(ev, mode){
   }
 
   try{
-    const blob=await shot;
-    _download(blob, name+'.png');
-    showToast('Đã lưu ảnh', `${name}.png · ${size.w}×${size.h}`);
+    const f=await shotFile;
+    _download(f.b, `${name}.${f.ext}`);
+    showToast('Đã lưu ảnh', `${name}.${f.ext} · ${size.w}×${size.h} · ${kb(f.b.size)}`
+      + (best && best.png && best.jpg ? `\nPNG ${kb(best.png)} · JPEG ${kb(best.jpg)} — lấy bản nhẹ hơn` : ''));
   }catch(e){
     console.warn('snapCharPop', e);
     showToast('Không chụp được ảnh', String((e&&e.message)||e), 6000);
@@ -6194,7 +6205,7 @@ function charPopHtml(w){
     <div class="mp-snap">
       <button data-act="clip" onclick="snapCharPop(event,'clip')" data-tip="Copy ảnh toàn bộ bảng để dán vào tin nhắn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Copy ảnh</button>
-      <button data-act="file" onclick="snapCharPop(event,'file')" data-tip="Lưu ảnh PNG về máy">
+      <button data-act="file" onclick="snapCharPop(event,'file')" data-tip="Lưu ảnh về máy&#10;Tự chọn PNG hay JPEG tuỳ bản nào nhẹ hơn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
     </div>
     <div class="mp-cols">
