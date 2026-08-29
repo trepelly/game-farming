@@ -938,6 +938,15 @@ td:first-child{text-align:left;color:var(--muted2)}
 .lpp-sw:hover{color:var(--text2);border-color:var(--accent);background:var(--surface)}
 .lpp-cog{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid transparent;color:var(--muted2);cursor:pointer;flex-shrink:0;transition:.12s}
 .lpp-cog:hover,.lpp-cog.on{color:var(--accent);border-color:var(--border2);background:var(--bg2)}
+#lpp-dlg{position:fixed;inset:0;z-index:10500;background:#000000b0;display:flex;align-items:center;justify-content:center;padding:22px}
+#lpp-dlg .dlg{width:min(460px,94vw);max-height:88vh;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border2);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.5);overflow:hidden}
+#lpp-dlg .hd{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border2)}
+#lpp-dlg .hd b{font-size:13px;font-weight:800;color:var(--text);flex:1}
+#lpp-dlg .x{width:24px;height:24px;border-radius:7px;border:1px solid var(--border2);background:var(--surface);color:var(--muted2);cursor:pointer;font-size:14px;line-height:1;font-family:inherit}
+#lpp-dlg .x:hover{color:var(--text);border-color:var(--accent)}
+#lpp-dlg .bd{padding:12px 14px 14px;overflow-y:auto}
+#lpp-dlg .bd::-webkit-scrollbar{width:6px}
+#lpp-dlg .bd::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 .lpp-set{border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);background:var(--bg2);padding:9px 12px}
 .lpp-set-lb{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2);margin-bottom:5px}
 .lpp-set textarea{width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:7px 9px;color:var(--text);font-size:11px;font-family:inherit;outline:none;resize:vertical;min-height:54px}
@@ -4659,8 +4668,52 @@ function setLitePSort(col){
   else litePSort={col, dir: col==='name'?'asc':'desc'};
   renderLitePlayers();
 }
-let _litePSet=false;                       // bảng cài đặt của panel đang mở?
-function toggleLiteSettings(ev){ if(ev) ev.stopPropagation(); _litePSet=!_litePSet; _litePMenu=null; renderLitePlayers(); }
+// Cài đặt panel mở dưới dạng hộp thoại riêng, không chiếm chỗ trong panel
+function closeLiteSettings(){ const d=document.getElementById('lpp-dlg'); if(d) d.remove(); }
+function openLiteSettings(ev){
+  if (ev) ev.stopPropagation();
+  if (!(typeof teamUser!=='undefined' && teamUser && teamUser.role==='admin')) return;
+  closeLiteSettings();
+  const d=document.createElement('div'); d.id='lpp-dlg';
+  d.onclick=e=>{ if(e.target===d) closeLiteSettings(); };
+  d.innerHTML=`<div class="dlg">
+      <div class="hd"><b>Cài đặt · Ví theo người chơi</b><button class="x" onclick="closeLiteSettings()">✕</button></div>
+      <div class="bd" id="lpp-dlg-bd">${liteSettingsHtml()}</div>
+    </div>`;
+  document.body.appendChild(d);
+  const ta=d.querySelector('#lpp-bulk'); if(ta) ta.focus();
+  document.addEventListener('keydown', _lppEsc);
+}
+function _lppEsc(e){ if(e.key==='Escape'){ closeLiteSettings(); document.removeEventListener('keydown', _lppEsc); } }
+// Dựng lại ruột hộp thoại sau khi đổi nhóm, không đụng tới ô đang gõ
+function refreshLiteSettings(){
+  const bd=document.getElementById('lpp-dlg-bd'); if(!bd) return;
+  const ta=bd.querySelector('#lpp-bulk'); const keep=ta?ta.value:'';
+  bd.innerHTML=liteSettingsHtml();
+  const ta2=bd.querySelector('#lpp-bulk'); if(ta2) ta2.value=keep;
+}
+function liteSettingsHtml(){
+  const ws=allWallets();
+  const names=[...new Set(ws.map(w=>w.player||'(chưa gán)'))].sort((a,b)=>a.localeCompare(b));
+  const esc=x=>(x||'').replace(/'/g,"");
+  const cnt={}; ws.forEach(w=>{ const k=w.player||'(chưa gán)'; cnt[k]=(cnt[k]||0)+1; });
+  return `<div class="lpp-set" style="border:none;background:transparent;padding:0">
+    <div class="lpp-set-lb">Thêm ví</div>
+    <textarea id="lpp-bulk" placeholder="0x1234...abcd&#10;Ví sếp, 0x5678...efgh&#10;Ví farm: 0xaaaa...1111"></textarea>
+    <div class="lpp-set-row">
+      <span class="msg" id="lpp-bulk-msg">Mỗi dòng 1 ví · hỗ trợ “Tên, 0x…” · “Tên | 0x…”</span>
+      <button class="lpp-btn pri" onclick="litePanelAddWallets()">Thêm ví</button>
+    </div>
+    <div class="lpp-set-lb" style="margin-top:14px">Nhóm người chơi <span style="font-weight:600;text-transform:none;letter-spacing:0">· ví ngoại không tính vào tổng</span></div>
+    ${names.length?names.map(pl=>{ const ex=isExtPlayer(pl);
+      return `<div class="lpp-grp">
+        <span>${_mvpEsc(pl)} <span style="color:var(--muted2)">· ${cnt[pl]} ví</span></span>
+        <button class="lpp-btn${ex?'':' pri'}" onclick="setPlayerGroup(event,'${esc(pl)}',false)">Nhóm</button>
+        <button class="lpp-btn" style="${ex?'border-color:var(--green);color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent)':''}" onclick="setPlayerGroup(event,'${esc(pl)}',true)">Ngoại</button>
+      </div>`; }).join(''):'<div class="lpp-empty">Chưa có người chơi</div>'}
+  </div>`;
+}
+try{ window.openLiteSettings=openLiteSettings; window.closeLiteSettings=closeLiteSettings; window.liteSettingsHtml=liteSettingsHtml; }catch(e){}
 // Thêm ví ngay trong panel, dùng lại đúng bộ phân tích của tab Cài đặt
 async function litePanelAddWallets(){
   const ta=document.getElementById('lpp-bulk'); const msg=document.getElementById('lpp-bulk-msg');
@@ -4678,6 +4731,7 @@ async function litePanelAddWallets(){
     }
     ta.value='';
     renderLiteTab();
+    refreshLiteSettings();
     set('Đã thêm xong');
     showToast('Đã thêm ví', txt.split('\n').filter(x=>x.trim()).length+' dòng');
   }catch(e){ console.warn('litePanelAddWallets', e); set('Lỗi: '+((e&&e.message)||e)); }
@@ -4696,6 +4750,7 @@ async function setPlayerGroup(ev, name, ext){
     if (ext) m[name]=true; else delete m[name];
     if (litePlayer===name) litePlayer='all';
     renderLiteTab();
+    refreshLiteSettings();
     await saveTeamData();
   }catch(e){ console.warn('setPlayerGroup', e); }
 }
@@ -4921,28 +4976,13 @@ function renderLitePlayers(){
         <div class="lpp-t1"><span class="lpp-title">Ví theo người chơi</span>
         <span style="display:flex;align-items:center;gap:6px">
           <span class="lpp-cnt mvp-num">${tot.vi} ví</span>
-          ${isAdm?`<span class="lpp-cog${_litePSet?' on':''}" onclick="toggleLiteSettings(event)" data-tip="Cài đặt: thêm ví · đổi nhóm người chơi"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>`:''}
+          ${isAdm?`<span class="lpp-cog" onclick="openLiteSettings(event)" data-tip="Cài đặt: thêm ví · đổi nhóm người chơi"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>`:''}
         </span></div>
         <div class="lpp-t2" onclick="setLitePlayer('all')" data-tip="Bấm để xem lại toàn bộ ví nhóm&#10;NESO: ${_lf(tot.neso)}">
           <span class="lpp-tot mvp-num">${_lfk(tot.neso)}</span>
           <span class="lpp-tlb">tổng ví nhóm</span>
         </div>
       </div>
-      ${(_litePSet&&isAdm)?`<div class="lpp-set">
-        <div class="lpp-set-lb">Thêm ví</div>
-        <textarea id="lpp-bulk" placeholder="0x1234...abcd&#10;Ví sếp, 0x5678...efgh&#10;Ví farm: 0xaaaa...1111"></textarea>
-        <div class="lpp-set-row">
-          <span class="msg" id="lpp-bulk-msg">Mỗi dòng 1 ví · hỗ trợ “Tên, 0x…”</span>
-          <button class="lpp-btn pri" onclick="litePanelAddWallets()">Thêm</button>
-        </div>
-        <div class="lpp-set-lb" style="margin-top:10px">Nhóm người chơi</div>
-        ${found.length?found.map(pl=>{ const ex=isExtPlayer(pl);
-          return `<div class="lpp-grp">
-            <span>${_mvpEsc(pl)}</span>
-            <button class="lpp-btn${ex?'':' pri'}" onclick="setPlayerGroup(event,'${esc(pl)}',false)">Nhóm</button>
-            <button class="lpp-btn" style="${ex?'border-color:var(--green);color:var(--green)':''}" onclick="setPlayerGroup(event,'${esc(pl)}',true)">Ngoại</button>
-          </div>`; }).join(''):'<div class="lpp-empty">Chưa có người chơi</div>'}
-      </div>`:''}
       <div class="lpp-search"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…"></div>
       <div class="lpp-cols">${hc('name','Người chơi')}${hc('vi','Ví',24)}${hc('neso','Số dư',56)}</div>
       ${(!inner.length && !outer.length)
