@@ -933,8 +933,9 @@ td:first-child{text-align:left;color:var(--muted2)}
 .lpp-ext .lpp-bal{color:var(--green)}
 .lpp-row.zero .lpp-nm{color:var(--muted2);font-weight:600}
 .lpp-row.zero .lpp-bal{color:var(--muted2);opacity:.55;font-weight:600}
-.lpp-sw{position:relative;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid transparent;color:var(--muted2);opacity:.5;flex-shrink:0;transition:.12s}
-.lpp-sw:hover{opacity:1;color:var(--text2);border-color:var(--border2);background:var(--surface)}
+.lpp-sw{position:absolute;right:98px;top:50%;transform:translateY(-50%);width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid var(--border2);background:var(--card);color:var(--muted2);opacity:0;pointer-events:none;flex-shrink:0;transition:opacity .12s,color .12s;z-index:2}
+.lpp-row:hover .lpp-sw{opacity:1;pointer-events:auto}
+.lpp-sw:hover{color:var(--text2);border-color:var(--accent);background:var(--surface)}
 .lpp-menu{background:var(--bg2);border-left:2px solid var(--border2);padding:7px 12px 8px}
 .lpp-mlb{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2)}
 .lpp-mrow{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
@@ -4871,7 +4872,7 @@ function renderLitePlayers(){
     <div class="lpp-gh">
       <span class="lpp-gt" style="color:${color}">${lb}</span>
       ${ext?'<span class="lpp-i" data-tip="Chỉ theo dõi — không tính vào tổng số dư">i</span>':''}
-      <span class="lpp-gsp"></span>${isAdm?'<span style="width:16px;flex-shrink:0"></span>':''}
+      <span class="lpp-gsp"></span>
       <span class="lpp-gvi mvp-num">${d.vi}</span>
       <span class="lpp-gbal mvp-num" style="color:${color}">${_lfk(d.neso)}</span>
     </div>
@@ -4887,7 +4888,7 @@ function renderLitePlayers(){
         </div>
       </div>
       <div class="lpp-search"><input id="lite-psearch" type="text" value="${_mvpEsc(litePQuery)}" oninput="setLitePQuery(this.value)" placeholder="Tìm tên người chơi…"></div>
-      <div class="lpp-cols">${hc('name','Người chơi')}${isAdm?'<span style="width:16px;flex-shrink:0"></span>':''}${hc('vi','Ví',24)}${hc('neso','Số dư',56)}</div>
+      <div class="lpp-cols">${hc('name','Người chơi')}${hc('vi','Ví',24)}${hc('neso','Số dư',56)}</div>
       ${(!inner.length && !outer.length)
         ? '<div class="lpp-empty" style="text-align:center;padding:14px">Không có người chơi khớp</div>'
         : `${group('Ví nhóm','var(--accent)',inner,tot,'nhom',false)}
