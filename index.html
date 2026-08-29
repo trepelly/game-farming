@@ -1077,6 +1077,13 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-eq-label{font-size:9.5px;color:#7b8494;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:13px}
 #ui-tip.mp-wrap{pointer-events:auto!important}
 .mp-others{padding:9px 11px 10px}
+#snap-prev{position:fixed;inset:0;z-index:10800;background:#000000cc;display:flex;align-items:center;justify-content:center;padding:24px}
+#snap-prev .box{max-width:min(92vw,1100px);max-height:92vh;display:flex;flex-direction:column;gap:10px;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:12px}
+#snap-prev img{max-width:100%;max-height:74vh;object-fit:contain;border-radius:8px;border:1px solid var(--border2);cursor:grab}
+#snap-prev .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#snap-prev .hint{flex:1;min-width:200px;font-size:11px;color:var(--muted2);line-height:1.5}
+#snap-prev button{background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:6px 11px;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+#snap-prev button.pri{border-color:var(--accent);color:var(--accent)}
 .mp-snap{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:4px}
 .mp-snap button{display:inline-flex;align-items:center;gap:4px;background:#1a1f26cc;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#8b93a1;cursor:pointer;font-size:9.5px;font-weight:700;font-family:inherit;line-height:1;backdrop-filter:blur(4px);transition:.12s}
 .mp-snap button:hover{color:#e6e9ef;border-color:#4c53a8;background:#232a44cc}
@@ -6139,6 +6146,55 @@ function _snapName(p){
   const code=ad ? `${ad.slice(0,6)}${ad.slice(-4)}` : '';
   return [nm, code].filter(Boolean).join('_').trim().replace(/[^\w\-]+/g,'_');
 }
+// Chụp đúng kiểu print screen: xin khung hình của tab rồi cắt theo khung bảng.
+// Ảnh ra là pixel thật của trình duyệt nên không vướng CORS hay CSS lạ.
+async function _captureScreen(el){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) throw new Error('trình duyệt không hỗ trợ chụp màn hình');
+  const stream=await navigator.mediaDevices.getDisplayMedia({
+    video:{ displaySurface:'browser', frameRate:1 }, audio:false, preferCurrentTab:true, selfBrowserSurface:'include'
+  });
+  try{
+    const v=document.createElement('video');
+    v.srcObject=stream; v.muted=true; v.playsInline=true;
+    await v.play();
+    await new Promise(r=>setTimeout(r,220));            // chờ khung hình đầu ổn định
+    const vw=v.videoWidth, vh=v.videoHeight;
+    if(!vw||!vh) throw new Error('không lấy được khung hình');
+    // khung hình phủ toàn bộ vùng hiển thị của tab -> quy đổi theo tỉ lệ
+    const sx=vw/innerWidth, sy=vh/innerHeight;
+    const r=el.getBoundingClientRect();
+    const c=document.createElement('canvas');
+    c.width=Math.round(r.width*sx); c.height=Math.round(r.height*sy);
+    c.getContext('2d').drawImage(v, Math.round(r.left*sx), Math.round(r.top*sy),
+      c.width, c.height, 0, 0, c.width, c.height);
+    v.pause(); v.srcObject=null;
+    return c;
+  } finally { stream.getTracks().forEach(t=>t.stop()); }
+}
+// Khung xem trước: chuột phải copy hoặc kéo thẳng vào Discord — luôn dùng được
+// kể cả khi trình duyệt chặn ghi clipboard bằng mã.
+function showSnapPreview(blob, name){
+  const old=document.getElementById('snap-prev'); if(old) old.remove();
+  const url=URL.createObjectURL(blob);
+  const d=document.createElement('div'); d.id='snap-prev';
+  d.innerHTML=`<div class="box" onclick="event.stopPropagation()">
+      <img src="${url}" alt="${_mvpEsc(name)}" draggable="true">
+      <div class="row">
+        <span class="hint">Chuột phải vào ảnh → <b>Copy image</b>, hoặc kéo thẳng ảnh vào ô chat.</span>
+        <button class="pri" id="snap-copy">Thử copy lại</button>
+        <button id="snap-dl">Lưu file</button>
+        <button id="snap-close">Đóng</button>
+      </div></div>`;
+  d.onclick=()=>{ URL.revokeObjectURL(url); d.remove(); };
+  document.body.appendChild(d);
+  d.querySelector('#snap-close').onclick=()=>{ URL.revokeObjectURL(url); d.remove(); };
+  d.querySelector('#snap-dl').onclick=()=>{ _download(blob, name+'.png'); showToast('Đã lưu ảnh', name+'.png'); };
+  d.querySelector('#snap-copy').onclick=async()=>{
+    try{ await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+         showToast('Đã copy ảnh', 'Ctrl+V vào tin nhắn'); URL.revokeObjectURL(url); d.remove(); }
+    catch(e){ showToast('Trình duyệt vẫn chặn', 'Dùng chuột phải → Copy image trên ảnh', 5000); }
+  };
+}
 async function snapCharPop(ev, mode){
   if (ev) ev.stopPropagation();
   const p=document.getElementById('char-pop'); if(!p) return;
@@ -6173,6 +6229,26 @@ async function snapCharPop(ev, mode){
   })());
   const kb=v=>v==null?'?':(v>=1048576?(v/1048576).toFixed(1)+' MB':Math.round(v/1024)+' KB');
 
+  // Chế độ print screen: lấy pixel thật của trình duyệt
+  if ((mode||'')==='screen'){
+    try{
+      const canvas=await _captureScreen(p);
+      const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+      if(!blob) throw new Error('canvas rỗng');
+      try{
+        await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+        showToast('Đã copy ảnh', `${name} · ${canvas.width}×${canvas.height} — Ctrl+V vào tin nhắn`);
+      }catch(e){
+        showSnapPreview(blob, name);
+        showToast('Ảnh đã sẵn sàng', 'Trình duyệt chặn copy tự động — chuột phải vào ảnh để copy', 5000);
+      }
+    }catch(e){
+      console.warn('captureScreen', e);
+      showToast('Không chụp được màn hình', String((e&&e.message)||e), 6000);
+    }finally{ done(); }
+    return;
+  }
+
   if (wantClip){
     try{
       // gọi ngay trong cú nhấp, đưa Promise vào ClipboardItem — trình duyệt mới chấp nhận
@@ -6185,9 +6261,8 @@ async function snapCharPop(ev, mode){
         const blob=await shot;
         try{ await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);   // thử lại với ảnh đã xong
              showToast('Đã copy ảnh', `${name} · ${size.w}×${size.h} — Ctrl+V vào tin nhắn`); done(); return; }catch(e2){}
-        const f=await shotFile();
-        _download(f.b, `${name}.${f.ext}`);
-        showToast('Clipboard bị chặn — đã lưu file', `${name}.${f.ext} · ${kb(f.b.size)}\nẢnh cũ vẫn nằm trong clipboard, hãy kéo file vào tin nhắn`, 7000);
+        showSnapPreview(blob, name);
+        showToast('Ảnh đã sẵn sàng', 'Trình duyệt chặn copy tự động — chuột phải vào ảnh để copy, hoặc kéo vào chat', 6000);
       }catch(e3){ showToast('Không chụp được ảnh', String((e3&&e3.message)||e3), 6000); }
       finally{ done(); }
       return;
@@ -6230,6 +6305,8 @@ function charPopHtml(w){
     <div class="mp-snap">
       <button data-act="clip" onclick="snapCharPop(event,'clip')" data-tip="Copy ảnh toàn bộ bảng để dán vào tin nhắn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Copy ảnh</button>
+      <button data-act="screen" onclick="snapCharPop(event,'screen')" data-tip="Chụp đúng như màn hình (print screen) rồi copy&#10;Trình duyệt sẽ hỏi chọn tab một lần">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
       <button data-act="file" onclick="snapCharPop(event,'file')" data-tip="Lưu ảnh về máy&#10;Tự chọn PNG hay JPEG tuỳ bản nào nhẹ hơn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
     </div>
