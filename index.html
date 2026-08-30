@@ -6836,6 +6836,17 @@ async function setWeeklyTarget(k, addr){
   try{ await saveTeamData(); }catch(e){}
 }
 try{ window.setWeeklyTarget=setWeeklyTarget; }catch(e){}
+let _bossPermOpen=false;                   // khối phân quyền đang mở?
+function toggleBossPermBox(ev){
+  if (ev) ev.stopPropagation();
+  _bossPermOpen=!_bossPermOpen;
+  try{ localStorage.setItem('msuBossPermOpen', _bossPermOpen?'1':'0'); }catch(e){}
+  const p=document.getElementById('boss-pop');
+  if (p){ const e2={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
+          openLiteBossPop(Object.assign({stopPropagation(){}}, e2), p.dataset.addr, true, p.dataset.cycle||''); }
+}
+try{ _bossPermOpen = localStorage.getItem('msuBossPermOpen')==='1'; }catch(e){}
+try{ window.toggleBossPermBox=toggleBossPermBox; }catch(e){}
 let _bossScopeAll=false;                  // đánh dấu boss cho 1 ví hay tất cả ví?
 function setBossScope(all, addr){
   _bossScopeAll=!!all;
@@ -6918,14 +6929,18 @@ function openLiteBossPop(ev, addr, keep, cycle){
         const scopeLb={own:'ví của chính họ', all:'toàn bộ ví', wallet:'ví đang xem'};
         const sBtn=(k,t)=>`<button onclick="setBossPermScope('${cy}','${k}','${addr}')" style="flex:1;background:${c.scope===k?'color-mix(in srgb,#38bdf8 16%,transparent)':'var(--surface)'};border:1px solid ${c.scope===k?'#38bdf8':'var(--border2)'};border-radius:6px;padding:4px 6px;font-size:9.5px;font-weight:700;color:${c.scope===k?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${t}</button>`;
         const mem=bossPermMembers();
-        return `<div style="padding:8px 9px;margin-bottom:9px;border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:8px;background:${on?'color-mix(in srgb,#38bdf8 8%,transparent)':'var(--bg2)'}">
-          <div style="display:flex;align-items:center;gap:8px">
+        const open=_bossPermOpen;
+        return `<div style="padding:${open?'8px 9px':'6px 9px'};margin-bottom:9px;border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:8px;background:${on?'color-mix(in srgb,#38bdf8 8%,transparent)':'var(--bg2)'}">
+          <div onclick="toggleBossPermBox(event)" style="cursor:pointer;display:flex;align-items:center;gap:8px" data-tip="${open?'Thu gọn':'Mở'} phần phân quyền">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="${on?'#38bdf8':'var(--muted2)'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;transform:rotate(${open?'90':'0'}deg);transition:transform .12s"><polyline points="9 18 15 12 9 6"/></svg>
             <span style="flex:1;min-width:0">
-              <span style="display:block;font-size:10px;font-weight:700;color:var(--text)">Thành viên tự đánh dấu ${lb}</span>
-              <span style="display:block;font-size:9px;color:${on?'#38bdf8':'var(--muted2)'}">${on?`Đang mở · ${scopeLb[c.scope]} · ${c.members.length?c.members.length+' thành viên':'mọi thành viên'}`:'Đang khoá · chỉ admin sửa được'}</span></span>
-            <button onclick="setBossPerm('${cy}',${on?'false':'true'})" style="background:${on?'color-mix(in srgb,#38bdf8 18%,transparent)':'var(--surface)'};border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${on?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${on?'Khoá':'Mở quyền'}</button>
+              <span style="display:block;font-size:10px;font-weight:700;color:var(--text)">Phân quyền ${lb}</span>
+              ${open?`<span style="display:block;font-size:9px;color:${on?'#38bdf8':'var(--muted2)'}">${on?`Đang mở · ${scopeLb[c.scope]} · ${c.members.length?c.members.length+' thành viên':'mọi thành viên'}`:'Đang khoá · chỉ admin sửa được'}</span>`:''}</span>
+            ${open
+              ? `<button onclick="event.stopPropagation();setBossPerm('${cy}',${on?'false':'true'})" style="background:${on?'color-mix(in srgb,#38bdf8 18%,transparent)':'var(--surface)'};border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${on?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${on?'Khoá':'Mở quyền'}</button>`
+              : `<span class="mvp-num" style="font-size:9px;font-weight:700;color:${on?'#38bdf8':'var(--muted2)'};white-space:nowrap">${on?(c.members.length?c.members.length+' TV':'mọi TV'):'khoá'}</span>`}
           </div>
-          ${on?`<div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:9px 0 4px">Được sửa ví nào</div>
+          ${(open&&on)?`<div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:9px 0 4px">Được sửa ví nào</div>
             <div style="display:flex;gap:4px">${sBtn('own','Ví của họ')}${sBtn('wallet','Ví này')}${sBtn('all','Tất cả ví')}</div>
             <div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:9px 0 4px">Thành viên ${c.members.length?`(${c.members.length} đã chọn)`:'(để trống = tất cả)'}</div>
             ${mem.length?`<div style="display:flex;flex-wrap:wrap;gap:4px">${mem.map(u=>{ const sel=c.members.includes(u.username);
