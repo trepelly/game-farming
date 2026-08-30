@@ -6812,10 +6812,23 @@ function openLiteBossPop(ev, addr, keep){
       <span class="mvp-num" style="font-size:10.5px;color:var(--muted2)">${done.length}/${tgt.length} boss đã mở</span>
       <button onclick="closeBossPop()" style="margin-left:auto;background:none;border:none;color:var(--muted2);font-size:17px;line-height:1;cursor:pointer">×</button>
     </div>
-    <div style="font-size:9.5px;font-weight:700;color:#ffe600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Chưa mở (${miss.length})</div>
-    <div style="display:flex;flex-wrap:wrap;gap:5px">${miss.length?miss.map(b=>item(b,false)).join(''):'<span style="font-size:11px;color:var(--muted2)">— không còn boss nào —</span>'}</div>
-    <div style="font-size:9.5px;font-weight:700;color:#7fd88f;text-transform:uppercase;letter-spacing:.05em;margin:11px 0 6px">Đã mở (${done.length})</div>
-    <div style="display:flex;flex-wrap:wrap;gap:5px">${done.length?done.map(b=>item(b,true)).join(''):'<span style="font-size:11px;color:var(--muted2)">— chưa có —</span>'}</div>
+    ${['daily','weekly'].map((cy,ci)=>{
+      const lb = cy==='daily' ? 'Daily' : 'Weekly';
+      const cMiss = miss.filter(b=>b.cycle===cy), cDone = done.filter(b=>b.cycle===cy);
+      if (!cMiss.length && !cDone.length) return '';
+      const col = cy==='daily' ? '#8b93a1' : '#a5b4fc';
+      return `<div style="${ci?'margin-top:12px;padding-top:11px;border-top:1px solid var(--border2)':''}">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
+          <span style="font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:${col}">${lb}</span>
+          <span style="flex:1;height:1px;background:var(--border2)"></span>
+          <span class="mvp-num" style="font-size:9.5px;white-space:nowrap"><span style="color:${cMiss.length?'#d8a44f':'var(--muted2)'}">${cMiss.length}</span><span style="color:var(--muted2)">/</span><span style="color:#7fd88f">${cDone.length}</span></span>
+        </div>
+        ${cMiss.length?`<div style="font-size:9px;font-weight:700;color:#d8a44f;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Chưa mở (${cMiss.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">${cMiss.map(b=>item(b,false)).join('')}</div>`:''}
+        ${cDone.length?`<div style="font-size:9px;font-weight:700;color:#7fd88f;text-transform:uppercase;letter-spacing:.05em;margin:${cMiss.length?'9px':'0'} 0 5px">Đã mở (${cDone.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">${cDone.map(b=>item(b,true)).join('')}</div>`:''}
+      </div>`;
+    }).join('')}
     ${admin?`<div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border2)">
       <div style="font-size:9.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Áp dụng cho</div>
       <div style="display:flex;gap:5px">
