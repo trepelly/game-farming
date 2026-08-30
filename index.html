@@ -6766,11 +6766,12 @@ function liteBossCell(w, cycle){
   const done=liteDoneBosses(w, cycle);
   const total=miss.length+done.length;
   const lb=cycle==='weekly'?'Weekly':'Daily';
-  const click=`data-bosscell="1" onclick="openLiteBossPop(event,'${w.address}')" style="cursor:pointer;`;
-  const tip=`${lb}: đã mở ${done.length}/${total}${miss.length?` · còn ${miss.length}`:' · đủ'}&#10;(Bấm để mở/đóng chi tiết)`;
+  const click=`data-bosscell="1" onclick="openLiteBossPop(event,'${w.address}',false,'${cycle}')" style="cursor:pointer;`;
+  const tip=`${lb}: đã mở ${done.length}/${total}${miss.length?` · còn ${miss.length}`:' · đủ'}&#10;(Bấm để xem ${lb.toLowerCase()})`;
   const ring=_bossRing(done.length, total, cycle==='weekly'?'#8b7ae8':'#7fd88f');
 
-  let extra='';
+  // Weekly luôn chừa chỗ ảnh mục tiêu để vòng tròn của mọi dòng thẳng hàng
+  let extra = cycle==='weekly' ? '<span style="width:22px;flex-shrink:0"></span>' : '';
   if (cycle==='weekly'){
     const t=weeklyTargetBoss();
     if (t){
@@ -6796,7 +6797,8 @@ async function setWeeklyTarget(k, addr){
   const b=BOSS_LIST.find(x=>x.k===k);
   try{ renderLiteList(); }catch(e){}
   if (addr){ const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
-             openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true); }
+             const cyc=(document.getElementById('boss-pop')||{}).dataset?.cycle||'';
+             openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true, cyc); }
   showToast(teamSettings.weeklyTarget?'Đặt boss tuần mục tiêu':'Bỏ boss tuần mục tiêu', b?b.name:k);
   try{ await saveTeamData(); }catch(e){}
 }
@@ -6805,7 +6807,7 @@ let _bossScopeAll=false;                  // đánh dấu boss cho 1 ví hay t�
 function setBossScope(all, addr){
   _bossScopeAll=!!all;
   const p=document.getElementById('boss-pop');
-  if (p) openLiteBossPop({stopPropagation(){}, clientX:parseFloat(p.style.left)||window._lastPopX, clientY:parseFloat(p.style.top)||window._lastPopY}, addr, true);
+  if (p) openLiteBossPop({stopPropagation(){}, clientX:parseFloat(p.style.left)||window._lastPopX, clientY:parseFloat(p.style.top)||window._lastPopY}, addr, true, p.dataset.cycle||'');
 }
 // Các ví sẽ bị ảnh hưởng khi bật chế độ "tất cả"
 function _bossVisibleWallets(){
@@ -6817,15 +6819,17 @@ function _bossScopeWallets(addr){
   return l.length?l:[addr];
 }
 try{ window.setBossScope=setBossScope; }catch(e){}
-function openLiteBossPop(ev, addr, keep){
+function openLiteBossPop(ev, addr, keep, cycle){
   ev.stopPropagation();
   const cur=document.getElementById('boss-pop');
-  if (cur && cur.dataset.addr===addr && !keep){ closeBossPop(); return; }   // bấm lại -> đóng
+  const cyc = cycle || (cur && keep ? cur.dataset.cycle : '') || '';
+  if (cur && cur.dataset.addr===addr && cur.dataset.cycle===cyc && !keep){ closeBossPop(); return; }
   closeBossPop();
   if (ev.clientX){ window._lastPopX=ev.clientX; window._lastPopY=ev.clientY; }
   const ws=(typeof teamWallets!=='undefined'?teamWallets:[])||[];
   const w=ws.find(x=>x.address===addr); if(!w) return;
-  const tgt=(typeof bossTargetList==='function')?bossTargetList():[];
+  let tgt=(typeof bossTargetList==='function')?bossTargetList():[];
+  if (cyc) tgt=tgt.filter(b=>b.cycle===cyc);            // cột nào mở thì chỉ xem chu kỳ đó
   const done=tgt.filter(b=>bossIsUnlocked(addr,b.k)), miss=tgt.filter(b=>!bossIsUnlocked(addr,b.k));
   const admin=(typeof isRealAdmin==='function'&&isRealAdmin());
   const item=(b,on)=>{
@@ -6835,14 +6839,15 @@ function openLiteBossPop(ev, addr, keep){
       <img src="${bossImg(b)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${on?'':'filter:grayscale(1);opacity:.45'}" onerror="this.style.display='none'">
       ${byLv?'<span style="position:absolute;bottom:-3px;right:-3px;font-size:8px;background:var(--card);border-radius:6px;padding:0 3px;color:#38bdf8;font-weight:700">Lv</span>':''}
     </span>`; };
-  const p=document.createElement('div'); p.id='boss-pop'; p.dataset.addr=addr;
+  const p=document.createElement('div'); p.id='boss-pop'; p.dataset.addr=addr; p.dataset.cycle=cyc;
   p.style.cssText='position:fixed;z-index:10050;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow-lg);min-width:270px;max-width:330px';
   p.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
       <span style="font-size:13px;font-weight:800;color:var(--text)">${_mvpEsc(w.label||addr)}</span>
+      ${cyc?`<span style="font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:${cyc==='daily'?'#7fd88f':'#8b7ae8'}">${cyc==='daily'?'Daily':'Weekly'}</span>`:''}
       <span class="mvp-num" style="font-size:10.5px;color:var(--muted2)">${done.length}/${tgt.length} boss đã mở</span>
       <button onclick="closeBossPop()" style="margin-left:auto;background:none;border:none;color:var(--muted2);font-size:17px;line-height:1;cursor:pointer">×</button>
     </div>
-    ${['daily','weekly'].map((cy,ci)=>{
+    ${(cyc?[cyc]:['daily','weekly']).map((cy,ci)=>{
       const lb = cy==='daily' ? 'Daily' : 'Weekly';
       const cMiss = miss.filter(b=>b.cycle===cy), cDone = done.filter(b=>b.cycle===cy);
       if (!cMiss.length && !cDone.length) return '';
@@ -6909,7 +6914,8 @@ async function liteBossToggle(addr, k, on){
   try { renderLiteList(); } catch(e){}
   if (many) showToast(on?'Đã đánh dấu đã mở':'Đã bỏ đánh dấu', `${name} · ${changed}/${list.length} ví thay đổi`);
   const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
-  openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true);
+  const cyc=(document.getElementById('boss-pop')||{}).dataset?.cycle||'';
+  openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true, cyc);
   try { await saveTeamData(); } catch(e){}
 }
 function renderLiteList(){
