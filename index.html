@@ -6739,7 +6739,9 @@ function liteDoneBosses(w, cycle){
   return tgt.filter(b=>bossIsUnlocked(w.address,b.k));
 }
 function _bossAva(b, done){
-  return `<span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${done?'#7fd88f':'#ffe600'};background:var(--bg2)${done?'':''}"><img src="${bossImg(b)}" loading="lazy" style="width:100%;height:100%;object-fit:cover${done?'':''}" onerror="this.remove()"></span>`;
+  // boss chưa mở để trắng đen cho phân biệt ngay từ xa
+  const img=`width:100%;height:100%;object-fit:cover${done?'':';filter:grayscale(1) brightness(.75)'}`;
+  return `<span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${done?'#7fd88f':'var(--border2)'};background:var(--bg2);opacity:${done?'1':'.85'}"><img src="${bossImg(b)}" loading="lazy" style="${img}" onerror="this.remove()"></span>`;
 }
 function _bossPill(inner, dim){
   return `<span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;gap:1px;height:22px;min-width:26px;padding:0 7px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);font-size:10px;font-weight:700;opacity:${dim?'.5':'1'}">${inner}</span>`;
