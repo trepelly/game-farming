@@ -5287,7 +5287,12 @@ async function debugArcane(ak){
 }
 try{ window.debugArcane=debugArcane; }catch(e){}
 function _saveCharEquipCache(){ try{ localStorage.setItem('msuCharEquip', JSON.stringify(CHAR_EQUIP_CACHE)); }catch(e){} }
+const CHAR_INFO_TTL = 30*60*1000;   // 30 phút: level lên, trang bị đổi thì phải lấy lại
 const CHAR_INFO_CACHE = (()=>{ try{ return JSON.parse(localStorage.getItem('msuCharInfo2')||'{}'); }catch(e){ return {}; } })();
+function _charInfoFresh(ak){
+  const i=CHAR_INFO_CACHE[ak];
+  return !!(i && i.eqSlots && (Date.now()-(i.ts||0) < CHAR_INFO_TTL));
+}
 function _saveCharInfoCache(){ try{ localStorage.setItem('msuCharInfo2', JSON.stringify(CHAR_INFO_CACHE)); }catch(e){} }
 function charInfo(ak){ return CHAR_INFO_CACHE[ak]||null; }
 
@@ -5356,7 +5361,7 @@ function _charUrls(ak){
 
 async function fetchCharImg(ak){
   if (!ak || _charImgTried.has(ak)) return CHAR_IMG_CACHE[ak]||null;
-  if (CHAR_INFO_CACHE[ak] && CHAR_INFO_CACHE[ak].eqSlots && CHAR_IMG_CACHE[ak]) return CHAR_IMG_CACHE[ak];
+  if (_charInfoFresh(ak) && CHAR_IMG_CACHE[ak]) return CHAR_IMG_CACHE[ak];
   _charImgTried.add(ak);
   for (const url of _charUrls(ak)){
     try{
@@ -5365,6 +5370,7 @@ async function fetchCharImg(ak){
       const t=await r.text();
       const info=_parseCharJson(t);
       if (info){
+        info.ts=Date.now();
         CHAR_INFO_CACHE[ak]=info; _saveCharInfoCache();
         if (info.img){ CHAR_IMG_CACHE[ak]=info.img; _saveCharImgCache(); }
         if (info.ids.length){ CHAR_EQUIP_CACHE[ak]=info.ids.slice(0,24); _saveCharEquipCache(); }
@@ -6400,6 +6406,53 @@ function showSnapPreview(blob, name){
     catch(e){ showToast('Trình duyệt vẫn chặn', 'Dùng chuột phải → Copy image trên ảnh', 5000); }
   };
 }
+// Bỏ hết dữ liệu đã lưu của nhân vật/ví này rồi lấy lại từ đầu
+let _reloading=false;
+async function reloadCharPop(ev){
+  if (ev) ev.stopPropagation();
+  const p=document.getElementById('char-pop'); if(!p || _reloading) return;
+  const addr=p.dataset.addr;
+  const w=allWallets().find(x=>x.address===addr); if(!w) return;
+  const btn=p.querySelector('.mp-snap button[data-act="reload"]');
+  const old=btn?btn.innerHTML:'';
+  if (btn){ btn.disabled=true; btn.textContent='…'; }
+  _reloading=true;
+  try{
+    const aks=(w.chars||[]).map(c=>c.ak).filter(Boolean);
+    aks.forEach(ak=>{
+      delete CHAR_INFO_CACHE[ak]; delete CHAR_IMG_CACHE[ak];
+      delete CHAR_EQUIP_CACHE[ak]; delete ARC_LV_CACHE[ak]; delete SKILL_CACHE[ak];
+      _charImgTried.delete(ak); _skillTried.delete(ak);
+    });
+    _saveCharInfoCache(); _saveCharImgCache(); _saveCharEquipCache(); _saveArcLvCache(); _saveSkillCache();
+    // danh sách vật phẩm của ví
+    w.nftItemsFull=null; w.ftItemsFull=null;
+    try{ delete EQ_CACHE[(addr||'').toLowerCase()]; _saveEqCache(); }catch(e){}
+    _eqHoverBusy.delete(addr); _ftBusy.delete(addr);
+    // chi tiết vật phẩm đã tra (sao, potential…)
+    Object.keys(ITEM_CACHE).forEach(k=>delete ITEM_CACHE[k]);
+    _itemTried.clear(); _imgData.clear();
+
+    await Promise.allSettled([
+      ...aks.map(ak=>fetchCharImg(ak)),
+      ...aks.map(ak=>fetchCharSkills(ak)),
+      ensureHoldings(addr),
+    ]);
+    _charPopRefresh(addr);
+    try{ renderLiteList(); }catch(e){}
+    prefetchPopImages(document.getElementById('char-pop'), 200);
+    showToast('Đã cập nhật', `${w.label||addr.slice(0,8)} · ${aks.length} nhân vật`);
+  }catch(e){
+    console.warn('reloadCharPop', e);
+    showToast('Không cập nhật được', String((e&&e.message)||e), 5000);
+  }finally{
+    _reloading=false;
+    const b=document.querySelector('#char-pop .mp-snap button[data-act="reload"]');
+    if (b){ b.disabled=false; b.innerHTML=old || b.innerHTML; }
+  }
+}
+try{ window.reloadCharPop=reloadCharPop; }catch(e){}
+
 async function snapCharPop(ev, mode){
   if (ev) ev.stopPropagation();
   const p=document.getElementById('char-pop'); if(!p) return;
@@ -6508,6 +6561,8 @@ function charPopHtml(w){
   const stat=(lb,val,color)=>`<div class="mp-stat"><span class="mp-label">${lb}</span><span class="mp-value" style="${color?'color:'+color:''}">${val}</span></div>`;
   return `<div class="mp-tooltip mp-wide">
     <div class="mp-snap">
+      <button data-act="reload" onclick="reloadCharPop(event)" data-tip="Tải lại nhân vật, trang bị và tài sản của ví này">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
       <button data-act="clip" onclick="snapCharPop(event,'clip')" data-tip="Copy ảnh toàn bộ bảng để dán vào tin nhắn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Copy ảnh</button>
       <button data-act="screen" onclick="snapCharPop(event,'screen')" data-tip="Chụp đúng như màn hình (print screen) rồi copy&#10;Trình duyệt sẽ hỏi chọn tab một lần">
@@ -6598,7 +6653,7 @@ function charEquipItems(w, charName){
 let _charImgTimer=null;
 async function ensureCharImgs(list){
   // chưa có bản JSON đầy đủ thì tải lại, kể cả khi đã có ảnh từ bản quét cũ
-  const need=list.filter(c=>c&&c.ak&&!_charImgTried.has(c.ak)&&(!CHAR_INFO_CACHE[c.ak]||!CHAR_IMG_CACHE[c.ak])).slice(0,6);
+  const need=list.filter(c=>c&&c.ak&&!_charImgTried.has(c.ak)&&(!_charInfoFresh(c.ak)||!CHAR_IMG_CACHE[c.ak])).slice(0,6);
   if (!need.length) return;
   let got=false;
   for (const c of need){ const u=await fetchCharImg(c.ak); if(u) got=true; await new Promise(r=>setTimeout(r,120)); }
