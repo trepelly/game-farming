@@ -6795,7 +6795,7 @@ function liteBossCell(w, cycle){
 function bossSlainMap(){ try{ return (teamSettings && teamSettings.bossSlain) || {}; }catch(e){ return {}; } }
 function isBossSlain(addr,k){ const m=bossSlainMap()[addr]; return !!(m && m[k]); }
 async function toggleBossSlain(addr, k){
-  if (!isRealAdmin()) return;
+  if (!canEditBoss('weekly', addr)){ showToast('Không có quyền', 'Nhờ admin mở quyền hoặc gắn giúp', 4000); return; }
   const b=BOSS_LIST.find(x=>x.k===k);
   const list=_bossScopeWallets(addr);
   const on=!isBossSlain(addr,k);
@@ -6847,7 +6847,7 @@ function _bossVisibleWallets(){
   try{ const l=liteScope().map(w=>w.address); return l.length?l:[]; }catch(e){ return []; }
 }
 function _bossScopeWallets(addr){
-  if (!_bossScopeAll) return [addr];
+  if (!_bossScopeAll || !isRealAdmin()) return [addr];
   const l=_bossVisibleWallets();
   return l.length?l:[addr];
 }
@@ -6864,7 +6864,8 @@ function openLiteBossPop(ev, addr, keep, cycle){
   let tgt=(typeof bossTargetList==='function')?bossTargetList():[];
   if (cyc) tgt=tgt.filter(b=>b.cycle===cyc);            // cột nào mở thì chỉ xem chu kỳ đó
   const done=tgt.filter(b=>bossIsUnlocked(addr,b.k)), miss=tgt.filter(b=>!bossIsUnlocked(addr,b.k));
-  const admin=(typeof isRealAdmin==='function'&&isRealAdmin());
+  const isAdm=(typeof isRealAdmin==='function'&&isRealAdmin());
+  const admin=isAdm || canEditBoss(cyc||'daily', addr);   // được phép sửa boss?
   const item=(b,on)=>{
     const byLv=!!(b.lvUnlock && bossMaxLevel(addr)>=b.lvUnlock);
     const tip=`${_mvpEsc(b.name)}${byLv?' · mở theo level':''}${admin&&!byLv?(on?' · bấm để bỏ':' · bấm để đánh dấu đã mở'):''}`;
@@ -6913,8 +6914,15 @@ function openLiteBossPop(ev, addr, keep, cycle){
       </div>`;
     }).join('')}
     ${admin?`<div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border2)">
+      ${isAdm?(()=>{ const cy=cyc||'daily', on=!!bossPerm()[cy], lb=cy==='weekly'?'Weekly':'Daily';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;margin-bottom:9px;border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:8px;background:${on?'color-mix(in srgb,#38bdf8 10%,transparent)':'var(--bg2)'}">
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:10px;font-weight:700;color:var(--text)">Thành viên tự đánh dấu ${lb}</span>
+            <span style="display:block;font-size:9px;color:${on?'#38bdf8':'var(--muted2)'}">${on?'Đang mở · chỉ sửa được ví của chính họ':'Đang khoá · chỉ admin sửa được'}</span></span>
+          <button onclick="setBossPerm('${cy}',${on?'false':'true'})" style="background:${on?'color-mix(in srgb,#38bdf8 18%,transparent)':'var(--surface)'};border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${on?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${on?'Khoá':'Mở quyền'}</button>
+        </div>`; })():''}
       <div style="font-size:9.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Áp dụng cho</div>
-      <div style="display:flex;gap:5px">
+      <div style="display:flex;gap:5px;${isAdm?'':'opacity:.45;pointer-events:none'}">
         <button onclick="setBossScope(false,'${addr}')" style="flex:1;background:${_bossScopeAll?'var(--surface)':'color-mix(in srgb,var(--accent) 16%,transparent)'};border:1px solid ${_bossScopeAll?'var(--border2)':'var(--accent)'};border-radius:7px;padding:5px 8px;font-size:10.5px;font-weight:700;color:${_bossScopeAll?'var(--text2)':'var(--accent)'};cursor:pointer;font-family:inherit">Ví này</button>
         <button onclick="setBossScope(true,'${addr}')" style="flex:1;background:${_bossScopeAll?'color-mix(in srgb,#d8a44f 18%,transparent)':'var(--surface)'};border:1px solid ${_bossScopeAll?'#d8a44f':'var(--border2)'};border-radius:7px;padding:5px 8px;font-size:10.5px;font-weight:700;color:${_bossScopeAll?'#d8a44f':'var(--text2)'};cursor:pointer;font-family:inherit">Tất cả ${_bossVisibleWallets().length||1} ví</button>
       </div>
@@ -6933,8 +6941,8 @@ function openLiteBossPop(ev, addr, keep, cycle){
   setTimeout(()=>{ document.addEventListener('mousedown', _bossPopOut, { once:true }); }, 0);
 }
 async function liteBossToggle(addr, k, on){
-  if (!isRealAdmin()) return;
   const b=BOSS_LIST.find(x=>x.k===k);
+  if (!canEditBoss(b?b.cycle:'daily', addr)){ showToast('Không có quyền', 'Nhờ admin mở quyền hoặc đánh dấu giúp', 4000); return; }
   const name=b?b.name:k;
   const list=_bossScopeWallets(addr);
   const many=list.length>1;
@@ -7895,6 +7903,38 @@ let _overviewCollapsed = (()=>{ try { return localStorage.getItem('msuOverviewCo
 function toggleOverview(){ _overviewCollapsed = !_overviewCollapsed; try { localStorage.setItem('msuOverviewCollapsed', _overviewCollapsed ? '1' : '0'); } catch(e){} try { renderTeam(); } catch(e){} }   // null = xem như admin; hoặc {role,username,players,viewAll}
 function effUser(){ return _viewAs || teamUser || {}; }
 function isRealAdmin(){ return teamUser && teamUser.role === 'admin'; }
+// Admin có thể mở quyền sửa cột boss cho thành viên (riêng daily / weekly).
+// Thành viên chỉ sửa được ví của chính mình, admin sửa mọi ví.
+function bossPerm(){
+  try{ return (teamSettings && teamSettings.bossPerm) || {}; }catch(e){ return {}; }
+}
+function canEditBoss(cycle, addr){
+  if (isRealAdmin()) return true;
+  const u=teamUser||{};
+  if (u.role!=='member') return false;
+  const p=bossPerm();
+  if (!p[cycle==='weekly'?'weekly':'daily']) return false;
+  if (!addr) return true;
+  // chỉ ví thuộc người chơi của chính mình
+  const w=(typeof teamWallets!=='undefined'?teamWallets:[]).find(x=>x.address===addr);
+  if (!w) return false;
+  const mine=(u.players&&u.players.length)?u.players:(u.player?[u.player]:[]);
+  return mine.includes(w.player);
+}
+async function setBossPerm(cycle, on){
+  if (!isRealAdmin()) return;
+  if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+  teamSettings.bossPerm = teamSettings.bossPerm || {};
+  teamSettings.bossPerm[cycle] = !!on;
+  const lb=cycle==='weekly'?'Weekly':'Daily';
+  showToast(on?`Đã mở quyền ${lb} cho thành viên`:`Đã khoá quyền ${lb}`,
+            on?'Thành viên tự đánh dấu được boss trên ví của mình':'Chỉ admin mới sửa được');
+  const p=document.getElementById('boss-pop');
+  if (p){ const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
+          openLiteBossPop(Object.assign({stopPropagation(){}}, ev), p.dataset.addr, true, p.dataset.cycle||''); }
+  try{ await saveTeamData(); }catch(e){}
+}
+try{ window.setBossPerm=setBossPerm; window.canEditBoss=canEditBoss; }catch(e){}
 // Phạm vi dữ liệu của một tab theo người chơi đang chọn.
 // 'all' = chỉ ví nhóm; chọn đúng tên một người chơi ngoại thì tab hiển thị ví của họ.
 function scopeFor(sel){
