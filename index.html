@@ -6781,7 +6781,7 @@ function liteBossCell(w, cycle){
       const ok=bossIsUnlocked(w.address, t.k);
       const slain=isBossSlain(w.address, t.k);
       const tipT=`Boss tuần mục tiêu: ${_mvpEsc(t.name)}&#10;${ok?'Ví này đã mở':'Ví này CHƯA mở'}${slain?'&#10;★ Slayer — đã đánh được':''}`;
-      extra=`<span data-tip="${tipT}" style="position:relative;width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${slain?'#38bdf8':(ok?'#7fd88f':'var(--border2)')};background:var(--bg2)">
+      extra=`<span onclick="event.stopPropagation();setLiteSort('bossT')" data-tip="${tipT}&#10;(Bấm để sắp xếp theo boss mục tiêu)" style="cursor:pointer;position:relative;width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${slain?'#38bdf8':(ok?'#7fd88f':'var(--border2)')};background:var(--bg2)">
         <img src="${bossImg(t)}" loading="lazy" style="width:100%;height:100%;object-fit:cover${(ok||slain)?'':';filter:grayscale(1) brightness(.75)'}" onerror="this.remove()">
         ${slain?`<span style="position:absolute;left:0;right:0;bottom:0;height:8px;background:#0b1e2b;display:flex;align-items:center;justify-content:center">
           <span style="font-size:5px;font-weight:800;letter-spacing:.02em;color:#38bdf8;line-height:1;font-family:'JetBrains Mono',monospace">SLR</span></span>`:''}
@@ -7003,6 +7003,9 @@ function renderLiteList(){
                world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
                cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
                weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), boss:w=>liteMissingBosses(w).length, bossD:w=>liteMissingBosses(w,'daily').length, bossW:w=>liteMissingBosses(w,'weekly').length,
+               // boss mục tiêu: chưa mở(0) < đã mở(1) < đã đánh(2)
+               bossT:w=>{ const t=weeklyTargetBoss(); if(!t) return -1;
+                          return isBossSlain(w.address,t.k)?2:(bossIsUnlocked(w.address,t.k)?1:0); },
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
@@ -7079,7 +7082,12 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${hc('bossW','<span style="color:#8b7ae8">B. Weekly</span>','center','Boss tuần · kèm ảnh boss mục tiêu')}${hc('drop','MVP','left')}${hc('drop','Hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${(()=>{ const t=weeklyTargetBoss();
+        return `<div style="display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;overflow:hidden">
+          <span onclick="setLiteSort('bossW')" data-tip="Boss tuần · số đã mở&#10;Bấm để sắp xếp" style="cursor:pointer;color:${liteSort.col==='bossW'?'var(--accent)':'#8b7ae8'}">B. Weekly${liteSort.col==='bossW'?(liteSort.dir==='desc'?' ↓':' ↑'):''}</span>
+          ${t?`<span onclick="setLiteSort('bossT')" data-tip="Sắp xếp theo boss mục tiêu: ${_mvpEsc(t.name)}&#10;Chưa mở → Đã mở → Slayer" style="cursor:pointer;display:inline-flex;width:13px;height:13px;border-radius:50%;overflow:hidden;border:1px solid ${liteSort.col==='bossT'?'var(--accent)':'var(--border2)'};flex-shrink:0">
+            <img src="${bossImg(t)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()"></span>`:''}
+        </div>`; })()}${hc('drop','MVP','left')}${hc('drop','Hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
