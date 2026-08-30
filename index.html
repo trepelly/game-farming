@@ -1146,7 +1146,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(12){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(62px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(10),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -6727,19 +6727,40 @@ function _tokHdr(name){
   const ic=TOKEN_ICON[name];
   return (ic?`<span style="display:inline-flex;width:12px;height:12px;border-radius:50%;overflow:hidden;background:var(--bg2);vertical-align:-2px;margin-right:4px"><img src="${ic}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:'')+name;
 }
-function liteMissingBosses(w){
-  const tgt=(typeof bossTargetList==='function')?bossTargetList():[];
+function liteMissingBosses(w, cycle){
+  let tgt=(typeof bossTargetList==='function')?bossTargetList():[];
+  if (cycle) tgt=tgt.filter(b=>b.cycle===cycle);
   return tgt.filter(b=>!bossIsUnlocked(w.address,b.k));
 }
-function liteBossCell(w){
-  const miss=liteMissingBosses(w);
+function liteDoneBosses(w, cycle){
+  let tgt=(typeof bossTargetList==='function')?bossTargetList():[];
+  if (cycle) tgt=tgt.filter(b=>b.cycle===cycle);
+  return tgt.filter(b=>bossIsUnlocked(w.address,b.k));
+}
+function _bossAva(b, done){
+  return `<span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${done?'#7fd88f':'#ffe600'};background:var(--bg2)${done?'':''}"><img src="${bossImg(b)}" loading="lazy" style="width:100%;height:100%;object-fit:cover${done?'':''}" onerror="this.remove()"></span>`;
+}
+function _bossPill(nRest, dim){
+  return `<span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:26px;padding:0 6px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);color:${dim?'var(--border3,var(--muted2))':'var(--muted2)'};font-size:10px;font-weight:700;opacity:${dim?'.45':'1'}">+${nRest}</span>`;
+}
+// cycle: 'daily' giữ nguyên kiểu cũ (chỉ boss chưa mở);
+// 'weekly' hiện thêm một ảnh boss ĐÃ mở đứng trước ảnh boss chưa mở.
+function liteBossCell(w, cycle){
+  const miss=liteMissingBosses(w, cycle);
+  const done=liteDoneBosses(w, cycle);
+  const lb=cycle==='weekly'?'Weekly':(cycle==='daily'?'Daily':'Boss');
   const click=`data-bosscell="1" onclick="openLiteBossPop(event,'${w.address}')" style="cursor:pointer;`;
-  if (!miss.length) return `<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="Đã mở đủ boss mục tiêu&#10;(Bấm để mở/đóng chi tiết)"><span style="color:#7fd88f;font-size:10.5px;font-weight:600">✓ đủ</span></div>`;
+  const wrap=(tip,inner)=>`<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="${tip}">${inner}</div>`;
+
+  if (!miss.length){
+    const tip=`${lb}: đã mở đủ ${done.length} boss&#10;(Bấm để mở/đóng chi tiết)`;
+    const first=(cycle==='weekly'&&done.length)?_bossAva(done[0],true):'';
+    return wrap(tip, first+`<span class="mvp-num" style="color:#7fd88f;font-weight:700;font-size:11px">✓</span>`);
+  }
   const b0=miss[0], rest=miss.length-1;
-  return `<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="${miss.length} boss chưa mở&#10;(Bấm để mở/đóng chi tiết)">
-      <span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid #ffe600;background:var(--bg2)"><img src="${bossImg(b0)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1);opacity:.55" onerror="this.style.display='none'"></span>
-      <span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:26px;padding:0 6px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);color:${rest?'var(--muted2)':'var(--border3,var(--muted2))'};font-size:10px;font-weight:700;opacity:${rest?'1':'.45'}">+${rest}</span>
-    </div>`;
+  const tip=`${lb}: ${miss.length} boss chưa mở${done.length?` · đã mở ${done.length}`:''}&#10;(Bấm để mở/đóng chi tiết)`;
+  const first=(cycle==='weekly'&&done.length)?_bossAva(done[done.length-1],true):'';
+  return wrap(tip, first+_bossAva(b0,false)+_bossPill(rest, !rest));
 }
 // Popover: ảnh boss đã mở / chưa mở, bấm để đổi trạng thái
 function openLiteBossPop(ev, addr, keep){
@@ -6811,13 +6832,13 @@ function renderLiteList(){
                lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
                world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
                cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
-               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), boss:w=>liteMissingBosses(w).length,
+               weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), boss:w=>liteMissingBosses(w).length, bossD:w=>liteMissingBosses(w,'daily').length, bossW:w=>liteMissingBosses(w,'weekly').length,
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
+  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(62px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lfc(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -6833,7 +6854,8 @@ function renderLiteList(){
         return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${lv?'var(--text2)':'var(--muted2)'}">${lv||'—'}</div>`; })()}
       ${(()=>{ const c=topChar(w); const cp=(c&&c.cp)||w.maxCp||null;
         return `<div class="mvp-num" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" ${cp?`data-tip="CP: ${Math.round(cp).toLocaleString('vi-VN')}"`:''}>${_cpf(cp)}</div>`; })()}
-      ${liteBossCell(w)}
+      ${liteBossCell(w,'daily')}
+      ${liteBossCell(w,'weekly')}
       ${(()=>{
         const k=w.mvpDropIn, wk=w.mvpDropWeek, pts=mvpPtsOf(w);
         if (k==null || !wk) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
@@ -6887,7 +6909,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('boss','Boss','left','Số lượt boss chưa mở')}${hc('drop','MVP','left')}${hc('drop','Hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bossD','Daily','left','Boss ngày chưa mở')}${hc('bossW','Weekly','left','Boss tuần · ảnh xanh là boss đã mở')}${hc('drop','MVP','left')}${hc('drop','Hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
@@ -6897,8 +6919,12 @@ function renderLiteList(){
           <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap;text-align:right">${(()=>{const ws2=[...new Set(ws.map(w=>{const c=topChar(w);return (c&&c.world)||w.maxCpWorld||null;}).filter(Boolean))]; return ws2.length?ws2.length+' world':'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=topChar(w);return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+_cpf(Math.max(...cp)):'—';})()}</div>
-          ${(()=>{ const nOkB=ws.filter(w=>!liteMissingBosses(w).length).length; const tot=ws.reduce((s,w)=>s+liteMissingBosses(w).length,0);
-            return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="Tổng lượt boss chưa mở&#10;${nOkB}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOkB}✓</span></div>`; })()}
+          ${['daily','weekly'].map(cy=>{
+            const lb=cy==='daily'?'Daily':'Weekly';
+            const nOk=ws.filter(w=>!liteMissingBosses(w,cy).length).length;
+            const tot=ws.reduce((s,w)=>s+liteMissingBosses(w,cy).length,0);
+            return `<div class="mvp-num" style="text-align:right;color:${tot?'#d8a44f':'#7fd88f'}" data-tip="${lb}: tổng ${tot} lượt chưa mở&#10;${nOk}/${ws.length} ví đã mở đủ">${tot?tot:'✓'}<span style="font-size:9px;color:var(--muted2)"> ${nOk}✓</span></div>`;
+          }).join('')}
           ${(()=>{ const has=ws.filter(w=>w.mvpDropIn!=null);
             if(!has.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
             const up=ws.filter(w=>w.mvpDropIn>0&&w.mvpDropWeek).sort((x,y)=>x.mvpDropIn-y.mvpDropIn)[0];
