@@ -6771,6 +6771,22 @@ function liteBossCell(w, cycle){
   return wrap(tip, ava+pill);
 }
 // Popover: ảnh boss đã mở / chưa mở, bấm để đổi trạng thái
+let _bossScopeAll=false;                  // đánh dấu boss cho 1 ví hay tất cả ví?
+function setBossScope(all, addr){
+  _bossScopeAll=!!all;
+  const p=document.getElementById('boss-pop');
+  if (p) openLiteBossPop({stopPropagation(){}, clientX:parseFloat(p.style.left)||window._lastPopX, clientY:parseFloat(p.style.top)||window._lastPopY}, addr, true);
+}
+// Các ví sẽ bị ảnh hưởng khi bật chế độ "tất cả"
+function _bossVisibleWallets(){
+  try{ const l=liteScope().map(w=>w.address); return l.length?l:[]; }catch(e){ return []; }
+}
+function _bossScopeWallets(addr){
+  if (!_bossScopeAll) return [addr];
+  const l=_bossVisibleWallets();
+  return l.length?l:[addr];
+}
+try{ window.setBossScope=setBossScope; }catch(e){}
 function openLiteBossPop(ev, addr, keep){
   ev.stopPropagation();
   const cur=document.getElementById('boss-pop');
@@ -6800,7 +6816,18 @@ function openLiteBossPop(ev, addr, keep){
     <div style="display:flex;flex-wrap:wrap;gap:5px">${miss.length?miss.map(b=>item(b,false)).join(''):'<span style="font-size:11px;color:var(--muted2)">— không còn boss nào —</span>'}</div>
     <div style="font-size:9.5px;font-weight:700;color:#7fd88f;text-transform:uppercase;letter-spacing:.05em;margin:11px 0 6px">Đã mở (${done.length})</div>
     <div style="display:flex;flex-wrap:wrap;gap:5px">${done.length?done.map(b=>item(b,true)).join(''):'<span style="font-size:11px;color:var(--muted2)">— chưa có —</span>'}</div>
-    ${admin?'<div style="font-size:9.5px;color:var(--muted2);margin-top:10px">Bấm 1 boss để đổi trạng thái · boss có nhãn Lv mở theo level</div>':''}`;
+    ${admin?`<div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border2)">
+      <div style="font-size:9.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Áp dụng cho</div>
+      <div style="display:flex;gap:5px">
+        <button onclick="setBossScope(false,'${addr}')" style="flex:1;background:${_bossScopeAll?'var(--surface)':'color-mix(in srgb,var(--accent) 16%,transparent)'};border:1px solid ${_bossScopeAll?'var(--border2)':'var(--accent)'};border-radius:7px;padding:5px 8px;font-size:10.5px;font-weight:700;color:${_bossScopeAll?'var(--text2)':'var(--accent)'};cursor:pointer;font-family:inherit">Ví này</button>
+        <button onclick="setBossScope(true,'${addr}')" style="flex:1;background:${_bossScopeAll?'color-mix(in srgb,#d8a44f 18%,transparent)':'var(--surface)'};border:1px solid ${_bossScopeAll?'#d8a44f':'var(--border2)'};border-radius:7px;padding:5px 8px;font-size:10.5px;font-weight:700;color:${_bossScopeAll?'#d8a44f':'var(--text2)'};cursor:pointer;font-family:inherit">Tất cả ${_bossVisibleWallets().length||1} ví</button>
+      </div>
+      <div style="font-size:9.5px;color:${_bossScopeAll?'#d8a44f':'var(--muted2)'};margin-top:6px;line-height:1.45">
+        ${_bossScopeAll
+          ? `Bấm 1 boss sẽ đánh dấu cho <b>toàn bộ ${_bossVisibleWallets().length||1} ví đang hiển thị</b>`
+          : 'Bấm 1 boss để đổi trạng thái · boss có nhãn Lv mở theo level'}
+      </div>
+    </div>`:''}`;
   document.body.appendChild(p);
   const r=p.getBoundingClientRect();
   let x=(ev.clientX||0)+12, y=(ev.clientY||0)+12;
@@ -6810,12 +6837,31 @@ function openLiteBossPop(ev, addr, keep){
   setTimeout(()=>{ document.addEventListener('mousedown', _bossPopOut, { once:true }); }, 0);
 }
 async function liteBossToggle(addr, k, on){
+  if (!isRealAdmin()) return;
   const b=BOSS_LIST.find(x=>x.k===k);
-  if (!on && !confirm(`Bỏ đánh dấu "đã mở" của boss ${b?b.name:k}?`)) return;
-  await toggleBossUnlock(addr,k);
+  const name=b?b.name:k;
+  const list=_bossScopeWallets(addr);
+  const many=list.length>1;
+  const msg = many
+    ? `${on?'Đánh dấu ĐÃ MỞ':'BỎ đánh dấu'} boss ${name} cho toàn bộ ${list.length} ví đang hiển thị?`
+    : (on ? null : `Bỏ đánh dấu "đã mở" của boss ${name}?`);
+  if (msg && !confirm(msg)) return;
+
+  if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+  teamSettings.bossUnlocked = teamSettings.bossUnlocked || {};
+  let changed=0;
+  list.forEach(ad=>{
+    const m = teamSettings.bossUnlocked[ad] = teamSettings.bossUnlocked[ad] || {};
+    const cur = !!m[ad===addr?k:k];
+    if (on && !cur){ m[k]=true; changed++; }
+    else if (!on && cur){ delete m[k]; changed++; }
+  });
+  try { renderBossTab(); } catch(e){}
   try { renderLiteList(); } catch(e){}
+  if (many) showToast(on?'Đã đánh dấu đã mở':'Đã bỏ đánh dấu', `${name} · ${changed}/${list.length} ví thay đổi`);
   const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
   openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true);
+  try { await saveTeamData(); } catch(e){}
 }
 function renderLiteList(){
   const el=document.getElementById('lite-list'); if(!el) return;
