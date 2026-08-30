@@ -6914,12 +6914,23 @@ function openLiteBossPop(ev, addr, keep, cycle){
       </div>`;
     }).join('')}
     ${admin?`<div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border2)">
-      ${isAdm?(()=>{ const cy=cyc||'daily', on=!!bossPerm()[cy], lb=cy==='weekly'?'Weekly':'Daily';
-        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;margin-bottom:9px;border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:8px;background:${on?'color-mix(in srgb,#38bdf8 10%,transparent)':'var(--bg2)'}">
-          <span style="flex:1;min-width:0">
-            <span style="display:block;font-size:10px;font-weight:700;color:var(--text)">Thành viên tự đánh dấu ${lb}</span>
-            <span style="display:block;font-size:9px;color:${on?'#38bdf8':'var(--muted2)'}">${on?'Đang mở · chỉ sửa được ví của chính họ':'Đang khoá · chỉ admin sửa được'}</span></span>
-          <button onclick="setBossPerm('${cy}',${on?'false':'true'})" style="background:${on?'color-mix(in srgb,#38bdf8 18%,transparent)':'var(--surface)'};border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${on?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${on?'Khoá':'Mở quyền'}</button>
+      ${isAdm?(()=>{ const cy=cyc||'daily', c=bossPermOf(cy), on=c.on, lb=cy==='weekly'?'Weekly':'Daily';
+        const scopeLb={own:'ví của chính họ', all:'toàn bộ ví', wallet:'ví đang xem'};
+        const sBtn=(k,t)=>`<button onclick="setBossPermScope('${cy}','${k}','${addr}')" style="flex:1;background:${c.scope===k?'color-mix(in srgb,#38bdf8 16%,transparent)':'var(--surface)'};border:1px solid ${c.scope===k?'#38bdf8':'var(--border2)'};border-radius:6px;padding:4px 6px;font-size:9.5px;font-weight:700;color:${c.scope===k?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${t}</button>`;
+        const mem=bossPermMembers();
+        return `<div style="padding:8px 9px;margin-bottom:9px;border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:8px;background:${on?'color-mix(in srgb,#38bdf8 8%,transparent)':'var(--bg2)'}">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1;min-width:0">
+              <span style="display:block;font-size:10px;font-weight:700;color:var(--text)">Thành viên tự đánh dấu ${lb}</span>
+              <span style="display:block;font-size:9px;color:${on?'#38bdf8':'var(--muted2)'}">${on?`Đang mở · ${scopeLb[c.scope]} · ${c.members.length?c.members.length+' thành viên':'mọi thành viên'}`:'Đang khoá · chỉ admin sửa được'}</span></span>
+            <button onclick="setBossPerm('${cy}',${on?'false':'true'})" style="background:${on?'color-mix(in srgb,#38bdf8 18%,transparent)':'var(--surface)'};border:1px solid ${on?'#38bdf8':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${on?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${on?'Khoá':'Mở quyền'}</button>
+          </div>
+          ${on?`<div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:9px 0 4px">Được sửa ví nào</div>
+            <div style="display:flex;gap:4px">${sBtn('own','Ví của họ')}${sBtn('wallet','Ví này')}${sBtn('all','Tất cả ví')}</div>
+            <div style="font-size:8.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:9px 0 4px">Thành viên ${c.members.length?`(${c.members.length} đã chọn)`:'(để trống = tất cả)'}</div>
+            ${mem.length?`<div style="display:flex;flex-wrap:wrap;gap:4px">${mem.map(u=>{ const sel=c.members.includes(u.username);
+              return `<span onclick="toggleBossPermMember('${cy}','${String(u.username).replace(/'/g,"")}')" data-tip="${sel?'Bỏ chọn':'Chọn'} ${_mvpEsc(u.username)}" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:11px;border:1px solid ${sel?'#38bdf8':'var(--border2)'};background:${sel?'color-mix(in srgb,#38bdf8 14%,transparent)':'var(--surface)'};font-size:9.5px;font-weight:700;color:${sel?'#38bdf8':'var(--text2)'}">${sel?'✓ ':''}${_mvpEsc(u.username)}</span>`;
+            }).join('')}</div>`:'<div style="font-size:9px;color:var(--muted2)">Chưa tải danh sách user · mở tab Cài đặt › Người dùng một lần</div>'}`:''}
         </div>`; })():''}
       <div style="font-size:9.5px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Áp dụng cho</div>
       <div style="display:flex;gap:5px;${isAdm?'':'opacity:.45;pointer-events:none'}">
@@ -7908,31 +7919,64 @@ function isRealAdmin(){ return teamUser && teamUser.role === 'admin'; }
 function bossPerm(){
   try{ return (teamSettings && teamSettings.bossPerm) || {}; }catch(e){ return {}; }
 }
+// Chuẩn hoá về một dạng; bản cũ lưu true/false nên phải đọc được cả hai
+function bossPermOf(cycle){
+  const raw=bossPerm()[cycle==='weekly'?'weekly':'daily'];
+  if (raw===true)  return { on:true,  scope:'own', members:[], wallets:[] };
+  if (!raw || typeof raw!=='object') return { on:false, scope:'own', members:[], wallets:[] };
+  return { on:!!raw.on, scope:raw.scope||'own',
+           members:Array.isArray(raw.members)?raw.members:[],
+           wallets:Array.isArray(raw.wallets)?raw.wallets:[] };
+}
 function canEditBoss(cycle, addr){
   if (isRealAdmin()) return true;
   const u=teamUser||{};
   if (u.role!=='member') return false;
-  const p=bossPerm();
-  if (!p[cycle==='weekly'?'weekly':'daily']) return false;
+  const c=bossPermOf(cycle);
+  if (!c.on) return false;
+  // để trống = mở cho mọi thành viên
+  if (c.members.length && !c.members.includes(u.username)) return false;
   if (!addr) return true;
-  // chỉ ví thuộc người chơi của chính mình
+  if (c.scope==='all') return true;
+  if (c.scope==='wallet') return c.wallets.includes(addr);
   const w=(typeof teamWallets!=='undefined'?teamWallets:[]).find(x=>x.address===addr);
   if (!w) return false;
   const mine=(u.players&&u.players.length)?u.players:(u.player?[u.player]:[]);
-  return mine.includes(w.player);
+  return mine.includes(w.player);      // 'own': chỉ ví của chính họ
 }
-async function setBossPerm(cycle, on){
+async function _savePerm(cycle, cfg, msg, sub){
   if (!isRealAdmin()) return;
   if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
   teamSettings.bossPerm = teamSettings.bossPerm || {};
-  teamSettings.bossPerm[cycle] = !!on;
-  const lb=cycle==='weekly'?'Weekly':'Daily';
-  showToast(on?`Đã mở quyền ${lb} cho thành viên`:`Đã khoá quyền ${lb}`,
-            on?'Thành viên tự đánh dấu được boss trên ví của mình':'Chỉ admin mới sửa được');
+  teamSettings.bossPerm[cycle] = cfg;
+  if (msg) showToast(msg, sub||'');
   const p=document.getElementById('boss-pop');
   if (p){ const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
           openLiteBossPop(Object.assign({stopPropagation(){}}, ev), p.dataset.addr, true, p.dataset.cycle||''); }
   try{ await saveTeamData(); }catch(e){}
+}
+async function setBossPermScope(cycle, scope, addr){
+  const c=bossPermOf(cycle); c.scope=scope;
+  if (scope==='wallet' && addr && !c.wallets.includes(addr)) c.wallets=[addr];
+  const lb={own:'ví của chính họ', all:'toàn bộ ví', wallet:'ví đang xem'}[scope];
+  await _savePerm(cycle, c, 'Phạm vi: '+lb, cycle==='weekly'?'Weekly':'Daily');
+}
+async function toggleBossPermMember(cycle, name){
+  const c=bossPermOf(cycle);
+  const i=c.members.indexOf(name);
+  if (i<0) c.members.push(name); else c.members.splice(i,1);
+  await _savePerm(cycle, c, c.members.length?`${c.members.length} thành viên được chỉnh`:'Mở cho mọi thành viên');
+}
+function bossPermMembers(){
+  const list=(typeof teamUsersCache!=='undefined'?teamUsersCache:[])||[];
+  return list.filter(u=>u && u.role==='member' && u.username);
+}
+try{ window.setBossPermScope=setBossPermScope; window.toggleBossPermMember=toggleBossPermMember; window.bossPermOf=bossPermOf; }catch(e){}
+async function setBossPerm(cycle, on){
+  const c=bossPermOf(cycle); c.on=!!on;
+  const lb=cycle==='weekly'?'Weekly':'Daily';
+  await _savePerm(cycle, c, on?`Đã mở quyền ${lb}`:`Đã khoá quyền ${lb}`,
+                  on?'Chọn phạm vi và thành viên bên dưới':'Chỉ admin mới sửa được');
 }
 try{ window.setBossPerm=setBossPerm; window.canEditBoss=canEditBoss; }catch(e){}
 // Phạm vi dữ liệu của một tab theo người chơi đang chọn.
