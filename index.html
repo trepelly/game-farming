@@ -6742,7 +6742,7 @@ function liteDoneBosses(w, cycle){
 function _bossRing(done, total, color, size){
   const sz=size||26, r=(sz-4)/2, c=2*Math.PI*r, pct=total?Math.min(1,done/total):0;
   const full=total&&done>=total;
-  const col=full?'#f6d36b':color;
+  const col=full?'#38bdf8':color;      // mở đủ cả chu kỳ -> vòng xanh dương
   return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;display:block">
     <circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="none" stroke="var(--border2)" stroke-width="3"/>
     ${pct>0?`<circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round"
