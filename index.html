@@ -1146,7 +1146,8 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(62px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(10),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(62px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}
+.mvp-lrow.lite-row > div:nth-child(9){border-left:1px solid color-mix(in srgb,var(--border2) 60%,transparent);padding-left:8px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(10),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -6740,27 +6741,32 @@ function liteDoneBosses(w, cycle){
 function _bossAva(b, done){
   return `<span style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${done?'#7fd88f':'#ffe600'};background:var(--bg2)${done?'':''}"><img src="${bossImg(b)}" loading="lazy" style="width:100%;height:100%;object-fit:cover${done?'':''}" onerror="this.remove()"></span>`;
 }
-function _bossPill(nRest, dim){
-  return `<span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:26px;padding:0 6px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);color:${dim?'var(--border3,var(--muted2))':'var(--muted2)'};font-size:10px;font-weight:700;opacity:${dim?'.45':'1'}">+${nRest}</span>`;
+function _bossPill(inner, dim){
+  return `<span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;gap:1px;height:22px;min-width:26px;padding:0 7px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);font-size:10px;font-weight:700;opacity:${dim?'.5':'1'}">${inner}</span>`;
 }
-// cycle: 'daily' giữ nguyên kiểu cũ (chỉ boss chưa mở);
-// 'weekly' hiện thêm một ảnh boss ĐÃ mở đứng trước ảnh boss chưa mở.
+// Daily : 1 ô tròn boss CHƯA mở + 1 ô số boss chưa mở
+// Weekly: 1 ô tròn boss ĐÃ mở  + 1 ô số "chưa mở / đã mở"
 function liteBossCell(w, cycle){
   const miss=liteMissingBosses(w, cycle);
   const done=liteDoneBosses(w, cycle);
-  const lb=cycle==='weekly'?'Weekly':(cycle==='daily'?'Daily':'Boss');
+  const all=miss.length+done.length;
+  const lb=cycle==='weekly'?'Weekly':'Daily';
   const click=`data-bosscell="1" onclick="openLiteBossPop(event,'${w.address}')" style="cursor:pointer;`;
-  const wrap=(tip,inner)=>`<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:3px" data-tip="${tip}">${inner}</div>`;
+  const wrap=(tip,inner)=>`<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:4px" data-tip="${tip}">${inner}</div>`;
+  const tip=`${lb}: ${miss.length}/${all} boss chưa mở&#10;Đã mở ${done.length}&#10;(Bấm để mở/đóng chi tiết)`;
 
-  if (!miss.length){
-    const tip=`${lb}: đã mở đủ ${done.length} boss&#10;(Bấm để mở/đóng chi tiết)`;
-    const first=(cycle==='weekly'&&done.length)?_bossAva(done[0],true):'';
-    return wrap(tip, first+`<span class="mvp-num" style="color:#7fd88f;font-weight:700;font-size:11px">✓</span>`);
+  if (cycle==='weekly'){
+    const ava=done.length ? _bossAva(done[done.length-1],true)
+                          : (miss.length?_bossAva(miss[0],false):'');
+    const pill=_bossPill(
+      `<span style="color:${miss.length?'#d8a44f':'var(--muted2)'}">${miss.length}</span>`+
+      `<span style="color:var(--border3,var(--muted2));font-weight:600">/</span>`+
+      `<span style="color:${done.length?'#7fd88f':'var(--muted2)'}">${done.length}</span>`, !all);
+    return wrap(tip, ava+pill);
   }
-  const b0=miss[0], rest=miss.length-1;
-  const tip=`${lb}: ${miss.length} boss chưa mở${done.length?` · đã mở ${done.length}`:''}&#10;(Bấm để mở/đóng chi tiết)`;
-  const first=(cycle==='weekly'&&done.length)?_bossAva(done[done.length-1],true):'';
-  return wrap(tip, first+_bossAva(b0,false)+_bossPill(rest, !rest));
+  const ava = miss.length ? _bossAva(miss[0],false) : (done.length?_bossAva(done[0],true):'');
+  const pill=_bossPill(`<span style="color:${miss.length?'#d8a44f':'#7fd88f'}">${miss.length||'✓'}</span>`, !miss.length);
+  return wrap(tip, ava+pill);
 }
 // Popover: ảnh boss đã mở / chưa mở, bấm để đổi trạng thái
 function openLiteBossPop(ev, addr, keep){
