@@ -1146,7 +1146,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(62px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(34px,.25fr) minmax(58px,.35fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}
 .mvp-lrow.lite-row > div:nth-child(9){border-left:1px solid color-mix(in srgb,var(--border2) 60%,transparent);padding-left:8px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(10),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
@@ -6738,6 +6738,19 @@ function liteDoneBosses(w, cycle){
   if (cycle) tgt=tgt.filter(b=>b.cycle===cycle);
   return tgt.filter(b=>bossIsUnlocked(w.address,b.k));
 }
+// Vòng tròn tiến trình: số boss đã mở / tổng, đủ thì đổi màu vàng
+function _bossRing(done, total, color, size){
+  const sz=size||26, r=(sz-4)/2, c=2*Math.PI*r, pct=total?Math.min(1,done/total):0;
+  const full=total&&done>=total;
+  const col=full?'#f6d36b':color;
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" style="flex-shrink:0;display:block">
+    <circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="none" stroke="var(--border2)" stroke-width="3"/>
+    ${pct>0?`<circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${(c*pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${sz/2} ${sz/2})"/>`:''}
+    <text x="${sz/2}" y="${sz/2}" text-anchor="middle" dominant-baseline="central"
+      style="font-family:'JetBrains Mono',monospace;font-size:${sz>=26?10:9}px;font-weight:700;fill:${done?col:'var(--muted2)'}">${done}</text>
+  </svg>`;
+}
 function _bossAva(b, done){
   // boss chưa mở để trắng đen cho phân biệt ngay từ xa
   const img=`width:100%;height:100%;object-fit:cover${done?'':';filter:grayscale(1) brightness(.75)'}`;
@@ -6746,31 +6759,48 @@ function _bossAva(b, done){
 function _bossPill(inner, dim){
   return `<span class="mvp-num" style="display:inline-flex;align-items:center;justify-content:center;gap:1px;height:22px;min-width:26px;padding:0 7px;border-radius:11px;background:var(--bg2);border:1px solid var(--border2);font-size:10px;font-weight:700;opacity:${dim?'.5':'1'}">${inner}</span>`;
 }
-// Daily : 1 ô tròn boss CHƯA mở + 1 ô số boss chưa mở
-// Weekly: 1 ô tròn boss ĐÃ mở  + 1 ô số "chưa mở / đã mở"
+// Daily : vòng tròn tiến trình (đã mở / tổng)
+// Weekly: vòng tròn + ảnh boss tuần mục tiêu bên cạnh
 function liteBossCell(w, cycle){
   const miss=liteMissingBosses(w, cycle);
   const done=liteDoneBosses(w, cycle);
-  const all=miss.length+done.length;
+  const total=miss.length+done.length;
   const lb=cycle==='weekly'?'Weekly':'Daily';
   const click=`data-bosscell="1" onclick="openLiteBossPop(event,'${w.address}')" style="cursor:pointer;`;
-  const wrap=(tip,inner)=>`<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:4px" data-tip="${tip}">${inner}</div>`;
-  const tip=`${lb}: ${miss.length}/${all} boss chưa mở&#10;Đã mở ${done.length}&#10;(Bấm để mở/đóng chi tiết)`;
+  const tip=`${lb}: đã mở ${done.length}/${total}${miss.length?` · còn ${miss.length}`:' · đủ'}&#10;(Bấm để mở/đóng chi tiết)`;
+  const ring=_bossRing(done.length, total, cycle==='weekly'?'#8b7ae8':'#7fd88f');
 
+  let extra='';
   if (cycle==='weekly'){
-    const ava=done.length ? _bossAva(done[done.length-1],true)
-                          : (miss.length?_bossAva(miss[0],false):'');
-    const pill=_bossPill(
-      `<span style="color:${miss.length?'#d8a44f':'var(--muted2)'}">${miss.length}</span>`+
-      `<span style="color:var(--border3,var(--muted2));font-weight:600">/</span>`+
-      `<span style="color:${done.length?'#7fd88f':'var(--muted2)'}">${done.length}</span>`, !all);
-    return wrap(tip, ava+pill);
+    const t=weeklyTargetBoss();
+    if (t){
+      const ok=bossIsUnlocked(w.address, t.k);
+      extra=`<span data-tip="Boss tuần mục tiêu: ${_mvpEsc(t.name)}&#10;${ok?'Ví này đã mở':'Ví này CHƯA mở'}" style="width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${ok?'#7fd88f':'var(--border2)'};background:var(--bg2)">
+        <img src="${bossImg(t)}" loading="lazy" style="width:100%;height:100%;object-fit:cover${ok?'':';filter:grayscale(1) brightness(.75)'}" onerror="this.remove()"></span>`;
+    }
   }
-  const ava = miss.length ? _bossAva(miss[0],false) : (done.length?_bossAva(done[0],true):'');
-  const pill=_bossPill(`<span style="color:${miss.length?'#d8a44f':'#7fd88f'}">${miss.length||'✓'}</span>`, !miss.length);
-  return wrap(tip, ava+pill);
+  return `<div ${click}display:flex;align-items:center;justify-content:flex-end;gap:5px" data-tip="${tip}">${extra}${ring}</div>`;
 }
 // Popover: ảnh boss đã mở / chưa mở, bấm để đổi trạng thái
+function weeklyTargetKey(){
+  try{ return (teamSettings && teamSettings.weeklyTarget) || ''; }catch(e){ return ''; }
+}
+function weeklyTargetBoss(){
+  const k=weeklyTargetKey();
+  return BOSS_LIST.find(b=>b.k===k && b.cycle==='weekly') || null;
+}
+async function setWeeklyTarget(k, addr){
+  if (!isRealAdmin()) return;
+  if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+  teamSettings.weeklyTarget = (teamSettings.weeklyTarget===k) ? '' : k;
+  const b=BOSS_LIST.find(x=>x.k===k);
+  try{ renderLiteList(); }catch(e){}
+  if (addr){ const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
+             openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true); }
+  showToast(teamSettings.weeklyTarget?'Đặt boss tuần mục tiêu':'Bỏ boss tuần mục tiêu', b?b.name:k);
+  try{ await saveTeamData(); }catch(e){}
+}
+try{ window.setWeeklyTarget=setWeeklyTarget; }catch(e){}
 let _bossScopeAll=false;                  // đánh dấu boss cho 1 ví hay tất cả ví?
 function setBossScope(all, addr){
   _bossScopeAll=!!all;
@@ -6827,6 +6857,12 @@ function openLiteBossPop(ev, addr, keep){
           <div style="display:flex;flex-wrap:wrap;gap:5px">${cMiss.map(b=>item(b,false)).join('')}</div>`:''}
         ${cDone.length?`<div style="font-size:9px;font-weight:700;color:#7fd88f;text-transform:uppercase;letter-spacing:.05em;margin:${cMiss.length?'9px':'0'} 0 5px">Đã mở (${cDone.length})</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px">${cDone.map(b=>item(b,true)).join('')}</div>`:''}
+        ${(cy==='weekly'&&admin)?`<div style="font-size:9px;font-weight:700;color:#8b7ae8;text-transform:uppercase;letter-spacing:.05em;margin:10px 0 5px">Boss mục tiêu tuần</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">${BOSS_LIST.filter(x=>x.cycle==='weekly').map(x=>{
+            const on=weeklyTargetKey()===x.k;
+            return `<span onclick="setWeeklyTarget('${x.k}','${addr}')" data-tip="${_mvpEsc(x.name)}${on?' · đang là mục tiêu, bấm để bỏ':' · bấm để chọn làm mục tiêu'}" style="cursor:pointer;position:relative;display:inline-flex;width:30px;height:30px;border-radius:50%;overflow:hidden;border:2px solid ${on?'#8b7ae8':'var(--border2)'};background:var(--bg2)">
+              <img src="${bossImg(x)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%;${on?'':'filter:grayscale(1);opacity:.5'}" onerror="this.style.display='none'"></span>`;
+          }).join('')}</div>`:''}
       </div>`;
     }).join('')}
     ${admin?`<div style="margin-top:11px;padding-top:10px;border-top:1px solid var(--border2)">
@@ -6905,7 +6941,7 @@ function renderLiteList(){
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(56px,.4fr) minmax(62px,.4fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
+  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(34px,.25fr) minmax(58px,.35fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lfc(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -6976,7 +7012,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bossD','Daily','left','Boss ngày chưa mở')}${hc('bossW','Weekly','left','Boss tuần · ảnh xanh là boss đã mở')}${hc('drop','MVP','left')}${hc('drop','Hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bossD','<span style="color:#7fd88f">D</span>','right','Boss ngày · số trong vòng là đã mở')}${hc('bossW','<span style="color:#8b7ae8">W</span>','right','Boss tuần · kèm boss mục tiêu')}${hc('drop','MVP','left')}${hc('drop','Hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
         <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
