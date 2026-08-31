@@ -4955,6 +4955,7 @@ function _tokTipHtml(name, amtStr, usd, sub){
   return `<div style="min-width:96px;white-space:nowrap">
       <div class="mvp-num" style="font-size:16px;font-weight:800;color:var(--text);line-height:1.15">${vnd?Math.round(usd*vnd).toLocaleString('vi-VN')+'đ':'—'}</div>
       <div class="mvp-num" style="font-size:10.5px;color:var(--muted2);margin-top:2px">$${usd.toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      ${sub?`<div style="font-size:9.5px;color:var(--muted2);margin-top:5px;padding-top:5px;border-top:1px solid var(--border2);white-space:normal;max-width:210px;line-height:1.45">${sub}</div>`:''}
     </div>`;
 }
 function _tokTipAttr(name, amtStr, usd, sub){
@@ -5119,21 +5120,19 @@ function renderLiteTokens(){
   const pct = v => nesoAll ? Math.round(v/nesoAll*1000)/10 : 0;
   const items=[
     {lb:'NESO', ttl:'NESO KẸT',   v:nesoBad, d:0, usd:nesoBad*nesoRate, c:'#e06c6c', g:'Henesys',
-     sub:`${badW.length} ví hết hạn MVP · ${pct(nesoBad)}%`,
-     tip:`NESO đang kẹt&#10;${badW.length} ví dưới 30 điểm MVP&#10;${_lf(nesoBad)} NESO (${pct(nesoBad)}% tổng)&#10;Không chuyển / giao dịch được cho tới khi đủ 30 điểm`},
+     note:`${badW.length} ví dưới 30 điểm MVP · ${pct(nesoBad)}% tổng NESO · không chuyển / giao dịch được`},
     {lb:'NESO', ttl:'NESO HOÁN ĐỔI', v:nesoOk, d:0, usd:nesoOk*nesoRate, c:'var(--green)', g:'Henesys',
-     sub:`${okW.length} ví còn MVP · ${pct(nesoOk)}%`,
-     tip:`NESO hoán đổi được&#10;${okW.length} ví từ 30 điểm MVP trở lên&#10;${_lf(nesoOk)} NESO (${pct(nesoOk)}% tổng)&#10;Tổng NESO toàn bộ: ${_lf(nesoAll)}`},
+     note:`${okW.length} ví từ 30 điểm MVP trở lên · ${pct(nesoOk)}% tổng NESO`},
     {lb:'NXPC',        v:sum('nxpc'),        d:2, usd:sum('nxpc')*nxpcRate,   c:'var(--green)', g:'Henesys'},
     {lb:'AVAX',        v:sum('avax'),        d:4, usd:sum('avax')*avaxRate,   c:'var(--blue)',  g:'Avalanche'},
     {lb:'NXPC(AVAX)',  v:sum('nxpc_avax'),   d:2, usd:sum('nxpc_avax')*nxpcRate, c:'var(--blue)', g:'Avalanche'},
     {lb:'USDT',        v:sum('usdt_avax_real'), d:2, usd:sum('usdt_avax_real'), c:'var(--blue)', g:'Avalanche'},
   ];
   el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:14px 4px">
-      ${items.map((it,i)=>`<div style="padding:0 12px;${i?'border-left:1px solid var(--border2)':''}" ${it.tip?`data-tip="${it.tip}"`:_tokTipAttr(it.lb, _lf(it.v,it.d), it.usd, it.g)}>
+      ${items.map((it,i)=>`<div style="padding:0 12px;${i?'border-left:1px solid var(--border2)':''}" ${_tokTipAttr(it.ttl||it.lb, _lf(it.v,it.d), it.usd, it.note||'')}>
         <div style="display:flex;align-items:center;gap:5px;min-width:0">${TOKEN_ICON[it.lb]?`<span style="width:15px;height:15px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg2);display:inline-flex"><img src="${TOKEN_ICON[it.lb]}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></span>`:''}<span style="font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.g} · ${it.ttl||it.lb}</span></div>
         <div class="mvp-num" style="font-size:19px;font-weight:800;color:${it.c};margin-top:6px;line-height:1.1">${_lf(it.v,it.d)}</div>
-        ${it.sub?`<div class="mvp-num" style="font-size:9px;color:var(--muted2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.sub}</div>`:''}
+
       </div>`).join('')}
     </div>`;
 }
