@@ -5718,7 +5718,7 @@ function _popCharRows(others){
   return list.map(c=>{ const cc=JOB_COLOR[c.job]||'#6b7280'; const u=_charImgUrls(c)[0];
     return `<div class="mp-eq-row mp-copy" onclick="selectPopChar('${c.ak||''}')" data-tip="Bấm để xem trang bị của ${_mvpEsc(c.name)}">
       <span class="mp-ch-ava" style="background:linear-gradient(140deg,color-mix(in srgb,${cc} 50%,transparent),color-mix(in srgb,${cc} 16%,transparent));border:1.5px solid color-mix(in srgb,${cc} 60%,transparent);color:${cc}">${_mvpEsc((c.name||'?').charAt(0).toUpperCase())}${u?`<img src="${u}" loading="lazy" onerror="this.remove()">`:''}</span>
-      <span style="min-width:0;flex:1"><span class="mp-eq-name">${_mvpEsc(c.name)}</span><span class="mp-eq-cat" style="color:${cc}">${_mvpEsc(c.job||'—')}</span></span>
+      <span style="min-width:0;flex:1"><span class="mp-eq-name" onclick="event.stopPropagation();copyFlash(this,'${String(c.name||'').replace(/'/g,'')}','tên nhân vật')" data-tip="Nhấp để copy tên nhân vật" style="cursor:pointer">${_mvpEsc(c.name)}</span><span class="mp-eq-cat" style="color:${cc}">${_mvpEsc(c.job||'—')}</span></span>
       <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
     </div>`; }).join('');
 }
@@ -6104,9 +6104,16 @@ function eqGridHtml(ak, eq){
     }).join('')}</div>`:'';
 
   const pets=info.pets||[];
-  const petHtml=pets.length?sub('Pet',pets.length)+`<div class="mp-pets">${pets.map(p=>{ const it=byId[p.id];
-      return `<div class="mp-pet" data-tip="${_mvpEsc(it?it.name:'Pet #'+p.id)}"><img src="${p.url}" loading="lazy" onerror="this.remove()">
-        ${p.acc?`<span class="mp-pet-acc"><img src="${p.acc.url}" loading="lazy" onerror="this.remove()"></span>`:''}</div>`; }).join('')}</div>`:'';
+  const petHtml=pets.length?sub('Pet',pets.length)+`<div class="mp-pets">${pets.map(p=>{
+      const it=byId[p.id], nm=it?it.name:('Pet #'+p.id);
+      const acc=p.acc?byId[p.acc.id]:null, accNm=p.acc?(acc?acc.name:('Pet Equip #'+p.acc.id)):'';
+      const cp=x=>String(x||'').replace(/'/g,'');
+      const tipP=itemTipBasic({name:nm, cat:'Pet', img:p.url, note:'Nhấp để copy tên pet'}).replace(/"/g,'&quot;');
+      return `<div class="mp-pet" style="cursor:pointer" onclick="copyItemTip(event,this,'${cp(nm)}')" data-tip="${_mvpEsc(nm)}" data-tiph="${tipP}"${it&&it.assetKey?` data-ikey="${it.assetKey}"`:''}>
+        <img src="${p.url}" loading="lazy" onerror="this.remove()">
+        ${p.acc?`<span class="mp-pet-acc" style="cursor:pointer" onclick="event.stopPropagation();copyItemTip(event,this,'${cp(accNm)}')" data-tip="${_mvpEsc(accNm)}" data-tiph="${itemTipBasic({name:accNm, cat:'Pet Equipment', img:p.acc.url, note:'Nhấp để copy tên'}).replace(/"/g,'&quot;')}"${acc&&acc.assetKey?` data-ikey="${acc.assetKey}"`:''}>
+            <img src="${p.acc.url}" loading="lazy" onerror="this.remove()"></span>`:''}
+      </div>`; }).join('')}</div>`:'';
 
   return `<div class="mp-grid">${cells}</div>${extraHtml}${cashHtml}${petHtml}`;
 }
