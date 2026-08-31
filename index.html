@@ -6091,8 +6091,11 @@ function eqGridHtml(ak, eq){
   // ô nào API trả về mà sơ đồ chưa có chỗ thì xếp thêm bên dưới
   const extra=Object.keys(src).filter(k=>!used.has(k));
   const extraHtml=extra.length?sub('Ô khác',extra.length)+`<div class="mp-grid">${extra.slice(0,10).map(k=>{
-      const it=src[k], nft=byId[it.id];
-      return `<div class="mp-slot has" data-tip="${_mvpEsc([k, nft?nft.name:('#'+it.id)].join(' · '))}"><span class="mp-slot-lb">${_mvpEsc(k)}</span><img src="${it.url}" loading="lazy" onerror="this.remove()"></div>`;
+      const it=src[k], nft=byId[it.id], nm=nft?nft.name:('#'+it.id);
+      const tiph=(ITEM_CACHE[it.assetKey]?itemTipHtml(ITEM_CACHE[it.assetKey])
+        :itemTipBasic({name:nm, cat:nft?nft.cat:'', img:it.url, sf:nft?nft.sf:0, slot:k, nft:it.mintable,
+          note:'Nhấp để copy tên'})).replace(/"/g,'&quot;');
+      return `<div class="mp-slot has"${it.assetKey?` data-ikey="${it.assetKey}"`:''} data-tiph="${tiph}" data-tip="${_mvpEsc([k, nm].join(' · '))}" onclick="copyItemTip(event,this,'${String(nm).replace(/'/g,'')}')"><span class="mp-slot-lb">${_mvpEsc(k)}</span><img src="${it.url}" loading="lazy" onerror="this.remove()"></div>`;
     }).join('')}</div>`:'';
 
   // Đồ trang trí (cash) và pet nằm ngay dưới sơ đồ, không phải bấm qua tab
@@ -6100,7 +6103,11 @@ function eqGridHtml(ak, eq){
   const cashKeys=Object.keys(cash);
   const cashHtml=cashKeys.length?sub('Trang trí',cashKeys.length)+`<div class="mp-grid">${cashKeys.slice(0,10).map(k=>{
       const it=cash[k], nft=byId[it.id], lb=(EQ_SLOT[k]&&EQ_SLOT[k][0])||k;
-      return `<div class="mp-slot has" data-tip="${_mvpEsc([lb, nft?nft.name:('#'+it.id)].join(' · '))}"><span class="mp-slot-lb">${_mvpEsc(lb)}</span><img src="${it.url}" loading="lazy" onerror="this.remove()"></div>`;
+      const nm=nft?nft.name:('#'+it.id);
+      const tiph=(ITEM_CACHE[it.assetKey]?itemTipHtml(ITEM_CACHE[it.assetKey])
+        :itemTipBasic({name:nm, cat:nft?nft.cat:'Trang trí', img:it.url, sf:nft?nft.sf:0, slot:lb, nft:it.mintable,
+          note:it.assetKey?'Nhấp: copy tên · Shift+nhấp: copy cả bảng':'Nhấp để copy tên'})).replace(/"/g,'&quot;');
+      return `<div class="mp-slot has"${it.assetKey?` data-ikey="${it.assetKey}"`:''} data-tiph="${tiph}" data-tip="${_mvpEsc([lb, nm].join(' · '))}" onclick="copyItemTip(event,this,'${String(nm).replace(/'/g,'')}')"><span class="mp-slot-lb">${_mvpEsc(lb)}</span><img src="${it.url}" loading="lazy" onerror="this.remove()"></div>`;
     }).join('')}</div>`:'';
 
   const pets=info.pets||[];
