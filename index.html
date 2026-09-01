@@ -7014,43 +7014,40 @@ function _cpAgeText(ts){
   const h=Math.round(m/60);
   return h<24 ? h+' giờ trước' : Math.round(h/24)+' ngày trước';
 }
-// Rê chuột lên ô CP: nếu dữ liệu nhân vật đã quá hạn thì lặng lẽ tải lại,
-// xong thì cập nhật đúng ô đó chứ không dựng lại cả bảng.
+// Rê chuột lên ô CP: làm mới đúng như tab Trạng thái ví — nạp lại toàn bộ
+// nhân vật của ví khi dữ liệu cũ hơn 60 giây, rồi cập nhật riêng ô đó.
 const _cpBusy=new Set();
 let _cpHoverT=null;
+const _topChar=w=>((w&&w.chars)||[]).filter(x=>x.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];
 async function _cpRefresh(cell){
-  const ak=cell.getAttribute('data-cpak'), addr=cell.getAttribute('data-cpaddr');
-  if (!ak || _cpBusy.has(ak) || _charInfoFresh(ak)) return;
-  _cpBusy.add(ak);
+  const addr=cell.getAttribute('data-cpaddr');
+  const w=allWallets().find(x=>x.address===addr);
+  if (!w || _cpBusy.has(addr)) return;
+  if (Date.now()-(w.cpTs||0) <= 60000) return;          // vừa nạp xong thì thôi
+  _cpBusy.add(addr);
   const o=cell.style.opacity; cell.style.opacity='.5';
+  const before=(_topChar(w)||{}).cp||w.maxCp||0;
   try{
-    // CP lấy từ trang nhân vật của msu.gg — cùng nguồn với lúc nạp ví
-    const info=extractCharInfo(await cpFetchText(CP_PAGE(ak), true)) || {};
-    const w=allWallets().find(x=>x.address===addr);
-    const cp=info.cp;
-    _charImgTried.delete(ak);
-    fetchCharImg(ak).catch(()=>{});          // nhân tiện làm mới trang bị / arcane
-    if (w && cp){
-      const c=(w.chars||[]).find(x=>x.ak===ak);
-      const old=c?c.cp:null;
-      if (c) c.cp=cp;
-      if (info.level && c) c.level=info.level;
+    await refreshWalletChars(addr);                     // dùng chung luồng với tab Trạng thái ví
+    const c=_topChar(w), cp=(c&&c.cp)||w.maxCp||null;
+    if (cp){
       cell.textContent=_cpf(cp);
       cell.setAttribute('data-tip', `CP: ${Math.round(cp).toLocaleString('vi-VN')}\nCập nhật vừa xong`);
-      try{ CHAR_INFO_CACHE[ak]=Object.assign({}, CHAR_INFO_CACHE[ak]||{}, {ts:Date.now()}); _saveCharInfoCache(); }catch(e){}
-      if (old && Math.round(old)!==Math.round(cp)){
-        const diff=cp-old;
-        showToast('CP đã đổi', `${w.label||addr.slice(0,8)} · ${diff>0?'+':''}${Math.round(diff).toLocaleString('vi-VN')} → ${Math.round(cp).toLocaleString('vi-VN')}`);
+      if (before && Math.round(before)!==Math.round(cp)){
+        const d=cp-before;
+        showToast('CP đã đổi', `${w.label||addr.slice(0,8)} · ${d>0?'+':''}${Math.round(d).toLocaleString('vi-VN')} → ${Math.round(cp).toLocaleString('vi-VN')}`);
       }
+      // level / nghề / world có thể đổi theo -> vẽ lại dòng cho khớp
+      try{ renderLiteList(); }catch(e){}
     }
   }catch(e){ console.warn('cpRefresh', e); }
-  finally{ cell.style.opacity=o; _cpBusy.delete(ak); }
+  finally{ cell.style.opacity=o; _cpBusy.delete(addr); }
 }
 document.addEventListener('mouseover', e=>{
   const cell=e.target&&e.target.closest&&e.target.closest('.lite-cp');
   clearTimeout(_cpHoverT);
   if (!cell) return;
-  _cpHoverT=setTimeout(()=>{ if (cell.matches(':hover')) _cpRefresh(cell); }, 350);   // chờ chút để lướt qua không gọi
+  _cpHoverT=setTimeout(()=>{ if (cell.matches(':hover')) _cpRefresh(cell); }, 300);
 }, true);
 
 function renderLiteList(){
@@ -7100,8 +7097,8 @@ function renderLiteList(){
       ${(()=>{ const c=topChar(w); const lv=(c&&c.level)||w.maxCpLevel||null;
         return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${lv?'var(--text2)':'var(--muted2)'}">${lv||'—'}</div>`; })()}
       ${(()=>{ const c=topChar(w); const cp=(c&&c.cp)||w.maxCp||null;
-        const ak=c&&c.ak, fresh=ak?_charInfoFresh(ak):false;
-        const age=(ak&&CHAR_INFO_CACHE[ak]&&CHAR_INFO_CACHE[ak].ts)?_cpAgeText(CHAR_INFO_CACHE[ak].ts):'';
+        const ak=c&&c.ak, fresh=(Date.now()-(w.cpTs||0))<=60000;
+        const age=w.cpTs?_cpAgeText(w.cpTs):'';
         const tip=cp?`CP: ${Math.round(cp).toLocaleString('vi-VN')}${age?'&#10;Cập nhật '+age:''}${fresh?'':'&#10;Rê chuột để lấy CP mới nhất'}`:'Chưa có dữ liệu CP';
         return `<div class="mvp-num lite-cp" data-cpak="${ak||''}" data-cpaddr="${w.address}" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" data-tip="${tip}">${_cpf(cp)}</div>`; })()}
       ${liteBossCell(w,'daily')}
