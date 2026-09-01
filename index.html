@@ -7007,6 +7007,52 @@ async function liteBossToggle(addr, k, on){
   openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true, cyc);
   try { await saveTeamData(); } catch(e){}
 }
+function _cpAgeText(ts){
+  const m=Math.round((Date.now()-ts)/60000);
+  if (m<1) return 'vừa xong';
+  if (m<60) return m+' phút trước';
+  const h=Math.round(m/60);
+  return h<24 ? h+' giờ trước' : Math.round(h/24)+' ngày trước';
+}
+// Rê chuột lên ô CP: nếu dữ liệu nhân vật đã quá hạn thì lặng lẽ tải lại,
+// xong thì cập nhật đúng ô đó chứ không dựng lại cả bảng.
+const _cpBusy=new Set();
+let _cpHoverT=null;
+async function _cpRefresh(cell){
+  const ak=cell.getAttribute('data-cpak'), addr=cell.getAttribute('data-cpaddr');
+  if (!ak || _cpBusy.has(ak) || _charInfoFresh(ak)) return;
+  _cpBusy.add(ak);
+  const o=cell.style.opacity; cell.style.opacity='.5';
+  try{
+    // CP lấy từ trang nhân vật của msu.gg — cùng nguồn với lúc nạp ví
+    const info=extractCharInfo(await cpFetchText(CP_PAGE(ak), true)) || {};
+    const w=allWallets().find(x=>x.address===addr);
+    const cp=info.cp;
+    _charImgTried.delete(ak);
+    fetchCharImg(ak).catch(()=>{});          // nhân tiện làm mới trang bị / arcane
+    if (w && cp){
+      const c=(w.chars||[]).find(x=>x.ak===ak);
+      const old=c?c.cp:null;
+      if (c) c.cp=cp;
+      if (info.level && c) c.level=info.level;
+      cell.textContent=_cpf(cp);
+      cell.setAttribute('data-tip', `CP: ${Math.round(cp).toLocaleString('vi-VN')}\nCập nhật vừa xong`);
+      try{ CHAR_INFO_CACHE[ak]=Object.assign({}, CHAR_INFO_CACHE[ak]||{}, {ts:Date.now()}); _saveCharInfoCache(); }catch(e){}
+      if (old && Math.round(old)!==Math.round(cp)){
+        const diff=cp-old;
+        showToast('CP đã đổi', `${w.label||addr.slice(0,8)} · ${diff>0?'+':''}${Math.round(diff).toLocaleString('vi-VN')} → ${Math.round(cp).toLocaleString('vi-VN')}`);
+      }
+    }
+  }catch(e){ console.warn('cpRefresh', e); }
+  finally{ cell.style.opacity=o; _cpBusy.delete(ak); }
+}
+document.addEventListener('mouseover', e=>{
+  const cell=e.target&&e.target.closest&&e.target.closest('.lite-cp');
+  clearTimeout(_cpHoverT);
+  if (!cell) return;
+  _cpHoverT=setTimeout(()=>{ if (cell.matches(':hover')) _cpRefresh(cell); }, 350);   // chờ chút để lướt qua không gọi
+}, true);
+
 function renderLiteList(){
   const el=document.getElementById('lite-list'); if(!el) return;
   const nesoRate=(typeof liveNesoUsd==='number'&&liveNesoUsd)?liveNesoUsd:((typeof liveNxpcUsd==='number'&&liveNxpcUsd)?liveNxpcUsd/100000:0);
@@ -7054,7 +7100,10 @@ function renderLiteList(){
       ${(()=>{ const c=topChar(w); const lv=(c&&c.level)||w.maxCpLevel||null;
         return `<div class="mvp-num" style="text-align:right;font-weight:700;color:${lv?'var(--text2)':'var(--muted2)'}">${lv||'—'}</div>`; })()}
       ${(()=>{ const c=topChar(w); const cp=(c&&c.cp)||w.maxCp||null;
-        return `<div class="mvp-num" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" ${cp?`data-tip="CP: ${Math.round(cp).toLocaleString('vi-VN')}"`:''}>${_cpf(cp)}</div>`; })()}
+        const ak=c&&c.ak, fresh=ak?_charInfoFresh(ak):false;
+        const age=(ak&&CHAR_INFO_CACHE[ak]&&CHAR_INFO_CACHE[ak].ts)?_cpAgeText(CHAR_INFO_CACHE[ak].ts):'';
+        const tip=cp?`CP: ${Math.round(cp).toLocaleString('vi-VN')}${age?'&#10;Cập nhật '+age:''}${fresh?'':'&#10;Rê chuột để lấy CP mới nhất'}`:'Chưa có dữ liệu CP';
+        return `<div class="mvp-num lite-cp" data-cpak="${ak||''}" data-cpaddr="${w.address}" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" data-tip="${tip}">${_cpf(cp)}</div>`; })()}
       ${liteBossCell(w,'daily')}
       ${liteBossCell(w,'weekly')}
       ${(()=>{
