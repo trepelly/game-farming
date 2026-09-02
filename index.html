@@ -6793,11 +6793,14 @@ function liteBossCell(w, cycle){
     if (t){
       const ok=bossIsUnlocked(w.address, t.k);
       const slain=isBossSlain(w.address, t.k);
-      const tipT=`Boss tuần mục tiêu: ${_mvpEsc(t.name)}&#10;${ok?'Ví này đã mở':'Ví này CHƯA mở'}${slain?'&#10;★ Slayer — đã đánh được':''}`;
-      extra=`<span data-tip="${tipT}" style="position:relative;width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${slain?'#38bdf8':(ok?'#7fd88f':'var(--border2)')};background:var(--bg2)">
-        <img src="${bossImg(t)}" loading="lazy" style="width:100%;height:100%;object-fit:cover${(ok||slain)?'':';filter:grayscale(1) brightness(.75)'}" onerror="this.remove()">
-        ${slain?`<span style="position:absolute;left:0;right:0;bottom:0;height:8px;background:#0b1e2b;display:flex;align-items:center;justify-content:center">
-          <span style="font-size:5px;font-weight:800;letter-spacing:.02em;color:#38bdf8;line-height:1;font-family:'JetBrains Mono',monospace">SLR</span></span>`:''}
+      const testing=!slain && isBossTesting(w.address, t.k);
+      const ring=slain?'#38bdf8':(testing?'#e0564a':(ok?'#7fd88f':'var(--border2)'));
+      const band=slain?{bg:'#0b1e2b',fg:'#38bdf8',t:'SLR',fs:'5'}:(testing?{bg:'#2a1113',fg:'#ff6a5e',t:'TEST',fs:'4.5'}:null);
+      const tipT=`Boss tuần mục tiêu: ${_mvpEsc(t.name)}&#10;${ok?'Ví này đã mở':'Ví này CHƯA mở'}${slain?'&#10;★ Slayer — đã đánh được':(testing?'&#10;⚑ Testing — đang thử farm':'')}`;
+      extra=`<span data-tip="${tipT}" style="position:relative;width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${ring};background:var(--bg2)">
+        <img src="${bossImg(t)}" loading="lazy" style="width:100%;height:100%;object-fit:cover${(ok||slain||testing)?'':';filter:grayscale(1) brightness(.75)'}" onerror="this.remove()">
+        ${band?`<span style="position:absolute;left:0;right:0;bottom:0;height:8px;background:${band.bg};display:flex;align-items:center;justify-content:center">
+          <span style="font-size:${band.fs}px;font-weight:800;letter-spacing:.02em;color:${band.fg};line-height:1;font-family:'JetBrains Mono',monospace">${band.t}</span></span>`:''}
       </span>`;
     }
   }
@@ -6829,6 +6832,31 @@ async function toggleBossSlain(addr, k){
   try{ await saveTeamData(); }catch(e){}
 }
 try{ window.toggleBossSlain=toggleBossSlain; window.isBossSlain=isBossSlain; }catch(e){}
+// Đang thử farm boss này xem có đánh nổi không (theo từng ví)
+function bossTestMap(){ try{ return (teamSettings && teamSettings.bossTesting) || {}; }catch(e){ return {}; } }
+function isBossTesting(addr,k){ const m=bossTestMap()[addr]; return !!(m && m[k]); }
+async function toggleBossTesting(addr, k){
+  if (!canEditBoss('weekly', addr)){ showToast('Không có quyền', 'Nhờ admin mở quyền hoặc gắn giúp', 4000); return; }
+  const b=BOSS_LIST.find(x=>x.k===k);
+  const list=_bossScopeWallets(addr);
+  const on=!isBossTesting(addr,k);
+  if (list.length>1 && !confirm(`${on?'Gắn':'Bỏ'} nhãn Testing cho boss ${b?b.name:k} trên toàn bộ ${list.length} ví đang hiển thị?`)) return;
+  if (typeof teamSettings==='undefined'||!teamSettings) teamSettings={};
+  teamSettings.bossTesting = teamSettings.bossTesting || {};
+  let cnt=0;
+  list.forEach(ad=>{
+    const m = teamSettings.bossTesting[ad] = teamSettings.bossTesting[ad] || {};
+    if (on && !m[k]){ m[k]=true; cnt++; }
+    else if (!on && m[k]){ delete m[k]; cnt++; }
+  });
+  try{ renderLiteList(); }catch(e){}
+  const ev={clientX:(window._lastPopX||200), clientY:(window._lastPopY||200)};
+  const cyc=(document.getElementById('boss-pop')||{}).dataset?.cycle||'';
+  openLiteBossPop(Object.assign({stopPropagation(){}}, ev), addr, true, cyc);
+  showToast(on?'Đang test farm':'Đã bỏ nhãn Testing', `${b?b.name:k} · ${cnt}/${list.length} ví`);
+  try{ await saveTeamData(); }catch(e){}
+}
+try{ window.toggleBossTesting=toggleBossTesting; window.isBossTesting=isBossTesting; }catch(e){}
 function weeklyTargetKey(){
   try{ return (teamSettings && teamSettings.weeklyTarget) || ''; }catch(e){ return ''; }
 }
@@ -6920,14 +6948,15 @@ function openLiteBossPop(ev, addr, keep, cycle){
           <div style="display:flex;flex-wrap:wrap;gap:5px">${cMiss.map(b=>item(b,false)).join('')}</div>`:''}
         ${cDone.length?`<div style="font-size:9px;font-weight:700;color:#7fd88f;text-transform:uppercase;letter-spacing:.05em;margin:${cMiss.length?'9px':'0'} 0 5px">Đã mở (${cDone.length})</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px">${cDone.map(b=>item(b,true)).join('')}</div>`:''}
-        ${(cy==='weekly'&&admin&&weeklyTargetBoss())?(()=>{ const t=weeklyTargetBoss(), sl=isBossSlain(addr,t.k);
-          return `<div style="margin-top:10px;padding:8px 9px;border:1px solid ${sl?'#38bdf8':'var(--border2)'};border-radius:9px;background:${sl?'color-mix(in srgb,#38bdf8 10%,transparent)':'var(--bg2)'};display:flex;align-items:center;gap:8px">
+        ${(cy==='weekly'&&admin&&weeklyTargetBoss())?(()=>{ const t=weeklyTargetBoss(), sl=isBossSlain(addr,t.k), ts=!sl&&isBossTesting(addr,t.k);
+          return `<div style="margin-top:10px;padding:8px 9px;border:1px solid ${sl?'#38bdf8':(ts?'#e0564a':'var(--border2)')};border-radius:9px;background:${sl?'color-mix(in srgb,#38bdf8 10%,transparent)':(ts?'color-mix(in srgb,#e0564a 10%,transparent)':'var(--bg2)')};display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="position:relative;width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;display:inline-flex;border:1.5px solid ${sl?'#38bdf8':'var(--border2)'}">
               <img src="${bossImg(t)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()"></span>
             <span style="flex:1;min-width:0">
               <span style="display:block;font-size:10.5px;font-weight:700;color:var(--text)">${_mvpEsc(t.name)}</span>
-              <span style="display:block;font-size:9px;color:${sl?'#38bdf8':'var(--muted2)'}">${sl?'★ Slayer — đã đánh được':'Chưa gắn tag Slayer'}</span></span>
-            <button onclick="toggleBossSlain('${addr}','${t.k}')" style="background:${sl?'color-mix(in srgb,#38bdf8 18%,transparent)':'var(--surface)'};border:1px solid ${sl?'#38bdf8':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${sl?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${sl?'Bỏ Slayer':'Gắn Slayer'}</button>
+              <span style="display:block;font-size:9px;color:${sl?'#38bdf8':(ts?'#ff6a5e':'var(--muted2)')}">${sl?'★ Slayer — đã đánh được':(ts?'⚑ Testing — đang thử farm':'Chưa gắn nhãn')}</span></span>
+            <button onclick="toggleBossTesting('${addr}','${t.k}')" style="background:${ts?'color-mix(in srgb,#e0564a 18%,transparent)':'var(--surface)'};border:1px solid ${ts?'#e0564a':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${ts?'#ff6a5e':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${ts?'Bỏ Test':'Testing'}</button>
+            <button onclick="toggleBossSlain('${addr}','${t.k}')" style="background:${sl?'color-mix(in srgb,#38bdf8 18%,transparent)':'var(--surface)'};border:1px solid ${sl?'#38bdf8':'var(--border2)'};border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:${sl?'#38bdf8':'var(--text2)'};cursor:pointer;font-family:inherit;white-space:nowrap">${sl?'Bỏ Slayer':'Slayer'}</button>
           </div>`; })():''}
         ${(cy==='weekly'&&admin)?`<div style="font-size:9px;font-weight:700;color:#8b7ae8;text-transform:uppercase;letter-spacing:.05em;margin:10px 0 5px">Boss mục tiêu tuần</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px">${BOSS_LIST.filter(x=>x.cycle==='weekly').map(x=>{
@@ -7076,7 +7105,9 @@ function renderLiteList(){
                weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), boss:w=>liteMissingBosses(w).length, bossD:w=>liteMissingBosses(w,'daily').length, bossW:w=>liteMissingBosses(w,'weekly').length,
                // boss mục tiêu: chưa mở(0) < đã mở(1) < đã đánh(2)
                bossT:w=>{ const t=weeklyTargetBoss(); if(!t) return -1;
-                          return isBossSlain(w.address,t.k)?2:(bossIsUnlocked(w.address,t.k)?1:0); },
+                          if (isBossSlain(w.address,t.k)) return 3;
+                          if (isBossTesting(w.address,t.k)) return 2;
+                          return bossIsUnlocked(w.address,t.k)?1:0; },
                neso:w=>(w.neso??-1), nxpc:w=>(w.nxpc??-1), avax:w=>(w.avax??-1), nxpca:w=>(w.nxpc_avax??-1), usdt:w=>(w.usdt_avax_real??-1) };
   const kf=keys[liteSort.col]||keys.neso;
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
