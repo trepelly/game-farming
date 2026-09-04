@@ -5798,6 +5798,8 @@ function _parseCollection(txt){
       const mk=(sl,on)=>{
         const ids=sl.itemIds||[], nms=sl.itemNames||[], prs=sl.floorPrices||[];
         const opts=ids.map((id,i)=>({ id:+id, name:nms[i]||'', price:(prs[i]!=null?+prs[i]:null) }));
+        // tên nằm ở mảng song song -> lưu thẳng vào kho tên
+        opts.forEach(op=>{ if(op.id&&op.name&&COL_NAMES[op.id]!==op.name) COL_NAMES[op.id]=op.name; });
         const priced=opts.filter(x=>x.price!=null).map(x=>x.price);
         return { setId:sl.setId, setName:sl.setName||'—', order:+(sl.orderNumber||0),
                  on, opts, min:priced.length?Math.min(...priced):null };
@@ -5813,6 +5815,7 @@ function _parseCollection(txt){
         id:op.id, n:1, name:op.name, price:op.price,
         url:`https://api-static.msu.io/itemimages/icon/${op.id}.png`,
       })));
+      _saveColNames();
       const missCost=slots.filter(x=>!x.on&&x.min!=null).reduce((a,x)=>a+x.min,0);
       return { collected:+(sm.registeredCount||reg.length),
                total:+(sm.totalSlots||slots.length),
