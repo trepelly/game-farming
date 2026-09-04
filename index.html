@@ -1116,6 +1116,21 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-snap button{display:inline-flex;align-items:center;gap:4px;background:#1a1f26cc;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#8b93a1;cursor:pointer;font-size:9.5px;font-weight:700;font-family:inherit;line-height:1;backdrop-filter:blur(4px);transition:.12s}
 .mp-snap button:hover{color:#e6e9ef;border-color:#4c53a8;background:#232a44cc}
 .mp-snap button[disabled]{opacity:.5;cursor:default}
+.mp-col-col{width:206px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
+.mp-col-col::-webkit-scrollbar{width:6px}
+.mp-col-col::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
+.mp-col-bar{height:6px;border-radius:3px;background:#232a33;overflow:hidden;margin:6px 0 3px}
+.mp-col-bar div{height:100%;background:linear-gradient(90deg,#c2622a,#f0873c)}
+.mp-col-set{border:1px solid #2b313b;border-radius:9px;padding:7px 8px;margin-top:6px;background:#171c24}
+.mp-col-set-h{display:flex;align-items:baseline;gap:6px;margin-bottom:5px}
+.mp-col-set-h b{font-size:10.5px;font-weight:800;color:#e6e9ef;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-col-set-h span{font-size:9.5px;color:#6b7280;white-space:nowrap}
+.mp-col-items{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.mp-col-it{position:relative;aspect-ratio:1;border-radius:7px;border:1px solid #262d38;background:#12161c;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mp-col-it img{width:82%;height:82%;object-fit:contain}
+.mp-col-it.off img{filter:grayscale(1) brightness(.55)}
+.mp-col-it.on{border-color:#f0873c}
+.mp-col-it .n{position:absolute;right:1px;bottom:0;font-size:7px;font-weight:800;color:#f0873c;font-family:'JetBrains Mono',monospace;text-shadow:0 0 3px #000}
 .mp-hold-col{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
 .mp-hold-col::-webkit-scrollbar{width:6px}
 .mp-hold-col::-webkit-scrollbar-track{background:transparent}
@@ -5653,6 +5668,7 @@ function openCharPop(ev, addr){
   p.dataset.ax=(ev.clientX||0); p.dataset.ay=(ev.clientY||0);
   _clampCharPop(p);
   try{ ensureHoldings(addr); }catch(e){}
+  try{ fetchCollection(addr).then(d=>{ if(d) _charPopRefresh(addr); }); }catch(e){}
   try{ prefetchPopImages(p); }catch(e){}
   setTimeout(()=>{ document.addEventListener('mousedown', _charPopOut, {once:true}); }, 0);
 }
@@ -5722,6 +5738,85 @@ function _popCharRows(others){
       <span style="text-align:right;flex-shrink:0"><span class="mp-eq-name" style="font-size:10px">Lv ${c.level||'?'}</span><span class="mp-eq-cat" style="color:#f6d36b">${c.cp?Math.round(c.cp/1000)+'k':'—'}</span></span>
     </div>`; }).join('');
 }
+// ══════════ NFT Collection (msutool.com) ══════════
+const COL_CACHE=(()=>{ try{ return JSON.parse(localStorage.getItem('msuCol1')||'{}'); }catch(e){ return {}; } })();
+const COL_TTL=6*60*60*1000;
+function _saveColCache(){ try{ localStorage.setItem('msuCol1', JSON.stringify(COL_CACHE)); }catch(e){} }
+const _colBusy=new Set();
+
+// Nhặt dữ liệu ra khỏi bất kể API trả hình dạng nào
+function _parseCollection(txt){
+  let o=null;
+  try{ o=JSON.parse(txt); }catch(e){}
+  if (!o) o=_cutJson(txt,'sets','[', x=>Array.isArray(x));
+  if (!o) return null;
+  const root = o.data || o.result || o;
+  const rawSets = root.sets || root.setItems || root.collections || (Array.isArray(root)?root:null);
+  if (!Array.isArray(rawSets)) return null;
+  const num=v=>+(v||0);
+  const sets = rawSets.map(st=>{
+    const items = (st.items || st.itemList || st.pieces || []).map(it=>({
+      id: num(it.itemId||it.id),
+      name: it.name || it.itemName || '',
+      url: it.imageUrl || it.image || (it.itemId?`https://api-static.msu.io/itemimages/icon/${it.itemId}.png`:''),
+      have: num(it.count||it.owned||it.quantity||0) || !!(it.collected||it.isCollected||it.owned===true),
+    }));
+    const have = items.filter(x=>x.have).length;
+    return { name: st.name||st.setName||'—', items, have, total: items.length || num(st.total) };
+  }).filter(x=>x.items.length || x.total);
+  const total = num(root.total||root.totalItems) || sets.reduce((a,x)=>a+x.total,0);
+  const collected = num(root.collected||root.collectedCount) || sets.reduce((a,x)=>a+x.have,0);
+  return { collected, total, sets, ts: Date.now() };
+}
+function _colUrls(addr){
+  const u=[`https://msutool.com/api/item/collection?wallet=${addr}`,
+           `https://msutool.com/api/collection?wallet=${addr}`,
+           `https://msutool.com/api/items/collection?wallet=${addr}`,
+           `https://msutool.com/item/collection?wallet=${addr}`];
+  let saved=null; try{ saved=localStorage.getItem('MSU_COL_PATTERN'); }catch(e){}
+  if (saved && saved.includes('{addr}')) u.unshift(saved.replace('{addr}', addr));
+  return u.filter((x,i)=>u.indexOf(x)===i);
+}
+async function fetchCollection(addr){
+  const k=(addr||'').toLowerCase();
+  const c=COL_CACHE[k];
+  if (c && Date.now()-(c.ts||0)<COL_TTL) return c;
+  if (_colBusy.has(k)) return c||null;
+  _colBusy.add(k);
+  try{
+    for (const url of _colUrls(addr)){
+      try{
+        const r=await fetch(msuProxy(url)); if(!r.ok) continue;
+        const d=_parseCollection(await r.text());
+        if (d){ COL_CACHE[k]=d; _saveColCache();
+          try{ localStorage.setItem('MSU_COL_PATTERN', url.replace(addr,'{addr}')); }catch(e){}
+          return d; }
+      }catch(e){}
+    }
+  } finally { _colBusy.delete(k); }
+  return c||null;
+}
+async function debugCollection(addr){
+  const out=[];
+  for (const url of _colUrls(addr)){
+    try{ const r=await fetch(msuProxy(url)); const t=await r.text();
+      const d=_parseCollection(t);
+      out.push({url, status:r.status, len:t.length, doc:t.slice(0,120), parsed:d?`${d.collected}/${d.total} · ${d.sets.length} bộ`:'không đọc được'});
+    }catch(e){ out.push({url, loi:String(e)}); }
+  }
+  console.table(out); console.log(out); return out;
+}
+// Dán thẳng JSON lấy từ tab Network vào đây nếu API cần đăng nhập
+function addCollection(addr, json){
+  const d=_parseCollection(typeof json==='string'?json:JSON.stringify(json));
+  if(!d) return console.warn('Không đọc được collection');
+  COL_CACHE[(addr||'').toLowerCase()]=d; _saveColCache();
+  console.log('Đã lưu collection', d.collected+'/'+d.total, '·', d.sets.length, 'bộ');
+  try{ _charPopRefresh(addr); }catch(e){}
+  return d;
+}
+try{ window.debugCollection=debugCollection; window.addCollection=addCollection; window.COL_CACHE=COL_CACHE; }catch(e){}
+
 // ══════════ Chi tiết vật phẩm cho tooltip ══════════
 const ITEM_CACHE=(()=>{ try{ return JSON.parse(localStorage.getItem('msuItem1')||'{}'); }catch(e){ return {}; } })();
 function _saveItemCache(){ try{ localStorage.setItem('msuItem1', JSON.stringify(ITEM_CACHE)); }catch(e){} }
@@ -6562,6 +6657,30 @@ function _download(blob, filename){
 }
 try{ window.snapCharPop=snapCharPop; }catch(e){}
 
+// Cột NFT Collection: tiến độ tổng + từng bộ, món đã có thì sáng
+function colColHtml(w){
+  if (!w) return '';
+  const d=COL_CACHE[(w.address||'').toLowerCase()];
+  const link=`https://msutool.com/item/collection?wallet=${w.address}`;
+  const head=(sub)=>`<div class="mp-col-col">
+    <div class="mp-others-head"><span class="mp-label">Collection</span>
+      <span class="mp-count" data-tip="Nguồn: msutool.com&#10;Bấm để mở trang gốc"
+        onclick="event.stopPropagation();window.open('${link}','_blank')" style="cursor:pointer">${d?`${_lfk(d.collected)}/${_lfk(d.total)}`:'—'}</span></div>
+    ${sub}</div>`;
+  if (!d) return head(`<div class="mp-eq-more">${_colBusy.has((w.address||'').toLowerCase())?'đang tải collection…':'chưa có dữ liệu collection'}</div>`);
+  const pct=d.total?Math.round(d.collected/d.total*1000)/10:0;
+  const sets=d.sets.slice().sort((a,b)=>(b.have/(b.total||1))-(a.have/(a.total||1))||b.have-a.have);
+  return head(`
+    <div class="mp-col-bar"><div style="width:${Math.min(100,pct)}%"></div></div>
+    <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2)"><span>${pct}%</span><span>${d.sets.length} bộ</span></div>
+    ${sets.map(st=>`<div class="mp-col-set">
+      <div class="mp-col-set-h"><b>${_mvpEsc(st.name)}</b><span class="mvp-num" style="color:${st.have?'#f0873c':'#6b7280'}">${st.have}/${st.total}</span></div>
+      <div class="mp-col-items">${st.items.map(it=>`<span class="mp-col-it ${it.have?'on':'off'}" data-tip="${_mvpEsc(it.name||('#'+it.id))}&#10;${it.have?('Đã có'+(+it.have>1?' ×'+it.have:'')):'Chưa có'}"
+        ${it.name?`onclick="event.stopPropagation();copyFlash(this,'${String(it.name).replace(/'/g,'')}','tên vật phẩm')"`:''} style="cursor:${it.name?'pointer':'default'}">
+        ${it.url?`<img src="${it.url}" loading="lazy" onerror="this.remove()">`:''}
+        ${(+it.have>1)?`<span class="n">${+it.have}</span>`:''}</span>`).join('')}</div>
+    </div>`).join('')}`);
+}
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
   if(!cs.length) return '<div class="mp-tooltip" style="padding:12px">Chưa có nhân vật</div>';
@@ -6649,6 +6768,7 @@ function charPopHtml(w){
                      :`<div class="mp-eq-more">chưa có dữ liệu skill</div>`}
       </div>
       ${holdColHtml(w)}
+      ${colColHtml(w)}
     </div>
   </div>`;
 }

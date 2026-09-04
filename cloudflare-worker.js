@@ -156,7 +156,7 @@ export default {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
-    const allowed = ['msu.io', 'maplen.gg', 'msu.gg', 'maplesprout.gg', 'api.msu.gg', 'api-static.msu.io', 'gamedatahub-static.msu.io', 'api-gateway.xangle.io', 'xangle.io', 'market-static.msu.io', 'p2p.binance.com', 'pricedancing.com', 'www.pricedancing.com', 'api.avax.network', 'avax.network'];
+    const allowed = ['msutool.com', 'msu.io', 'maplen.gg', 'msu.gg', 'maplesprout.gg', 'api.msu.gg', 'api-static.msu.io', 'gamedatahub-static.msu.io', 'api-gateway.xangle.io', 'xangle.io', 'market-static.msu.io', 'p2p.binance.com', 'pricedancing.com', 'www.pricedancing.com', 'api.avax.network', 'avax.network'];
     if (!allowed.some(d => targetUrl.hostname === d || targetUrl.hostname.endsWith('.' + d))) {
       return new Response(JSON.stringify({ error: 'Domain not allowed' }), {
         status: 403,
