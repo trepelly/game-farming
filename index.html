@@ -5775,6 +5775,18 @@ const _colBusy=new Set();
 function _parseCollection(txt){
   let o=null;
   try{ o=JSON.parse(txt); }catch(e){}
+  // Trang Next.js: dữ liệu nằm trong payload nhúng chứ không phải JSON thuần
+  if (!o && typeof txt==='string' && txt.indexOf('<')===0){
+    const cand=[ _cutJson(txt,'collection','{', x=>x&&(x.items||x.sets||x.slots)),
+                 _cutJson(txt,'registeredItemIds','[', x=>Array.isArray(x)),
+                 _cutJson(txt,'items','[', x=>Array.isArray(x)&&x.length&&x[0]&&(x[0].itemId||x[0].name)) ];
+    const hit=cand.find(Boolean);
+    if (hit){
+      if (Array.isArray(hit) && hit.length && typeof hit[0]==='number') o={registeredItemIds:hit, sets:{}};
+      else if (Array.isArray(hit)){ _harvestNames(hit); o=null; }   // chỉ là danh mục -> lấy tên thôi
+      else o=hit;
+    }
+  }
   if (o) _harvestNames(o);                 // nguồn nào có tên thì lấy tên
 
   // ── dạng msnext.site: có tổng danh mục, tiến độ từng bộ và giá sàn ──
@@ -5817,8 +5829,9 @@ function _parseCollection(txt){
   }
 
   // ── dạng slots: gộp theo itemId, đếm số bản ──
-  const slots=root.slots||root.items;
-  if (!Array.isArray(slots)) return null;
+  const looksOwned=x=>x && (x.tokenId||x.slotKey!==undefined||x.collectedAt!==undefined||x.registered===true||x.collected===true||x.owned);
+  const slots=root.slots || ((Array.isArray(root.items)&&root.items.some(looksOwned))?root.items.filter(looksOwned):null);
+  if (!Array.isArray(slots)){ _harvestNames(root); return null; }   // danh mục -> chỉ lấy tên
   const by={};
   slots.forEach(sl=>{ const id=num(sl&&(sl.itemId||sl.id)); if(!id) return;
     (by[id]=by[id]||{ id, n:0, tokens:[] }).n++;
@@ -5835,7 +5848,11 @@ function _parseCollection(txt){
            syncAt:meta.syncUpdatedAt||null, ts:Date.now() };
 }
 function _colUrls(addr){
-  const u=[`https://maplen.gg/api/collection?address=${addr}`,
+  const u=[`https://msu.gg/api/collection?address=${addr}`,
+           `https://msu.gg/api/collection/${addr}`,
+           `https://msu.gg/api/collections?wallet=${addr}`,
+           `https://msu.gg/collection?address=${addr}`,
+           `https://maplen.gg/api/collection?address=${addr}`,
            `https://maplen.gg/api/collection/${addr}`,
            `https://maplen.gg/collection?address=${addr}`,
            `https://msnext.site/api/collection?wallet=${addr}`,
