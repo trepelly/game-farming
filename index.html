@@ -7617,7 +7617,20 @@ function renderLiteList(){
           ${t?`<span onclick="setLiteSort('bossT')" data-tip="Sắp xếp theo boss mục tiêu: ${_mvpEsc(t.name)}&#10;Chưa mở → Đã mở → Slayer" style="cursor:pointer;display:inline-flex;width:13px;height:13px;border-radius:50%;overflow:hidden;border:1px solid ${liteSort.col==='bossT'?'var(--accent)':'var(--border2)'};flex-shrink:0">
             <img src="${bossImg(t)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()"></span>`:''}
         </div>`; })()}${hc('drop','MVP','left')}${hc('drop','Hạn','right')}${hc('need','Cần chi','right')}${hc('neso',_tokHdr('NESO'),'right')}${hc('nxpc',_tokHdr('NXPC'),'right')}${hc('avax',_tokHdr('AVAX'),'right')}${hc('nxpca',_tokHdr('NXPC(A)'),'right')}${hc('usdt',_tokHdr('USDT'),'right')}</div>
-        <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||'<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>'}</div>
+        <div id="lite-scroll" style="max-height:520px;overflow-y:auto">${rows||(()=>{
+          // Nói rõ vì sao trống: do bộ lọc nào đang bật, và cho gỡ ngay
+          const on=[];
+          if (liteQuery) on.push({lb:`tìm "${_mvpEsc(liteQuery)}"`, fn:"setLiteQuery('')"});
+          if (liteTier && liteTier!=='all') on.push({lb:`hạng ${_mvpEsc(liteTier)}`, fn:"setLiteTier('all')"});
+          if (typeof liteLv200!=='undefined' && liteLv200) on.push({lb:'Lv200+', fn:'toggleLiteLv200()'});
+          if (litePlayer && litePlayer!=='all') on.push({lb:`người chơi ${_mvpEsc(litePlayer)}`, fn:"setLitePlayer('all')"});
+          if (!on.length) return '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Không có ví.</div>';
+          return `<div style="padding:22px 20px;text-align:center">
+            <div style="font-size:12px;color:var(--text2);font-weight:600">Không ví nào khớp bộ lọc đang bật</div>
+            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+              ${on.map(x=>`<button onclick="${x.fn}" data-tip="Bấm để bỏ lọc này" style="background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:4px 10px;font-size:10.5px;font-weight:700;color:var(--accent);cursor:pointer;font-family:inherit">${x.lb} ✕</button>`).join('')}
+              ${on.length>1?`<button onclick="${on.map(x=>x.fn).join(';')}" style="background:var(--accent);border:1px solid var(--accent);border-radius:14px;padding:4px 10px;font-size:10.5px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit">Bỏ hết</button>`:''}
+            </div></div>`; })()}</div>
         <div class="mvp-lrow lite-row" style="grid-template-columns:${grid};border-top:1px solid var(--border2);background:var(--surface);font-weight:700">
           <div style="color:var(--muted2)">Σ</div>
           <div style="color:var(--text);font-weight:800">TỔNG <span class="mvp-num" style="font-size:10px;color:var(--muted2);font-weight:600">${ws.length} ví</span></div>
