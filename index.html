@@ -1112,6 +1112,10 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 #snap-prev .hint{flex:1;min-width:200px;font-size:11px;color:var(--muted2);line-height:1.5}
 #snap-prev button{background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:6px 11px;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
 #snap-prev button.pri{border-color:var(--accent);color:var(--accent)}
+.mp-pinned{box-shadow:0 20px 50px rgba(0,0,0,.55),0 0 0 1px var(--accent)!important}
+.mp-pinned .mp-snap{cursor:grab;background:color-mix(in srgb,var(--accent) 10%,#12161c)}
+.mp-pinned.dragging .mp-snap{cursor:grabbing}
+.mp-snap button[data-act="pin"].on{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
 .mp-snap{display:flex;align-items:center;gap:5px;padding:7px 10px;border-bottom:1px solid #2b313b;background:#12161c}
 .mp-snap .sp{flex:1}
 .mp-snap .ttl{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -6464,6 +6468,69 @@ function holdColHtml(w){
     ${out.join('')}
   </div>`;
 }
+// ══════════ Ghim bảng nhân vật ══════════
+// Bảng đã ghim là bản sao độc lập: kéo đi đâu cũng được, ghim bao nhiêu cái cũng được.
+let _pinSeq=0, _pinZ=10300;
+function _popRoot(ev){
+  const t=ev && ev.target && ev.target.closest;
+  const el=t && (ev.target.closest('.mp-pinned') || ev.target.closest('#char-pop'));
+  return el || document.getElementById('char-pop');
+}
+function pinCharPop(ev){
+  if (ev) ev.stopPropagation();
+  const src=_popRoot(ev); if(!src) return;
+  if (src.classList.contains('mp-pinned')) return unpinCharPop(ev);
+
+  const p=src.cloneNode(true);
+  p.id='char-pin-'+(++_pinSeq);
+  p.classList.add('mp-pinned');
+  p.dataset.addr=src.dataset.addr||'';
+  const r=src.getBoundingClientRect();
+  const off=18*(1+(document.querySelectorAll('.mp-pinned').length%5));
+  p.style.cssText=`position:fixed;left:${Math.max(4,Math.round(r.left)+off)}px;top:${Math.max(4,Math.round(r.top)+off)}px;z-index:${++_pinZ};border-radius:16px;max-height:calc(100vh - 16px);overflow:hidden`;
+  const pinBtn=p.querySelector('.mp-snap button[data-act="pin"]');
+  if (pinBtn){ pinBtn.classList.add('on'); pinBtn.setAttribute('data-tip','Bỏ ghim bảng này'); }
+  const bar=p.querySelector('.mp-snap');
+  if (bar && !bar.querySelector('[data-act="close"]')){
+    const x=document.createElement('button');
+    x.setAttribute('data-act','close'); x.setAttribute('data-tip','Đóng bảng đã ghim');
+    x.textContent='✕';
+    x.addEventListener('click', e=>{ e.stopPropagation(); p.remove(); });
+    bar.appendChild(x);
+  }
+  p.addEventListener('mousedown', ()=>{ p.style.zIndex=++_pinZ; }, true);
+  document.body.appendChild(p);
+  closeCharPop();
+  showToast('Đã ghim bảng', 'Kéo thanh trên cùng để di chuyển · mở tiếp nhân vật khác thoải mái');
+}
+function unpinCharPop(ev){
+  const p=_popRoot(ev); if(!p || !p.classList.contains('mp-pinned')) return;
+  p.remove();
+}
+try{ window.pinCharPop=pinCharPop; window.unpinCharPop=unpinCharPop; }catch(e){}
+
+// Kéo bảng đã ghim bằng thanh nút trên cùng
+(function(){
+  let drag=null;
+  document.addEventListener('mousedown', e=>{
+    const bar=e.target && e.target.closest && e.target.closest('.mp-pinned .mp-snap');
+    if (!bar || (e.target.closest && e.target.closest('button'))) return;
+    const p=bar.closest('.mp-pinned');
+    if (!p) return;
+    const r=p.getBoundingClientRect();
+    drag={ p, dx:e.clientX-r.left, dy:e.clientY-r.top };
+    p.classList.add('dragging'); p.style.zIndex=++_pinZ;
+    e.preventDefault();
+  }, true);
+  document.addEventListener('mousemove', e=>{
+    if (!drag) return;
+    const w=drag.p.offsetWidth, h=drag.p.offsetHeight;
+    drag.p.style.left=Math.max(4, Math.min(innerWidth-w-4,  e.clientX-drag.dx))+'px';
+    drag.p.style.top =Math.max(4, Math.min(innerHeight-h-4, e.clientY-drag.dy))+'px';
+  });
+  document.addEventListener('mouseup', ()=>{ if(drag){ drag.p.classList.remove('dragging'); drag=null; } });
+})();
+
 // ══════════ Chụp ảnh popover nhân vật ══════════
 let _h2cLoading=null;
 function _loadHtml2Canvas(){
@@ -6686,7 +6753,7 @@ function showSnapPreview(blob, name){
 let _reloading=false;
 async function reloadCharPop(ev){
   if (ev) ev.stopPropagation();
-  const p=document.getElementById('char-pop'); if(!p || _reloading) return;
+  const p=_popRoot(ev); if(!p || _reloading) return;
   const addr=p.dataset.addr;
   const w=allWallets().find(x=>x.address===addr); if(!w) return;
   const btn=p.querySelector('.mp-snap button[data-act="reload"]');
@@ -6714,7 +6781,15 @@ async function reloadCharPop(ev){
       ...aks.map(ak=>fetchCharSkills(ak)),
       ensureHoldings(addr),
     ]);
-    _charPopRefresh(addr);
+    if (p.classList.contains('mp-pinned')){
+      const w2=allWallets().find(x=>x.address===addr);
+      if (w2){ const keep=p.style.cssText; p.innerHTML=charPopHtml(w2); p.style.cssText=keep;
+               const pb=p.querySelector('.mp-snap button[data-act="pin"]'); if(pb) pb.classList.add('on');
+               const bar=p.querySelector('.mp-snap');
+               if (bar && !bar.querySelector('[data-act="close"]')){
+                 const x=document.createElement('button'); x.setAttribute('data-act','close'); x.textContent='✕';
+                 x.addEventListener('click', e=>{ e.stopPropagation(); p.remove(); }); bar.appendChild(x); } }
+    } else _charPopRefresh(addr);
     try{ renderLiteList(); }catch(e){}
     prefetchPopImages(document.getElementById('char-pop'), 200);
     showToast('Đã cập nhật', `${w.label||addr.slice(0,8)} · ${aks.length} nhân vật`);
@@ -6731,7 +6806,7 @@ try{ window.reloadCharPop=reloadCharPop; }catch(e){}
 
 async function snapCharPop(ev, mode){
   if (ev) ev.stopPropagation();
-  const p=document.getElementById('char-pop'); if(!p) return;
+  const p=_popRoot(ev); if(!p) return;
   // mặc định copy; giữ Shift để đổi nhanh sang cách còn lại
   let wantClip = (mode||'clip')==='clip';
   if (ev && ev.shiftKey) wantClip=!wantClip;
@@ -6889,6 +6964,8 @@ function charPopHtml(w){
     <div class="mp-snap">
       <span class="ttl">${_mvpEsc(w.label||w.address.slice(0,10))}${top&&top.name?` · ${_mvpEsc(top.name)}`:''}</span>
       <span class="sp"></span>
+      <button data-act="pin" onclick="pinCharPop(event)" data-tip="Ghim bảng này lại&#10;Ghim xong kéo đi chỗ khác được, mở tiếp nhân vật kế thoải mái">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-2.5V8a5.5 5.5 0 0 0-11 0v6.5z"/></svg></button>
       <button data-act="reload" onclick="reloadCharPop(event)" data-tip="Tải lại nhân vật, trang bị và tài sản của ví này">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
       <button data-act="clip" onclick="snapCharPop(event,'clip')" data-tip="Copy ảnh toàn bộ bảng để dán vào tin nhắn">
