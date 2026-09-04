@@ -5819,6 +5819,8 @@ function _parseCollection(txt){
       const missCost=slots.filter(x=>!x.on&&x.min!=null).reduce((a,x)=>a+x.min,0);
       return { collected:+(sm.registeredCount||reg.length),
                total:+(sm.totalSlots||slots.length),
+               syncAt:root.fetchedAt||null,
+               syncStatus:(o&&o.syncStatus)||root.syncStatus||null,
                kinds:items.length, items,
                sets:Object.values(byId),
                missCost, missSlots:unreg.length,
@@ -6836,7 +6838,8 @@ function colColHtml(w){
           <span class="mvp-num n" style="color:${st.have?(st.have>=st.total?'#38bdf8':'#f0873c'):'#6b7280'}">${st.have}/${st.total}</span>
         </div>`; }).join('')}`:''}
 
-    ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Cập nhật ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`);
+    ${(d.syncStatus && d.syncStatus!=='complete')?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:6px" data-tip="Nguồn báo trạng thái đồng bộ: ${_mvpEsc(d.syncStatus)}&#10;Số liệu có thể chưa đủ">⚠ đang đồng bộ (${_mvpEsc(d.syncStatus)})</div>`:''}
+    ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Nguồn lấy lúc ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`);
 }
 // Một ô món trong collection
 function _colItem(it, have){
