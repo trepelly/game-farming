@@ -5678,7 +5678,7 @@ function openCharPop(ev, addr){
   try{ fetchCollection(addr).then(d=>{
         if(d) _charPopRefresh(addr);
         // còn món chưa biết tên -> hỏi thêm các nguồn khác
-        if (d && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr);
+        if (d && (d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr);
       }); }catch(e){}
   try{ prefetchPopImages(p); }catch(e){}
   setTimeout(()=>{ document.addEventListener('mousedown', _charPopOut, {once:true}); }, 0);
@@ -5908,6 +5908,14 @@ function _colUrls(addr){
   if (saved && saved.includes('{addr}')) u.unshift(saved.replace('{addr}', addr));
   return u.filter((x,i)=>u.indexOf(x)===i);
 }
+async function _colTry(url, addr){
+  const r=await fetch(msuProxy(url));
+  if (!r.ok) throw 0;
+  const d=_parseCollection(await r.text());
+  if (!d) throw 0;
+  try{ localStorage.setItem('MSU_COL_PATTERN', url.replace(addr,'{addr}')); }catch(e){}
+  return d;
+}
 async function fetchCollection(addr){
   const k=(addr||'').toLowerCase();
   const c=COL_CACHE[k];
@@ -5915,30 +5923,41 @@ async function fetchCollection(addr){
   if (_colBusy.has(k)) return c||null;
   _colBusy.add(k);
   try{
-    for (const url of _colUrls(addr)){
+    const urls=_colUrls(addr);
+    // URL đã từng chạy được thì thử riêng nó trước — thường xong ngay
+    let saved=null; try{ saved=localStorage.getItem('MSU_COL_PATTERN'); }catch(e){}
+    if (saved && saved.includes('{addr}')){
+      try{ const d=await _colTry(saved.replace('{addr}', addr), addr);
+           COL_CACHE[k]=d; _saveColCache(); return d; }catch(e){}
+    }
+    // còn lại thử SONG SONG, lấy kết quả đầu tiên đọc được
+    const rest=urls.filter(u=>!saved || u!==saved.replace('{addr}', addr));
+    if (rest.length){
       try{
-        const r=await fetch(msuProxy(url)); if(!r.ok) continue;
-        const d=_parseCollection(await r.text());
-        if (d){ COL_CACHE[k]=d; _saveColCache();
-          try{ localStorage.setItem('MSU_COL_PATTERN', url.replace(addr,'{addr}')); }catch(e){}
-          return d; }
+        const d=await Promise.any(rest.map(u=>_colTry(u, addr)));
+        COL_CACHE[k]=d; _saveColCache(); return d;
       }catch(e){}
     }
   } finally { _colBusy.delete(k); }
   return c||null;
 }
-// Gọi các nguồn còn lại chỉ để bổ sung tên món (không ghi đè tiến độ)
+// Tên món dùng chung cho mọi ví -> chỉ đi tìm một lần mỗi phiên
+let _namesTried=false;
 async function fetchCollectionNames(addr){
-  for (const url of _colUrls(addr)){
-    try{
-      const r=await fetch(msuProxy(url)); if(!r.ok) continue;
-      const t=await r.text();
-      let j=null; try{ j=JSON.parse(t); }catch(e){}
-      const got=j?_harvestNames(j):0;
-      if (got){ try{ _charPopRefresh(addr); }catch(e){} return got; }
-    }catch(e){}
-  }
-  return 0;
+  if (_namesTried) return 0;
+  _namesTried=true;
+  let saved=null; try{ saved=localStorage.getItem('MSU_COL_PATTERN'); }catch(e){}
+  const skip=saved?saved.replace('{addr}', addr):null;
+  const urls=_colUrls(addr).filter(u=>u!==skip);      // nguồn tiến độ đã quét rồi
+  const got=await Promise.allSettled(urls.map(async u=>{
+    const r=await fetch(msuProxy(u)); if(!r.ok) return 0;
+    const t=await r.text();
+    let j=null; try{ j=JSON.parse(t); }catch(e){}
+    return j?_harvestNames(j):0;
+  }));
+  const n=got.reduce((a,x)=>a+(x.status==='fulfilled'?x.value:0),0);
+  if (n){ try{ _charPopRefresh(addr); }catch(e){} }
+  return n;
 }
 try{ window.fetchCollectionNames=fetchCollectionNames; window.COL_NAMES=COL_NAMES; }catch(e){}
 async function debugCollection(addr){
