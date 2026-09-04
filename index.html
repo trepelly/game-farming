@@ -1003,7 +1003,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-eq-more{font-size:9.5px;color:#5b6270;padding:2px 2px 0}
 .mp-wide{width:auto;max-width:none}
 .mp-cols{display:flex;align-items:stretch}
-.mp-left{width:206px;flex-shrink:0;max-height:min(78vh,760px);overflow-y:auto}
+.mp-left{width:206px;flex-shrink:0;max-height:min(74vh,720px);overflow-y:auto}
 .mp-right{width:212px;border-left:1px solid #2b313b;padding:11px 12px 12px;min-width:0;flex-shrink:0}
 .mp-sec{padding:9px 11px 4px}
 .mp-arc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
@@ -1020,8 +1020,8 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-eq-2col{display:grid!important;grid-template-columns:1fr 1fr;gap:3px}
 .mp-right-wide{width:404px!important}
 .mp-right-grid{width:352px!important}
-.mp-right{max-height:min(78vh,760px);overflow-y:auto}
-.mp-mid{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
+.mp-right{max-height:min(74vh,720px);overflow-y:auto}
+.mp-mid{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(74vh,720px);overflow-y:auto}
 .mp-left::-webkit-scrollbar,.mp-mid::-webkit-scrollbar,.mp-right::-webkit-scrollbar{width:6px}
 .mp-left::-webkit-scrollbar-track,.mp-mid::-webkit-scrollbar-track,.mp-right::-webkit-scrollbar-track{background:transparent}
 .mp-left::-webkit-scrollbar-thumb,.mp-mid::-webkit-scrollbar-thumb,.mp-right::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
@@ -1112,11 +1112,13 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 #snap-prev .hint{flex:1;min-width:200px;font-size:11px;color:var(--muted2);line-height:1.5}
 #snap-prev button{background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:6px 11px;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
 #snap-prev button.pri{border-color:var(--accent);color:var(--accent)}
-.mp-snap{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:4px}
-.mp-snap button{display:inline-flex;align-items:center;gap:4px;background:#1a1f26cc;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#8b93a1;cursor:pointer;font-size:9.5px;font-weight:700;font-family:inherit;line-height:1;backdrop-filter:blur(4px);transition:.12s}
+.mp-snap{display:flex;align-items:center;gap:5px;padding:7px 10px;border-bottom:1px solid #2b313b;background:#12161c}
+.mp-snap .sp{flex:1}
+.mp-snap .ttl{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-snap button{display:inline-flex;align-items:center;gap:4px;background:#1a1f26;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#8b93a1;cursor:pointer;font-size:9.5px;font-weight:700;font-family:inherit;line-height:1;flex-shrink:0;transition:.12s}
 .mp-snap button:hover{color:#e6e9ef;border-color:#4c53a8;background:#232a44cc}
 .mp-snap button[disabled]{opacity:.5;cursor:default}
-.mp-col-col{width:206px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
+.mp-col-col{width:206px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(74vh,720px);overflow-y:auto}
 .mp-col-col::-webkit-scrollbar{width:6px}
 .mp-col-col::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
 .mp-col-bar{height:6px;border-radius:3px;background:#232a33;overflow:hidden;margin:6px 0 3px}
@@ -1136,7 +1138,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-col-row .bar{width:38px;height:4px;border-radius:2px;background:#232a33;overflow:hidden;flex-shrink:0;display:block}
 .mp-col-row .bar span{display:block;height:100%;border-radius:2px}
 .mp-col-row .n{font-size:9.5px;font-weight:700;width:30px;text-align:right;flex-shrink:0}
-.mp-hold-col{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
+.mp-hold-col{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(74vh,720px);overflow-y:auto}
 .mp-hold-col::-webkit-scrollbar{width:6px}
 .mp-hold-col::-webkit-scrollbar-track{background:transparent}
 .mp-hold-col::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
@@ -6866,6 +6868,8 @@ function charPopHtml(w){
   const stat=(lb,val,color)=>`<div class="mp-stat"><span class="mp-label">${lb}</span><span class="mp-value" style="${color?'color:'+color:''}">${val}</span></div>`;
   return `<div class="mp-tooltip mp-wide">
     <div class="mp-snap">
+      <span class="ttl">${_mvpEsc(w.label||w.address.slice(0,10))}${top&&top.name?` · ${_mvpEsc(top.name)}`:''}</span>
+      <span class="sp"></span>
       <button data-act="reload" onclick="reloadCharPop(event)" data-tip="Tải lại nhân vật, trang bị và tài sản của ví này">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
       <button data-act="clip" onclick="snapCharPop(event,'clip')" data-tip="Copy ảnh toàn bộ bảng để dán vào tin nhắn">
