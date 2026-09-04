@@ -5817,17 +5817,26 @@ function _parseCollection(txt){
         const e=(byId[k]=byId[k]||{ key:k, name:sl.setName, have:0, total:0, need:0 });
         e.total++; if (sl.on) e.have++; else if (sl.min!=null) e.need+=sl.min;
       });
-      const items=slots.filter(x=>x.on).flatMap(sl=>sl.opts.slice(0,1).map(op=>({
-        id:op.id, n:1, name:op.name, price:op.price,
-        url:`https://api-static.msu.io/itemimages/icon/${op.id}.png`,
-      })));
+      // mọi ô của danh mục, kèm cờ đã có hay chưa
+      const items=slots.map(sl=>{
+        const op=sl.opts[0]||{};
+        return { id:op.id, n:1, name:op.name||'', price:(sl.min!=null?sl.min:op.price), have:sl.on,
+                 set:sl.setName, alts:sl.opts.length,
+                 url:`https://api-static.msu.io/itemimages/icon/${op.id}.png` };
+      }).filter(x=>x.id);
+      // món của từng bộ
+      slots.forEach(sl=>{ const k=sl.setId||sl.setName; const e=byId[k]; if(!e) return;
+        (e.items=e.items||[]).push({ id:(sl.opts[0]||{}).id, name:(sl.opts[0]||{}).name||'', have:sl.on,
+          price:sl.min, url:`https://api-static.msu.io/itemimages/icon/${(sl.opts[0]||{}).id}.png` });
+      });
       _saveColNames();
       const missCost=slots.filter(x=>!x.on&&x.min!=null).reduce((a,x)=>a+x.min,0);
+      const haveN=items.filter(x=>x.have).length;
       return { collected:+(sm.registeredCount||reg.length),
                total:+(sm.totalSlots||slots.length),
                syncAt:root.fetchedAt||null,
                syncStatus:(o&&o.syncStatus)||root.syncStatus||null,
-               kinds:items.length, items,
+               kinds:haveN, items,
                sets:Object.values(byId),
                missCost, missSlots:unreg.length,
                floorValue:items.filter(x=>x.price!=null).reduce((a,x)=>a+x.price,0),
@@ -6942,34 +6951,67 @@ function colColHtml(w){
   if (!d) return head(`<div class="mp-eq-more">${_colBusy.has((w.address||'').toLowerCase())?'đang tải collection…':'chưa có dữ liệu collection'}</div>`);
 
   const pct=d.total?Math.round(d.collected/d.total*1000)/10:null;
-  const items=d.items||[];
-  const sets=(d.sets||[]).slice().sort((a,b)=>
+  const box='max-height:262px;overflow-y:auto';          // đúng 7 hàng ô 33px + khoảng cách
+  const srch=(id,val,fn,ph)=>`<input id="${id}" type="text" value="${_mvpEsc(val||'')}" oninput="${fn}(this.value)" placeholder="${ph}"
+    style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:inherit;outline:none;margin:5px 0 6px">`;
+
+  // ── Vật phẩm: đã có lên trước (màu), chưa có xuống sau (xám) ──
+  const q=_colQ.trim().toLowerCase();
+  const named=it=>it.name||COL_NAMES[it.id]||('#'+it.id);
+  let items=(d.items||[]).slice();
+  if (q) items=items.filter(it=>named(it).toLowerCase().includes(q)||String(it.id).includes(q));
+  items.sort((x,y)=>(y.have?1:0)-(x.have?1:0)||named(x).localeCompare(named(y)));
+  const nHave=items.filter(x=>x.have).length;
+
+  // ── Bộ: có ảnh từng món, tên copy được ──
+  const sq=_colSetQ.trim().toLowerCase();
+  let sets=(d.sets||[]).slice().sort((a,b)=>
     (b.have/(b.total||1))-(a.have/(a.total||1)) || b.have-a.have || a.name.localeCompare(b.name));
-  const done=sets.filter(x=>x.have>=x.total&&x.total).length;
-  const started=sets.filter(x=>x.have>0).length;
+  if (sq) sets=sets.filter(st=>st.name.toLowerCase().includes(sq)
+    || (st.items||[]).some(it=>named(it).toLowerCase().includes(sq)));
+  const done=sets.filter(x=>x.total&&x.have>=x.total).length;
 
   return head(`
     ${pct!=null?`<div class="mp-col-bar"><div style="width:${Math.max(pct?1:0,Math.min(100,pct))}%"></div></div>`:''}
     <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2);margin-top:4px">
-      <span>${pct!=null?pct+'%':_lf(d.collected)+' món'}</span>
-      <span>${sets.length?`${started}/${sets.length} bộ${done?` · ${done} đủ`:''}`:`${d.kinds||items.length} loại`}</span></div>
-    ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã sưu tầm">Đang giữ ≈ ${_lfk(d.floorValue)} NESO</div>`:''}
+      <span>${pct!=null?pct+'%':_lf(d.collected)+' món'}</span><span>${d.sets&&d.sets.length?`${done}/${d.sets.length} bộ đủ`:`${d.kinds||0} loại`}</span></div>
+    ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã có">Đang giữ ≈ ${_lfk(d.floorValue)} NESO</div>`:''}
     ${d.missCost?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:2px" data-tip="Mua món rẻ nhất cho ${d.missSlots} ô còn thiếu&#10;Theo giá sàn hiện tại: ${_lf(d.missCost)} NESO">Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO</div>`:''}
 
-    ${items.length?`<div class="mp-eq-sub" style="margin-top:9px"><span>Đã sưu tầm</span><i></i><b>${items.length}</b></div>
-      <div class="mp-col-items">${items.map(it=>_colItem(it,true)).join('')}</div>`:''}
+    <div class="mp-eq-sub" style="margin-top:9px"><span>Vật phẩm</span><i></i><b>${nHave}/${items.length}</b></div>
+    ${srch('col-q', _colQ, 'setColQ', 'Tìm tên vật phẩm…')}
+    <div style="${box}">${items.length
+      ? `<div class="mp-col-items">${items.map(it=>_colItem(it, it.have)).join('')}</div>`
+      : '<div class="mp-eq-more">Không có món nào khớp</div>'}</div>
 
-    ${sets.length?`<div class="mp-eq-sub" style="margin-top:10px"><span>Bộ sưu tập</span><i></i><b>${sets.length}</b></div>
-      ${sets.map(st=>{ const p=st.total?st.have/st.total:0;
-        return `<div class="mp-col-row" data-tip="${_mvpEsc(st.name)}&#10;Đã đăng ký ${st.have}/${st.total}${st.need?`&#10;Còn thiếu ≈ ${_lf(st.need)} NESO`:''}">
-          <span class="nm">${_mvpEsc(st.name)}</span>
-          <span class="bar"><span style="width:${Math.round(p*100)}%;background:${st.have>=st.total?'#38bdf8':'#f0873c'}"></span></span>
-          <span class="mvp-num n" style="color:${st.have?(st.have>=st.total?'#38bdf8':'#f0873c'):'#6b7280'}">${st.have}/${st.total}</span>
-        </div>`; }).join('')}`:''}
+    <div class="mp-eq-sub" style="margin-top:11px"><span>Bộ sưu tập</span><i></i><b>${sets.length}</b></div>
+    ${srch('col-sq', _colSetQ, 'setColSetQ', 'Tìm tên bộ hoặc món…')}
+    <div style="${box}">${sets.length ? sets.map(st=>{
+      const p2=st.total?st.have/st.total:0;
+      return `<div class="mp-col-set">
+        <div class="mp-col-set-h">
+          <b class="mp-copy" onclick="event.stopPropagation();copyFlash(this,'${String(st.name).replace(/'/g,'')}','tên bộ')" data-tip="${_mvpEsc(st.name)}&#10;Đã đăng ký ${st.have}/${st.total}${st.need?`&#10;Còn thiếu ≈ ${_lf(st.need)} NESO`:''}&#10;Nhấp để copy tên bộ" style="cursor:pointer">${_mvpEsc(st.name)}</b>
+          <span class="mvp-num" style="color:${st.have?(st.have>=st.total?'#38bdf8':'#f0873c'):'#6b7280'}">${st.have}/${st.total}</span></div>
+        <span class="bar" style="display:block;height:3px;border-radius:2px;background:#232a33;overflow:hidden;margin-bottom:5px"><span style="display:block;height:100%;width:${Math.round(p2*100)}%;background:${st.have>=st.total?'#38bdf8':'#f0873c'}"></span></span>
+        ${(st.items&&st.items.length)?`<div class="mp-col-items">${st.items.map(it=>_colItem(it, it.have)).join('')}</div>`:''}
+      </div>`; }).join('') : '<div class="mp-eq-more">Không có bộ nào khớp</div>'}</div>
 
     ${(d.syncStatus && d.syncStatus!=='complete')?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:6px" data-tip="Nguồn báo trạng thái đồng bộ: ${_mvpEsc(d.syncStatus)}&#10;Số liệu có thể chưa đủ">⚠ đang đồng bộ (${_mvpEsc(d.syncStatus)})</div>`:''}
     ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Nguồn lấy lúc ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`);
 }
+// Ô tìm trong cột collection: chỉ dựng lại cột, giữ nguyên con trỏ đang gõ
+let _colQ='', _colSetQ='';
+function _colRefresh(which){
+  const p=document.getElementById('char-pop'); if(!p) return;
+  const w=allWallets().find(x=>x.address===p.dataset.addr); if(!w) return;
+  const col=p.querySelector('.mp-col-col'); if(!col) return;
+  const tmp=document.createElement('div'); tmp.innerHTML=colColHtml(w);
+  col.replaceWith(tmp.firstElementChild);
+  const el=document.getElementById(which); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+}
+function setColQ(v){ _colQ=v||''; _colRefresh('col-q'); }
+function setColSetQ(v){ _colSetQ=v||''; _colRefresh('col-sq'); }
+try{ window.setColQ=setColQ; window.setColSetQ=setColSetQ; }catch(e){}
 // Một ô món trong collection
 function _colItem(it, have){
   const nm=it.name || COL_NAMES[it.id] || (ITEM_CACHE[it.assetKey]&&ITEM_CACHE[it.assetKey].name) || ('#'+it.id);
