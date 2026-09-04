@@ -5744,29 +5744,50 @@ const COL_TTL=6*60*60*1000;
 function _saveColCache(){ try{ localStorage.setItem('msuCol1', JSON.stringify(COL_CACHE)); }catch(e){} }
 const _colBusy=new Set();
 
-// Nhặt dữ liệu ra khỏi bất kể API trả hình dạng nào
+// Dạng thật của msutool: { data:{ meta:{totalCollected}, slots:[{itemId, tokenId, ...}] } }
+// (chỉ có itemId đã sưu tầm — tên/bộ/tổng nằm ở danh mục riêng)
 function _parseCollection(txt){
   let o=null;
   try{ o=JSON.parse(txt); }catch(e){}
-  if (!o) o=_cutJson(txt,'sets','[', x=>Array.isArray(x));
+  if (!o) o=_cutJson(txt,'slots','[', x=>Array.isArray(x)&&x.length&&x[0]&&x[0].itemId!=null);
+  if (Array.isArray(o)) o={ data:{ slots:o } };
   if (!o) return null;
-  const root = o.data || o.result || o;
-  const rawSets = root.sets || root.setItems || root.collections || (Array.isArray(root)?root:null);
-  if (!Array.isArray(rawSets)) return null;
+  const root=o.data||o.result||o;
   const num=v=>+(v||0);
-  const sets = rawSets.map(st=>{
-    const items = (st.items || st.itemList || st.pieces || []).map(it=>({
-      id: num(it.itemId||it.id),
-      name: it.name || it.itemName || '',
-      url: it.imageUrl || it.image || (it.itemId?`https://api-static.msu.io/itemimages/icon/${it.itemId}.png`:''),
-      have: num(it.count||it.owned||it.quantity||0) || !!(it.collected||it.isCollected||it.owned===true),
-    }));
-    const have = items.filter(x=>x.have).length;
-    return { name: st.name||st.setName||'—', items, have, total: items.length || num(st.total) };
-  }).filter(x=>x.items.length || x.total);
-  const total = num(root.total||root.totalItems) || sets.reduce((a,x)=>a+x.total,0);
-  const collected = num(root.collected||root.collectedCount) || sets.reduce((a,x)=>a+x.have,0);
-  return { collected, total, sets, ts: Date.now() };
+
+  // ── dạng có sẵn bộ (nếu sau này API trả kiểu khác) ──
+  const rawSets = root.sets || root.setItems || root.collections;
+  if (Array.isArray(rawSets)){
+    const sets=rawSets.map(st=>{
+      const items=(st.items||st.itemList||st.pieces||[]).map(it=>({
+        id:num(it.itemId||it.id), name:it.name||it.itemName||'',
+        url:it.imageUrl||it.image||(it.itemId?`https://api-static.msu.io/itemimages/icon/${it.itemId}.png`:''),
+        have:num(it.count||it.owned||it.quantity||0)||!!(it.collected||it.isCollected),
+      }));
+      return { name:st.name||st.setName||'—', items, have:items.filter(x=>x.have).length, total:items.length||num(st.total) };
+    }).filter(x=>x.items.length||x.total);
+    return { collected:num(root.collected||root.collectedCount)||sets.reduce((a,x)=>a+x.have,0),
+             total:num(root.total||root.totalItems)||sets.reduce((a,x)=>a+x.total,0),
+             sets, items:[], ts:Date.now() };
+  }
+
+  // ── dạng slots: gộp theo itemId, đếm số bản ──
+  const slots=root.slots||root.items;
+  if (!Array.isArray(slots)) return null;
+  const by={};
+  slots.forEach(sl=>{ const id=num(sl&&(sl.itemId||sl.id)); if(!id) return;
+    (by[id]=by[id]||{ id, n:0, tokens:[] }).n++;
+    if (sl.tokenId) by[id].tokens.push(String(sl.tokenId));
+  });
+  const items=Object.values(by).map(x=>({
+    id:x.id, n:x.n, tokens:x.tokens,
+    url:`https://api-static.msu.io/itemimages/icon/${x.id}.png`,
+  })).sort((a,b)=>b.n-a.n||a.id-b.id);
+  const meta=root.meta||{};
+  return { collected:num(meta.totalCollected)||slots.length,
+           total:num(meta.total||meta.totalItems)||0,          // 0 = chưa biết tổng danh mục
+           kinds:items.length, items, sets:[],
+           syncAt:meta.syncUpdatedAt||null, ts:Date.now() };
 }
 function _colUrls(addr){
   const u=[`https://msutool.com/api/item/collection?wallet=${addr}`,
@@ -6665,21 +6686,42 @@ function colColHtml(w){
   const head=(sub)=>`<div class="mp-col-col">
     <div class="mp-others-head"><span class="mp-label">Collection</span>
       <span class="mp-count" data-tip="Nguồn: msutool.com&#10;Bấm để mở trang gốc"
-        onclick="event.stopPropagation();window.open('${link}','_blank')" style="cursor:pointer">${d?`${_lfk(d.collected)}/${_lfk(d.total)}`:'—'}</span></div>
+        onclick="event.stopPropagation();window.open('${link}','_blank')" style="cursor:pointer">${d?(d.total?`${_lfk(d.collected)}/${_lfk(d.total)}`:_lfk(d.collected)):'—'}</span></div>
     ${sub}</div>`;
   if (!d) return head(`<div class="mp-eq-more">${_colBusy.has((w.address||'').toLowerCase())?'đang tải collection…':'chưa có dữ liệu collection'}</div>`);
-  const pct=d.total?Math.round(d.collected/d.total*1000)/10:0;
-  const sets=d.sets.slice().sort((a,b)=>(b.have/(b.total||1))-(a.have/(a.total||1))||b.have-a.have);
+
+  // Có sẵn cấu trúc bộ -> vẽ theo bộ
+  if (d.sets && d.sets.length){
+    const pct=d.total?Math.round(d.collected/d.total*1000)/10:0;
+    const sets=d.sets.slice().sort((a,b)=>(b.have/(b.total||1))-(a.have/(a.total||1))||b.have-a.have);
+    return head(`
+      <div class="mp-col-bar"><div style="width:${Math.min(100,pct)}%"></div></div>
+      <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2)"><span>${pct}%</span><span>${d.sets.length} bộ</span></div>
+      ${sets.map(st=>`<div class="mp-col-set">
+        <div class="mp-col-set-h"><b>${_mvpEsc(st.name)}</b><span class="mvp-num" style="color:${st.have?'#f0873c':'#6b7280'}">${st.have}/${st.total}</span></div>
+        <div class="mp-col-items">${st.items.map(it=>_colItem(it, it.have)).join('')}</div>
+      </div>`).join('')}`);
+  }
+
+  // Dạng slots: chỉ biết món đã sưu tầm
+  const items=d.items||[];
+  const pct=d.total?Math.round(d.collected/d.total*1000)/10:null;
   return head(`
-    <div class="mp-col-bar"><div style="width:${Math.min(100,pct)}%"></div></div>
-    <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2)"><span>${pct}%</span><span>${d.sets.length} bộ</span></div>
-    ${sets.map(st=>`<div class="mp-col-set">
-      <div class="mp-col-set-h"><b>${_mvpEsc(st.name)}</b><span class="mvp-num" style="color:${st.have?'#f0873c':'#6b7280'}">${st.have}/${st.total}</span></div>
-      <div class="mp-col-items">${st.items.map(it=>`<span class="mp-col-it ${it.have?'on':'off'}" data-tip="${_mvpEsc(it.name||('#'+it.id))}&#10;${it.have?('Đã có'+(+it.have>1?' ×'+it.have:'')):'Chưa có'}"
-        ${it.name?`onclick="event.stopPropagation();copyFlash(this,'${String(it.name).replace(/'/g,'')}','tên vật phẩm')"`:''} style="cursor:${it.name?'pointer':'default'}">
-        ${it.url?`<img src="${it.url}" loading="lazy" onerror="this.remove()">`:''}
-        ${(+it.have>1)?`<span class="n">${+it.have}</span>`:''}</span>`).join('')}</div>
-    </div>`).join('')}`);
+    ${pct!=null?`<div class="mp-col-bar"><div style="width:${Math.min(100,pct)}%"></div></div>`:''}
+    <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2);margin-top:4px">
+      <span>${pct!=null?pct+'%':_lf(d.collected)+' món'}</span><span>${d.kinds||items.length} loại</span></div>
+    ${items.length?`<div class="mp-col-items" style="margin-top:7px">${items.map(it=>_colItem(it, true)).join('')}</div>`
+                  :'<div class="mp-eq-more">Chưa sưu tầm món nào</div>'}
+    <div class="itip-note" style="border:none;padding-top:8px">Bấm một món để copy Item ID</div>`);
+}
+// Một ô món trong collection
+function _colItem(it, have){
+  const nm=it.name || (ITEM_CACHE[it.assetKey]&&ITEM_CACHE[it.assetKey].name) || ('#'+it.id);
+  const cnt=+(it.n||it.have||0);
+  return `<span class="mp-col-it ${have?'on':'off'}" data-tip="${_mvpEsc(nm)}&#10;Item ID: ${it.id}${cnt>1?'&#10;Có '+cnt+' bản':''}${have?'':'&#10;Chưa có'}"
+    onclick="event.stopPropagation();copyFlash(this,'${it.name?String(it.name).replace(/'/g,''):it.id}','${it.name?'tên vật phẩm':'Item ID'}')" style="cursor:pointer">
+    ${it.url?`<img src="${it.url}" loading="lazy" onerror="this.remove()">`:''}
+    ${cnt>1?`<span class="n">${cnt}</span>`:''}</span>`;
 }
 function charPopHtml(w){
   const cs=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0));
