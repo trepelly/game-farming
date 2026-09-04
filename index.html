@@ -5849,7 +5849,7 @@ function _parseCollection(txt){
   if (o && Array.isArray(o.registeredItemIds) && o.sets && !Array.isArray(o.sets)){
     const fp=o.floorPrices||{};
     const items=o.registeredItemIds.map(id=>({
-      id:+id, n:1, price:(fp[id]!=null?+fp[id]:null),
+      id:+id, n:1, have:true, price:(fp[id]!=null?+fp[id]:null),
       url:`https://api-static.msu.io/itemimages/icon/${id}.png`,
     }));
     const sets=Object.keys(o.sets).map(k=>{
@@ -5875,7 +5875,7 @@ function _parseCollection(txt){
       const items=(st.items||st.itemList||st.pieces||[]).map(it=>({
         id:num(it.itemId||it.id), name:it.name||it.itemName||'',
         url:it.imageUrl||it.image||(it.itemId?`https://api-static.msu.io/itemimages/icon/${it.itemId}.png`:''),
-        have:num(it.count||it.owned||it.quantity||0)||!!(it.collected||it.isCollected),
+        have:!!(num(it.count||it.owned||it.quantity||0)||it.collected||it.isCollected),
       }));
       return { name:st.name||st.setName||'—', items, have:items.filter(x=>x.have).length, total:items.length||num(st.total) };
     }).filter(x=>x.items.length||x.total);
@@ -5894,7 +5894,7 @@ function _parseCollection(txt){
     if (sl.tokenId) by[id].tokens.push(String(sl.tokenId));
   });
   const items=Object.values(by).map(x=>({
-    id:x.id, n:x.n, tokens:x.tokens,
+    id:x.id, n:x.n, have:true, tokens:x.tokens,
     url:`https://api-static.msu.io/itemimages/icon/${x.id}.png`,
   })).sort((a,b)=>b.n-a.n||a.id-b.id);
   const meta=root.meta||{};
@@ -6978,7 +6978,8 @@ function colColHtml(w){
     ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã có">Đang giữ ≈ ${_lfk(d.floorValue)} NESO</div>`:''}
     ${d.missCost?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:2px" data-tip="Mua món rẻ nhất cho ${d.missSlots} ô còn thiếu&#10;Theo giá sàn hiện tại: ${_lf(d.missCost)} NESO">Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO</div>`:''}
 
-    <div class="mp-eq-sub" style="margin-top:9px"><span>Vật phẩm</span><i></i><b>${nHave}/${items.length}</b></div>
+    <div class="mp-eq-sub" style="margin-top:9px"><span>Vật phẩm</span><i></i><b>${
+      items.every(x=>x.have) ? `${items.length} đã có` : `${nHave}/${items.length}`}</b></div>
     ${srch('col-q', _colQ, 'setColQ', 'Tìm tên vật phẩm…')}
     <div style="${box}">${items.length
       ? `<div class="mp-col-items">${items.map(it=>_colItem(it, it.have)).join('')}</div>`
