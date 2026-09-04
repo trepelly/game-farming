@@ -5789,6 +5789,42 @@ function _parseCollection(txt){
   }
   if (o) _harvestNames(o);                 // nguồn nào có tên thì lấy tên
 
+  // ── dạng msu.gg: summary + registeredSlots / unregisteredSlots ──
+  {
+    const root=(o&&(o.data||o))||{};
+    const reg=root.registeredSlots, unreg=root.unregisteredSlots;
+    if (Array.isArray(reg) && Array.isArray(unreg)){
+      const sm=root.summary||{};
+      const mk=(sl,on)=>{
+        const ids=sl.itemIds||[], nms=sl.itemNames||[], prs=sl.floorPrices||[];
+        const opts=ids.map((id,i)=>({ id:+id, name:nms[i]||'', price:(prs[i]!=null?+prs[i]:null) }));
+        const priced=opts.filter(x=>x.price!=null).map(x=>x.price);
+        return { setId:sl.setId, setName:sl.setName||'—', order:+(sl.orderNumber||0),
+                 on, opts, min:priced.length?Math.min(...priced):null };
+      };
+      const slots=[...reg.map(x=>mk(x,true)), ...unreg.map(x=>mk(x,false))];
+      // gom theo bộ
+      const byId={};
+      slots.forEach(sl=>{ const k=sl.setId||sl.setName;
+        const e=(byId[k]=byId[k]||{ key:k, name:sl.setName, have:0, total:0, need:0 });
+        e.total++; if (sl.on) e.have++; else if (sl.min!=null) e.need+=sl.min;
+      });
+      const items=slots.filter(x=>x.on).flatMap(sl=>sl.opts.slice(0,1).map(op=>({
+        id:op.id, n:1, name:op.name, price:op.price,
+        url:`https://api-static.msu.io/itemimages/icon/${op.id}.png`,
+      })));
+      const missCost=slots.filter(x=>!x.on&&x.min!=null).reduce((a,x)=>a+x.min,0);
+      return { collected:+(sm.registeredCount||reg.length),
+               total:+(sm.totalSlots||slots.length),
+               kinds:items.length, items,
+               sets:Object.values(byId),
+               missCost, missSlots:unreg.length,
+               floorValue:items.filter(x=>x.price!=null).reduce((a,x)=>a+x.price,0),
+               floorCount:items.filter(x=>x.price!=null).length,
+               ts:Date.now() };
+    }
+  }
+
   // ── dạng msnext.site: có tổng danh mục, tiến độ từng bộ và giá sàn ──
   if (o && Array.isArray(o.registeredItemIds) && o.sets && !Array.isArray(o.sets)){
     const fp=o.floorPrices||{};
@@ -6783,14 +6819,15 @@ function colColHtml(w){
     <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2);margin-top:4px">
       <span>${pct!=null?pct+'%':_lf(d.collected)+' món'}</span>
       <span>${sets.length?`${started}/${sets.length} bộ${done?` · ${done} đủ`:''}`:`${d.kinds||items.length} loại`}</span></div>
-    ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã sưu tầm">≈ ${_lfk(d.floorValue)} NESO</div>`:''}
+    ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã sưu tầm">Đang giữ ≈ ${_lfk(d.floorValue)} NESO</div>`:''}
+    ${d.missCost?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:2px" data-tip="Mua món rẻ nhất cho ${d.missSlots} ô còn thiếu&#10;Theo giá sàn hiện tại: ${_lf(d.missCost)} NESO">Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO</div>`:''}
 
     ${items.length?`<div class="mp-eq-sub" style="margin-top:9px"><span>Đã sưu tầm</span><i></i><b>${items.length}</b></div>
       <div class="mp-col-items">${items.map(it=>_colItem(it,true)).join('')}</div>`:''}
 
     ${sets.length?`<div class="mp-eq-sub" style="margin-top:10px"><span>Bộ sưu tập</span><i></i><b>${sets.length}</b></div>
       ${sets.map(st=>{ const p=st.total?st.have/st.total:0;
-        return `<div class="mp-col-row" data-tip="${_mvpEsc(st.name)}&#10;Đã đăng ký ${st.have}/${st.total}">
+        return `<div class="mp-col-row" data-tip="${_mvpEsc(st.name)}&#10;Đã đăng ký ${st.have}/${st.total}${st.need?`&#10;Còn thiếu ≈ ${_lf(st.need)} NESO`:''}">
           <span class="nm">${_mvpEsc(st.name)}</span>
           <span class="bar"><span style="width:${Math.round(p*100)}%;background:${st.have>=st.total?'#38bdf8':'#f0873c'}"></span></span>
           <span class="mvp-num n" style="color:${st.have?(st.have>=st.total?'#38bdf8':'#f0873c'):'#6b7280'}">${st.have}/${st.total}</span>
