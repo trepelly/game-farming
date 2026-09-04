@@ -6509,6 +6509,38 @@ function unpinCharPop(ev){
 }
 try{ window.pinCharPop=pinCharPop; window.unpinCharPop=unpinCharPop; }catch(e){}
 
+// Tách bảng ra một cửa sổ trình duyệt riêng — kéo sang màn hình khác được.
+// Cửa sổ mới chỉ để xem: chép nguyên HTML + toàn bộ CSS của trang, không mang theo JS.
+function popOutCharPop(ev){
+  if (ev) ev.stopPropagation();
+  const src=_popRoot(ev); if(!src) return;
+  const w=allWallets().find(x=>x.address===src.dataset.addr);
+  const title=[w&&w.label, src.querySelector('.mp-account')?.textContent].filter(Boolean).join(' · ')||'Nhân vật';
+
+  const box=src.cloneNode(true);
+  box.removeAttribute('id'); box.removeAttribute('style'); box.className='';
+  box.querySelectorAll('.mp-snap').forEach(x=>x.remove());          // bỏ thanh nút
+  box.querySelectorAll('[onclick]').forEach(x=>x.removeAttribute('onclick'));
+  // mở hết các cột đang cuộn để xem được toàn bộ
+  box.querySelectorAll('.mp-left,.mp-mid,.mp-right,.mp-hold-col,.mp-col-col,.mp-oth-scroll')
+     .forEach(el=>{ el.style.maxHeight='none'; el.style.overflowY='visible'; });
+
+  const css=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
+  const bodyCls=document.body.className||'';
+  const wnd=window.open('', 'charpop_'+Date.now(), 'width=1280,height=900,menubar=no,toolbar=no,location=no');
+  if (!wnd){ showToast('Trình duyệt chặn cửa sổ', 'Cho phép pop-up cho trang này rồi thử lại', 5000); return; }
+  wnd.document.write(`<!doctype html><html><head><meta charset="utf-8">
+    <title>${_mvpEsc(title)}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <style>${css}</style>
+    <style>body{margin:0;padding:14px;background:var(--bg,#0d0d1a);display:flex;justify-content:center}
+      .mp-cols{align-items:flex-start}</style>
+    </head><body class="${bodyCls}">${box.outerHTML}</body></html>`);
+  wnd.document.close();
+  showToast('Đã tách ra cửa sổ riêng', 'Kéo cửa sổ này sang màn hình khác được · chỉ để xem, không cập nhật');
+}
+try{ window.popOutCharPop=popOutCharPop; }catch(e){}
+
 // Kéo bảng đã ghim bằng thanh nút trên cùng
 (function(){
   let drag=null;
@@ -6524,9 +6556,10 @@ try{ window.pinCharPop=pinCharPop; window.unpinCharPop=unpinCharPop; }catch(e){}
   }, true);
   document.addEventListener('mousemove', e=>{
     if (!drag) return;
-    const w=drag.p.offsetWidth, h=drag.p.offsetHeight;
-    drag.p.style.left=Math.max(4, Math.min(innerWidth-w-4,  e.clientX-drag.dx))+'px';
-    drag.p.style.top =Math.max(4, Math.min(innerHeight-h-4, e.clientY-drag.dy))+'px';
+    // cho phép lòi hẳn ra mép, chỉ giữ lại 80px để còn kéo về
+    const w=drag.p.offsetWidth, h=drag.p.offsetHeight, keep=80;
+    drag.p.style.left=Math.max(keep-w, Math.min(innerWidth-keep,  e.clientX-drag.dx))+'px';
+    drag.p.style.top =Math.max(0,      Math.min(innerHeight-40,   e.clientY-drag.dy))+'px';
   });
   document.addEventListener('mouseup', ()=>{ if(drag){ drag.p.classList.remove('dragging'); drag=null; } });
 })();
@@ -6966,6 +6999,8 @@ function charPopHtml(w){
       <span class="sp"></span>
       <button data-act="pin" onclick="pinCharPop(event)" data-tip="Ghim bảng này lại&#10;Ghim xong kéo đi chỗ khác được, mở tiếp nhân vật kế thoải mái">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-2.5V8a5.5 5.5 0 0 0-11 0v6.5z"/></svg></button>
+      <button data-act="win" onclick="popOutCharPop(event)" data-tip="Tách ra cửa sổ riêng&#10;Kéo được sang màn hình khác, nằm ngoài trình duyệt">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
       <button data-act="reload" onclick="reloadCharPop(event)" data-tip="Tải lại nhân vật, trang bị và tài sản của ví này">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
       <button data-act="clip" onclick="snapCharPop(event,'clip')" data-tip="Copy ảnh toàn bộ bảng để dán vào tin nhắn">
