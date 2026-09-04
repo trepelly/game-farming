@@ -5673,7 +5673,11 @@ function openCharPop(ev, addr){
   p.dataset.ax=(ev.clientX||0); p.dataset.ay=(ev.clientY||0);
   _clampCharPop(p);
   try{ ensureHoldings(addr); }catch(e){}
-  try{ fetchCollection(addr).then(d=>{ if(d) _charPopRefresh(addr); }); }catch(e){}
+  try{ fetchCollection(addr).then(d=>{
+        if(d) _charPopRefresh(addr);
+        // còn món chưa biết tên -> hỏi thêm các nguồn khác
+        if (d && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr);
+      }); }catch(e){}
   try{ prefetchPopImages(p); }catch(e){}
   setTimeout(()=>{ document.addEventListener('mousedown', _charPopOut, {once:true}); }, 0);
 }
@@ -5744,6 +5748,23 @@ function _popCharRows(others){
     </div>`; }).join('');
 }
 // ══════════ NFT Collection (msutool.com) ══════════
+const COL_NAMES=(()=>{ try{ return JSON.parse(localStorage.getItem('msuColNames1')||'{}'); }catch(e){ return {}; } })();
+function _saveColNames(){ try{ localStorage.setItem('msuColNames1', JSON.stringify(COL_NAMES)); }catch(e){} }
+// Nhặt mọi cặp itemId ↔ tên thấy được trong một phản hồi, dùng cho mọi nguồn
+function _harvestNames(o){
+  let got=0;
+  const walk=x=>{
+    if (!x || typeof x!=='object') return;
+    if (Array.isArray(x)) return x.forEach(walk);
+    const id=+(x.itemId||x.item_id||x.id||0);
+    const nm=x.name||x.itemName||x.item_name||x.representName;
+    if (id>1000 && typeof nm==='string' && nm && !/^#/.test(nm) && COL_NAMES[id]!==nm){ COL_NAMES[id]=nm; got++; }
+    Object.values(x).forEach(walk);
+  };
+  try{ walk(o); }catch(e){}
+  if (got) _saveColNames();
+  return got;
+}
 const COL_CACHE=(()=>{ try{ return JSON.parse(localStorage.getItem('msuCol1')||'{}'); }catch(e){ return {}; } })();
 const COL_TTL=6*60*60*1000;
 function _saveColCache(){ try{ localStorage.setItem('msuCol1', JSON.stringify(COL_CACHE)); }catch(e){} }
@@ -5754,6 +5775,7 @@ const _colBusy=new Set();
 function _parseCollection(txt){
   let o=null;
   try{ o=JSON.parse(txt); }catch(e){}
+  if (o) _harvestNames(o);                 // nguồn nào có tên thì lấy tên
 
   // ── dạng msnext.site: có tổng danh mục, tiến độ từng bộ và giá sàn ──
   if (o && Array.isArray(o.registeredItemIds) && o.sets && !Array.isArray(o.sets)){
@@ -5813,7 +5835,10 @@ function _parseCollection(txt){
            syncAt:meta.syncUpdatedAt||null, ts:Date.now() };
 }
 function _colUrls(addr){
-  const u=[`https://msnext.site/api/collection?wallet=${addr}`,
+  const u=[`https://maplen.gg/api/collection?address=${addr}`,
+           `https://maplen.gg/api/collection/${addr}`,
+           `https://maplen.gg/collection?address=${addr}`,
+           `https://msnext.site/api/collection?wallet=${addr}`,
            `https://msnext.site/api/collection/${addr}`,
            `https://msutool.com/api/item/collection?wallet=${addr}`,
            `https://msutool.com/api/collection?wallet=${addr}`,
@@ -5842,6 +5867,20 @@ async function fetchCollection(addr){
   } finally { _colBusy.delete(k); }
   return c||null;
 }
+// Gọi các nguồn còn lại chỉ để bổ sung tên món (không ghi đè tiến độ)
+async function fetchCollectionNames(addr){
+  for (const url of _colUrls(addr)){
+    try{
+      const r=await fetch(msuProxy(url)); if(!r.ok) continue;
+      const t=await r.text();
+      let j=null; try{ j=JSON.parse(t); }catch(e){}
+      const got=j?_harvestNames(j):0;
+      if (got){ try{ _charPopRefresh(addr); }catch(e){} return got; }
+    }catch(e){}
+  }
+  return 0;
+}
+try{ window.fetchCollectionNames=fetchCollectionNames; window.COL_NAMES=COL_NAMES; }catch(e){}
 async function debugCollection(addr){
   const out=[];
   for (const url of _colUrls(addr)){
@@ -6744,10 +6783,10 @@ function colColHtml(w){
 }
 // Một ô món trong collection
 function _colItem(it, have){
-  const nm=it.name || (ITEM_CACHE[it.assetKey]&&ITEM_CACHE[it.assetKey].name) || ('#'+it.id);
+  const nm=it.name || COL_NAMES[it.id] || (ITEM_CACHE[it.assetKey]&&ITEM_CACHE[it.assetKey].name) || ('#'+it.id);
   const cnt=+(it.n||it.have||0);
   return `<span class="mp-col-it ${have?'on':'off'}" data-tip="${_mvpEsc(nm)}&#10;Item ID: ${it.id}${cnt>1?'&#10;Có '+cnt+' bản':''}${it.price!=null?'&#10;Giá sàn: '+Number(it.price).toLocaleString('vi-VN')+' NESO':''}${have?'':'&#10;Chưa có'}"
-    onclick="event.stopPropagation();copyFlash(this,'${it.name?String(it.name).replace(/'/g,''):it.id}','${it.name?'tên vật phẩm':'Item ID'}')" style="cursor:pointer">
+    onclick="event.stopPropagation();copyFlash(this,'${String(nm).replace(/'/g,'')}','${/^#/.test(nm)?'Item ID':'tên vật phẩm'}')" style="cursor:pointer">
     ${it.url?`<img src="${it.url}" loading="lazy" onerror="this.remove()">`:''}
     ${cnt>1?`<span class="n">${cnt}</span>`:''}</span>`;
 }
