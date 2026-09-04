@@ -1131,6 +1131,11 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-col-it.off img{filter:grayscale(1) brightness(.55)}
 .mp-col-it.on{border-color:#f0873c}
 .mp-col-it .n{position:absolute;right:1px;bottom:0;font-size:7px;font-weight:800;color:#f0873c;font-family:'JetBrains Mono',monospace;text-shadow:0 0 3px #000}
+.mp-col-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.mp-col-row .nm{flex:1;min-width:0;font-size:10px;color:#c4ccd8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-col-row .bar{width:38px;height:4px;border-radius:2px;background:#232a33;overflow:hidden;flex-shrink:0;display:block}
+.mp-col-row .bar span{display:block;height:100%;border-radius:2px}
+.mp-col-row .n{font-size:9.5px;font-weight:700;width:30px;text-align:right;flex-shrink:0}
 .mp-hold-col{width:196px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(78vh,760px);overflow-y:auto}
 .mp-hold-col::-webkit-scrollbar{width:6px}
 .mp-hold-col::-webkit-scrollbar-track{background:transparent}
@@ -5749,6 +5754,24 @@ const _colBusy=new Set();
 function _parseCollection(txt){
   let o=null;
   try{ o=JSON.parse(txt); }catch(e){}
+
+  // ── dạng msnext.site: có tổng danh mục, tiến độ từng bộ và giá sàn ──
+  if (o && Array.isArray(o.registeredItemIds) && o.sets && !Array.isArray(o.sets)){
+    const fp=o.floorPrices||{};
+    const items=o.registeredItemIds.map(id=>({
+      id:+id, n:1, price:(fp[id]!=null?+fp[id]:null),
+      url:`https://api-static.msu.io/itemimages/icon/${id}.png`,
+    }));
+    const sets=Object.keys(o.sets).map(k=>{
+      const st=o.sets[k]||{};
+      return { key:k, name:st.setName||k, have:+(st.registered||0), total:+(st.total||0), items:[] };
+    }).filter(x=>x.total);
+    const priced=items.filter(x=>x.price!=null);
+    return { collected:+(o.registered||items.length), total:+(o.total||0),
+             kinds:items.length, items, sets,
+             floorValue:priced.reduce((a,x)=>a+x.price,0), floorCount:priced.length,
+             prices:fp, syncAt:o.updatedAt||null, ts:Date.now() };
+  }
   if (!o) o=_cutJson(txt,'slots','[', x=>Array.isArray(x)&&x.length&&x[0]&&x[0].itemId!=null);
   if (Array.isArray(o)) o={ data:{ slots:o } };
   if (!o) return null;
@@ -5790,7 +5813,9 @@ function _parseCollection(txt){
            syncAt:meta.syncUpdatedAt||null, ts:Date.now() };
 }
 function _colUrls(addr){
-  const u=[`https://msutool.com/api/item/collection?wallet=${addr}`,
+  const u=[`https://msnext.site/api/collection?wallet=${addr}`,
+           `https://msnext.site/api/collection/${addr}`,
+           `https://msutool.com/api/item/collection?wallet=${addr}`,
            `https://msutool.com/api/collection?wallet=${addr}`,
            `https://msutool.com/api/items/collection?wallet=${addr}`,
            `https://msutool.com/item/collection?wallet=${addr}`];
@@ -6690,35 +6715,38 @@ function colColHtml(w){
     ${sub}</div>`;
   if (!d) return head(`<div class="mp-eq-more">${_colBusy.has((w.address||'').toLowerCase())?'đang tải collection…':'chưa có dữ liệu collection'}</div>`);
 
-  // Có sẵn cấu trúc bộ -> vẽ theo bộ
-  if (d.sets && d.sets.length){
-    const pct=d.total?Math.round(d.collected/d.total*1000)/10:0;
-    const sets=d.sets.slice().sort((a,b)=>(b.have/(b.total||1))-(a.have/(a.total||1))||b.have-a.have);
-    return head(`
-      <div class="mp-col-bar"><div style="width:${Math.min(100,pct)}%"></div></div>
-      <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2)"><span>${pct}%</span><span>${d.sets.length} bộ</span></div>
-      ${sets.map(st=>`<div class="mp-col-set">
-        <div class="mp-col-set-h"><b>${_mvpEsc(st.name)}</b><span class="mvp-num" style="color:${st.have?'#f0873c':'#6b7280'}">${st.have}/${st.total}</span></div>
-        <div class="mp-col-items">${st.items.map(it=>_colItem(it, it.have)).join('')}</div>
-      </div>`).join('')}`);
-  }
-
-  // Dạng slots: chỉ biết món đã sưu tầm
-  const items=d.items||[];
   const pct=d.total?Math.round(d.collected/d.total*1000)/10:null;
+  const items=d.items||[];
+  const sets=(d.sets||[]).slice().sort((a,b)=>
+    (b.have/(b.total||1))-(a.have/(a.total||1)) || b.have-a.have || a.name.localeCompare(b.name));
+  const done=sets.filter(x=>x.have>=x.total&&x.total).length;
+  const started=sets.filter(x=>x.have>0).length;
+
   return head(`
-    ${pct!=null?`<div class="mp-col-bar"><div style="width:${Math.min(100,pct)}%"></div></div>`:''}
+    ${pct!=null?`<div class="mp-col-bar"><div style="width:${Math.max(pct?1:0,Math.min(100,pct))}%"></div></div>`:''}
     <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2);margin-top:4px">
-      <span>${pct!=null?pct+'%':_lf(d.collected)+' món'}</span><span>${d.kinds||items.length} loại</span></div>
-    ${items.length?`<div class="mp-col-items" style="margin-top:7px">${items.map(it=>_colItem(it, true)).join('')}</div>`
-                  :'<div class="mp-eq-more">Chưa sưu tầm món nào</div>'}
-    <div class="itip-note" style="border:none;padding-top:8px">Bấm một món để copy Item ID</div>`);
+      <span>${pct!=null?pct+'%':_lf(d.collected)+' món'}</span>
+      <span>${sets.length?`${started}/${sets.length} bộ${done?` · ${done} đủ`:''}`:`${d.kinds||items.length} loại`}</span></div>
+    ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã sưu tầm">≈ ${_lfk(d.floorValue)} NESO</div>`:''}
+
+    ${items.length?`<div class="mp-eq-sub" style="margin-top:9px"><span>Đã sưu tầm</span><i></i><b>${items.length}</b></div>
+      <div class="mp-col-items">${items.map(it=>_colItem(it,true)).join('')}</div>`:''}
+
+    ${sets.length?`<div class="mp-eq-sub" style="margin-top:10px"><span>Bộ sưu tập</span><i></i><b>${sets.length}</b></div>
+      ${sets.map(st=>{ const p=st.total?st.have/st.total:0;
+        return `<div class="mp-col-row" data-tip="${_mvpEsc(st.name)}&#10;Đã đăng ký ${st.have}/${st.total}">
+          <span class="nm">${_mvpEsc(st.name)}</span>
+          <span class="bar"><span style="width:${Math.round(p*100)}%;background:${st.have>=st.total?'#38bdf8':'#f0873c'}"></span></span>
+          <span class="mvp-num n" style="color:${st.have?(st.have>=st.total?'#38bdf8':'#f0873c'):'#6b7280'}">${st.have}/${st.total}</span>
+        </div>`; }).join('')}`:''}
+
+    ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Cập nhật ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`);
 }
 // Một ô món trong collection
 function _colItem(it, have){
   const nm=it.name || (ITEM_CACHE[it.assetKey]&&ITEM_CACHE[it.assetKey].name) || ('#'+it.id);
   const cnt=+(it.n||it.have||0);
-  return `<span class="mp-col-it ${have?'on':'off'}" data-tip="${_mvpEsc(nm)}&#10;Item ID: ${it.id}${cnt>1?'&#10;Có '+cnt+' bản':''}${have?'':'&#10;Chưa có'}"
+  return `<span class="mp-col-it ${have?'on':'off'}" data-tip="${_mvpEsc(nm)}&#10;Item ID: ${it.id}${cnt>1?'&#10;Có '+cnt+' bản':''}${it.price!=null?'&#10;Giá sàn: '+Number(it.price).toLocaleString('vi-VN')+' NESO':''}${have?'':'&#10;Chưa có'}"
     onclick="event.stopPropagation();copyFlash(this,'${it.name?String(it.name).replace(/'/g,''):it.id}','${it.name?'tên vật phẩm':'Item ID'}')" style="cursor:pointer">
     ${it.url?`<img src="${it.url}" loading="lazy" onerror="this.remove()">`:''}
     ${cnt>1?`<span class="n">${cnt}</span>`:''}</span>`;
