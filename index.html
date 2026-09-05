@@ -1155,29 +1155,34 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
   background:oklch(0.28 0.06 290);border-color:oklch(0.45 0.1 290);color:oklch(0.9 0.03 290)}
 
 /* khối tiến độ */
-.col-only .mp-col-col{width:auto!important;max-height:none!important;border:0!important;padding:14px 16px 6px!important;overflow:visible!important}
+.col-only .mp-col-col{width:auto!important;max-height:none!important;border:0!important;padding:12px 14px 4px!important;overflow:visible!important}
 .col-only .mp-others-head{display:none}
-.col-only .col-hero{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;padding:13px 15px;margin-bottom:14px;
-  background:#1e1d29;background:var(--c-p);border:1px solid #262533;border:1px solid oklch(0.24 0.02 285);border-radius:14px}
+.col-only .col-hero{display:grid;grid-template-columns:minmax(0,1fr) 190px 190px;gap:12px;align-items:center;
+  padding:11px 14px;margin-bottom:12px;background:#1e1d29;background:var(--c-p);
+  border:1px solid #262533;border:1px solid oklch(0.24 0.02 285);border-radius:14px}
+.col-only .col-hero .hd1{display:flex;align-items:baseline;gap:10px}
+.col-only .col-hero .hd1 .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .col-only .col-hero .lbl{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--c-t2);white-space:nowrap}
-.col-only .col-hero .big{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;margin:6px 0 9px}
+.col-only .col-hero .big{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;margin:0;white-space:nowrap}
 .col-only .col-hero .big i{font-style:normal;font-size:15px;color:var(--c-t2)}
-.col-only .mp-col-bar{height:10px;border-radius:6px;background:oklch(0.24 0.02 285);margin:0}
+.col-only .mp-col-bar{height:8px;border-radius:5px;background:oklch(0.24 0.02 285);margin:8px 0 0}
 .col-only .mp-col-bar div{border-radius:6px;background:linear-gradient(90deg,oklch(0.72 0.15 60),oklch(0.8 0.16 85));
   box-shadow:0 0 12px oklch(0.75 0.15 65 / .5)}
-.col-only .col-chips{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.col-only .col-chips{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}
 .col-only .col-chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:12px;white-space:nowrap;
   font:600 11px/1 'IBM Plex Sans',sans-serif;background:oklch(0.23 0.02 285);border:1px solid var(--c-b);color:oklch(0.72 0.02 285)}
 .col-only .col-chip.warm{background:oklch(0.28 0.06 62);border-color:oklch(0.42 0.1 62);color:oklch(0.85 0.12 70)}
-.col-only .col-stat{display:flex;flex-direction:column;gap:8px;min-width:0}
-.col-only .col-stat > div{padding:9px 11px;background:var(--c-p2);border:1px solid oklch(0.26 0.02 285);border-radius:11px;min-width:0}
-.col-only .col-stat b{display:block;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;margin-top:3px;white-space:nowrap}
+.col-only .col-stat{padding:8px 11px;background:var(--c-p2);border:1px solid oklch(0.26 0.02 285);border-radius:11px;min-width:0}
+.col-only .col-stat b{display:block;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;margin-top:2px;white-space:nowrap}
+.col-only .col-stat em{display:block;font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--c-t2);margin-top:1px}
 .col-only .col-stat .g{color:oklch(0.84 0.13 155)} .col-only .col-stat .o{color:oklch(0.82 0.13 60)}
 
 /* 3 cột, các hàng thẳng nhau nhờ chiều cao cố định */
-.col-only .mp-col-split{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:16px;row-gap:12px;margin-top:0}
-.col-only .mp-col-split > div{min-width:0;display:flex;flex-direction:column;gap:12px}
+.col-only .mp-col-split{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px;row-gap:10px;margin-top:0}
+.col-only .mp-col-split > div{min-width:0;display:flex;flex-direction:column;gap:9px}
+.col-only .mp-col-set{padding:8px 9px}
+.col-only .mp-col-set + .mp-col-set{margin-top:6px}
 .col-only .mp-eq-sub{height:20px;margin:0!important;align-items:center}
 .col-only .mp-eq-sub span{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:.14em;
   text-transform:uppercase;color:var(--c-t)}
@@ -1191,12 +1196,12 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .col-only .mp-col-sort button,.col-only .mp-col-sort .f{height:30px;padding:0 10px;border-radius:9px;white-space:nowrap;
   background:var(--c-p2);border:1px solid var(--c-b);color:oklch(0.7 0.02 285);font:600 11px/1 'IBM Plex Sans',sans-serif;cursor:pointer}
 .col-only .mp-col-sort button.on{background:var(--c-cy);border-color:oklch(0.45 0.08 200);color:oklch(0.9 0.08 200)}
-.col-only .col-pane{flex:1;min-height:0;max-height:540px!important;overflow-y:auto;overflow-x:hidden;padding-right:10px}
+.col-only .col-pane{flex:1;min-height:0;max-height:min(52vh,470px)!important;overflow-y:auto;overflow-x:hidden;padding-right:10px}
 .col-only .col-pane::-webkit-scrollbar{width:6px}
 .col-only .col-pane::-webkit-scrollbar-thumb{background:oklch(0.32 0.02 285);border-radius:3px}
 
 /* cột 1: vật phẩm — nơi duy nhất dùng màu cam */
-.col-only .mp-col-items{grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:9px}
+.col-only .mp-col-items{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .col-only .mp-col-it{aspect-ratio:1;border-radius:11px;transition:transform .12s,box-shadow .12s}
 .col-only .mp-col-it.on{background:linear-gradient(150deg,oklch(0.3 0.07 62),oklch(0.22 0.04 60));border:1px solid oklch(0.6 0.13 60)}
 .col-only .mp-col-it.on:hover{transform:translateY(-2px);box-shadow:0 8px 18px oklch(0.6 0.13 60 / .35)}
@@ -7109,22 +7114,24 @@ function colColHtml(w, two){
   const summary = two ? `
     <div class="col-hero">
       <div style="min-width:0">
-        <div class="lbl">Tiến độ bộ sưu tập</div>
-        <div class="big">${lfv(d.collected)} <i>/ ${lfv(d.total)} món</i></div>
+        <div class="hd1">
+          <span class="lbl">Tiến độ bộ sưu tập</span>
+          <span class="big">${lfv(d.collected)} <i>/ ${lfv(d.total)} món</i></span>
+        </div>
         ${pct!=null?`<div class="mp-col-bar"><div style="width:${Math.max(pct?1:0,Math.min(100,pct))}%"></div></div>`:''}
         <div class="col-chips">
           ${pct!=null?`<span class="col-chip warm">${pct}% hoàn thành</span>`:''}
-          <span class="col-chip">${d.sets&&d.sets.length?`${done}/${d.sets.length} bộ đủ`:`${d.kinds||0} loại`}</span>
+          <span class="col-chip">${d.sets&&d.sets.length?`${done} / ${d.sets.length} bộ đủ`:`${d.kinds||0} loại`}</span>
         </div>
       </div>
-      <div class="col-stat">
-        <div data-tip="Tổng giá sàn của ${d.floorCount||0} món đã có">
-          <span class="lbl">Đang giữ</span>
-          <b class="g">≈ ${_lfk(d.floorValue||0)} NESO <i style="font-style:normal;font-size:11px;color:var(--c-t2)">· ${d.kinds||0} món</i></b></div>
-        <div data-tip="Mua món rẻ nhất cho ${d.missSlots||0} ô còn thiếu&#10;Theo giá sàn hiện tại: ${lfv(d.missCost)} NESO">
-          <span class="lbl">Còn thiếu</span>
-          <b class="o">≈ ${_lfk(d.missCost||0)} NESO <i style="font-style:normal;font-size:11px;color:var(--c-t2)">· ${lfv(d.missSlots)} ô</i></b></div>
-      </div>
+      <div class="col-stat" data-tip="Tổng giá sàn của ${d.floorCount||0} món đã có">
+        <span class="lbl">Đang giữ</span>
+        <b class="g">≈ ${_lfk(d.floorValue||0)}</b>
+        <em>NESO · ${d.kinds||0} món</em></div>
+      <div class="col-stat" data-tip="Mua món rẻ nhất cho ${d.missSlots||0} ô còn thiếu&#10;Theo giá sàn hiện tại: ${lfv(d.missCost)} NESO">
+        <span class="lbl">Còn thiếu</span>
+        <b class="o">≈ ${_lfk(d.missCost||0)}</b>
+        <em>NESO · ${lfv(d.missSlots)} ô</em></div>
     </div>` : `
     ${pct!=null?`<div class="mp-col-bar"><div style="width:${Math.max(pct?1:0,Math.min(100,pct))}%"></div></div>`:''}
     <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2);margin-top:4px">
