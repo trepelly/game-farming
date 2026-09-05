@@ -7131,13 +7131,27 @@ function colColHtml(w, two){
 
     const mine=new Map(); (d.items||[]).forEach(x=>{ if(x.have&&x.id) mine.set(x.id,x); });
     const other=new Map(); (cd.items||[]).forEach(x=>{ if(x.have&&x.id) other.set(x.id,x); });
-    const byName=(a,b)=>named(a).localeCompare(named(b));
-    const missing=[...other.values()].filter(x=>!mine.has(x.id)).sort(byName);
-    const extra  =[...mine.values()].filter(x=>!other.has(x.id)).sort(byName);
+    const cmpSortF=(a,b)=>{
+      if (_colCmpSort.col==='price'){
+        const x=(a.price==null?null:+a.price), y=(b.price==null?null:+b.price);
+        if (x==null || y==null) return (x==null&&y==null) ? named(a).localeCompare(named(b)) : (x==null?1:-1);
+        return _colCmpSort.dir==='desc' ? (y-x) : (x-y);
+      }
+      const r=named(a).localeCompare(named(b));
+      return _colCmpSort.dir==='desc' ? -r : r;
+    };
+    const missing=[...other.values()].filter(x=>!mine.has(x.id)).sort(cmpSortF);
+    const extra  =[...mine.values()].filter(x=>!other.has(x.id)).sort(cmpSortF);
     const both=[...mine.keys()].filter(k=>other.has(k)).length;
+    const missCost=missing.filter(x=>x.price!=null).reduce((a,x)=>a+(+x.price),0);
+    const cmpSortBtn=(col,lb,tip)=>`<button class="mp-oth-sb${_colCmpSort.col===col?' on':''}" data-cmpsort="${col}" data-tip="${tip}" onclick="event.stopPropagation();setColCmpSort('${col}',this)">${lb}${_colCmpSort.col===col?(_colCmpSort.dir==='desc'?'↓':'↑'):''}</button>`;
 
     return headTag+`
-      <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-bottom:6px" data-tip="Số món cả hai ví cùng đã đăng ký">Trùng nhau ${both} món</div>
+      <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-bottom:2px" data-tip="Số món cả hai ví cùng đã đăng ký">Trùng nhau ${both} món</div>
+      ${missCost?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-bottom:4px" data-tip="Mua theo giá sàn hiện tại cho ${missing.filter(x=>x.price!=null).length} món đang thiếu&#10;${_lf(missCost)} NESO">Mua đủ phần thiếu ≈ ${_lfk(missCost)} NESO</div>`:''}
+      <div class="mp-col-sort" style="margin-bottom:6px">${
+        cmpSortBtn('name','Tên','Xếp theo tên A→Z')+
+        cmpSortBtn('price','Giá','Xếp theo giá sàn · món chưa có giá xuống cuối')}</div>
       <div class="mp-eq-sub" style="margin-top:0"><span style="color:#e06c6c">Mình thiếu</span><i></i><b>${missing.length}</b></div>
       <div style="${cmpBox}">${missing.length
         ? missing.map(it=>cmpRow(it,'#e0a75e')).join('')
@@ -7370,6 +7384,12 @@ function setColGrp(g, el){ _colGrp=g||'all'; _colPanelRefresh(_colPanelFrom(el))
 
 // ── Cột so sánh: chọn một ví khác rồi xem mình thiếu / dư món nào ──
 let _colCmp=null, _colCmpQ='';
+let _colCmpSort={col:'name',dir:'asc'};    // name | price
+function setColCmpSort(col, el){
+  if (_colCmpSort.col===col) _colCmpSort.dir = _colCmpSort.dir==='desc'?'asc':'desc';
+  else _colCmpSort = { col, dir:'asc' };
+  _colPanelRefresh(_colPanelFrom(el));
+}
 function setColCmpQ(v, el){
   if (el && el.isConnected===false) return;
   _colCmpQ=v||'';
@@ -7401,7 +7421,7 @@ function addColCmp(el){
 }
 function _colCmpKey(e){ if (e && (e.key==='Enter'||e.keyCode===13)) addColCmp(e.target); }
 try{ window.setColSetSort=setColSetSort; window.setColGrp=setColGrp;
-     window.setColCmp=setColCmp; window.setColCmpQ=setColCmpQ; window.addColCmp=addColCmp; window._colCmpKey=_colCmpKey; }catch(e){}
+     window.setColCmp=setColCmp; window.setColCmpQ=setColCmpQ; window.addColCmp=addColCmp; window._colCmpKey=_colCmpKey; window.setColCmpSort=setColCmpSort; }catch(e){}
 // Dựng lại riêng cột collection bên trong một bảng (popover đang mở hoặc bảng đã ghim)
 function _colPanelRefresh(p){
   if(!p) return;
