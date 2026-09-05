@@ -7101,16 +7101,34 @@ function colColHtml(w, two){
         || String(x.label||'').toLowerCase().includes(q)
         || String(x.address||'').toLowerCase().includes(q)
         || String(x.player||'').toLowerCase().includes(q));
+      const colOf=x=>COL_CACHE[(x.address||'').toLowerCase()];
+      const btsOf=x=>{ const c=colOf(x); return c?(c.collected||0):null; };
+      const labOf=x=>String(x.label||x.address||'');
+      list.sort((a,b)=>{
+        if (_colPickSort.col==='bts'){
+          const p=btsOf(a), q2=btsOf(b);
+          if (p==null || q2==null) return (p==null&&q2==null) ? labOf(a).localeCompare(labOf(b)) : (p==null?1:-1);
+          return (_colPickSort.dir==='desc' ? (q2-p) : (p-q2)) || labOf(a).localeCompare(labOf(b));
+        }
+        const r=labOf(a).localeCompare(labOf(b));
+        return _colPickSort.dir==='desc' ? -r : r;
+      });
+      const nKnown=list.filter(x=>btsOf(x)!=null).length;
+      const pickBtn=(col,lb,tip)=>`<button class="mp-oth-sb${_colPickSort.col===col?' on':''}" data-picksort="${col}" data-tip="${tip}" onclick="event.stopPropagation();setColPickSort('${col}',this)">${lb}${_colPickSort.col===col?(_colPickSort.dir==='desc'?'↓':'↑'):''}</button>`;
       return `
         <div class="mp-eq-sub" style="margin-top:${two?0:11}px"><span>So sánh</span><i></i><b>${list.length}</b></div>
         <div class="mp-eq-more" style="margin:0 0 4px">Chọn một ví để xem mình thiếu / dư món nào</div>
         <input data-colin="col-cmpq" type="text" value="${_mvpEsc(_colCmpQ)}" oninput="setColCmpQ(this.value,this)" placeholder="Tìm ví trong danh sách…"
           style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:inherit;outline:none;margin:5px 0 6px">
+        <div class="mp-col-sort" style="margin-bottom:6px">${
+          pickBtn('bts','NFT','Xếp theo số NFT đã đăng ký · ví chưa có dữ liệu xuống cuối')+
+          pickBtn('name','Tên','Xếp theo tên ví A→Z')}</div>
+        ${nKnown<list.length?`<div class="mp-eq-more" style="margin:0 0 5px">${list.length-nKnown} ví chưa tải dữ liệu, đang nằm cuối danh sách</div>`:''}
         <div style="${cmpBox}">${list.length ? list.map(x=>{
-            const cd=COL_CACHE[(x.address||'').toLowerCase()];
+            const cd=colOf(x);
             const ct=cd?(cd.total?`${cd.collected}/${cd.total}`:String(cd.collected)):'—';
-            return `<div class="mp-col-pick" onclick="event.stopPropagation();setColCmp('${x.address}',this)" data-tip="${_mvpEsc(x.label||x.address)}&#10;${_mvpShortAddr(x.address)}&#10;Bấm để so sánh với ví này">
-              <span class="nm">${_mvpEsc(x.label||_mvpShortAddr(x.address))}</span><span class="ct">${ct}</span></div>`;
+            return `<div class="mp-col-pick" onclick="event.stopPropagation();setColCmp('${x.address}',this)" data-tip="${_mvpEsc(x.label||x.address)}&#10;${_mvpShortAddr(x.address)}&#10;${cd?`Đã đăng ký ${cd.collected}${cd.total?'/'+cd.total:''} ô`:'Chưa tải dữ liệu collection'}&#10;Bấm để so sánh với ví này">
+              <span class="nm">${_mvpEsc(x.label||_mvpShortAddr(x.address))}</span><span class="ct"${cd?' style="color:#f0873c"':''}>${ct}</span></div>`;
           }).join('') : '<div class="mp-eq-more">Không có ví nào khớp</div>'}</div>
         <div class="mp-eq-sub" style="margin-top:10px"><span>Ví ngoài</span><i></i><b></b></div>
         <div style="display:flex;gap:5px">
@@ -7384,7 +7402,13 @@ function setColGrp(g, el){ _colGrp=g||'all'; _colPanelRefresh(_colPanelFrom(el))
 
 // ── Cột so sánh: chọn một ví khác rồi xem mình thiếu / dư món nào ──
 let _colCmp=null, _colCmpQ='';
-let _colCmpSort={col:'name',dir:'asc'};    // name | price
+let _colCmpSort={col:'name',dir:'asc'};     // name | price
+let _colPickSort={col:'bts',dir:'desc'};   // name | bts — danh sách ví lúc chưa chọn
+function setColPickSort(col, el){
+  if (_colPickSort.col===col) _colPickSort.dir = _colPickSort.dir==='desc'?'asc':'desc';
+  else _colPickSort = { col, dir: col==='name'?'asc':'desc' };
+  _colPanelRefresh(_colPanelFrom(el));
+}
 function setColCmpSort(col, el){
   if (_colCmpSort.col===col) _colCmpSort.dir = _colCmpSort.dir==='desc'?'asc':'desc';
   else _colCmpSort = { col, dir:'asc' };
@@ -7421,7 +7445,7 @@ function addColCmp(el){
 }
 function _colCmpKey(e){ if (e && (e.key==='Enter'||e.keyCode===13)) addColCmp(e.target); }
 try{ window.setColSetSort=setColSetSort; window.setColGrp=setColGrp;
-     window.setColCmp=setColCmp; window.setColCmpQ=setColCmpQ; window.addColCmp=addColCmp; window._colCmpKey=_colCmpKey; window.setColCmpSort=setColCmpSort; }catch(e){}
+     window.setColCmp=setColCmp; window.setColCmpQ=setColCmpQ; window.addColCmp=addColCmp; window._colCmpKey=_colCmpKey; window.setColCmpSort=setColCmpSort; window.setColPickSort=setColPickSort; }catch(e){}
 // Dựng lại riêng cột collection bên trong một bảng (popover đang mở hoặc bảng đã ghim)
 function _colPanelRefresh(p){
   if(!p) return;
