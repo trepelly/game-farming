@@ -7109,20 +7109,34 @@ function _colAutoKick(ws){
   clearTimeout(_colKickT);
   _colKickT=setTimeout(()=>{ try{ loadLiteCols(false, ws); }catch(e){} }, 500);
 }
+// Số liệu cho ô tổng BTS: bao nhiêu ví đã đăng ký ít nhất 1 NFT trên tổng số ví
+function liteColStats(ws){
+  const list=(ws||[]).map(w=>typeof w==='string'?w:(w&&w.address)).filter(Boolean);
+  const ds=list.map(a=>COL_CACHE[(a||'').toLowerCase()]);
+  const known=ds.filter(Boolean).length;
+  const nHave=ds.filter(d=>d&&(d.collected||0)>0).length;
+  const tot=list.length;
+  const slots=ds.filter(Boolean).reduce((a,d)=>a+(d.collected||0),0);
+  const full=ds.filter(d=>d&&d.total&&d.collected>=d.total).length;
+  const color = !nHave ? 'var(--muted2)' : (nHave>=tot ? '#7fd88f' : '#f0873c');
+  const tip = `${nHave}/${tot} ví đã đăng ký ít nhất 1 NFT`
+    + `&#10;${tot-nHave} ví chưa đăng ký ô nào`
+    + `&#10;Tổng ${slots} ô đã đăng ký · ${full} ví đăng ký đủ`
+    + (known<tot ? `&#10;⚠ ${tot-known} ví chưa tải được dữ liệu` : '');
+  return { known, nHave, tot, slots, full, color, tip, txt:`${nHave}/${tot}` };
+}
 // Cập nhật lại ô tổng BTS ở dòng Σ mà không dựng lại cả bảng
 function liteColTotalRefresh(){
   try{
     const rows=document.querySelectorAll('#lite-list .mvp-lrow.lite-row');
     const foot=rows[rows.length-1]; if(!foot||foot.querySelector('.lite-bts')) return;
     const cell=foot.children[7]; if(!cell) return;
-    const ws=[...document.querySelectorAll('#lite-list .lite-bts')].map(c=>c.getAttribute('data-btsaddr'));
-    const ds=ws.map(a=>COL_CACHE[(a||'').toLowerCase()]).filter(Boolean);
-    if(!ds.length) return;
-    const c=ds.reduce((a,d)=>a+(d.collected||0),0), t=ds.reduce((a,d)=>a+(d.total||0),0);
-    const full=ds.filter(d=>d.total&&d.collected>=d.total).length;
-    cell.setAttribute('data-tip', `Tổng đã đăng ký ${c}${t?'/'+t:''} ô&#10;${ds.length}/${ws.length} ví đã có dữ liệu&#10;${full} ví đăng ký đủ`);
-    cell.style.color = (t&&c>=t)?'#38bdf8':'#f0873c';
-    cell.textContent = t ? c+'/'+t : String(c);
+    const addrs=[...document.querySelectorAll('#lite-list .lite-bts')].map(c=>c.getAttribute('data-btsaddr'));
+    const st=liteColStats(addrs);
+    if(!st.known) return;
+    cell.setAttribute('data-tip', st.tip);
+    cell.style.color=st.color;
+    cell.textContent=st.txt;
   }catch(e){}
 }
 try{ window.loadLiteCols=loadLiteCols; }catch(e){}
@@ -7873,12 +7887,9 @@ function renderLiteList(){
           <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap;text-align:right">${(()=>{const ws2=[...new Set(ws.map(w=>{const c=topChar(w);return (c&&c.world)||w.maxCpWorld||null;}).filter(Boolean))]; return ws2.length?ws2.length+' world':'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=topChar(w);return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+_cpf(Math.max(...cp)):'—';})()}</div>
-          ${(()=>{ const ds=ws.map(w=>COL_CACHE[(w.address||'').toLowerCase()]).filter(Boolean);
-            if(!ds.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
-            const c=ds.reduce((a,d)=>a+(d.collected||0),0), t=ds.reduce((a,d)=>a+(d.total||0),0);
-            const full=ds.filter(d=>d.total&&d.collected>=d.total).length;
-            const tip=`Tổng đã đăng ký ${c}${t?'/'+t:''} ô&#10;${ds.length}/${ws.length} ví đã có dữ liệu&#10;${full} ví đăng ký đủ`;
-            return `<div class="mvp-num" style="text-align:right;white-space:nowrap;color:${t&&c>=t?'#38bdf8':'#f0873c'}" data-tip="${tip}">${t?c+'/'+t:c}</div>`; })()}
+          ${(()=>{ const st=liteColStats(ws);
+            if(!st.known) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+            return `<div class="mvp-num" style="text-align:right;white-space:nowrap;color:${st.color}" data-tip="${st.tip}">${st.txt}</div>`; })()}
           ${['daily','weekly'].map(cy=>{
             const lb=cy==='daily'?'Daily':'Weekly';
             const nOk=ws.filter(w=>!liteMissingBosses(w,cy).length).length;
