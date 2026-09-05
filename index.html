@@ -1122,6 +1122,8 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-snap button{display:inline-flex;align-items:center;gap:4px;background:#1a1f26;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#8b93a1;cursor:pointer;font-size:9.5px;font-weight:700;font-family:inherit;line-height:1;flex-shrink:0;transition:.12s}
 .mp-snap button:hover{color:#e6e9ef;border-color:#4c53a8;background:#232a44cc}
 .mp-snap button[disabled]{opacity:.5;cursor:default}
+#col-pop .mp-col-col{border-left:none!important;width:238px!important;max-height:min(76vh,760px)!important}
+.lite-bts:hover{text-decoration:underline;text-underline-offset:2px}
 .mp-col-col{width:206px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(74vh,720px);overflow-y:auto}
 .mp-col-col::-webkit-scrollbar{width:6px}
 .mp-col-col::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
@@ -1172,11 +1174,11 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-chip-ava{width:19px;height:19px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;font-family:'Chakra Petch',monospace}
 .mp-chip-ava img{position:absolute;left:-19%;top:-17%;width:138%;height:138%;object-fit:contain}
 #ui-tip.mp-wrap{padding:0!important;background:transparent!important;border:none!important;max-width:none!important;box-shadow:0 24px 60px rgba(0,0,0,.55)!important}
-.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(58px,.32fr) minmax(78px,.45fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}
-.mvp-lrow.lite-row > div:nth-child(9){border-left:1px solid color-mix(in srgb,var(--border2) 60%,transparent);padding-left:8px}.mvp-lrow.lite-row > div:nth-child(9){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(8),.mvp-lrow.lite-row > div:nth-child(10),.mvp-lrow.lite-row > div:nth-child(13){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}
+.mvp-lrow.lite-row{grid-template-columns:22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(52px,.34fr) minmax(58px,.32fr) minmax(78px,.45fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)!important;align-items:center;padding:8px 8px;gap:4px;font-size:10.5px}.mvp-lrow.lite-row > div{min-width:0}.mvp-lrow.lite-row > div:nth-child(7){padding-right:12px}
+.mvp-lrow.lite-row > div:nth-child(10){border-left:1px solid color-mix(in srgb,var(--border2) 60%,transparent);padding-left:8px}.mvp-lrow.lite-row > div:nth-child(10){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(8),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(11),.mvp-lrow.lite-row > div:nth-child(14){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}
 /* Daily · Weekly: vạch mảnh hơn ở giữa để thấy rõ ô nào thuộc cột nào */
-.mvp-lrow.lite-row > div:nth-child(9){border-left:1px dashed var(--border2);padding-left:8px;margin-left:2px}
-.mvp-lrow.lite-row > div:nth-child(8),.mvp-lrow.lite-row > div:nth-child(9){padding-right:8px;justify-content:center!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row > div:nth-child(10){border-left:1px dashed var(--border2);padding-left:8px;margin-left:2px}
+.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(10){padding-right:8px;justify-content:center!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -7000,10 +7002,122 @@ function colColHtml(w){
     ${(d.syncStatus && d.syncStatus!=='complete')?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:6px" data-tip="Nguồn báo trạng thái đồng bộ: ${_mvpEsc(d.syncStatus)}&#10;Số liệu có thể chưa đủ">⚠ đang đồng bộ (${_mvpEsc(d.syncStatus)})</div>`:''}
     ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Nguồn lấy lúc ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`);
 }
+// ══════════ Cột BTS (NFT đã đăng ký) ở tab Ví lite ══════════
+// Ô nhỏ: đã đăng ký / tổng ô có thể đăng ký. Bấm mở popover collection đầy đủ.
+function liteColCell(w){
+  const k=(w.address||'').toLowerCase();
+  const d=COL_CACHE[k];
+  const busy=_colBusy.has(k);
+  let txt='—', color='var(--muted2)', tip='Chưa có dữ liệu collection&#10;Rê chuột để tải · bấm để xem chi tiết';
+  if (busy && !d){ txt='…'; tip='Đang tải collection…'; }
+  else if (d){
+    const c=d.collected||0, t=d.total||0;
+    txt = t ? `${c}/${t}` : String(c);
+    const pct = t ? c/t : 0;
+    color = t ? (c>=t ? '#38bdf8' : (pct>=.5 ? '#f0873c' : (c ? '#d8a44f' : 'var(--muted2)'))) : 'var(--text2)';
+    const doneSets=(d.sets||[]).filter(x=>x.total&&x.have>=x.total).length;
+    tip = t ? `Đã đăng ký ${c}/${t} ô (${Math.round(pct*1000)/10}%)` : `Đã đăng ký ${c} món · chưa rõ tổng danh mục`;
+    if (d.sets&&d.sets.length) tip += `&#10;${doneSets}/${d.sets.length} bộ đủ`;
+    if (d.missSlots) tip += `&#10;Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO`;
+    tip += '&#10;Bấm để xem chi tiết bộ sưu tập';
+  }
+  return `<div class="mvp-num lite-bts" data-btsaddr="${w.address}" onclick="openColPop(event,'${w.address}')" data-tip="${tip}" style="text-align:right;white-space:nowrap;cursor:pointer;color:${color}">${txt}</div>`;
+}
+// Vẽ lại đúng một ô BTS sau khi tải xong, không dựng lại cả bảng
+function liteColRefreshCell(addr){
+  try{
+    const cell=document.querySelector(`.lite-bts[data-btsaddr="${addr}"]`); if(!cell) return;
+    const w=(allWallets()||[]).find(x=>x.address===addr); if(!w) return;
+    const tmp=document.createElement('div'); tmp.innerHTML=liteColCell(w);
+    const nu=tmp.firstElementChild; if(!nu) return;
+    cell.replaceWith(nu);
+  }catch(e){}
+}
+// Rê chuột lên ô BTS thì tự tải collection (giống cách làm mới CP)
+let _btsHoverT=null;
+document.addEventListener('mouseover', e=>{
+  const cell=e.target&&e.target.closest&&e.target.closest('.lite-bts');
+  clearTimeout(_btsHoverT);
+  if(!cell) return;
+  const addr=cell.getAttribute('data-btsaddr'); if(!addr) return;
+  const k=addr.toLowerCase(), c=COL_CACHE[k];
+  if (c && Date.now()-(c.ts||0)<COL_TTL) return;
+  if (_colBusy.has(k)) return;
+  _btsHoverT=setTimeout(()=>{
+    if(!cell.matches(':hover')) return;
+    liteColRefreshCell(addr);                                   // hiện trạng thái đang tải
+    Promise.resolve(fetchCollection(addr)).then(d=>{
+      if(!d) return liteColRefreshCell(addr);
+      liteColRefreshCell(addr);
+      if ((d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr);
+    }).catch(()=>liteColRefreshCell(addr));
+  }, 320);
+}, true);
+
+function closeColPop(){ const p=document.getElementById('col-pop'); if(p) p.remove(); }
+function _colPopOut(e){
+  const p=document.getElementById('col-pop'); if(!p) return;
+  if (p.contains(e.target)){ setTimeout(()=>document.addEventListener('mousedown', _colPopOut, {once:true}),0); return; }
+  closeColPop();
+}
+function colPopHtml(w){
+  const top=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];
+  return `<div class="mp-tooltip" style="width:auto">
+    <div class="mp-snap">
+      <span class="ttl">${_mvpEsc(w.label||w.address.slice(0,10))}${top&&top.name?` · ${_mvpEsc(top.name)}`:''}</span>
+      <span class="sp"></span>
+      <button data-act="reload" onclick="reloadColPop(event)" data-tip="Tải lại bộ sưu tập của ví này">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+      <button data-act="close" onclick="closeColPop()" data-tip="Đóng">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    ${colColHtml(w)}
+  </div>`;
+}
+function _colPopRefresh(addr){
+  const p=document.getElementById('col-pop'); if(!p||p.dataset.addr!==addr) return;
+  const w=(allWallets()||[]).find(x=>x.address===addr); if(!w) return;
+  p.innerHTML=colPopHtml(w);
+  try{ _clampCharPop(p); }catch(e){}
+  try{ prefetchPopImages(p, 400); }catch(e){}
+}
+function reloadColPop(ev){
+  if(ev) ev.stopPropagation();
+  const p=document.getElementById('col-pop'); if(!p) return;
+  const addr=p.dataset.addr, k=(addr||'').toLowerCase();
+  try{ delete COL_CACHE[k]; _saveColCache(); }catch(e){}
+  _colPopRefresh(addr); liteColRefreshCell(addr);
+  Promise.resolve(fetchCollection(addr)).then(d=>{ _colPopRefresh(addr); liteColRefreshCell(addr);
+    if (d && (d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr); }).catch(()=>{});
+}
+function openColPop(ev, addr){
+  if(ev) ev.stopPropagation();
+  const cur=document.getElementById('col-pop');
+  if (cur && cur.dataset.addr===addr){ closeColPop(); return; }
+  closeColPop();
+  const w=(allWallets()||[]).find(x=>x.address===addr); if(!w) return;
+  _colQ=''; _colSetQ='';
+  const p=document.createElement('div'); p.id='col-pop'; p.dataset.addr=addr;
+  p.style.cssText='position:fixed;z-index:10050;box-shadow:0 24px 60px rgba(0,0,0,.55);border-radius:16px;max-height:calc(100vh - 16px);overflow:hidden';
+  p.innerHTML=colPopHtml(w);
+  document.body.appendChild(p);
+  p.dataset.ax=(ev&&ev.clientX)||0; p.dataset.ay=(ev&&ev.clientY)||0;
+  try{ _clampCharPop(p); }catch(e){}
+  try{ Promise.resolve(fetchCollection(addr)).then(d=>{
+        if(d){ _colPopRefresh(addr); liteColRefreshCell(addr); }
+        if (d && (d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr);
+      }).catch(()=>{}); }catch(e){}
+  try{ prefetchPopImages(p); }catch(e){}
+  setTimeout(()=>{ document.addEventListener('mousedown', _colPopOut, {once:true}); }, 0);
+}
+try{ window.openColPop=openColPop; window.closeColPop=closeColPop; window.reloadColPop=reloadColPop; }catch(e){}
+
 // Ô tìm trong cột collection: chỉ dựng lại cột, giữ nguyên con trỏ đang gõ
 let _colQ='', _colSetQ='';
 function _colRefresh(which){
-  const p=document.getElementById('char-pop'); if(!p) return;
+  const _i=document.getElementById(which);
+  const p=(_i&&_i.closest&&_i.closest('#col-pop,#char-pop'))||document.getElementById('col-pop')||document.getElementById('char-pop');
+  if(!p) return;
   const w=allWallets().find(x=>x.address===p.dataset.addr); if(!w) return;
   const col=p.querySelector('.mp-col-col'); if(!col) return;
   const tmp=document.createElement('div'); tmp.innerHTML=colColHtml(w);
@@ -7569,6 +7683,8 @@ function renderLiteList(){
                lv:w=>{const c=topChar(w); return (c&&c.level)||w.maxCpLevel||-1;},
                world:w=>{const c=topChar(w); return ((c&&c.world)||w.maxCpWorld||'zzz').toLowerCase();},
                cp:w=>{const c=topChar(w); return (c&&c.cp)||w.maxCp||-1;},
+               bts:w=>{ const d=COL_CACHE[(w.address||'').toLowerCase()]; if(!d) return -1;
+                        const t=d.total||0; return (t?d.collected/t:0)*1e6+(d.collected||0); },
                weeks:w=>(w.mvpBronzeWeeks??-1), pts:w=>mvpPtsOf(w), next:w=>(w.mvpNextPoints??-1), drop:w=>(w.mvpDropIn??99), need:w=>(w.mvpDropNeed??-1), boss:w=>liteMissingBosses(w).length, bossD:w=>liteMissingBosses(w,'daily').length, bossW:w=>liteMissingBosses(w,'weekly').length,
                // boss mục tiêu: chưa mở(0) < đã mở(1) < đã đánh(2)
                bossT:w=>{ const t=weeklyTargetBoss(); if(!t) return -1;
@@ -7580,7 +7696,7 @@ function renderLiteList(){
   ws=ws.slice().sort((a,b)=>{ const x=kf(a),y=kf(b); const r=(typeof x==='string')?x.localeCompare(y):(x-y); return liteSort.dir==='desc'?-r:r; });
   const arw=c=>liteSort.col===c?(liteSort.dir==='desc'?' ↓':' ↑'):'';
   const hc=(c,l,al,tip)=>`<div onclick="setLiteSort('${c}')" data-tip="${tip?tip+'&#10;':''}Bấm để sắp xếp" style="cursor:pointer;text-align:${al||'left'};color:${liteSort.col===c?'var(--accent)':'var(--muted2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}${arw(c)}</div>`;
-  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(58px,.32fr) minmax(78px,.45fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
+  const grid='22px minmax(76px,1.1fr) minmax(54px,.4fr) minmax(84px,1.2fr) minmax(52px,.35fr) minmax(30px,.3fr) minmax(44px,.3fr) minmax(52px,.34fr) minmax(58px,.32fr) minmax(78px,.45fr) minmax(66px,.35fr) minmax(46px,.3fr) minmax(70px,.4fr) minmax(58px,.95fr) minmax(42px,.75fr) minmax(44px,.8fr) minmax(44px,.8fr) minmax(40px,.8fr)';
   const cellN=(v,d,color,tipLb,usd)=>`<div class="mvp-num" style="text-align:right;color:${color}" ${v!=null?_tokTipAttr(tipLb.replace(/^Tổng /,''), _lf(v,d), usd, tipLb.startsWith('Tổng')?'tổng':''):''}>${_lfc(v,d)}</div>`;
   const rows=ws.map((w,i)=>`<div class="mvp-lrow lite-row">
       <div class="mvp-num" style="color:var(--muted2)">${i+1}</div>
@@ -7599,6 +7715,7 @@ function renderLiteList(){
         const age=w.cpTs?_cpAgeText(w.cpTs):'';
         const tip=cp?`CP: ${Math.round(cp).toLocaleString('vi-VN')}${age?'&#10;Cập nhật '+age:''}${fresh?'':'&#10;Rê chuột để lấy CP mới nhất'}`:'Chưa có dữ liệu CP';
         return `<div class="mvp-num lite-cp" data-cpak="${ak||''}" data-cpaddr="${w.address}" style="text-align:right;color:${cp?'#f5a524':'var(--muted2)'}" data-tip="${tip}">${_cpf(cp)}</div>`; })()}
+      ${liteColCell(w)}
       ${liteBossCell(w,'daily')}
       ${liteBossCell(w,'weekly')}
       ${(()=>{
@@ -7654,7 +7771,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${(()=>{ const t=weeklyTargetBoss();
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bts','BTS','right','NFT collection · số ô đã đăng ký / tổng số ô có thể đăng ký&#10;Rê chuột lên ô để tải, bấm để xem chi tiết')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${(()=>{ const t=weeklyTargetBoss();
         return `<div style="display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;overflow:hidden">
           <span onclick="setLiteSort('bossW')" data-tip="Boss tuần · số đã mở&#10;Bấm để sắp xếp" style="cursor:pointer;color:${liteSort.col==='bossW'?'var(--accent)':'#8b7ae8'}">B. Weekly${liteSort.col==='bossW'?(liteSort.dir==='desc'?' ↓':' ↑'):''}</span>
           ${t?`<span onclick="setLiteSort('bossT')" data-tip="Sắp xếp theo boss mục tiêu: ${_mvpEsc(t.name)}&#10;Chưa mở → Đã mở → Slayer" style="cursor:pointer;display:inline-flex;width:13px;height:13px;border-radius:50%;overflow:hidden;border:1px solid ${liteSort.col==='bossT'?'var(--accent)':'var(--border2)'};flex-shrink:0">
@@ -7682,6 +7799,12 @@ function renderLiteList(){
           <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);white-space:nowrap;text-align:right">${(()=>{const ws2=[...new Set(ws.map(w=>{const c=topChar(w);return (c&&c.world)||w.maxCpWorld||null;}).filter(Boolean))]; return ws2.length?ws2.length+' world':'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:var(--muted2)">${(()=>{const lv=ws.map(w=>{const c=topChar(w);return (c&&c.level)||w.maxCpLevel||0;}).filter(Boolean); return lv.length?'≤'+Math.max(...lv):'—';})()}</div>
           <div class="mvp-num" style="text-align:right;font-size:10px;color:#f5a524">${(()=>{const cp=ws.map(w=>{const c=topChar(w);return (c&&c.cp)||w.maxCp||0;}).filter(Boolean); return cp.length?'≤'+_cpf(Math.max(...cp)):'—';})()}</div>
+          ${(()=>{ const ds=ws.map(w=>COL_CACHE[(w.address||'').toLowerCase()]).filter(Boolean);
+            if(!ds.length) return '<div class="mvp-num" style="text-align:right;color:var(--muted2)">—</div>';
+            const c=ds.reduce((a,d)=>a+(d.collected||0),0), t=ds.reduce((a,d)=>a+(d.total||0),0);
+            const full=ds.filter(d=>d.total&&d.collected>=d.total).length;
+            const tip=`Tổng đã đăng ký ${c}${t?'/'+t:''} ô&#10;${ds.length}/${ws.length} ví đã có dữ liệu&#10;${full} ví đăng ký đủ`;
+            return `<div class="mvp-num" style="text-align:right;white-space:nowrap;color:${t&&c>=t?'#38bdf8':'#f0873c'}" data-tip="${tip}">${t?c+'/'+t:c}</div>`; })()}
           ${['daily','weekly'].map(cy=>{
             const lb=cy==='daily'?'Daily':'Weekly';
             const nOk=ws.filter(w=>!liteMissingBosses(w,cy).length).length;
