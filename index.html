@@ -1122,7 +1122,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-snap button{display:inline-flex;align-items:center;gap:4px;background:#1a1f26;border:1px solid #2b313b;border-radius:7px;padding:4px 8px;color:#8b93a1;cursor:pointer;font-size:9.5px;font-weight:700;font-family:inherit;line-height:1;flex-shrink:0;transition:.12s}
 .mp-snap button:hover{color:#e6e9ef;border-color:#4c53a8;background:#232a44cc}
 .mp-snap button[disabled]{opacity:.5;cursor:default}
-#col-pop .mp-col-col{border-left:none!important;width:238px!important;max-height:min(76vh,760px)!important}
+.mp-tooltip.col-only .mp-col-col{border-left:none!important;width:238px!important;max-height:min(76vh,760px)!important}
 .lite-bts:hover{text-decoration:underline;text-underline-offset:2px}
 .mp-col-col{width:206px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(74vh,720px);overflow-y:auto}
 .mp-col-col::-webkit-scrollbar{width:6px}
@@ -6484,8 +6484,8 @@ function holdColHtml(w){
 let _pinSeq=0, _pinZ=10300;
 function _popRoot(ev){
   const t=ev && ev.target && ev.target.closest;
-  const el=t && (ev.target.closest('.mp-pinned') || ev.target.closest('#char-pop'));
-  return el || document.getElementById('char-pop');
+  const el=t && (ev.target.closest('.mp-pinned') || ev.target.closest('#col-pop') || ev.target.closest('#char-pop'));
+  return el || document.getElementById('col-pop') || document.getElementById('char-pop');
 }
 function pinCharPop(ev){
   if (ev) ev.stopPropagation();
@@ -6511,8 +6511,8 @@ function pinCharPop(ev){
   }
   p.addEventListener('mousedown', ()=>{ p.style.zIndex=++_pinZ; }, true);
   document.body.appendChild(p);
-  closeCharPop();
-  showToast('Đã ghim bảng', 'Kéo thanh trên cùng để di chuyển · mở tiếp nhân vật khác thoải mái');
+  if (src.id==='col-pop'){ try{ closeColPop(); }catch(e){} } else closeCharPop();
+  showToast('Đã ghim bảng', 'Kéo thanh trên cùng để di chuyển · mở tiếp bảng khác thoải mái');
 }
 function unpinCharPop(ev){
   const p=_popRoot(ev); if(!p || !p.classList.contains('mp-pinned')) return;
@@ -6954,7 +6954,7 @@ function colColHtml(w){
 
   const pct=d.total?Math.round(d.collected/d.total*1000)/10:null;
   const box='max-height:262px;overflow-y:auto';          // đúng 7 hàng ô 33px + khoảng cách
-  const srch=(id,val,fn,ph)=>`<input id="${id}" type="text" value="${_mvpEsc(val||'')}" oninput="${fn}(this.value)" placeholder="${ph}"
+  const srch=(id,val,fn,ph)=>`<input id="${id}" data-colin="${id}" type="text" value="${_mvpEsc(val||'')}" oninput="${fn}(this.value,this)" placeholder="${ph}"
     style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:inherit;outline:none;margin:5px 0 6px">`;
 
   // ── Vật phẩm: đã có lên trước (màu), chưa có xuống sau (xám) ──
@@ -7095,6 +7095,7 @@ async function loadLiteCols(force, list){
       if ((d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) { try{ fetchCollectionNames(w.address); }catch(e){} }
     } else _colFail[k]=Date.now();
     liteColRefreshCell(w.address);
+    try{ _colPanelsRefresh(w.address); }catch(e){}
     done++; _colBtnSet(`BTS ${done}/${todo.length}…`, true);
   };
   try{
@@ -7149,10 +7150,12 @@ function _colPopOut(e){
 }
 function colPopHtml(w){
   const top=(w.chars||[]).filter(c=>c.name).sort((a,b)=>(b.cp||0)-(a.cp||0))[0];
-  return `<div class="mp-tooltip" style="width:auto">
+  return `<div class="mp-tooltip col-only" style="width:auto">
     <div class="mp-snap">
       <span class="ttl">${_mvpEsc(w.label||w.address.slice(0,10))}${top&&top.name?` · ${_mvpEsc(top.name)}`:''}</span>
       <span class="sp"></span>
+      <button data-act="pin" onclick="pinCharPop(event)" data-tip="Ghim bảng này lại&#10;Ghim xong kéo thanh trên cùng đi chỗ khác, mở tiếp ví kế thoải mái">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.5-2.5V8a5.5 5.5 0 0 0-11 0v6.5z"/></svg></button>
       <button data-act="reload" onclick="reloadColPop(event)" data-tip="Tải lại bộ sưu tập của ví này">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
       <button data-act="close" onclick="closeColPop()" data-tip="Đóng">
@@ -7162,19 +7165,20 @@ function colPopHtml(w){
   </div>`;
 }
 function _colPopRefresh(addr){
-  const p=document.getElementById('col-pop'); if(!p||p.dataset.addr!==addr) return;
-  const w=(allWallets()||[]).find(x=>x.address===addr); if(!w) return;
-  p.innerHTML=colPopHtml(w);
-  try{ _clampCharPop(p); }catch(e){}
-  try{ prefetchPopImages(p, 400); }catch(e){}
+  _colPanelsRefresh(addr);
+  const p=document.getElementById('col-pop');
+  if (p && p.dataset.addr===addr){ try{ _clampCharPop(p); }catch(e){} }
 }
 function reloadColPop(ev){
   if(ev) ev.stopPropagation();
-  const p=document.getElementById('col-pop'); if(!p) return;
+  const p=(ev&&ev.target&&ev.target.closest&&ev.target.closest('.mp-pinned,#col-pop,#char-pop'))
+        ||document.getElementById('col-pop');
+  if(!p) return;
   const addr=p.dataset.addr, k=(addr||'').toLowerCase();
-  try{ delete COL_CACHE[k]; _saveColCache(); }catch(e){}
+  try{ delete COL_CACHE[k]; _saveColCache(); delete _colFail[k]; }catch(e){}
   _colPopRefresh(addr); liteColRefreshCell(addr);
-  Promise.resolve(fetchCollection(addr)).then(d=>{ _colPopRefresh(addr); liteColRefreshCell(addr);
+  Promise.resolve(fetchCollection(addr)).then(d=>{
+    _colPopRefresh(addr); liteColRefreshCell(addr); try{ liteColTotalRefresh(); }catch(e){}
     if (d && (d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr); }).catch(()=>{});
 }
 function openColPop(ev, addr){
@@ -7201,18 +7205,35 @@ try{ window.openColPop=openColPop; window.closeColPop=closeColPop; window.reload
 
 // Ô tìm trong cột collection: chỉ dựng lại cột, giữ nguyên con trỏ đang gõ
 let _colQ='', _colSetQ='';
-function _colRefresh(which){
-  const _i=document.getElementById(which);
-  const p=(_i&&_i.closest&&_i.closest('#col-pop,#char-pop'))||document.getElementById('col-pop')||document.getElementById('char-pop');
+// Dựng lại riêng cột collection bên trong một bảng (popover đang mở hoặc bảng đã ghim)
+function _colPanelRefresh(p){
   if(!p) return;
-  const w=allWallets().find(x=>x.address===p.dataset.addr); if(!w) return;
+  const w=(allWallets()||[]).find(x=>x.address===p.dataset.addr); if(!w) return;
   const col=p.querySelector('.mp-col-col'); if(!col) return;
   const tmp=document.createElement('div'); tmp.innerHTML=colColHtml(w);
   col.replaceWith(tmp.firstElementChild);
-  const el=document.getElementById(which); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  try{ prefetchPopImages(p, 400); }catch(e){}
 }
-function setColQ(v){ _colQ=v||''; _colRefresh('col-q'); }
-function setColSetQ(v){ _colSetQ=v||''; _colRefresh('col-sq'); }
+// Mọi bảng đang hiện dữ liệu của ví này đều được cập nhật, kể cả các bảng đã ghim
+function _colPanelsRefresh(addr){
+  try{
+    document.querySelectorAll('#col-pop,#char-pop,.mp-pinned').forEach(p=>{
+      if (p.dataset.addr===addr && p.querySelector('.mp-col-col')) _colPanelRefresh(p);
+    });
+  }catch(e){}
+}
+function _colRefresh(which, el){
+  if (el && el.isConnected===false) return;     // ô nhập đã bị thay thế -> đừng dựng nhầm bảng khác
+  const _i=el||document.getElementById(which);
+  const p=(_i&&_i.closest&&_i.closest('.mp-pinned,#col-pop,#char-pop'))
+        ||document.getElementById('col-pop')||document.getElementById('char-pop');
+  if(!p) return;
+  _colPanelRefresh(p);
+  const nu=p.querySelector(`[data-colin="${which}"]`)||document.getElementById(which);
+  if(nu){ nu.focus(); nu.setSelectionRange(nu.value.length, nu.value.length); }
+}
+function setColQ(v, el){ _colQ=v||''; _colRefresh('col-q', el); }
+function setColSetQ(v, el){ _colSetQ=v||''; _colRefresh('col-sq', el); }
 try{ window.setColQ=setColQ; window.setColSetQ=setColSetQ; }catch(e){}
 // Một ô món trong collection
 function _colItem(it, have){
