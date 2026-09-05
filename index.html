@@ -7008,7 +7008,7 @@ function liteColCell(w){
   const k=(w.address||'').toLowerCase();
   const d=COL_CACHE[k];
   const busy=_colBusy.has(k);
-  let txt='—', color='var(--muted2)', tip='Chưa có dữ liệu collection&#10;Rê chuột để tải · bấm để xem chi tiết';
+  let txt='—', color='var(--muted2)', tip='Chưa có dữ liệu collection&#10;Bấm để xem chi tiết';
   if (busy && !d){ txt='…'; tip='Đang tải collection…'; }
   else if (d){
     const c=d.collected||0, t=d.total||0;
@@ -7053,6 +7053,79 @@ document.addEventListener('mouseover', e=>{
     }).catch(()=>liteColRefreshCell(addr));
   }, 320);
 }, true);
+
+// Nạp collection cho mọi ví đang hiện, chạy song song có giới hạn.
+// force = xoá cache và tải lại từ đầu (nút ⟳ BTS)
+let _colAuto=false, _colKickT=null;
+const _colFail={};                                   // địa chỉ tải hỏng -> mốc thời gian, tránh thử lại liên tục
+const COL_RETRY=10*60*1000;
+function _colBtnSet(txt, busy){
+  const b=document.getElementById('lite-col-btn'); if(!b) return;
+  b.textContent=txt; b.disabled=!!busy; b.style.opacity=busy?'.6':'1'; b.style.cursor=busy?'not-allowed':'pointer';
+}
+async function loadLiteCols(force, list){
+  if (_colAuto) return;
+  const ws = list && list.length ? list
+    : ((typeof effectiveWallets==='function')?effectiveWallets():(typeof teamWallets!=='undefined'?teamWallets:[]));
+  if (!ws || !ws.length) return;
+  const now=Date.now();
+  const todo=ws.filter(w=>{
+    const k=(w.address||'').toLowerCase(); if(!k) return false;
+    if (_colBusy.has(k)) return false;
+    if (force) return true;
+    const c=COL_CACHE[k];
+    if (c && now-(c.ts||0)<COL_TTL) return false;
+    if (_colFail[k] && now-_colFail[k]<COL_RETRY) return false;
+    return true;
+  });
+  if (!todo.length){ _colBtnSet('⟳ BTS', false); return; }
+  _colAuto=true;
+  let done=0, i=0;
+  const CONC=Math.min(4, todo.length);
+  const one=async w=>{
+    const k=(w.address||'').toLowerCase();
+    if (force){ try{ delete COL_CACHE[k]; delete _colFail[k]; }catch(e){} }
+    let d=null;
+    try{
+      const pr=fetchCollection(w.address);
+      liteColRefreshCell(w.address);                 // đánh dấu đang tải ngay
+      d=await pr;
+    }catch(e){}
+    if (d){ delete _colFail[k];
+      if ((d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) { try{ fetchCollectionNames(w.address); }catch(e){} }
+    } else _colFail[k]=Date.now();
+    liteColRefreshCell(w.address);
+    done++; _colBtnSet(`BTS ${done}/${todo.length}…`, true);
+  };
+  try{
+    await Promise.all(Array.from({length:CONC}, async ()=>{ while(i<todo.length) await one(todo[i++]); }));
+  } finally {
+    _colAuto=false; _colBtnSet('⟳ BTS', false);
+    try{ liteColTotalRefresh(); }catch(e){}
+  }
+}
+// Tự chạy khi bảng vừa dựng xong, gộp nhiều lần gọi liên tiếp thành một
+function _colAutoKick(ws){
+  clearTimeout(_colKickT);
+  _colKickT=setTimeout(()=>{ try{ loadLiteCols(false, ws); }catch(e){} }, 500);
+}
+// Cập nhật lại ô tổng BTS ở dòng Σ mà không dựng lại cả bảng
+function liteColTotalRefresh(){
+  try{
+    const rows=document.querySelectorAll('#lite-list .mvp-lrow.lite-row');
+    const foot=rows[rows.length-1]; if(!foot||foot.querySelector('.lite-bts')) return;
+    const cell=foot.children[7]; if(!cell) return;
+    const ws=[...document.querySelectorAll('#lite-list .lite-bts')].map(c=>c.getAttribute('data-btsaddr'));
+    const ds=ws.map(a=>COL_CACHE[(a||'').toLowerCase()]).filter(Boolean);
+    if(!ds.length) return;
+    const c=ds.reduce((a,d)=>a+(d.collected||0),0), t=ds.reduce((a,d)=>a+(d.total||0),0);
+    const full=ds.filter(d=>d.total&&d.collected>=d.total).length;
+    cell.setAttribute('data-tip', `Tổng đã đăng ký ${c}${t?'/'+t:''} ô&#10;${ds.length}/${ws.length} ví đã có dữ liệu&#10;${full} ví đăng ký đủ`);
+    cell.style.color = (t&&c>=t)?'#38bdf8':'#f0873c';
+    cell.textContent = t ? c+'/'+t : String(c);
+  }catch(e){}
+}
+try{ window.loadLiteCols=loadLiteCols; }catch(e){}
 
 function closeColPop(){ const p=document.getElementById('col-pop'); if(p) p.remove(); }
 function _colPopOut(e){
@@ -7763,6 +7836,7 @@ function renderLiteList(){
         <span style="font-size:12.5px;font-weight:800;color:var(--text)">Danh sách ví</span>
         <span class="mvp-num" style="font-size:11px;color:var(--muted2)">· ${ws.length} ví${litePlayer!=='all'?` · <span style="color:var(--accent)">${_mvpEsc(litePlayer)}</span>`:''}</span>
         <button id="lite-eq-btn" onclick="loadLiteItems(true)" data-tip="Tải lại danh sách trang bị cho mọi ví (giống nút làm mới CP)" style="margin-left:auto;padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ Trang bị</button>
+        <button id="lite-col-btn" onclick="loadLiteCols(true)" data-tip="Tải lại bộ sưu tập NFT (cột BTS) cho mọi ví đang hiện" style="padding:5px 11px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">⟳ BTS</button>
         <button onclick="toggleLiteLv200()" data-tip="Chỉ hiện ví có nhân vật từ Lv200 trở lên" style="padding:5px 10px;border-radius:8px;border:1px solid ${liteLv200?'#7fd88f':'var(--border2)'};background:${liteLv200?'color-mix(in srgb,#7fd88f 12%,transparent)':'var(--bg2)'};color:${liteLv200?'#7fd88f':'var(--muted2)'};font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">Lv200+${liteLv200?' ✓':''}</button>
         <span style="position:relative;display:inline-flex;align-items:center">
           <input id="lite-search" type="text" value="${_mvpEsc(liteQuery)}" oninput="setLiteQuery(this.value)" placeholder="Tìm ví / player / nghề / world…" style="width:190px;box-sizing:border-box;padding:5px ${liteQuery?'24px':'9px'} 5px 9px;border-radius:8px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:11px">
@@ -7771,7 +7845,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bts','BTS','right','NFT collection · số ô đã đăng ký / tổng số ô có thể đăng ký&#10;Rê chuột lên ô để tải, bấm để xem chi tiết')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${(()=>{ const t=weeklyTargetBoss();
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bts','BTS','right','NFT collection · số ô đã đăng ký / tổng số ô có thể đăng ký&#10;Tự tải khi mở tab · bấm vào ô để xem chi tiết bộ sưu tập')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${(()=>{ const t=weeklyTargetBoss();
         return `<div style="display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;overflow:hidden">
           <span onclick="setLiteSort('bossW')" data-tip="Boss tuần · số đã mở&#10;Bấm để sắp xếp" style="cursor:pointer;color:${liteSort.col==='bossW'?'var(--accent)':'#8b7ae8'}">B. Weekly${liteSort.col==='bossW'?(liteSort.dir==='desc'?' ↓':' ↑'):''}</span>
           ${t?`<span onclick="setLiteSort('bossT')" data-tip="Sắp xếp theo boss mục tiêu: ${_mvpEsc(t.name)}&#10;Chưa mở → Đã mở → Slayer" style="cursor:pointer;display:inline-flex;width:13px;height:13px;border-radius:50%;overflow:hidden;border:1px solid ${liteSort.col==='bossT'?'var(--accent)':'var(--border2)'};flex-shrink:0">
@@ -7838,6 +7912,7 @@ function renderLiteList(){
         </div>
       </div></div>
     </div>`;
+  try{ _colAutoKick(ws); }catch(e){}
 }
 
 function renderBossTab(){ try{ renderBossPlayers(); renderBossKpi(); renderBossMatrix(); }catch(e){ console.warn(e); } }
