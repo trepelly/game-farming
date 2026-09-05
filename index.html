@@ -1123,8 +1123,19 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-snap button:hover{color:#e6e9ef;border-color:#4c53a8;background:#232a44cc}
 .mp-snap button[disabled]{opacity:.5;cursor:default}
 .mp-tooltip.col-only .mp-col-col{border-left:none!important;width:238px!important;max-height:min(76vh,760px)!important}
-.mp-tooltip.col-only .mp-col-col.mp-col-2{width:min(600px,94vw)!important;max-height:min(82vh,860px)!important}
-.mp-col-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;margin-top:9px}
+.mp-tooltip.col-only .mp-col-col.mp-col-2{width:min(880px,96vw)!important;max-height:min(82vh,860px)!important}
+.mp-col-split{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;margin-top:9px}
+@media(max-width:920px){.mp-col-split{grid-template-columns:1fr}}
+.mp-col-pick{display:flex;align-items:center;gap:6px;padding:3px 5px;border-radius:6px;cursor:pointer}
+.mp-col-pick:hover{background:#1a1f26}
+.mp-col-pick .nm{flex:1;min-width:0;font-size:10px;color:#c4ccd8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp-col-pick .ct{font-size:9px;font-weight:800;color:#6b7280;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.mp-col-tag{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:3px 8px;border-radius:7px;border:1px solid #4c53a8;background:#232a44;font-size:10px;font-weight:700;color:#a5b4fc}
+.mp-col-tag b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}
+.mp-col-tag i{font-style:normal;cursor:pointer;color:#8b93a1;flex-shrink:0}
+.mp-col-tag i:hover{color:#e6e9ef}
+.mp-col-btn{background:#1a1f26;border:1px solid #2b313b;border-radius:7px;padding:5px 9px;font-size:10px;font-weight:700;color:#8b93a1;cursor:pointer;font-family:inherit;white-space:nowrap}
+.mp-col-btn:hover{color:#e6e9ef;border-color:#4c53a8}
 .mp-col-split > div{min-width:0}
 .mp-col-split .mp-eq-sub{margin-top:0!important}
 .mp-col-items.row{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:4px;padding-bottom:3px}
@@ -7071,8 +7082,74 @@ function colColHtml(w, two){
     ${(d.syncStatus && d.syncStatus!=='complete')?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:6px" data-tip="Nguồn báo trạng thái đồng bộ: ${_mvpEsc(d.syncStatus)}&#10;Số liệu có thể chưa đủ">⚠ đang đồng bộ (${_mvpEsc(d.syncStatus)})</div>`:''}
     ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Nguồn lấy lúc ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`;
 
+  // ── Cột so sánh ──
+  const cmpRow=(it, color)=>{
+    const nm=named(it);
+    return `<div class="mp-col-row">
+      ${_colItem(it, true)}
+      <span class="nm mp-copy" onclick="event.stopPropagation();copyFlash(this,'${String(nm).replace(/'/g,'')}','tên vật phẩm')" data-tip="${_mvpEsc(nm)}&#10;Item ID: ${it.id}&#10;Nhấp để copy tên" style="cursor:pointer;color:${color}">${_mvpEsc(nm)}</span>
+      ${it.price!=null?`<span class="lo" data-tip="Giá sàn: ${_lf(it.price)} NESO">${_lfk(it.price)}</span>`:'<span class="lo na">—</span>'}
+    </div>`;
+  };
+  const cmpBox=two?'max-height:min(28vh,220px);overflow-y:auto':'max-height:170px;overflow-y:auto';
+
+  const cmpBlock=(()=>{
+    const wsAll=(typeof allWallets==='function'?(allWallets()||[]):[]);
+    if (!_colCmp){
+      const q=_colCmpQ.trim().toLowerCase();
+      const list=wsAll.filter(x=>x.address!==w.address).filter(x=>!q
+        || String(x.label||'').toLowerCase().includes(q)
+        || String(x.address||'').toLowerCase().includes(q)
+        || String(x.player||'').toLowerCase().includes(q));
+      return `
+        <div class="mp-eq-sub" style="margin-top:${two?0:11}px"><span>So sánh</span><i></i><b>${list.length}</b></div>
+        <div class="mp-eq-more" style="margin:0 0 4px">Chọn một ví để xem mình thiếu / dư món nào</div>
+        <input data-colin="col-cmpq" type="text" value="${_mvpEsc(_colCmpQ)}" oninput="setColCmpQ(this.value,this)" placeholder="Tìm ví trong danh sách…"
+          style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:inherit;outline:none;margin:5px 0 6px">
+        <div style="${cmpBox}">${list.length ? list.map(x=>{
+            const cd=COL_CACHE[(x.address||'').toLowerCase()];
+            const ct=cd?(cd.total?`${cd.collected}/${cd.total}`:String(cd.collected)):'—';
+            return `<div class="mp-col-pick" onclick="event.stopPropagation();setColCmp('${x.address}',this)" data-tip="${_mvpEsc(x.label||x.address)}&#10;${_mvpShortAddr(x.address)}&#10;Bấm để so sánh với ví này">
+              <span class="nm">${_mvpEsc(x.label||_mvpShortAddr(x.address))}</span><span class="ct">${ct}</span></div>`;
+          }).join('') : '<div class="mp-eq-more">Không có ví nào khớp</div>'}</div>
+        <div class="mp-eq-sub" style="margin-top:10px"><span>Ví ngoài</span><i></i><b></b></div>
+        <div style="display:flex;gap:5px">
+          <input data-colin="col-cmpext" type="text" placeholder="0x…" onkeydown="_colCmpKey(event)"
+            style="flex:1;min-width:0;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:'JetBrains Mono',monospace;outline:none">
+          <button class="mp-col-btn" onclick="event.stopPropagation();addColCmp(this)" data-tip="So sánh với một ví không có trong danh sách">Thêm</button>
+        </div>`;
+    }
+
+    const tgt=wsAll.find(x=>(x.address||'').toLowerCase()===_colCmp.toLowerCase());
+    const tname=(tgt&&tgt.label)||_mvpShortAddr(_colCmp);
+    const cd=COL_CACHE[_colCmp.toLowerCase()];
+    const headTag=`
+      <div class="mp-eq-sub" style="margin-top:${two?0:11}px"><span>So sánh</span><i></i><b>${cd?(cd.total?`${cd.collected}/${cd.total}`:cd.collected):'…'}</b></div>
+      <div style="margin:0 0 7px"><span class="mp-col-tag" data-tip="Đang so với ${_mvpEsc(tname)}&#10;${_mvpEsc(_colCmp)}"><b>${_mvpEsc(tname)}</b><i onclick="event.stopPropagation();setColCmp(null,this)" data-tip="Chọn ví khác">✕</i></span></div>`;
+
+    if (!cd) return headTag+`<div class="mp-eq-more">${_colBusy.has(_colCmp.toLowerCase())?'đang tải collection của ví kia…':'chưa lấy được collection của ví kia'}</div>`;
+
+    const mine=new Map(); (d.items||[]).forEach(x=>{ if(x.have&&x.id) mine.set(x.id,x); });
+    const other=new Map(); (cd.items||[]).forEach(x=>{ if(x.have&&x.id) other.set(x.id,x); });
+    const byName=(a,b)=>named(a).localeCompare(named(b));
+    const missing=[...other.values()].filter(x=>!mine.has(x.id)).sort(byName);
+    const extra  =[...mine.values()].filter(x=>!other.has(x.id)).sort(byName);
+    const both=[...mine.keys()].filter(k=>other.has(k)).length;
+
+    return headTag+`
+      <div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-bottom:6px" data-tip="Số món cả hai ví cùng đã đăng ký">Trùng nhau ${both} món</div>
+      <div class="mp-eq-sub" style="margin-top:0"><span style="color:#e06c6c">Mình thiếu</span><i></i><b>${missing.length}</b></div>
+      <div style="${cmpBox}">${missing.length
+        ? missing.map(it=>cmpRow(it,'#e0a75e')).join('')
+        : '<div class="mp-eq-more">Không thiếu món nào so với ví kia</div>'}</div>
+      <div class="mp-eq-sub" style="margin-top:10px"><span style="color:#7fd88f">Mình dư</span><i></i><b>${extra.length}</b></div>
+      <div style="${cmpBox}">${extra.length
+        ? extra.map(it=>cmpRow(it,'#7fd88f')).join('')
+        : '<div class="mp-eq-more">Ví kia có đủ những món mình có</div>'}</div>`;
+  })();
+
   return head(two
-    ? `${summary}<div class="mp-col-split"><div>${itemsBlock}</div><div>${setsBlock}</div></div>${notes}`
+    ? `${summary}<div class="mp-col-split"><div>${itemsBlock}</div><div>${setsBlock}</div><div>${cmpBlock}</div></div>${notes}`
     : `${summary}${itemsBlock}${setsBlock}${notes}`);
 }
 // ══════════ Cột BTS (NFT đã đăng ký) ở tab Ví lite ══════════
@@ -7290,7 +7367,41 @@ function setColSetSort(col, el){
   _colPanelRefresh(_colPanelFrom(el));
 }
 function setColGrp(g, el){ _colGrp=g||'all'; _colPanelRefresh(_colPanelFrom(el)); }
-try{ window.setColSetSort=setColSetSort; window.setColGrp=setColGrp; }catch(e){}
+
+// ── Cột so sánh: chọn một ví khác rồi xem mình thiếu / dư món nào ──
+let _colCmp=null, _colCmpQ='';
+function setColCmpQ(v, el){
+  if (el && el.isConnected===false) return;
+  _colCmpQ=v||'';
+  const p=_colPanelFrom(el); _colPanelRefresh(p);
+  const nu=p&&p.querySelector('[data-colin="col-cmpq"]');
+  if(nu){ nu.focus(); nu.setSelectionRange(nu.value.length, nu.value.length); }
+}
+function setColCmp(addr, el){
+  _colCmp = addr || null;
+  const p=_colPanelFrom(el);
+  _colPanelRefresh(p);
+  if (!addr) return;
+  const k=addr.toLowerCase(), c=COL_CACHE[k];
+  if (c && Date.now()-(c.ts||0)<COL_TTL) return;
+  Promise.resolve(fetchCollection(addr)).then(d=>{
+    _colPanelRefresh(p);
+    if (d && (d.items||[]).length && (d.items||[]).some(x=>!COL_NAMES[x.id])) fetchCollectionNames(addr);
+  }).catch(()=>{ _colPanelRefresh(p); });
+}
+function addColCmp(el){
+  const p=_colPanelFrom(el); if(!p) return;
+  const i=p.querySelector('[data-colin="col-cmpext"]');
+  const v=((i&&i.value)||'').trim();
+  if(!/^0x[0-9a-fA-F]{40}$/.test(v)){
+    try{ showToast('Địa chỉ ví không hợp lệ', 'Cần dạng 0x… đủ 40 ký tự sau 0x'); }catch(e){}
+    return;
+  }
+  setColCmp(v, el);
+}
+function _colCmpKey(e){ if (e && (e.key==='Enter'||e.keyCode===13)) addColCmp(e.target); }
+try{ window.setColSetSort=setColSetSort; window.setColGrp=setColGrp;
+     window.setColCmp=setColCmp; window.setColCmpQ=setColCmpQ; window.addColCmp=addColCmp; window._colCmpKey=_colCmpKey; }catch(e){}
 // Dựng lại riêng cột collection bên trong một bảng (popover đang mở hoặc bảng đã ghim)
 function _colPanelRefresh(p){
   if(!p) return;
