@@ -7035,19 +7035,6 @@ function colColHtml(w, two){
 
   const sortBtn=(col,lb,tip)=>`<button class="mp-oth-sb${_colSetSort.col===col?' on':''}" data-colsort="${col}" data-tip="${tip}" onclick="event.stopPropagation();setColSetSort('${col}',this)">${lb}${_colSetSort.col===col?(_colSetSort.dir==='desc'?'↓':'↑'):''}</button>`;
 
-  // Một món lẻ: ảnh + tên copy được + giá sàn
-  const singleRow=st=>{
-    const it=stItems(st)[0]||{};
-    const nm=st.name && st.name!=='—' ? st.name : (it.name||COL_NAMES[it.id]||('#'+it.id));
-    const lo=setLow(st);
-    const on=st.have>0;
-    return `<div class="mp-col-row">
-      ${_colItem({id:it.id, name:nm, price:lo?lo.v:null, url:it.url}, on)}
-      <span class="nm mp-copy" onclick="event.stopPropagation();copyFlash(this,'${String(nm).replace(/'/g,'')}','tên vật phẩm')" data-tip="${_mvpEsc(nm)}&#10;${on?'Đã đăng ký':'Chưa đăng ký'}&#10;Nhấp để copy tên" style="cursor:pointer;color:${on?'#c4ccd8':'#6b7280'}">${_mvpEsc(nm)}</span>
-      ${lo?`<span class="lo" data-tip="Giá sàn: ${_lf(lo.v)} NESO">${_lfk(lo.v)}</span>`:'<span class="lo na">—</span>'}
-    </div>`;
-  };
-
   const groupCard=st=>{
     const p2=st.total?st.have/st.total:0;
     const lo=setLow(st);
@@ -7061,21 +7048,24 @@ function colColHtml(w, two){
     </div>`;
   };
 
-  const halfBox=two?'max-height:min(30vh,230px);overflow-y:auto':'max-height:180px;overflow-y:auto';
+  // Một danh sách chung; nút nhóm chỉ thu hẹp lại phần muốn xem
+  const shown=(_colGrp==='single'?singles:(_colGrp==='set'?groups:sets.slice().sort(cmpSet)));
+  const grpBtn=(g,lb,n,tip)=>`<button class="mp-oth-sb${_colGrp===g?' on':''}" data-colgrp="${g}" data-tip="${tip}" onclick="event.stopPropagation();setColGrp('${g}',this)">${lb}${n!=null?` ${n}`:''}</button>`;
+
   const setsBlock=`
-    <div class="mp-eq-sub" style="margin-top:${two?0:11}px"><span>Bộ sưu tập</span><i></i><b>${sets.length}</b></div>
+    <div class="mp-eq-sub" style="margin-top:${two?0:11}px"><span>Bộ sưu tập</span><i></i><b>${shown.length}${shown.length!==sets.length?`/${sets.length}`:''}</b></div>
     ${srch('col-sq', _colSetQ, 'setColSetQ', 'Tìm tên bộ hoặc món…')}
-    <div class="mp-col-sort" id="col-sortbar">${
+    <div class="mp-col-sort">${
+      grpBtn('all','Tất cả',sets.length,'Xem chung cả món lẻ lẫn bộ')+
+      grpBtn('single','Món lẻ',singles.length,'Chỉ xem những ô đứng một mình, không thuộc bộ nào')+
+      grpBtn('set','Theo bộ',groups.length,'Chỉ xem các bộ có nhiều món')}</div>
+    <div class="mp-col-sort">${
       sortBtn('prog','Tiến độ','Xếp theo mức hoàn thành')+
       sortBtn('name','Tên','Xếp theo tên A→Z')+
       sortBtn('price','Giá','Xếp theo giá sàn · món chưa có giá xuống cuối')}</div>
-    ${(!singles.length && !groups.length) ? '<div class="mp-eq-more" style="margin-top:8px">Không có bộ nào khớp</div>' : ''}
-    ${singles.length?`
-      <div class="mp-eq-sub" style="margin-top:9px"><span>Món lẻ</span><i></i><b>${singles.filter(x=>x.have).length}/${singles.length}</b></div>
-      <div style="${halfBox}">${singles.map(singleRow).join('')}</div>`:''}
-    ${groups.length?`
-      <div class="mp-eq-sub" style="margin-top:10px"><span>Theo bộ</span><i></i><b>${groups.filter(x=>x.total&&x.have>=x.total).length}/${groups.length}</b></div>
-      <div style="${halfBox}">${groups.map(groupCard).join('')}</div>`:''}`;
+    <div style="${box};margin-top:7px">${shown.length
+      ? shown.map(groupCard).join('')
+      : `<div class="mp-eq-more">${sets.length?'Nhóm này chưa có mục nào':'Không có bộ nào khớp'}</div>`}</div>`;
 
   const notes=`
     ${(d.syncStatus && d.syncStatus!=='complete')?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:6px" data-tip="Nguồn báo trạng thái đồng bộ: ${_mvpEsc(d.syncStatus)}&#10;Số liệu có thể chưa đủ">⚠ đang đồng bộ (${_mvpEsc(d.syncStatus)})</div>`:''}
@@ -7289,6 +7279,7 @@ try{ window.openColPop=openColPop; window.closeColPop=closeColPop; window.reload
 // Ô tìm trong cột collection: chỉ dựng lại cột, giữ nguyên con trỏ đang gõ
 let _colQ='', _colSetQ='';
 let _colSetSort={col:'prog',dir:'desc'};   // prog | name | price
+let _colGrp='all';                         // all | single | set
 function _colPanelFrom(el){
   return (el&&el.closest&&el.closest('.mp-pinned,#col-pop,#char-pop'))
       || document.getElementById('col-pop') || document.getElementById('char-pop');
@@ -7298,7 +7289,8 @@ function setColSetSort(col, el){
   else _colSetSort = { col, dir: col==='name'?'asc':(col==='price'?'asc':'desc') };
   _colPanelRefresh(_colPanelFrom(el));
 }
-try{ window.setColSetSort=setColSetSort; }catch(e){}
+function setColGrp(g, el){ _colGrp=g||'all'; _colPanelRefresh(_colPanelFrom(el)); }
+try{ window.setColSetSort=setColSetSort; window.setColGrp=setColGrp; }catch(e){}
 // Dựng lại riêng cột collection bên trong một bảng (popover đang mở hoặc bảng đã ghim)
 function _colPanelRefresh(p){
   if(!p) return;
