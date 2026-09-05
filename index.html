@@ -1123,6 +1123,15 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mp-snap button:hover{color:#e6e9ef;border-color:#4c53a8;background:#232a44cc}
 .mp-snap button[disabled]{opacity:.5;cursor:default}
 .mp-tooltip.col-only .mp-col-col{border-left:none!important;width:238px!important;max-height:min(76vh,760px)!important}
+.mp-tooltip.col-only .mp-col-col.mp-col-2{width:min(600px,94vw)!important;max-height:min(82vh,860px)!important}
+.mp-col-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;margin-top:9px}
+.mp-col-split > div{min-width:0}
+.mp-col-split .mp-eq-sub{margin-top:0!important}
+.mp-col-items.row{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:4px;padding-bottom:3px}
+.mp-col-items.row::-webkit-scrollbar{height:5px}
+.mp-col-items.row::-webkit-scrollbar-thumb{background:#39414d;border-radius:3px}
+.mp-col-items.row > .mp-col-it{flex:0 0 30px;width:30px;height:30px;aspect-ratio:auto}
+.mp-col-set-h .lo{color:#e0a75e!important;font-weight:800;cursor:default}
 .lite-bts:hover{text-decoration:underline;text-underline-offset:2px}
 .mp-col-col{width:206px;flex-shrink:0;border-left:1px solid #2b313b;padding:11px 11px 12px;max-height:min(74vh,720px);overflow-y:auto}
 .mp-col-col::-webkit-scrollbar{width:6px}
@@ -6941,11 +6950,11 @@ function _download(blob, filename){
 try{ window.snapCharPop=snapCharPop; }catch(e){}
 
 // Cột NFT Collection: tiến độ tổng + từng bộ, món đã có thì sáng
-function colColHtml(w){
+function colColHtml(w, two){
   if (!w) return '';
   const d=COL_CACHE[(w.address||'').toLowerCase()];
   const link=`https://msutool.com/item/collection?wallet=${w.address}`;
-  const head=(sub)=>`<div class="mp-col-col">
+  const head=(sub)=>`<div class="mp-col-col${two?' mp-col-2':''}">
     <div class="mp-others-head"><span class="mp-label">Collection</span>
       <span class="mp-count" data-tip="Nguồn: msutool.com&#10;Bấm để mở trang gốc"
         onclick="event.stopPropagation();window.open('${link}','_blank')" style="cursor:pointer">${d?(d.total?`${_lfk(d.collected)}/${_lfk(d.total)}`:_lfk(d.collected)):'—'}</span></div>
@@ -6953,7 +6962,8 @@ function colColHtml(w){
   if (!d) return head(`<div class="mp-eq-more">${_colBusy.has((w.address||'').toLowerCase())?'đang tải collection…':'chưa có dữ liệu collection'}</div>`);
 
   const pct=d.total?Math.round(d.collected/d.total*1000)/10:null;
-  const box='max-height:262px;overflow-y:auto';          // đúng 7 hàng ô 33px + khoảng cách
+  const box=two?'max-height:min(56vh,430px);overflow-y:auto'
+              :'max-height:262px;overflow-y:auto';       // đúng 7 hàng ô 33px + khoảng cách
   const srch=(id,val,fn,ph)=>`<input id="${id}" data-colin="${id}" type="text" value="${_mvpEsc(val||'')}" oninput="${fn}(this.value,this)" placeholder="${ph}"
     style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:inherit;outline:none;margin:5px 0 6px">`;
 
@@ -6973,34 +6983,52 @@ function colColHtml(w){
     || (st.items||[]).some(it=>named(it).toLowerCase().includes(sq)));
   const done=sets.filter(x=>x.total&&x.have>=x.total).length;
 
-  return head(`
+  // Giá sàn rẻ nhất của một bộ: ưu tiên các ô còn thiếu (mua thêm hết bao nhiêu)
+  const setLow=st=>{
+    const its=st.items||[];
+    const miss=its.filter(x=>!x.have).map(x=>x.price).filter(x=>x!=null);
+    if (miss.length) return { v:Math.min(...miss), miss:true };
+    const all=its.map(x=>x.price).filter(x=>x!=null);
+    return all.length ? { v:Math.min(...all), miss:false } : null;
+  };
+
+  const summary=`
     ${pct!=null?`<div class="mp-col-bar"><div style="width:${Math.max(pct?1:0,Math.min(100,pct))}%"></div></div>`:''}
     <div class="mvp-num" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted2);margin-top:4px">
       <span>${pct!=null?pct+'%':_lf(d.collected)+' món'}</span><span>${d.sets&&d.sets.length?`${done}/${d.sets.length} bộ đủ`:`${d.kinds||0} loại`}</span></div>
     ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã có">Đang giữ ≈ ${_lfk(d.floorValue)} NESO</div>`:''}
-    ${d.missCost?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:2px" data-tip="Mua món rẻ nhất cho ${d.missSlots} ô còn thiếu&#10;Theo giá sàn hiện tại: ${_lf(d.missCost)} NESO">Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO</div>`:''}
+    ${d.missCost?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:2px" data-tip="Mua món rẻ nhất cho ${d.missSlots} ô còn thiếu&#10;Theo giá sàn hiện tại: ${_lf(d.missCost)} NESO">Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO</div>`:''}`;
 
-    <div class="mp-eq-sub" style="margin-top:9px"><span>Vật phẩm</span><i></i><b>${
+  const itemsBlock=`
+    <div class="mp-eq-sub" style="margin-top:${two?0:9}px"><span>Vật phẩm</span><i></i><b>${
       items.every(x=>x.have) ? `${items.length} đã có` : `${nHave}/${items.length}`}</b></div>
     ${srch('col-q', _colQ, 'setColQ', 'Tìm tên vật phẩm…')}
     <div style="${box}">${items.length
       ? `<div class="mp-col-items">${items.map(it=>_colItem(it, it.have)).join('')}</div>`
-      : '<div class="mp-eq-more">Không có món nào khớp</div>'}</div>
+      : '<div class="mp-eq-more">Không có món nào khớp</div>'}</div>`;
 
-    <div class="mp-eq-sub" style="margin-top:11px"><span>Bộ sưu tập</span><i></i><b>${sets.length}</b></div>
+  const setsBlock=`
+    <div class="mp-eq-sub" style="margin-top:${two?0:11}px"><span>Bộ sưu tập</span><i></i><b>${sets.length}</b></div>
     ${srch('col-sq', _colSetQ, 'setColSetQ', 'Tìm tên bộ hoặc món…')}
     <div style="${box}">${sets.length ? sets.map(st=>{
       const p2=st.total?st.have/st.total:0;
+      const lo=setLow(st);
       return `<div class="mp-col-set">
         <div class="mp-col-set-h">
           <b class="mp-copy" onclick="event.stopPropagation();copyFlash(this,'${String(st.name).replace(/'/g,'')}','tên bộ')" data-tip="${_mvpEsc(st.name)}&#10;Đã đăng ký ${st.have}/${st.total}${st.need?`&#10;Còn thiếu ≈ ${_lf(st.need)} NESO`:''}&#10;Nhấp để copy tên bộ" style="cursor:pointer">${_mvpEsc(st.name)}</b>
+          ${lo?`<span class="mvp-num lo" data-tip="${lo.miss?'Ô còn thiếu rẻ nhất của bộ này':'Món rẻ nhất trong bộ này'}: ${_lf(lo.v)} NESO">${_lfk(lo.v)}</span>`:''}
           <span class="mvp-num" style="color:${st.have?(st.have>=st.total?'#38bdf8':'#f0873c'):'#6b7280'}">${st.have}/${st.total}</span></div>
         <span class="bar" style="display:block;height:3px;border-radius:2px;background:#232a33;overflow:hidden;margin-bottom:5px"><span style="display:block;height:100%;width:${Math.round(p2*100)}%;background:${st.have>=st.total?'#38bdf8':'#f0873c'}"></span></span>
-        ${(st.items&&st.items.length)?`<div class="mp-col-items">${st.items.map(it=>_colItem(it, it.have)).join('')}</div>`:''}
-      </div>`; }).join('') : '<div class="mp-eq-more">Không có bộ nào khớp</div>'}</div>
+        ${(st.items&&st.items.length)?`<div class="mp-col-items${two?' row':''}">${st.items.map(it=>_colItem(it, it.have)).join('')}</div>`:''}
+      </div>`; }).join('') : '<div class="mp-eq-more">Không có bộ nào khớp</div>'}</div>`;
 
+  const notes=`
     ${(d.syncStatus && d.syncStatus!=='complete')?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:6px" data-tip="Nguồn báo trạng thái đồng bộ: ${_mvpEsc(d.syncStatus)}&#10;Số liệu có thể chưa đủ">⚠ đang đồng bộ (${_mvpEsc(d.syncStatus)})</div>`:''}
-    ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Nguồn lấy lúc ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`);
+    ${d.syncAt?`<div class="itip-note" style="border:none;padding-top:8px">Nguồn lấy lúc ${new Date(d.syncAt).toLocaleString('vi-VN')}</div>`:''}`;
+
+  return head(two
+    ? `${summary}<div class="mp-col-split"><div>${itemsBlock}</div><div>${setsBlock}</div></div>${notes}`
+    : `${summary}${itemsBlock}${setsBlock}${notes}`);
 }
 // ══════════ Cột BTS (NFT đã đăng ký) ở tab Ví lite ══════════
 // Ô nhỏ: đã đăng ký / tổng ô có thể đăng ký. Bấm mở popover collection đầy đủ.
@@ -7161,7 +7189,7 @@ function colPopHtml(w){
       <button data-act="close" onclick="closeColPop()" data-tip="Đóng">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    ${colColHtml(w)}
+    ${colColHtml(w, true)}
   </div>`;
 }
 function _colPopRefresh(addr){
@@ -7210,7 +7238,8 @@ function _colPanelRefresh(p){
   if(!p) return;
   const w=(allWallets()||[]).find(x=>x.address===p.dataset.addr); if(!w) return;
   const col=p.querySelector('.mp-col-col'); if(!col) return;
-  const tmp=document.createElement('div'); tmp.innerHTML=colColHtml(w);
+  const two=col.classList.contains('mp-col-2')||!!p.querySelector('.mp-tooltip.col-only');
+  const tmp=document.createElement('div'); tmp.innerHTML=colColHtml(w, two);
   col.replaceWith(tmp.firstElementChild);
   try{ prefetchPopImages(p, 400); }catch(e){}
 }
