@@ -1131,14 +1131,14 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
   --c-bg:oklch(0.17 0.018 275); --c-p:oklch(0.185 0.02 282); --c-p2:oklch(0.21 0.02 285);
   --c-b:oklch(0.27 0.02 285); --c-t:oklch(0.92 0.01 285); --c-t2:oklch(0.62 0.02 285);
   --c-warm:oklch(0.78 0.14 62); --c-cy:oklch(0.3 0.05 200);
-  width:min(1280px,96vw)!important;background:#1b1a24;background:var(--c-bg);
+  width:max-content!important;max-width:96vw!important;background:#1b1a24;background:var(--c-bg);
   border:1px solid #2c2b38;border:1px solid oklch(0.28 0.02 285);
   border-radius:18px;color:var(--c-t);font-family:'IBM Plex Sans','Inter',system-ui,sans-serif}
 #col-pop{box-shadow:0 40px 90px oklch(0 0 0 / .6)!important}
 .col-only .mvp-num,.col-only .mono{font-family:'IBM Plex Mono','JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
 
 /* thanh tiêu đề */
-.col-only .mp-snap{gap:11px;padding:13px 16px;background:transparent;border-bottom:1px solid oklch(0.24 0.02 285)}
+.col-only .mp-snap{gap:11px;padding:13px 16px;box-sizing:border-box;background:transparent;border-bottom:1px solid oklch(0.24 0.02 285)}
 .col-only .col-ava{width:34px;height:34px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
   font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#fff;
   background:linear-gradient(140deg,oklch(0.55 0.16 295),oklch(0.38 0.12 285))}
@@ -1157,10 +1157,10 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 /* khối tiến độ */
 .col-only{display:block}
 .col-only .mp-cols{display:block}
-.col-only .mp-col-col{width:100%!important;box-sizing:border-box;max-height:none!important;border:0!important;
+.col-only .mp-col-col{width:auto!important;box-sizing:border-box;max-height:none!important;border:0!important;
   padding:12px 14px 4px!important;overflow:visible!important}
 .col-only .mp-others-head{display:none}
-.col-only .col-hero{display:grid;grid-template-columns:minmax(0,1fr) 190px 190px;gap:12px;align-items:center;
+.col-only .col-hero{display:grid;width:100%;box-sizing:border-box;grid-template-columns:minmax(0,1fr) 190px 190px;gap:12px;align-items:center;
   padding:11px 14px;margin-bottom:12px;background:#1e1d29;background:var(--c-p);
   border:1px solid #262533;border:1px solid oklch(0.24 0.02 285);border-radius:14px}
 .col-only .col-hero .hd1{display:flex;align-items:baseline;gap:10px}
@@ -1182,7 +1182,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .col-only .col-stat .g{color:oklch(0.84 0.13 155)} .col-only .col-stat .o{color:oklch(0.82 0.13 60)}
 
 /* 3 cột, các hàng thẳng nhau nhờ chiều cao cố định */
-.col-only .mp-col-split{grid-template-columns:repeat(3,minmax(0,1fr));
+.col-only .mp-col-split{grid-template-columns:repeat(3,clamp(300px,25vw,360px));
   grid-template-rows:auto auto auto minmax(0,1fr);column-gap:14px;row-gap:9px;margin-top:0;align-items:stretch}
 .col-only .mp-col-split > div{min-width:0;display:grid;grid-template-rows:subgrid;grid-row:span 4;gap:9px}
 @supports not (grid-template-rows:subgrid){
