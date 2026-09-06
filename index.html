@@ -1155,7 +1155,10 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
   background:oklch(0.28 0.06 290);border-color:oklch(0.45 0.1 290);color:oklch(0.9 0.03 290)}
 
 /* khối tiến độ */
-.col-only .mp-col-col{width:auto!important;max-height:none!important;border:0!important;padding:12px 14px 4px!important;overflow:visible!important}
+.col-only{display:block}
+.col-only .mp-cols{display:block}
+.col-only .mp-col-col{width:100%!important;box-sizing:border-box;max-height:none!important;border:0!important;
+  padding:12px 14px 4px!important;overflow:visible!important}
 .col-only .mp-others-head{display:none}
 .col-only .col-hero{display:grid;grid-template-columns:minmax(0,1fr) 190px 190px;gap:12px;align-items:center;
   padding:11px 14px;margin-bottom:12px;background:#1e1d29;background:var(--c-p);
@@ -1179,8 +1182,13 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .col-only .col-stat .g{color:oklch(0.84 0.13 155)} .col-only .col-stat .o{color:oklch(0.82 0.13 60)}
 
 /* 3 cột, các hàng thẳng nhau nhờ chiều cao cố định */
-.col-only .mp-col-split{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px;row-gap:10px;margin-top:0}
-.col-only .mp-col-split > div{min-width:0;display:flex;flex-direction:column;gap:9px}
+.col-only .mp-col-split{grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:auto auto auto minmax(0,1fr);column-gap:14px;row-gap:9px;margin-top:0;align-items:stretch}
+.col-only .mp-col-split > div{min-width:0;display:grid;grid-template-rows:subgrid;grid-row:span 4;gap:9px}
+@supports not (grid-template-rows:subgrid){
+  .col-only .mp-col-split > div{display:flex;flex-direction:column}
+}
+.col-only .mp-col-sort .sp{flex:1}
 .col-only .mp-col-set{padding:8px 9px}
 .col-only .mp-col-set + .mp-col-set{margin-top:6px}
 .col-only .mp-eq-sub{height:20px;margin:0!important;align-items:center}
@@ -7089,6 +7097,8 @@ function colColHtml(w, two){
   const named=it=>it.name||COL_NAMES[it.id]||('#'+it.id);
   let items=(d.items||[]).slice();
   if (q) items=items.filter(it=>named(it).toLowerCase().includes(q)||String(it.id).includes(q));
+  if (_colOwn==='have') items=items.filter(x=>x.have);
+  if (_colOwn==='miss') items=items.filter(x=>!x.have);
   items.sort((x,y)=>(y.have?1:0)-(x.have?1:0)||named(x).localeCompare(named(y)));
   const nHave=items.filter(x=>x.have).length;
 
@@ -7139,10 +7149,14 @@ function colColHtml(w, two){
     ${d.floorValue?`<div class="mvp-num" style="font-size:9.5px;color:var(--muted2);margin-top:2px" data-tip="Tổng giá sàn của ${d.floorCount} món đã có">Đang giữ ≈ ${_lfk(d.floorValue)} NESO</div>`:''}
     ${d.missCost?`<div class="mvp-num" style="font-size:9.5px;color:#e0a75e;margin-top:2px" data-tip="Mua món rẻ nhất cho ${d.missSlots} ô còn thiếu&#10;Theo giá sàn hiện tại: ${lfv(d.missCost)} NESO">Còn thiếu ${lfv(d.missSlots)} ô ≈ ${_lfk(d.missCost)} NESO</div>`:''}`;
 
+  const ownBtn=(k,lb,tip)=>`<button class="${_colOwn===k?'on':''}" onclick="event.stopPropagation();setColOwn('${k}',this)" data-tip="${tip}">${lb}</button>`;
   const itemsBlock=`
     <div class="mp-eq-sub" style="margin-top:${two?0:9}px"><span>Vật phẩm</span><i></i><b>${
       items.every(x=>x.have) ? `${items.length} đã có` : `${nHave}/${items.length}`}</b></div>
     ${srch('col-q', _colQ, 'setColQ', 'Tìm tên vật phẩm…')}
+    <div class="mp-col-sort">${
+      ownBtn('have',`Đang có ${nHave}`,'Chỉ xem món ví này đang giữ')+
+      ownBtn('miss',`Chưa có ${items.length-nHave}`,'Chỉ xem món còn thiếu')}</div>
     <div class="col-pane" style="${box}">${items.length
       ? `<div class="mp-col-items">${items.map(it=>_colItem(it, it.have)).join('')}</div>`
       : '<div class="mp-eq-more">Không có món nào khớp</div>'}</div>`;
@@ -7194,12 +7208,12 @@ function colColHtml(w, two){
     <div class="mp-col-sort">${
       grpBtn('all','Tất cả',sets.length,'Xem chung cả món lẻ lẫn bộ')+
       grpBtn('single','Món lẻ',singles.length,'Chỉ xem những ô đứng một mình, không thuộc bộ nào')+
-      grpBtn('set','Theo bộ',groups.length,'Chỉ xem các bộ có nhiều món')}</div>
-    <div class="mp-col-sort">${
+      grpBtn('set','Theo bộ',groups.length,'Chỉ xem các bộ có nhiều món')
+      }<span class="sp"></span>${
       sortBtn('prog','Tiến độ','Xếp theo mức hoàn thành')+
       sortBtn('name','Tên','Xếp theo tên A→Z')+
       sortBtn('price','Giá','Xếp theo giá sàn · món chưa có giá xuống cuối')}</div>
-    <div style="${box};margin-top:7px">${shown.length
+    <div class="col-pane" style="${box}">${shown.length
       ? shown.map(groupCard).join('')
       : `<div class="mp-eq-more">${sets.length?'Nhóm này chưa có mục nào':'Không có bộ nào khớp'}</div>`}</div>`;
 
@@ -7242,25 +7256,23 @@ function colColHtml(w, two){
       const pickBtn=(col,lb,tip)=>`<button class="mp-oth-sb${_colPickSort.col===col?' on':''}" data-picksort="${col}" data-tip="${tip}" onclick="event.stopPropagation();setColPickSort('${col}',this)">${lb}${_colPickSort.col===col?(_colPickSort.dir==='desc'?'↓':'↑'):''}</button>`;
       return `
         <div class="mp-eq-sub" style="margin-top:${two?0:11}px"><span>So sánh</span><i></i><b>${list.length}</b></div>
-        <div class="mp-eq-more" style="margin:0 0 4px">Chọn một ví để xem mình thiếu / dư món nào</div>
         <input data-colin="col-cmpq" type="text" value="${_mvpEsc(_colCmpQ)}" oninput="setColCmpQ(this.value,this)" placeholder="Tìm ví trong danh sách…"
           style="width:100%;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:inherit;outline:none;margin:5px 0 6px">
         <div class="mp-col-sort" style="margin-bottom:6px">${
           pickBtn('bts','NFT','Xếp theo số NFT đã đăng ký · ví chưa có dữ liệu xuống cuối')+
           pickBtn('name','Tên','Xếp theo tên ví A→Z')}</div>
-        ${nKnown<list.length?`<div class="mp-eq-more" style="margin:0 0 5px">${list.length-nKnown} ví chưa tải dữ liệu, đang nằm cuối danh sách</div>`:''}
-        <div class="col-pane" style="${cmpBox}">${list.length ? list.map(x=>{
+        <div class="col-pane" style="${cmpBox}">${nKnown<list.length?`<div class="mp-eq-more" style="margin:0 0 5px">${list.length-nKnown} ví chưa tải dữ liệu, đang nằm cuối danh sách</div>`:''}${list.length ? list.map(x=>{
             const cd=colOf(x);
             const ct=cd?(cd.total?`${cd.collected}/${cd.total}`:String(cd.collected)):'—';
             return `<div class="mp-col-pick" onclick="event.stopPropagation();setColCmp('${x.address}',this)" data-tip="${_mvpEsc(x.label||x.address)}&#10;${_mvpShortAddr(x.address)}&#10;${cd?`Đã đăng ký ${cd.collected}${cd.total?'/'+cd.total:''} ô`:'Chưa tải dữ liệu collection'}&#10;Bấm để so sánh với ví này">
               <span class="nm">${_mvpEsc(x.label||_mvpShortAddr(x.address))}</span><span class="ct"${cd?' style="color:#f0873c"':''}>${ct}</span></div>`;
-          }).join('') : '<div class="mp-eq-more">Không có ví nào khớp</div>'}</div>
+          }).join('') : '<div class="mp-eq-more">Không có ví nào khớp</div>'}
         <div class="mp-eq-sub" style="margin-top:10px"><span>Ví ngoài</span><i></i><b></b></div>
         <div style="display:flex;gap:5px">
           <input data-colin="col-cmpext" type="text" placeholder="0x…" onkeydown="_colCmpKey(event)"
             style="flex:1;min-width:0;box-sizing:border-box;background:var(--input-bg);border:1px solid var(--border2);border-radius:7px;padding:5px 8px;color:var(--text);font-size:10px;font-family:'JetBrains Mono',monospace;outline:none">
           <button class="mp-col-btn" onclick="event.stopPropagation();addColCmp(this)" data-tip="So sánh với một ví không có trong danh sách">Thêm</button>
-        </div>`;
+        </div></div>`;
     }
 
     const tgt=wsAll.find(x=>(x.address||'').toLowerCase()===_colCmp.toLowerCase());
@@ -7516,7 +7528,9 @@ function openColPop(ev, addr){
 try{ window.openColPop=openColPop; window.closeColPop=closeColPop; window.reloadColPop=reloadColPop; }catch(e){}
 
 // Ô tìm trong cột collection: chỉ dựng lại cột, giữ nguyên con trỏ đang gõ
-let _colQ='', _colSetQ='';
+let _colQ='', _colSetQ='', _colOwn='';
+function setColOwn(k, el){ _colOwn=(_colOwn===k)?'':k; _colPanelRefresh(_colPanelFrom(el)); }
+try{ window.setColOwn=setColOwn; }catch(e){}
 let _colSetSort={col:'prog',dir:'desc'};   // prog | name | price
 let _colGrp='all';                         // all | single | set
 function _colPanelFrom(el){
