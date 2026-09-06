@@ -1312,7 +1312,7 @@ body.tips-off [id$='-tip'],body.tips-off #ui-tip{display:none!important}
 .mvp-lrow.lite-row > div:nth-child(10){border-left:1px solid color-mix(in srgb,var(--border2) 60%,transparent);padding-left:8px}.mvp-lrow.lite-row > div:nth-child(10){padding-right:12px}.mvp-lrow.lite-row > div:nth-child(4),.mvp-lrow.lite-row > div:nth-child(8),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(11),.mvp-lrow.lite-row > div:nth-child(14){border-left:1px solid var(--border2);padding-left:7px;margin-left:2px}
 /* Daily · Weekly: vạch mảnh hơn ở giữa để thấy rõ ô nào thuộc cột nào */
 .mvp-lrow.lite-row > div:nth-child(10){border-left:1px dashed var(--border2);padding-left:8px;margin-left:2px}
-.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(10){padding-right:8px;justify-content:center!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
+.mvp-lrow.lite-row > div:nth-child(8),.mvp-lrow.lite-row > div:nth-child(9),.mvp-lrow.lite-row > div:nth-child(10){padding-right:8px;justify-content:center!important}.mvp-lrow{display:grid;grid-template-columns:30px minmax(0,1fr) 84px 70px 72px 118px 112px 150px;gap:10px;align-items:center;padding:8px 16px;font-size:11.5px}
 .mvp-lrow.head{font-size:9px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border2)}
 .mvp-lrow:not(.head):nth-child(even){background:color-mix(in srgb,var(--text) 3%,transparent)}
 .mvp-num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
@@ -7327,20 +7327,23 @@ function liteColCell(w){
   const k=(w.address||'').toLowerCase();
   const d=COL_CACHE[k];
   const busy=_colBusy.has(k);
-  let txt='—', color='var(--muted2)', tip='Chưa có dữ liệu collection&#10;Bấm để xem chi tiết';
-  if (busy && !d){ txt='…'; tip='Đang tải collection…'; }
-  else if (d){
-    const c=d.collected||0, t=d.total||0;
-    txt = t ? `${c}/${t}` : String(c);
-    const pct = t ? c/t : 0;
-    color = t ? (c>=t ? '#38bdf8' : (pct>=.5 ? '#f0873c' : (c ? '#d8a44f' : 'var(--muted2)'))) : 'var(--text2)';
-    const doneSets=(d.sets||[]).filter(x=>x.total&&x.have>=x.total).length;
-    tip = t ? `Đã đăng ký ${c}/${t} ô (${Math.round(pct*1000)/10}%)` : `Đã đăng ký ${c} món · chưa rõ tổng danh mục`;
-    if (d.sets&&d.sets.length) tip += `&#10;${doneSets}/${d.sets.length} bộ đủ`;
-    if (d.missSlots) tip += `&#10;Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO`;
-    tip += '&#10;Bấm để xem chi tiết bộ sưu tập';
+  const click=`data-btsaddr="${w.address}" onclick="openColPop(event,'${w.address}')" style="display:flex;align-items:center;justify-content:center;cursor:pointer"`;
+
+  if (!d){
+    const tip = busy ? 'Đang tải collection…' : 'Chưa có dữ liệu collection&#10;Bấm để xem chi tiết';
+    return `<div class="lite-bts" ${click} data-tip="${tip}">${
+      busy ? '<span class="mvp-num" style="font-size:10px;color:var(--muted2)">…</span>'
+           : _bossRing(0, 0, '#8b7ae8')}</div>`;
   }
-  return `<div class="mvp-num lite-bts" data-btsaddr="${w.address}" onclick="openColPop(event,'${w.address}')" data-tip="${tip}" style="text-align:right;white-space:nowrap;cursor:pointer;color:${color}">${txt}</div>`;
+  const c=d.collected||0, t=d.total||0;
+  const pct = t ? c/t : 0;
+  const doneSets=(d.sets||[]).filter(x=>x.total&&x.have>=x.total).length;
+  let tip = t ? `Đã đăng ký ${c}/${t} ô (${Math.round(pct*1000)/10}%)` : `Đã đăng ký ${c} món · chưa rõ tổng danh mục`;
+  if (d.sets&&d.sets.length) tip += `&#10;${doneSets}/${d.sets.length} bộ đủ`;
+  if (d.missSlots) tip += `&#10;Còn thiếu ${d.missSlots} ô ≈ ${_lfk(d.missCost)} NESO`;
+  tip += '&#10;Bấm để xem chi tiết bộ sưu tập';
+  // vòng tròn tiến độ, số ở giữa — cùng kiểu với hai cột boss
+  return `<div class="lite-bts" ${click} data-tip="${tip}">${_bossRing(c, t||c, '#f0873c', 26, c>=1000?_lfk(c):c)}</div>`;
 }
 // Vẽ lại đúng một ô BTS sau khi tải xong, không dựng lại cả bảng
 function liteColRefreshCell(addr){
@@ -7830,7 +7833,7 @@ function liteDoneBosses(w, cycle){
   return tgt.filter(b=>bossIsUnlocked(w.address,b.k));
 }
 // Vòng tròn tiến trình: số boss đã mở / tổng, đủ thì đổi màu vàng
-function _bossRing(done, total, color, size){
+function _bossRing(done, total, color, size, label){
   const sz=size||26, r=(sz-4)/2, c=2*Math.PI*r, pct=total?Math.min(1,done/total):0;
   const full=total&&done>=total;
   const col=full?'#38bdf8':color;      // mở đủ cả chu kỳ -> vòng xanh dương
@@ -7839,7 +7842,7 @@ function _bossRing(done, total, color, size){
     ${pct>0?`<circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round"
       stroke-dasharray="${(c*pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${sz/2} ${sz/2})"/>`:''}
     <text x="${sz/2}" y="${sz/2}" text-anchor="middle" dominant-baseline="central"
-      style="font-family:'JetBrains Mono',monospace;font-size:${sz>=26?10:9}px;font-weight:700;fill:${done?col:'var(--muted2)'}">${done}</text>
+      style="font-family:'JetBrains Mono',monospace;font-size:${(label!=null?String(label):String(done)).length>3?8:(sz>=26?10:9)}px;font-weight:700;fill:${done?col:'var(--muted2)'}">${label!=null?label:done}</text>
   </svg>`;
 }
 function _bossAva(b, done){
@@ -8266,7 +8269,7 @@ function renderLiteList(){
         ${infoIcon('Mỗi ô chỉ hiện 1 con số cho gọn — rê chuột vào để xem quy đổi USD/VND.')}
       </div>
       <div style="overflow-x:auto"><div style="min-width:0">
-        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bts','BTS','right','NFT collection · số ô đã đăng ký / tổng số ô có thể đăng ký&#10;Tự tải khi mở tab · bấm vào ô để xem chi tiết bộ sưu tập')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${(()=>{ const t=weeklyTargetBoss();
+        <div class="mvp-lrow head lite-row" style="grid-template-columns:${grid}"><div>#</div>${hc('name','Tên ví')}${hc('player','Player')}${hc('char','Nhân vật')}${hc('world','World','right')}${hc('lv','Lv','right')}${hc('cp','CP','right')}${hc('bts','BTS','center','NFT collection · số ô đã đăng ký / tổng số ô có thể đăng ký&#10;Tự tải khi mở tab · bấm vào ô để xem chi tiết bộ sưu tập')}${hc('bossD','<span style="color:#7fd88f">B. Daily</span>','center','Boss ngày · số trong vòng là số đã mở')}${(()=>{ const t=weeklyTargetBoss();
         return `<div style="display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;overflow:hidden">
           <span onclick="setLiteSort('bossW')" data-tip="Boss tuần · số đã mở&#10;Bấm để sắp xếp" style="cursor:pointer;color:${liteSort.col==='bossW'?'var(--accent)':'#8b7ae8'}">B. Weekly${liteSort.col==='bossW'?(liteSort.dir==='desc'?' ↓':' ↑'):''}</span>
           ${t?`<span onclick="setLiteSort('bossT')" data-tip="Sắp xếp theo boss mục tiêu: ${_mvpEsc(t.name)}&#10;Chưa mở → Đã mở → Slayer" style="cursor:pointer;display:inline-flex;width:13px;height:13px;border-radius:50%;overflow:hidden;border:1px solid ${liteSort.col==='bossT'?'var(--accent)':'var(--border2)'};flex-shrink:0">
